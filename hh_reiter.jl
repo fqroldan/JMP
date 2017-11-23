@@ -167,7 +167,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	σgrid = collect(linspace(0.2, 0.7, Nσ))
 
 	# Debt parameters
-	ρ = 0.25 # Target average maturity of 7 years: ~0.05 at quarterly freq
+	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
 	κ = ρ
 
 	Φπ = 1.5
@@ -733,7 +733,7 @@ end
 
 end # @everywhere
 
-function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=5000, bellman_iter::Int64=maxiter)
+function vfi!(h::Hank; tol::Float64=1e-2, verbose::Bool=true, maxiter::Int64=5000, bellman_iter::Int64=maxiter)
 	print_save("\nSolving household problem: ")
 	time_init = time()
 	t_old = time_init
