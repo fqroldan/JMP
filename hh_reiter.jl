@@ -513,9 +513,9 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, rep, Rᵉ, 
 		end
 	end
 	# isnan(valg)? warn("valg = $valg"): Void
-	F[1] = qg - valg / sum_prob
+	F[1] = qg - valg / valp
 	isnan(F[1])? warn("govt debt pricing error = $(F[1])"): Void
-	Rot  = valf / sum_prob
+	Rot  = valf / valp
 	# Rotemberg_RHS = h.elast * (w/z - (h.elast - 1)/h.elast) + h.η * Rot
 	""" Pensar Rotemberg + Subsidio a la producción!!! """
 	Rotemberg_RHS = h.elast * (w/z - (h.elast - 1)/h.elast) + h.η * Rot
