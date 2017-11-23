@@ -163,7 +163,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 
 	# Grids for endogenous aggregate states
 	bgrid = collect(linspace(0.5, 0.8, Nb)) * 1
-	μgrid = collect(linspace(0.3, 0.8, Nμ)) * 1
+	μgrid = collect(linspace(0.3, 0.5, Nμ)) * 1
 	σgrid = collect(linspace(0.2, 0.7, Nσ))
 
 	# Debt parameters
