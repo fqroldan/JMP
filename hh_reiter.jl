@@ -811,7 +811,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=500
 			print_save("\nNew threshold = $(@sprintf("%0.3g", upd_tol)) ")
 			push!(dist_statefuncs, dist_s)
 			plot(1:length(dist_statefuncs), dist_statefuncs, xlabel = L"t", yscale=:log10, label="")
-			savefig(pwd() * "/convergence_f(S).png")
+			savefig(pwd() * "/../Graphs/convergence_f(S).png")
 			dist_s < 1 ? dist_s < 0.5? upd_η = 0.5: upd_η = 0.25: upd_η = 0.1
 		end
 
@@ -896,8 +896,8 @@ function plot_hh_policies(h::Hank)
 	plot(pc, pω, pv, layout=l, lw = 1.5, xlabel = L"\omega_t", size = (540,720))
 	#plot!(bg_outside = RGBA(0.99,0.99,0.99, 0.))
 	# plot!(right_margin=10px, titlefont=font(11,"Palatino"), guidefont=font(8,"Palatino"), tickfont=font(7,"Palatino"), titlefont=font(12,"Palatino"))
-	savefig(pwd() * "/hh.pdf")
-	savefig(pwd() * "/hh.png")
+	savefig(pwd() * "/../Graphs/hh.pdf")
+	savefig(pwd() * "/../Graphs/hh.png")
 
 	jshow_ω, jshow_ϵ = ceil(Int64, h.Nω/2), ceil(Int64, h.Nϵ/2)
 
@@ -909,8 +909,8 @@ function plot_hh_policies(h::Hank)
 	pω = plot(h.qgrid, h.gω_ext[jshow_ω, jshow_ϵ,jshow_b,jshow_μ,jshow_σ,jshow_z,:,:], title = "Savings", label = "")
 	plot(pc, pω, layout=(2,1), lw = 1.5, xlabel = L"q_t", size = (540,720))
 
-	savefig(pwd() * "/hh_qw.png")
-	savefig(pwd() * "/hh_qw.pdf")
+	savefig(pwd() * "/../Graphs/hh_qw.png")
+	savefig(pwd() * "/../Graphs/hh_qw.pdf")
 
 	return Void
 end
@@ -931,7 +931,7 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.bgrid, vec(Π[:,j,j,j]), title=L"Π", label = "")
 	
 	plot(pR, pT, pq, pΠ, xlabel = L"B_t", layout = (2,2), lw = 1.5)
-	savefig(pwd() * "/fs_b.png")
+	savefig(pwd() * "/../Graphs/fs_b.png")
 
 	pR = plot(h.μgrid, vec(R[j,:,j,j]), title=L"R", label = "")
 	pT = plot(h.μgrid, vec(T[j,:,j,j]), title=L"T", label = "")
@@ -939,7 +939,7 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.μgrid, vec(Π[j,:,j,j]), title=L"Π", label = "")
 	
 	plot(pR, pT, pq, pΠ, xlabel = L"\mu_t", layout = (2,2), lw = 1.5)
-	savefig(pwd() * "/fs_mu.png")
+	savefig(pwd() * "/../Graphs/fs_mu.png")
 
 	pR = plot(h.σgrid, vec(R[j,j,:,j]), title=L"R", label = "")
 	pT = plot(h.σgrid, vec(T[j,j,:,j]), title=L"T", label = "")
@@ -947,7 +947,7 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.σgrid, vec(Π[j,j,:,j]), title=L"Π", label = "")
 	
 	plot(pR, pT, pq, pΠ, xlabel = L"\sigma_t", layout = (2,2), lw = 1.5)
-	savefig(pwd() * "/fs_sigma.png")
+	savefig(pwd() * "/../Graphs/fs_sigma.png")
 
 	pR = plot(h.zgrid, vec(R[j,j,j,:]), title=L"R", label = "")
 	pT = plot(h.zgrid, vec(T[j,j,j,:]), title=L"T", label = "")
@@ -955,7 +955,7 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.zgrid, vec(Π[j,j,j,:]), title=L"Π", label = "")
 	
 	plot(pR, pT, pq, pΠ, xlabel = L"z_t", layout = (2,2), lw = 1.5)
-	savefig(pwd() * "/fs_z.png")
+	savefig(pwd() * "/../Graphs/fs_z.png")
 
 	Void
 end
@@ -982,15 +982,15 @@ function plot_LoM(h::Hank, μ′, σ′)
 	pσz = plot(h.zgrid, vec(σ′[j,j,j,:]), title=L"\sigma", xlabel = L"z_t", label = "")
 	
 	plot(pμb, pσb, pμμ, pσμ, pμσ, pσσ, pμz, pσz, layout = (4,2), lw = 1.5, size = (600,800))
-	savefig(pwd() * "/LoMs.png")
+	savefig(pwd() * "/../Graphs/LoMs.png")
 	Void
 end
 
 
 function print_save(s::String)
 	print(s)
-	output = readstring(pwd()*"/output.txt")
-	write(pwd()*"/output.txt", output * s)
+	output = readstring(pwd()*"/../output.txt")
+	write(pwd()*"/../output.txt", output * s)
 
 	Void
 end
