@@ -9,7 +9,7 @@ include("hh_reiter.jl")
 # Run
 h = Hank();
 showtext = "\nA Theory of Sovereign Risk\n"
-write(pwd()*"/output.txt", showtext)
+write(pwd()*"/../output.txt", showtext)
 print(showtext)
 
 vfi!(h, verbose = true)
