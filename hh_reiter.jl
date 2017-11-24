@@ -159,7 +159,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 
 	Ξ = dot(ϵgrid.^(1/χ), λϵ)^χ
 
-	# θ = (1-τ) * Ξ
+	# θ = (1-τ) / Ξ
 
 	# Grids for endogenous aggregate states
 	bgrid = collect(linspace(0.5, 0.8, Nb)) * 1
@@ -553,7 +553,7 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, rep, B�
 	w, Π, qg = 1e10, 1e10, 1e10
 
 	minw, maxw   = minimum(h.wgrid), maximum(h.wgrid)
-	minΠ, maxΠ   = 0.8, 1.5
+	minΠ, maxΠ   = 0.8, 1.2
 	minqg, maxqg = 0.6, h.Πstar
 
 	function wrap_mktclear_minpack!(x::Vector, fvec=similar(x))
@@ -594,7 +594,7 @@ function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, rep, B′, Rᵉ, T
 		# alg_list = [:LN_BOBYQA; :LN_COBYLA] :GN_ISRES :GN_DIRECT_L_RAND
 		alg_list = [:GN_ISRES; :LN_COBYLA]
 		minw, maxw   = minimum(h.wgrid), maximum(h.wgrid)
-		minΠ, maxΠ   = 0.8, 1.5
+		minΠ, maxΠ   = 0.8, 1.2
 		minqg, maxqg = 0.6, h.Πstar
 
 		ftol = 1e-4
