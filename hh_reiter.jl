@@ -159,21 +159,21 @@ function Hank(;	β = (1/1.06)^(1/4),
 
 	Ξ = dot(ϵgrid.^(1/χ), λϵ)^χ
 
-	# θ = (1-τ) / Ξ
+	θ = (1-τ) * Ξ
 
 	# Grids for endogenous aggregate states
-	bgrid = collect(linspace(0.5, 0.8, Nb)) * 1
-	μgrid = collect(linspace(0.3, 0.5, Nμ)) * 1
-	σgrid = collect(linspace(0.2, 0.7, Nσ))
+	bgrid = collect(linspace(0.7, 0.9, Nb))
+	μgrid = collect(linspace(0.55, 0.75, Nμ))
+	σgrid = collect(linspace(0.5, 0.6, Nσ))
 
 	# Debt parameters
 	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
 	κ = ρ
 
-	Φπ = 1.5
-	ΦL = 1.25
+	Φπ = 30.
+	ΦL = 20.
 
-	η  = 58.25
+	η  = 75.
 	elast = 6.
 
 	# Transitions
@@ -182,7 +182,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	# Prepare grid for cash in hand.
 	""" Make sure that the lowest ω point affords positive c at the worst prices """
 	ωmin	= 1e-2 - (minimum(zgrid)*minimum(ϵgrid))
-	ωmin	= -0.4
+	ωmin	= -0.5
 	ωgrid0	= linspace(0., (ωmax-ωmin)^curv, Nω).^(1/curv)
 	ωgrid0	= ωgrid0 + ωmin
 
@@ -230,7 +230,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	λ = λ/sum(λ)
 
 	qgrid = collect(linspace(.75, 1.25, Nq))
-	wgrid = collect(linspace(.8, 1.25, Nw))
+	wgrid = collect(linspace(.5, 1.5, Nw))
 
 	gc_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nq, Nw)
 	gω_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nq, Nw)
@@ -266,8 +266,8 @@ function Hank(;	β = (1/1.06)^(1/4),
 	debtprice = 0.99 * ones(Ns,)
 	q = 0.99 * ones(Ns,)
 
-	Πstar = 1.02
-	i_star = (2 / 100 + Πstar)^(1/4) - 1
+	Πstar = 1.02^(1/4)
+	i_star = (6 / 100 + Πstar^4)^(1/4) - 1
 	inflation = Πstar * ones(Ns,)
 
 	ξg = zeros(Ns,)
@@ -480,9 +480,9 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, rep, Rᵉ, 
 	Aplus  = valplus  / sum_prob
 	Aminus = valminus / sum_prob
 
-	rS = (Aminus + rep*b*(h.κ + (1-h.ρ)*qg) - ψ) / (Aplus * Π) - 1
+	rS = (Aminus + rep*b*(h.κ + (1-h.ρ)*qg) + ψ) / (Aplus * Π) - 1
 
-	# rS = (Aminus + rep*b*(h.κ + (1-h.ρ)*qg) ) / (Aplus * Π) - 1
+	rS = (Aminus + rep*b*(h.κ + (1-h.ρ)*qg) ) / (Aplus * Π) - 1
 
 	valf, valg, valp, valv, sum_prob = 0., 0., 0., 0., 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
@@ -553,7 +553,7 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, rep, B�
 	w, Π, qg = 1e10, 1e10, 1e10
 
 	minw, maxw   = minimum(h.wgrid), maximum(h.wgrid)
-	minΠ, maxΠ   = 0.8, 1.2
+	minΠ, maxΠ   = 0.8, 1.1
 	minqg, maxqg = 0.6, h.Πstar
 
 	function wrap_mktclear_minpack!(x::Vector, fvec=similar(x))
@@ -594,7 +594,7 @@ function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, rep, B′, Rᵉ, T
 		# alg_list = [:LN_BOBYQA; :LN_COBYLA] :GN_ISRES :GN_DIRECT_L_RAND
 		alg_list = [:GN_ISRES; :LN_COBYLA]
 		minw, maxw   = minimum(h.wgrid), maximum(h.wgrid)
-		minΠ, maxΠ   = 0.8, 1.2
+		minΠ, maxΠ   = 0.8, 1.1
 		minqg, maxqg = 0.6, h.Πstar
 
 		ftol = 1e-4
@@ -803,7 +803,7 @@ function vfi!(h::Hank; tol::Float64=1e-2, verbose::Bool=true, maxiter::Int64=500
 
 			dist_s = 1/upd_η * max(dist_R, dist_T, dist_ℓ, dist_Rep, dist_q, dist_Π)
 			print_save("\nDistance in state functions = $(@sprintf("%0.3g", dist_s)) ")
-			upd_tol = update_tolerance(dist)
+			upd_tol = update_tolerance(dist, dist_s)
 			dist = max(dist, dist_s)
 			plot_hh_policies(h)
 			plot_state_funcs(h)
@@ -842,34 +842,18 @@ function vfi!(h::Hank; tol::Float64=1e-2, verbose::Bool=true, maxiter::Int64=500
 	Void
 end
 
-function update_tolerance(upd_tol::Float64)
-	if upd_tol >= 5e-2
-		upd_tol = max(upd_tol - 1e-2, 5e-2)
-	elseif upd_tol >= 1e-2
-		upd_tol = max(upd_tol - 5e-3, 1e-2)
-	elseif upd_tol >= 5e-3
-		upd_tol = max(upd_tol - 1e-3, 5e-3)
-	elseif upd_tol >= 1e-3
-		upd_tol = max(upd_tol - 5e-4, 1e-3)
-	elseif upd_tol >= 5e-4
-		upd_tol = max(upd_tol - 1e-4, 5e-4)
-	elseif upd_tol >= 1e-4
-		upd_tol = max(upd_tol - 5e-5, 1e-4)
-	elseif upd_tol >= 5e-5
-		upd_tol = max(upd_tol - 1e-5, 5e-5)
-	elseif upd_tol >= 1e-5
-		upd_tol = max(upd_tol - 5e-6, 1e-5)
-	elseif upd_tol >= 5e-6
-		upd_tol = max(upd_tol - 1e-6, 5e-6)
-	elseif upd_tol >= 1e-6
-		upd_tol = max(upd_tol - 5e-7, 1e-6)
-	elseif upd_tol >= 5e-7
-		upd_tol = max(upd_tol - 1e-7, 5e-7)
-	elseif upd_tol >= 1e-7
-		upd_tol = max(upd_tol - 5e-8, 1e-7)
-	else
-		upd_tol = max(upd_tol - 1e-8, 5e-8)
+function update_tolerance(upd_tol::Float64, dist_s)
+
+	pot = floor(log10(upd_tol))
+	bas = floor(upd_tol / 10.0^pot)
+
+	a, b, c, d = 1.0, pot, 5.0, pot
+	if bas >= 5
+		a, b, c, d = 5.0, pot-1, 1.0, pot
 	end
+
+	upd_tol = max(upd_tol - a*10.0^b, c*10.0^d)
+
 	return upd_tol
 end
 
@@ -918,43 +902,68 @@ end
 function plot_state_funcs(h::Hank)
 	R, T, ℓ, Rep, q, Π = _unpackstatefs(h)
 
+	P = kron(h.Ps, kron(h.Pϵ, speye(h.Nω)))
+
+	EβR = P * (R ./ Π) ./ q
+	EβR = h.β * reshape(EβR, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+
 	R	= reshape(R, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	T	= reshape(T, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	q	= reshape(q, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	Π	= reshape(Π, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	Π 	= (Π.^4 - 1)*100
+	w 	= reshape(h.wage, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	qg 	= reshape(h.debtprice, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 
 	j = 3
 
-	pR = plot(h.bgrid, vec(R[:,j,j,j]), title=L"R", label = "")
+	l = @layout([a b; c d; e f g])
+
+	pEβR= plot(h.bgrid, vec(EβR[:,j,j,j]), title=L"\beta E[R^S]", label = "")
+	pqg = plot(h.bgrid, vec(qg[:,j,j,j]), title=L"q^g", label = "")
+	pΠ = plot(h.bgrid, vec(Π[:,j,j,j]), title=L"Π", label = "")
 	pT = plot(h.bgrid, vec(T[:,j,j,j]), title=L"T", label = "")
 	pq = plot(h.bgrid, vec(q[:,j,j,j]), title=L"q", label = "")
-	pΠ = plot(h.bgrid, vec(Π[:,j,j,j]), title=L"Π", label = "")
+	pw = plot(h.bgrid, vec(w[:,j,j,j]), title=L"w", label = "")
+	pR = plot(h.bgrid, vec(R[:,j,j,j]), title=L"R", label = "")
 	
-	plot(pR, pT, pq, pΠ, xlabel = L"B_t", layout = (2,2), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pT, pq, pw, pR, xlabel = L"B_t", layout = l, lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_b.png")
 
-	pR = plot(h.μgrid, vec(R[j,:,j,j]), title=L"R", label = "")
+	l = @layout([a b; c d; e f g])
+	pEβR= plot(h.μgrid, vec(EβR[j,:,j,j]), title=L"\beta E[R^S]", label = "")
+	pqg = plot(h.μgrid, vec(qg[j,:,j,j]), title=L"q^g", label = "")
+	pΠ = plot(h.μgrid, vec(Π[j,:,j,j]), title=L"Π", label = "")
 	pT = plot(h.μgrid, vec(T[j,:,j,j]), title=L"T", label = "")
 	pq = plot(h.μgrid, vec(q[j,:,j,j]), title=L"q", label = "")
-	pΠ = plot(h.μgrid, vec(Π[j,:,j,j]), title=L"Π", label = "")
+	pw = plot(h.μgrid, vec(w[j,:,j,j]), title=L"w", label = "")
+	pR = plot(h.μgrid, vec(R[j,:,j,j]), title=L"R", label = "")
 	
-	plot(pR, pT, pq, pΠ, xlabel = L"\mu_t", layout = (2,2), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pT, pq, pw, pR, xlabel = L"\mu_t", layout = l, lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_mu.png")
 
-	pR = plot(h.σgrid, vec(R[j,j,:,j]), title=L"R", label = "")
+	l = @layout([a b; c d; e f g])
+	pEβR= plot(h.σgrid, vec(EβR[j,j,:,j]), title=L"\beta E[R^S]", label = "")
+	pqg = plot(h.σgrid, vec(qg[j,j,:,j]), title=L"q^g", label = "")
+	pΠ = plot(h.σgrid, vec(Π[j,j,:,j]), title=L"Π", label = "")
 	pT = plot(h.σgrid, vec(T[j,j,:,j]), title=L"T", label = "")
 	pq = plot(h.σgrid, vec(q[j,j,:,j]), title=L"q", label = "")
-	pΠ = plot(h.σgrid, vec(Π[j,j,:,j]), title=L"Π", label = "")
+	pw = plot(h.σgrid, vec(w[j,j,:,j]), title=L"w", label = "")
+	pR = plot(h.σgrid, vec(R[j,j,:,j]), title=L"R", label = "")
 	
-	plot(pR, pT, pq, pΠ, xlabel = L"\sigma_t", layout = (2,2), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pT, pq, pw, pR, xlabel = L"\sigma_t", layout = l, lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_sigma.png")
 
-	pR = plot(h.zgrid, vec(R[j,j,j,:]), title=L"R", label = "")
+	l = @layout([a b; c d; e f g])
+	pEβR= plot(h.zgrid, vec(EβR[j,j,j,:]), title=L"\beta E[R^S]", label = "")
+	pqg = plot(h.zgrid, vec(qg[j,j,j,:]), title=L"q^g", label = "")
+	pΠ = plot(h.zgrid, vec(Π[j,j,j,:]), title=L"Π", label = "")
 	pT = plot(h.zgrid, vec(T[j,j,j,:]), title=L"T", label = "")
 	pq = plot(h.zgrid, vec(q[j,j,j,:]), title=L"q", label = "")
-	pΠ = plot(h.zgrid, vec(Π[j,j,j,:]), title=L"Π", label = "")
+	pw = plot(h.zgrid, vec(w[j,j,j,:]), title=L"w", label = "")
+	pR = plot(h.zgrid, vec(R[j,j,j,:]), title=L"R", label = "")
 	
-	plot(pR, pT, pq, pΠ, xlabel = L"z_t", layout = (2,2), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pT, pq, pw, pR, xlabel = L"z_t", layout = l, lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_z.png")
 
 	Void
