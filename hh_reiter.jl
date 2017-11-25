@@ -124,11 +124,11 @@ function Hank(;	β = (1/1.06)^(1/4),
 				θ = 1.,
 				χ = 2.,
 				τ = 0.3,
-				ωmax = 5.,
+				ωmax = 7.5,
 				curv = .4,
 				order = 3,
 				Nω = 6,
-				Nω_fine = 500,
+				Nω_fine = 1000,
 				ρϵ = 0.9,
 				σϵ = 0.1,
 				Nϵ = 3,
@@ -875,7 +875,7 @@ end
 function maketol(bas, pot)
 	step_tol, min_tol = 10.0^pot, 5*10.0^pot
 	if bas >= 5
-		step_tol, min_tol = 5*10.0^(pot-1), 1.0^pot
+		step_tol, min_tol = 5*10.0^(pot-1), 10.0^pot
 	end
 
 	return step_tol, min_tol
@@ -885,14 +885,11 @@ function update_tolerance(upd_tol::Float64, dist_s::Float64)
 
 	pot, bas = decomp(upd_tol)
 	pot_s, bas_s = decomp(dist_s)
-
 	if pot_s >= 1
 		pot = max(pot, pot_s-3)
 	end
 
 	step_tol, min_tol = maketol(bas, pot)
-	println("step_tol = $step_tol")
-	println("min_tol = $min_tol")
 	upd_tol = max(upd_tol - step_tol, min_tol)
 
 	return upd_tol
