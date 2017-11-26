@@ -172,7 +172,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
 	κ = ρ
 
-	Φπ = 5.0
+	Φπ = 500.0
 	ΦL = 2.0
 
 	η  = 250.0
@@ -402,6 +402,15 @@ function opt_value!(h::Hank, s::Matrix{Float64}, R, T, ℓ, q, Π; newton::Bool=
 	vf = zeros(h.gω)
 	if resolve
 		h.gω, vf = golden_method((gω -> value(h, gω, s, upper_bound, ℓ, q)), lower_bound, upper_bound)
+		if minimum(h.gω) > h.ωmin
+			Void
+		elseif isapprox(minimum(h.gω), h.ωmin)
+			h.gω = max.(h.gω, h.ωmin)
+			h.gc = (upper_bound - h.gω) .* q
+		else
+			throw(error("Something wrong with the individual's problem"))
+		end
+
 		h.cω = h.Φ\h.gω
 	else
 		vf = value(h, h.gω, s, upper_bound, ℓ, q)
@@ -462,7 +471,7 @@ function extend_state_space!(h::Hank, R, T, q, Π)
 		# Re-solve for these values of w and q
 		ℓ = h.θ^(-1/h.χ) * (h.s[:,2] .* wv .* (1 - h.τ)).^((1+h.χ)/h.χ)
 		opt_value!(h, h.s, R, T, ℓ, qv, Π)
-		
+			
 		gc_ext[:,:,:,:,:,:,jq,jw] = reshape(h.gc, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)
 		gω_ext[:,:,:,:,:,:,jq,jw] = reshape(h.gω, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)
 	end
@@ -477,14 +486,19 @@ function extend_state_space!(h::Hank, R, T, q, Π)
 	Void
 end
 
+function _unpack_origvars(x, xmax, xmin)	
+	f(m::Float64, cmax, cmin) = cmax - (cmax-cmin)/(1+exp(m))
+	w  = f(x[1], xmax[1], xmin[1])
+	Π  = f(x[2], xmax[2], xmin[2])
+	qg = f(x[3], xmax[3], xmin[3])
+end
+
+
 function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, x, xmax=x, xmin=x; get_others::Bool = false, orig_vars::Bool=true)
 	F = zeros(x)
 	w, Π, qg = x[1], x[2], x[3]
 	if orig_vars == false
-		f(m::Float64, cmax, cmin) = cmax - (cmax-cmin)/(1+exp(m))
-		w  = f(x[1], xmax[1], xmin[1])
-		Π  = f(x[2], xmax[2], xmin[2])
-		qg = f(x[3], xmax[3], xmin[3])
+		w, Π, qg = _unpack_origvars(m, cmax, cmin)
 	end
 
 	L = (w * (1-h.τ)/h.θ * h.Ξ)^(1./h.χ)
@@ -522,10 +536,17 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 				ext_ξg = extrapolate(itp_ξg, Interpolations.Flat())
 				ext_ξf = extrapolate(itp_ξf, Interpolations.Flat())
 				gω = ext_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
+
+				gω < h.ωmin && ispprox(gω, h.ωmin)? gω = h.ωmin: Void
+				
 				uc = ext_uc[ω_corrected, ϵv, b, μ, σ, z, q, w]
 				ξg = ext_ξg[ω_corrected, ϵv, b, μ, σ, z]
 				ξf = ext_ξf[ω_corrected, ϵv, b, μ, σ, z]
+			else
+				gω < h.ωmin? warn("gω < h.ωmin at ω_corr = $(ω_corrected)"): Void
 			end
+
+			gω < h.ωmin? warn("gω - h.ωmin = $(gω - h.ωmin) at ω_corr = $(ω_corrected)"): Void
 
 			valf += prob * (gω / uc * ξf / Y)
 			valg += prob * (gω / uc * ξg)
