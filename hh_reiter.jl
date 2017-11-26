@@ -512,20 +512,20 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 			rᵉ = (Rᵉ - 1)*(ωmv>=0)
 			ω_corrected = (Rʳ*ωmv - Tʳ + Tᵉ)/((1+rᵉ)/Πᵉ)
 
-			itp_obj_gω = itp_gω
-			itp_obj_uc = itp_uc
-			itp_obj_ξg = itp_ξg
-			itp_obj_ξf = itp_ξf
+			gω = itp_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
+			uc = itp_uc[ω_corrected, ϵv, b, μ, σ, z, q, w]
+			ξg = itp_ξg[ω_corrected, ϵv, b, μ, σ, z]
+			ξf = itp_ξf[ω_corrected, ϵv, b, μ, σ, z]
 			if ω_corrected < h.ωgrid[1] || ω_corrected > h.ωgrid[end]
-				itp_obj_gω = extrapolate(itp_gω, Interpolations.Flat()) 
-				itp_obj_uc = extrapolate(itp_uc, Interpolations.Flat()) 
-				itp_obj_ξg = extrapolate(itp_ξg, Interpolations.Flat())
-				itp_obj_ξf = extrapolate(itp_ξf, Interpolations.Flat())
+				ext_gω = extrapolate(itp_gω, Interpolations.Flat()) 
+				ext_uc = extrapolate(itp_uc, Interpolations.Flat()) 
+				ext_ξg = extrapolate(itp_ξg, Interpolations.Flat())
+				ext_ξf = extrapolate(itp_ξf, Interpolations.Flat())
+				gω = ext_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
+				uc = ext_uc[ω_corrected, ϵv, b, μ, σ, z, q, w]
+				ξg = ext_ξg[ω_corrected, ϵv, b, μ, σ, z]
+				ξf = ext_ξf[ω_corrected, ϵv, b, μ, σ, z]
 			end
-			gω = itp_obj_gω[ω_corrected, ϵv, b, μ, σ, z]
-			uc = itp_obj_uc[ω_corrected, ϵv, b, μ, σ, z]
-			ξg = itp_obj_ξg[ω_corrected, ϵv, b, μ, σ, z]
-			ξf = itp_obj_ξf[ω_corrected, ϵv, b, μ, σ, z]
 
 			valf += prob * (gω / uc * ξf / Y)
 			valg += prob * (gω / uc * ξg)
