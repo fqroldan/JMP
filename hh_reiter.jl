@@ -517,8 +517,14 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 			BC = ( (1+rS*(ωmv>=0))/Π * ωmv + ℓ - Tʳ ) /q
 			cons = (BC - gω) .* q
 			uc = uprime(h, cons-ℓ/(1-h.χ))
-			ξg = itp_ξg[ω_corrected, ϵv, b, μ, σ, z]
-			ξf = itp_ξf[ω_corrected, ϵv, b, μ, σ, z]
+			itp_obj_ξg = itp_ξg
+			itp_obj_ξf = itp_ξf
+			if ω_corrected < h.ωgrid[1] || ω_corrected > h.ωgrid[end]
+				itp_obj_ξg = extrapolate(itp_ξg, Interpolations.Flat())
+				itp_obj_ξf = extrapolate(itp_ξf, Interpolations.Flat())
+			end
+			ξg = itp_obj_ξg[ω_corrected, ϵv, b, μ, σ, z]
+			ξf = itp_obj_ξf[ω_corrected, ϵv, b, μ, σ, z]
 
 			valf += prob * (gω / uc * ξf / Y)
 			valg += prob * (gω / uc * ξg)
