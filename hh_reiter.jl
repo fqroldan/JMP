@@ -512,17 +512,18 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 			rᵉ = (Rᵉ - 1)*(ωmv>=0)
 			ω_corrected = (Rʳ*ωmv - Tʳ + Tᵉ)/((1+rᵉ)/Πᵉ)
 
-			gω = max(itp_gω[ω_corrected, ϵv, b, μ, σ, z, q, w], h.ωmin)
-			ℓ = h.θ^(-1/h.χ) * (ϵv * w * (1 - h.τ)).^((1+h.χ)/h.χ)
-			BC = ( (1+rS*(ωmv>=0))/Π * ωmv + ℓ - Tʳ ) /q
-			cons = (BC - gω) .* q
-			uc = uprime(h, cons-ℓ/(1-h.χ))
+			itp_obj_gω = itp_gω
+			itp_obj_uc = itp_uc
 			itp_obj_ξg = itp_ξg
 			itp_obj_ξf = itp_ξf
 			if ω_corrected < h.ωgrid[1] || ω_corrected > h.ωgrid[end]
+				itp_obj_gω = extrapolate(itp_gω, Interpolations.Flat()) 
+				itp_obj_uc = extrapolate(itp_uc, Interpolations.Flat()) 
 				itp_obj_ξg = extrapolate(itp_ξg, Interpolations.Flat())
 				itp_obj_ξf = extrapolate(itp_ξf, Interpolations.Flat())
 			end
+			gω = itp_obj_gω[ω_corrected, ϵv, b, μ, σ, z]
+			uc = itp_obj_uc[ω_corrected, ϵv, b, μ, σ, z]
 			ξg = itp_obj_ξg[ω_corrected, ϵv, b, μ, σ, z]
 			ξf = itp_obj_ξf[ω_corrected, ϵv, b, μ, σ, z]
 
