@@ -165,25 +165,24 @@ function Hank(;	β = (1/1.06)^(1/4),
 
 	# Grids for endogenous aggregate states
 	bgrid = collect(linspace(0.7, 0.9, Nb))
-	μgrid = collect(linspace(-0.1, 0.4, Nμ))
-	σgrid = collect(linspace(0.5, 2.0, Nσ))
+	μgrid = collect(linspace(0.0, 0.4, Nμ))
+	σgrid = collect(linspace(0.5, 1.5, Nσ))
 
 	# Debt parameters
 	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
 	κ = ρ
 
-	Φπ = 30.
-	ΦL = 20.
+	Φπ = 5.0
+	ΦL = 2.0
 
-	η  = 75.
-	elast = 6.
+	η  = 250.0
+	elast = 6.0
 
 	# Transitions
 	Ps  = Array{Float64}(Nb*Nμ*Nσ*Nz, Nb*Nμ*Nσ*Nz)
 
 	# Prepare grid for cash in hand.
 	""" Make sure that the lowest ω point affords positive c at the worst prices """
-	ωmin	= 1e-2 - (minimum(zgrid)*minimum(ϵgrid))
 	ωmin	= -1.0
 	ωgrid0	= linspace(0., (ωmax-ωmin)^curv, Nω).^(1/curv)
 	ωgrid0	= ωgrid0 + ωmin
@@ -232,7 +231,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	λ = λ/sum(λ)
 
 	qgrid = collect(linspace(.85, 1.1, Nq))
-	wgrid = collect(linspace(.85, 1.15, Nw))
+	wgrid = collect(linspace(.9, 1.1, Nw))
 
 	gc_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nq, Nw)
 	gω_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nq, Nw)
@@ -269,7 +268,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	q = 0.99 * ones(Ns,)
 
 	Πstar = 1.02^(1/4)
-	i_star = (5 / 100 + Πstar^4)^(1/4) - 1
+	i_star = (2 / 100 + Πstar^4)^(1/4) - 1
 	inflation = Πstar * ones(Ns,)
 
 	ξg = zeros(Ns,)
@@ -342,7 +341,7 @@ function utility(h::Hank, c_vec::Vector)
 	end
 end
 
-function uprime(h::Hank, c_vec::Vector)
+function uprime(h::Hank, c_vec)
 	u = zeros(size(c_vec))
 	for (jc, cv) in enumerate(c_vec)
 		if cv > 0
@@ -496,11 +495,9 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 	i = (1+h.i_star) * (Π/h.Πstar)^h.Φπ * L^h.ΦL - 1
 	q = 1/(1+i)
 
-	ψ = Y * (1 - w/z - 0.5*h.η*(Π/h.Πstar - 1)^2) # These are 'real' profits, Ψ/P in the paper
+	ψ = Y * (1 - w/z - 0.5*h.η*(Π/h.Πstar - 1)^2)
 
-	rS = (Aminus + rep*b*(h.κ + (1-h.ρ)*qg) + ψ) / (Aplus * Π) - 1
-
-	rS = (Aminus + rep*b*(h.κ + (1-h.ρ)*qg) ) / (Aplus * Π) - 1
+	rS = ((Aminus + rep*b*(h.κ + (1-h.ρ)*qg) + ψ) / Aplus) - 1
 
 	valf, valg, valp, valv, sum_prob = 0., 0., 0., 0., 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
@@ -511,15 +508,15 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 
 			prob = pdf(LogNormal(μ, σ), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
 
-			""" Reemplazar con Cubatures """
-
-
 			Rʳ = (1+rS*(ωmv>=0))/Π
 			rᵉ = (Rᵉ - 1)*(ωmv>=0)
 			ω_corrected = (Rʳ*ωmv - Tʳ + Tᵉ)/((1+rᵉ)/Πᵉ)
 
 			gω = max(itp_gω[ω_corrected, ϵv, b, μ, σ, z, q, w], h.ωmin)
-			uc = itp_uc[ω_corrected, ϵv, b, μ, σ, z, q, w]
+			ℓ = h.θ^(-1/h.χ) * (ϵv * w * (1 - h.τ)).^((1+h.χ)/h.χ)
+			BC = ( (1+rS*(ωmv>=0))/Π * ωmv + ℓ - Tʳ ) /q
+			cons = (BC - gω) .* q
+			uc = uprime(h, cons-ℓ/(1-h.χ))
 			ξg = itp_ξg[ω_corrected, ϵv, b, μ, σ, z]
 			ξf = itp_ξf[ω_corrected, ϵv, b, μ, σ, z]
 
@@ -530,15 +527,12 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 			sum_prob += prob
 		end
 	end
-	# isnan(valg)? warn("valg = $valg"): Void
 	F[1] = qg - valg / valp
 	isnan(F[1])? warn("govt debt pricing error = $(F[1])"): Void
 	Rot  = valf / valp
-	# Rotemberg_RHS = h.elast * (w/z - (h.elast - 1)/h.elast) + h.η * Rot
 	""" Pensar Rotemberg + Subsidio a la producción!!! """
 	Rotemberg_RHS = h.elast * (w/z - (h.elast - 1)/h.elast) + h.η * Rot
 	
-	# isnan(valf)? warn("valf = $valf"): Void
 	if 0.25 + Rotemberg_RHS/h.η > 0
 		F[2] = Π / h.Πstar - (0.5 + sqrt.(0.25 + Rotemberg_RHS/h.η))
 	else
@@ -952,10 +946,20 @@ function plot_state_funcs(h::Hank)
 	T	= reshape(T, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	q	= reshape(q, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	Π	= reshape(Π, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	Π 	= (Π.^4 - 1)*100
 	w 	= reshape(h.wage, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	qg 	= reshape(h.debtprice, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 
+
+	Z = zeros(h.Nb, h.Nμ, h.Nσ, h.Nz)
+	for (jz, zv) in enumerate(h.zgrid)
+		Z[:,:,:,jz] = zv
+	end	
+	L = (w * (1-h.τ)/h.θ * h.Ξ).^(1/h.χ)
+	Y = Z .* L
+
+	ψ = Y .* (1 - w./Z - 0.5*h.η*(Π/h.Πstar - 1).^2)
+
+	Π 	= (Π.^4 - 1)*100
 	j = 3
 
 	# l = @layout([a b; c d; e f; g h i])
@@ -965,12 +969,12 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.bgrid, vec(Π[:,j,j,j]), title=L"Π", label = "")
 	pAp = plot(h.bgrid, vec(Aplus_mat[:,j,j,j]), title=L"A^+", label = "")
 	pAm = plot(h.bgrid, vec(Aminus_mat[:,j,j,j]), title=L"A^-", label = "")
+	pL = plot(h.bgrid, vec(L[:,j,j,j]), title=L"L", label = "")
 	pT = plot(h.bgrid, vec(T[:,j,j,j]), title=L"T", label = "")
-	pq = plot(h.bgrid, vec(q[:,j,j,j]), title=L"q", label = "")
 	pw = plot(h.bgrid, vec(w[:,j,j,j]), title=L"w", label = "")
-	pR = plot(h.bgrid, vec(R[:,j,j,j]), title=L"R", label = "")
+	pψ = plot(h.bgrid, vec(ψ[:,j,j,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, pT, pq, pw, pR, xlabel = L"B_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pAp, pAm, pL, pT, pw, pψ, xlabel = L"B_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_b.png")
 
 	# l = @layout([a b; c d; e f g])
@@ -979,12 +983,12 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.μgrid, vec(Π[j,:,j,j]), title=L"Π", label = "")
 	pAp = plot(h.μgrid, vec(Aplus_mat[j,:,j,j]), title=L"A^+", label = "")
 	pAm = plot(h.μgrid, vec(Aminus_mat[j,:,j,j]), title=L"A^-", label = "")
+	pL = plot(h.μgrid, vec(L[j,:,j,j]), title=L"L", label = "")
 	pT = plot(h.μgrid, vec(T[j,:,j,j]), title=L"T", label = "")
-	pq = plot(h.μgrid, vec(q[j,:,j,j]), title=L"q", label = "")
 	pw = plot(h.μgrid, vec(w[j,:,j,j]), title=L"w", label = "")
-	pR = plot(h.μgrid, vec(R[j,:,j,j]), title=L"R", label = "")
+	pψ = plot(h.μgrid, vec(ψ[j,:,j,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, pT, pq, pw, pR, xlabel = L"\mu_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pAp, pAm, pL, pT, pw, pψ, xlabel = L"\mu_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_mu.png")
 
 	# l = @layout([a b; c d; e f g])
@@ -993,12 +997,12 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.σgrid, vec(Π[j,j,:,j]), title=L"Π", label = "")
 	pAp = plot(h.σgrid, vec(Aplus_mat[j,j,:,j]), title=L"A^+", label = "")
 	pAm = plot(h.σgrid, vec(Aminus_mat[j,j,:,j]), title=L"A^-", label = "")
+	pL = plot(h.σgrid, vec(L[j,j,:,j]), title=L"L", label = "")
 	pT = plot(h.σgrid, vec(T[j,j,:,j]), title=L"T", label = "")
-	pq = plot(h.σgrid, vec(q[j,j,:,j]), title=L"q", label = "")
 	pw = plot(h.σgrid, vec(w[j,j,:,j]), title=L"w", label = "")
-	pR = plot(h.σgrid, vec(R[j,j,:,j]), title=L"R", label = "")
+	pψ = plot(h.σgrid, vec(ψ[j,j,:,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, pT, pq, pw, pR, xlabel = L"\sigma_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pAp, pAm, pL, pT, pw, pψ, xlabel = L"\sigma_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_sigma.png")
 
 	# l = @layout([a b; c d; e f g])
@@ -1007,12 +1011,12 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.zgrid, vec(Π[j,j,j,:]), title=L"Π", label = "")
 	pAp = plot(h.zgrid, vec(Aplus_mat[j,j,j,:]), title=L"A^+", label = "")
 	pAm = plot(h.zgrid, vec(Aminus_mat[j,j,j,:]), title=L"A^-", label = "")
+	pL = plot(h.zgrid, vec(L[j,j,j,:]), title=L"L", label = "")
 	pT = plot(h.zgrid, vec(T[j,j,j,:]), title=L"T", label = "")
-	pq = plot(h.zgrid, vec(q[j,j,j,:]), title=L"q", label = "")
 	pw = plot(h.zgrid, vec(w[j,j,j,:]), title=L"w", label = "")
-	pR = plot(h.zgrid, vec(R[j,j,j,:]), title=L"R", label = "")
+	pψ = plot(h.zgrid, vec(ψ[j,j,j,:]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, pT, pq, pw, pR, xlabel = L"z_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pAp, pAm, pL, pT, pw, pψ, xlabel = L"z_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_z.png")
 
 	Void
