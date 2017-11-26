@@ -268,7 +268,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	q = 0.99 * ones(Ns,)
 
 	Πstar = 1.02^(1/4)
-	i_star = (2 / 100 + Πstar^4)^(1/4) - 1
+	i_star = (4 / 100 + Πstar^4)^(1/4) - 1
 	inflation = Πstar * ones(Ns,)
 
 	ξg = zeros(Ns,)
@@ -491,6 +491,8 @@ function _unpack_origvars(x, xmax, xmin)
 	w  = f(x[1], xmax[1], xmin[1])
 	Π  = f(x[2], xmax[2], xmin[2])
 	qg = f(x[3], xmax[3], xmin[3])
+
+	return w, Π, qg
 end
 
 
@@ -498,7 +500,7 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 	F = zeros(x)
 	w, Π, qg = x[1], x[2], x[3]
 	if orig_vars == false
-		w, Π, qg = _unpack_origvars(m, cmax, cmin)
+		w, Π, qg = _unpack_origvars(x, xmax, xmin)
 	end
 
 	L = (w * (1-h.τ)/h.θ * h.Ξ)^(1./h.χ)
@@ -514,6 +516,7 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 	rS = ((Aminus + rep*b*(h.κ + (1-h.ρ)*qg) + ψ) / Aplus) - 1
 
 	valf, valg, valp, valv, sum_prob = 0., 0., 0., 0., 0.
+	totcount, incount, outcount = 0, 0, 0
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		for jω = 1:length(h.ωgrid_fine)-1
 			ωv  = h.ωgrid_fine[jω]
@@ -530,7 +533,7 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 			uc = itp_uc[ω_corrected, ϵv, b, μ, σ, z, q, w]
 			ξg = itp_ξg[ω_corrected, ϵv, b, μ, σ, z]
 			ξf = itp_ξf[ω_corrected, ϵv, b, μ, σ, z]
-			if ω_corrected < h.ωgrid[1] || ω_corrected > h.ωgrid[end]
+			if ω_corrected < h.ωgrid[1] || ω_corrected > h.ωgrid[end] || q < h.qgrid[1] || q > h.qgrid[end]
 				ext_gω = extrapolate(itp_gω, Interpolations.Flat()) 
 				ext_uc = extrapolate(itp_uc, Interpolations.Flat()) 
 				ext_ξg = extrapolate(itp_ξg, Interpolations.Flat())
@@ -542,19 +545,25 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 				uc = ext_uc[ω_corrected, ϵv, b, μ, σ, z, q, w]
 				ξg = ext_ξg[ω_corrected, ϵv, b, μ, σ, z]
 				ξf = ext_ξf[ω_corrected, ϵv, b, μ, σ, z]
+				outcount += 1
 			else
-				gω < h.ωmin? warn("gω < h.ωmin at ω_corr = $(ω_corrected)"): Void
+				gω < h.ωmin? warn("gω - h.ωmin = $(gω - h.ωmin) at ω_corr = $(ω_corrected)"): Void
+				incount += 1
 			end
-
-			gω < h.ωmin? warn("gω - h.ωmin = $(gω - h.ωmin) at ω_corr = $(ω_corrected)"): Void
 
 			valf += prob * (gω / uc * ξf / Y)
 			valg += prob * (gω / uc * ξg)
 			valp += prob * (gω)
 			valv += prob * (gω)^2
 			sum_prob += prob
+
+			totcount += 1
 		end
 	end
+	if incount + outcount > 0 
+		println("$incount errors within bounds, $outcount outside. Total $totcount")
+	end
+
 	F[1] = qg - valg / valp
 	isnan(F[1])? warn("govt debt pricing error = $(F[1])"): Void
 	Rot  = valf / valp
@@ -988,6 +997,9 @@ function plot_state_funcs(h::Hank)
 	ψ = Y .* (1 - w./Z - 0.5*h.η*(Π/h.Πstar - 1).^2)
 
 	Π 	= (Π.^4 - 1)*100
+
+	i = ((1./q)^4 - 1) * 100 # Annualized percent nominal rate
+
 	j = 3
 
 	# l = @layout([a b; c d; e f; g h i])
@@ -997,12 +1009,12 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.bgrid, vec(Π[:,j,j,j]), title=L"Π", label = "")
 	pAp = plot(h.bgrid, vec(Aplus_mat[:,j,j,j]), title=L"A^+", label = "")
 	pAm = plot(h.bgrid, vec(Aminus_mat[:,j,j,j]), title=L"A^-", label = "")
-	pL = plot(h.bgrid, vec(L[:,j,j,j]), title=L"L", label = "")
+	p_i = plot(h.bgrid, vec(i[:,j,j,j]), title=L"i", label = "")
 	pT = plot(h.bgrid, vec(T[:,j,j,j]), title=L"T", label = "")
 	pw = plot(h.bgrid, vec(w[:,j,j,j]), title=L"w", label = "")
 	pψ = plot(h.bgrid, vec(ψ[:,j,j,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, pL, pT, pw, pψ, xlabel = L"B_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"B_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_b.png")
 
 	# l = @layout([a b; c d; e f g])
@@ -1011,12 +1023,12 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.μgrid, vec(Π[j,:,j,j]), title=L"Π", label = "")
 	pAp = plot(h.μgrid, vec(Aplus_mat[j,:,j,j]), title=L"A^+", label = "")
 	pAm = plot(h.μgrid, vec(Aminus_mat[j,:,j,j]), title=L"A^-", label = "")
-	pL = plot(h.μgrid, vec(L[j,:,j,j]), title=L"L", label = "")
+	p_i = plot(h.μgrid, vec(i[j,:,j,j]), title=L"i", label = "")
 	pT = plot(h.μgrid, vec(T[j,:,j,j]), title=L"T", label = "")
 	pw = plot(h.μgrid, vec(w[j,:,j,j]), title=L"w", label = "")
 	pψ = plot(h.μgrid, vec(ψ[j,:,j,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, pL, pT, pw, pψ, xlabel = L"\mu_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"\mu_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_mu.png")
 
 	# l = @layout([a b; c d; e f g])
@@ -1025,12 +1037,12 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.σgrid, vec(Π[j,j,:,j]), title=L"Π", label = "")
 	pAp = plot(h.σgrid, vec(Aplus_mat[j,j,:,j]), title=L"A^+", label = "")
 	pAm = plot(h.σgrid, vec(Aminus_mat[j,j,:,j]), title=L"A^-", label = "")
-	pL = plot(h.σgrid, vec(L[j,j,:,j]), title=L"L", label = "")
+	p_i = plot(h.σgrid, vec(i[j,j,:,j]), title=L"i", label = "")
 	pT = plot(h.σgrid, vec(T[j,j,:,j]), title=L"T", label = "")
 	pw = plot(h.σgrid, vec(w[j,j,:,j]), title=L"w", label = "")
 	pψ = plot(h.σgrid, vec(ψ[j,j,:,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, pL, pT, pw, pψ, xlabel = L"\sigma_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"\sigma_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_sigma.png")
 
 	# l = @layout([a b; c d; e f g])
@@ -1039,12 +1051,12 @@ function plot_state_funcs(h::Hank)
 	pΠ = plot(h.zgrid, vec(Π[j,j,j,:]), title=L"Π", label = "")
 	pAp = plot(h.zgrid, vec(Aplus_mat[j,j,j,:]), title=L"A^+", label = "")
 	pAm = plot(h.zgrid, vec(Aminus_mat[j,j,j,:]), title=L"A^-", label = "")
-	pL = plot(h.zgrid, vec(L[j,j,j,:]), title=L"L", label = "")
+	p_i = plot(h.zgrid, vec(i[j,j,j,:]), title=L"i", label = "")
 	pT = plot(h.zgrid, vec(T[j,j,j,:]), title=L"T", label = "")
 	pw = plot(h.zgrid, vec(w[j,j,j,:]), title=L"w", label = "")
 	pψ = plot(h.zgrid, vec(ψ[j,j,j,:]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, pL, pT, pw, pψ, xlabel = L"z_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqg, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"z_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_z.png")
 
 	Void
