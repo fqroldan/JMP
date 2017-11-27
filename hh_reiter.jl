@@ -165,17 +165,17 @@ function Hank(;	β = (1/1.06)^(1/4),
 
 	# Grids for endogenous aggregate states
 	bgrid = collect(linspace(0.7, 0.9, Nb))
-	μgrid = collect(linspace(0.0, 0.4, Nμ))
-	σgrid = collect(linspace(0.5, 1.5, Nσ))
+	μgrid = collect(linspace(0.1, 0.3, Nμ))
+	σgrid = collect(linspace(1.0, 2.0, Nσ))
 
 	# Debt parameters
 	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
 	κ = ρ
 
-	Φπ = 500.0
-	ΦL = 2.0
+	Φπ = 5.0
+	ΦL = 1.0
 
-	η  = 250.0
+	η  = 500.0
 	elast = 6.0
 
 	# Transitions
@@ -268,7 +268,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	q = 0.99 * ones(Ns,)
 
 	Πstar = 1.02^(1/4)
-	i_star = (4 / 100 + Πstar^4)^(1/4) - 1
+	i_star = (1 / 100 + Πstar^4)^(1/4) - 1
 	inflation = Πstar * ones(Ns,)
 
 	ξg = zeros(Ns,)
@@ -545,10 +545,16 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 				uc = ext_uc[ω_corrected, ϵv, b, μ, σ, z, q, w]
 				ξg = ext_ξg[ω_corrected, ϵv, b, μ, σ, z]
 				ξf = ext_ξf[ω_corrected, ϵv, b, μ, σ, z]
-				outcount += 1
+				
+				if gω < h.ωmin
+					warn("gω - h.ωmin = $(gω - h.ωmin) at ω_corr = $(ω_corrected)")
+					outcount += 1
+				end
 			else
-				gω < h.ωmin? warn("gω - h.ωmin = $(gω - h.ωmin) at ω_corr = $(ω_corrected)"): Void
-				incount += 1
+				if gω < h.ωmin
+					warn("gω - h.ωmin = $(gω - h.ωmin) at ω_corr = $(ω_corrected)")
+					incount += 1
+				end
 			end
 
 			valf += prob * (gω / uc * ξf / Y)
@@ -561,13 +567,13 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 		end
 	end
 	if incount + outcount > 0 
-		println("$incount errors within bounds, $outcount outside. Total $totcount")
+		throw(error("$incount errors within bounds, $outcount outside. Total $totcount"))
 	end
 
 	F[1] = qg - valg / valp
 	isnan(F[1])? warn("govt debt pricing error = $(F[1])"): Void
 	Rot  = valf / valp
-	""" Pensar Rotemberg + Subsidio a la producción!!! """
+	""" Pensar Rotemberg + Subsidio!!! """
 	Rotemberg_RHS = h.elast * (w/z - (h.elast - 1)/h.elast) + h.η * Rot
 	
 	if 0.25 + Rotemberg_RHS/h.η > 0
@@ -598,7 +604,7 @@ end
 
 function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, xguess)
 
-	wguess, Πguess, qgguess = 1., 1., 1.	
+	wguess, Πguess, qgguess = xguess[1], xguess[2], xguess[3]
 	w, Π, qg = 1e10, 1e10, 1e10
 
 	minw, maxw   = minimum(h.wgrid), maximum(h.wgrid)
@@ -629,9 +635,9 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Ap
 	return res.:converged, res.:f, w, Π, qg
 end
 
-function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc)
+function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, guess)
 
-	wguess, Πguess, qgguess = 1., 1., 1.	
+	wguess, Πguess, qgguess = guess[1], guess[2], guess[3]	
 
 	flag, minf, w, Π, qg = wrap_find_mktclearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, [wguess, Πguess, qgguess])
 
@@ -673,10 +679,16 @@ function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gc, itp_gω, itp_uc, rep
 	results = SharedArray{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nz, 8)
 	minf	= SharedArray{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nz, 3)
 
+	R, T, ℓ, Rep, q, Π = _unpackstatefs(h)
+
+	Π	= reshape(Π, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	w 	= reshape(h.wage, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	qg 	= reshape(h.debtprice, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+
 	@sync @parallel for jz in 1:length(h.zgrid)
 		zv = h.zgrid[jz]
 		for (jσ, σv) in enumerate(h.σgrid), (jμ, μv) in enumerate(h.μgrid), (jb, bv) in enumerate(h.bgrid)
-		
+				
 			rep 	= repay[jb, jμ, jσ, jz]
 			B′  	= issuance[jb, jμ, jσ, jz]
 			Rᵉ 		= Rᵉ_mat[jb, jμ, jσ, jz]
@@ -686,7 +698,9 @@ function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gc, itp_gω, itp_uc, rep
 			Aplus	= Aplus_mat[jb, jμ, jσ, jz]
 			Aminus	= Aminus_mat[jb, jμ, jσ, jz]
 
-			results[jb, jμ, jσ, jz, :], minf[jb, jμ, jσ, jz, :] = find_prices(h, itp_ξg, itp_ξf, bv, μv, σv, zv, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc)
+			guess = [w[jb,jμ,jσ,jz]; Π[jb,jμ,jσ,jz]; qg[jb,jμ,jσ,jz]]
+
+			results[jb, jμ, jσ, jz, :], minf[jb, jμ, jσ, jz, :] = find_prices(h, itp_ξg, itp_ξf, bv, μv, σv, zv, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, guess)
 		end
 	end
 							
@@ -905,7 +919,7 @@ end
 
 function maketol(bas, pot)
 	step_tol, min_tol = 10.0^pot, 5*10.0^pot
-	if bas >= 5
+	if bas <= 5
 		step_tol, min_tol = 5*10.0^(pot-1), 10.0^pot
 	end
 
@@ -916,9 +930,7 @@ function update_tolerance(upd_tol::Float64, dist_s::Float64)
 
 	pot, bas = decomp(upd_tol)
 	pot_s, bas_s = decomp(dist_s)
-	if pot_s >= 1
-		pot = max(pot, pot_s-3)
-	end
+	pot = max(pot, pot_s-3)
 
 	step_tol, min_tol = maketol(bas, pot)
 	upd_tol = max(upd_tol - step_tol, min_tol)
@@ -998,7 +1010,7 @@ function plot_state_funcs(h::Hank)
 
 	Π 	= (Π.^4 - 1)*100
 
-	i = ((1./q)^4 - 1) * 100 # Annualized percent nominal rate
+	i = ((1./q).^4 - 1) * 100 # Annualized percent nominal rate
 
 	j = 3
 
