@@ -175,7 +175,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	Φπ = 5.0
 	ΦL = 1.0
 
-	η  = 500.0
+	η  = 250.0
 	elast = 6.0
 
 	# Transitions
@@ -264,7 +264,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	wage = s[:, 6]
 	Ld 	 = 1 * ones(Ns,)
 
-	debtprice = 0.99 * ones(Ns,)
+	debtprice = 0.95 * ones(Ns,)
 	q = 0.99 * ones(Ns,)
 
 	Πstar = 1.02^(1/4)
@@ -541,8 +541,11 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 				gω = ext_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
 
 				gω < h.ωmin && ispprox(gω, h.ωmin)? gω = h.ωmin: Void
+				ℓ = h.θ^(-1/h.χ) * (ϵv .* w .* (1 - h.τ)).^((1+h.χ)/h.χ)
+				BC = ( Rʳ*ωmv - Tʳ + ℓ )./q
+				gc = (BC - gω) .* q
+				uc = gc^(-h.γ)
 				
-				uc = ext_uc[ω_corrected, ϵv, b, μ, σ, z, q, w]
 				ξg = ext_ξg[ω_corrected, ϵv, b, μ, σ, z]
 				ξf = ext_ξf[ω_corrected, ϵv, b, μ, σ, z]
 				
@@ -688,7 +691,7 @@ function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gc, itp_gω, itp_uc, rep
 	@sync @parallel for jz in 1:length(h.zgrid)
 		zv = h.zgrid[jz]
 		for (jσ, σv) in enumerate(h.σgrid), (jμ, μv) in enumerate(h.μgrid), (jb, bv) in enumerate(h.bgrid)
-				
+
 			rep 	= repay[jb, jμ, jσ, jz]
 			B′  	= issuance[jb, jμ, jσ, jz]
 			Rᵉ 		= Rᵉ_mat[jb, jμ, jσ, jz]
@@ -775,7 +778,7 @@ function update_state_functions!(h::Hank, upd_η)
 	h.MF_rS 	= upd_η * reshape(out[:, :, :, :, :, :, 7], h.Ns) + (1-upd_η) * h.MF_rS
 	h.lump_sum 	= upd_η * reshape(out[:, :, :, :, :, :, 8], h.Ns) + (1-upd_η) * h.lump_sum
 
-	return minf
+	return mean(minf[:,:,:,:,1]), mean(minf[:,:,:,:,2]), mean(minf[:,:,:,:,3])
 end
 
 function compute_ξ!(h::Hank)
@@ -843,7 +846,7 @@ function vfi!(h::Hank; tol::Float64=1e-2, verbose::Bool=true, maxiter::Int64=500
 		if verbose
 			# plot_hh_policies(h)
 			t_new = time()
-			print_save("\nd(cv, cv′) = $(@sprintf("%0.3g",dist)) at |gc| = $(@sprintf("%0.3g",norm(h.gc))) after $(time_print(t_new-t_old)) and $iter iterations ")
+			print_save("\nd(cv, cv′) = $(@sprintf("%0.3g",dist)) at ‖v‖ = $(@sprintf("%0.3g",norm(h.Φ*h.cv))) after $(time_print(t_new-t_old)) and $iter iterations ")
 		end
 
 		if dist < upd_tol
@@ -854,9 +857,9 @@ function vfi!(h::Hank; tol::Float64=1e-2, verbose::Bool=true, maxiter::Int64=500
 			t1 = time()
 			print_save("\nUpdating functions of the state")
 
-			err_mktcl = update_state_functions!(h, upd_η)
+			err_g, err_R, err_M = update_state_functions!(h, upd_η)
 			upd_P!(h, B′, h.μ′, h.σ′)
-			print_save(": done in $(time_print(time()-t1)) \nAverage error in mkt clearing: $(@sprintf("%0.3g",mean(err_mktcl))) ")
+			print_save(": done in $(time_print(time()-t1)) \nAverage errors in gov debt, PC, MF = ($(@sprintf("%0.3g",mean(err_g))), $(@sprintf("%0.3g",mean(err_R))), $(@sprintf("%0.3g",mean(err_M))))")
 			iter_cycle = 0
 
 			new_R, new_T, new_ℓ, new_Rep, new_q, new_Π = _unpackstatefs(h)
