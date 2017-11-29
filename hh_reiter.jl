@@ -513,7 +513,7 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 
 	ψ = Y * (1 - w/z - 0.5*h.η*(Π/h.Πstar - 1)^2)
 
-	rS = ((Aminus + rep*b*(h.κ + (1-h.ρ)*qg) + ψ) / Aplus) - 1
+	rS = ((Aminus + rep*b*(h.κ + (1-h.ρ)*qg) + Π*ψ) / Aplus) - 1
 
 	valf, valg, valp, valv, sum_prob = 0., 0., 0., 0., 0.
 	totcount, incount, outcount = 0, 0, 0
