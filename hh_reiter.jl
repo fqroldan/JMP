@@ -461,12 +461,15 @@ function extend_state_space!(h::Hank, R, T, q, Π)
 	gω_ext = SharedArray{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz, length(h.qgrid), length(h.wgrid))
 	
 	Nq, Nw = length(h.qgrid), length(h.wgrid)
+	loop = Nq*Nw-1
 
-	@sync @parallel for jp in 0:Nq*Nw-1
+	@sync @parallel for jp in 0:loop
+		# println("new value")
 		jq = 1 + jp % Nq
 		qv = h.qgrid[jq]
 		jw = 1 + Int( (jp - jp % Nq) / Nq)
 		wv = h.wgrid[jw]
+		# println("(jq,jw) = ($jq,$jw)")
 
 		# Re-solve for these values of w and q
 		ℓ = h.θ^(-1/h.χ) * (h.s[:,2] .* wv .* (1 - h.τ)).^((1+h.χ)/h.χ)
