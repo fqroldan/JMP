@@ -432,7 +432,7 @@ end
 
 function bellman_iteration!(h::Hank, R, T, ℓ, q, Π; resolve::Bool=true)
 	# Compute values
-	vf, ve = opt_value!(h, h.s, R, T, ℓ, q, Π, newton = false, resolve = resolve)
+	vf, ve = opt_value!(h, h.s, R, T, ℓ, q, Π, resolve = resolve)
 
 	# Update coefficients
 	h.cv = h.Φ\vf
@@ -499,7 +499,7 @@ function _unpack_origvars(x, xmax, xmin)
 end
 
 
-function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, x, xmax=x, xmin=x; get_others::Bool = false, orig_vars::Bool=true)
+function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, x, xmax=x, xmin=x; get_others::Bool = false, orig_vars::Bool=true)
 	F = zeros(x)
 	w, Π, qg = x[1], x[2], x[3]
 	if orig_vars == false
@@ -604,7 +604,7 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻,
 	end
 end
 
-function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, xguess)
+function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, xguess)
 
 	wguess, Πguess, qgguess = xguess[1], xguess[2], xguess[3]
 	w, Π, qg = 1e10, 1e10, 1e10
@@ -618,7 +618,7 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A�
 		xmax = [maxw, maxΠ, maxqg]
 		xmin = [minw, minΠ, minqg]
 
-		out = mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, x, xmax, xmin; orig_vars=false)
+		out = mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, x, xmax, xmin; orig_vars=false)
 
 		fvec[:] = out[:]
 	end
@@ -637,16 +637,16 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A�
 	return res.:converged, res.:f, w, Π, qg
 end
 
-function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, guess)
+function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, guess)
 
 	wguess, Πguess, qgguess = guess[1], guess[2], guess[3]	
 
-	flag, minf, w, Π, qg = wrap_find_mktclearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, [wguess, Πguess, qgguess])
+	flag, minf, w, Π, qg = wrap_find_mktclearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, [wguess, Πguess, qgguess])
 
 	curr_min = sum(minf.^2)
 	minx = [w, Π, qg]
 	if flag == false
-		wrap_mktclearing_nlopt(x::Vector, grad::Vector) = sum(mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, x).^2)
+		wrap_mktclearing_nlopt(x::Vector, grad::Vector) = sum(mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, x).^2)
 
 		# alg_list = [:LN_BOBYQA; :LN_COBYLA] :GN_ISRES :GN_DIRECT_L_RAND
 		alg_list = [:GN_ISRES; :LN_COBYLA]
@@ -672,12 +672,12 @@ function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, 
 		end
 	end
 
-	q, A′, μ′, σ′, rS, Tʳ, minf = mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, [w, Π, qg]; get_others = true)
+	q, A′, μ′, σ′, rS, Tʳ, minf = mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, [w, Π, qg]; get_others = true)
 
 	return [w, Π, qg, q, μ′, σ′, rS, Tʳ], minf
 end
 
-function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gc, itp_gω, itp_uc, repay, issuance, Rᵉ_mat, Tᵉ_mat, G_mat, Πᵉ_mat, A⁺_mat, A⁻_mat)
+function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gω, repay, issuance, Rᵉ_mat, Tᵉ_mat, G_mat, Πᵉ_mat, A⁺_mat, A⁻_mat)
 	results = SharedArray{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nz, 8)
 	minf	= SharedArray{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nz, 3)
 
@@ -691,18 +691,18 @@ function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gc, itp_gω, itp_uc, rep
 		zv = h.zgrid[jz]
 		for (jσ, σv) in enumerate(h.σgrid), (jμ, μv) in enumerate(h.μgrid), (jb, bv) in enumerate(h.bgrid)
 
-			rep 	= repay[jb, jμ, jσ, jz]
-			B′  	= issuance[jb, jμ, jσ, jz]
-			Rᵉ 		= Rᵉ_mat[jb, jμ, jσ, jz]
-			Tᵉ		= Tᵉ_mat[jb, jμ, jσ, jz]
-			G		= G_mat[jb, jμ, jσ, jz]
-			Πᵉ 		= Πᵉ_mat[jb, jμ, jσ, jz]
+			rep = repay[jb, jμ, jσ, jz]
+			B′  = issuance[jb, jμ, jσ, jz]
+			Rᵉ 	= Rᵉ_mat[jb, jμ, jσ, jz]
+			Tᵉ	= Tᵉ_mat[jb, jμ, jσ, jz]
+			G	= G_mat[jb, jμ, jσ, jz]
+			Πᵉ 	= Πᵉ_mat[jb, jμ, jσ, jz]
 			A⁺	= A⁺_mat[jb, jμ, jσ, jz]
 			A⁻	= A⁻_mat[jb, jμ, jσ, jz]
 
 			guess = [w[jb,jμ,jσ,jz]; Π[jb,jμ,jσ,jz]; qg[jb,jμ,jσ,jz]]
 
-			results[jb, jμ, jσ, jz, :], minf[jb, jμ, jσ, jz, :] = find_prices(h, itp_ξg, itp_ξf, bv, μv, σv, zv, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, guess)
+			results[jb, jμ, jσ, jz, :], minf[jb, jμ, jσ, jz, :] = find_prices(h, itp_ξg, itp_ξf, bv, μv, σv, zv, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, guess)
 		end
 	end
 							
@@ -739,24 +739,24 @@ end
 
 function update_state_functions!(h::Hank, upd_η)
 
-	itp_gc = interpolate((h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.zgrid, h.qgrid, h.wgrid), h.gc_ext, Gridded(Linear()))
-	itp_uc = interpolate((h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.zgrid, h.qgrid, h.wgrid), h.gc_ext.^(-h.γ), Gridded(Linear()))
+	# itp_gc = interpolate((h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.zgrid, h.qgrid, h.wgrid), h.gc_ext, Gridded(Linear()))
+	# itp_uc = interpolate((h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.zgrid, h.qgrid, h.wgrid), h.gc_ext.^(-h.γ), Gridded(Linear()))
 	itp_gω  = interpolate((h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.zgrid, h.qgrid, h.wgrid), h.gω_ext, Gridded(Linear()))
-	ξg = reshape(h.ξg, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)
-	ξf = reshape(h.ξf, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)
-	itp_ξg = interpolate((h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.zgrid), ξg, Gridded(Linear()))
-	itp_ξf = interpolate((h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.zgrid), ξf, Gridded(Linear()))
+	ξg 		= reshape(h.ξg, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)
+	ξf 		= reshape(h.ξf, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)
+	itp_ξg 	= interpolate((h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.zgrid), ξg, Gridded(Linear()))
+	itp_ξf 	= interpolate((h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.zgrid), ξf, Gridded(Linear()))
 
-	repay 	 	= reshape(h.debt_repay, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	issuance 	= reshape(h.issuance_B, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	Rᵉ_mat 	 	= reshape(1. + h.MF_rS, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	Tᵉ_mat	 	= reshape(h.lump_sum, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	G_mat	 	= reshape(h.spending, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	Πᵉ_mat	 	= reshape(h.inflation, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	A⁺_mat	= reshape(h.A⁺, h.Nb, h.Nμ, h.Nσ, h.Nz)
-	A⁻_mat	= reshape(h.A⁻, h.Nb, h.Nμ, h.Nσ, h.Nz)
+	repay 	 = reshape(h.debt_repay, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	issuance = reshape(h.issuance_B, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	Rᵉ_mat 	 = reshape(1. + h.MF_rS, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	Tᵉ_mat	 = reshape(h.lump_sum, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	G_mat	 = reshape(h.spending, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	Πᵉ_mat	 = reshape(h.inflation, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	A⁺_mat	 = reshape(h.A⁺, h.Nb, h.Nμ, h.Nσ, h.Nz)
+	A⁻_mat	 = reshape(h.A⁻, h.Nb, h.Nμ, h.Nσ, h.Nz)
 
-	results, minf = find_all_prices(h, itp_ξg, itp_ξf, itp_gc, itp_gω, itp_uc, repay, issuance, Rᵉ_mat, Tᵉ_mat, G_mat, Πᵉ_mat, A⁺_mat, A⁻_mat)
+	results, minf = find_all_prices(h, itp_ξg, itp_ξf, itp_gω, repay, issuance, Rᵉ_mat, Tᵉ_mat, G_mat, Πᵉ_mat, A⁺_mat, A⁻_mat)
 
 	""" Pensar cómo suavizar el update de μ′ y σ′ """
 	μ′	= reshape(results[:, :, :, :, 5], h.Nb*h.Nμ*h.Nσ*h.Nz)
@@ -788,16 +788,21 @@ function compute_ξ!(h::Hank)
 	P 	= kron(h.Ps, kron(h.Pϵ, speye(h.Nω)))
 	w   = h.wage
 	L   = (w * (1-h.τ)/h.θ * h.Ξ).^(1/h.χ)
+	Z 	= h.s[:,6]
 
-	Y = L .* h.s[:,6]
-	c = h.gc
+	Y 	= L .* Z
+	uc 	= h.gc.^(-h.γ)
 
-	ret_g = c.^(-h.γ) .* rep .* (h.κ + (1-h.ρ).*qg) ./ Π
-	ret_f = c.^(-h.γ) .* Y .* Π/h.Πstar .* (Π/h.Πstar - 1)
+	ret_g = uc .* rep .* (h.κ + (1-h.ρ).*qg) ./ Π
+	ret_f = uc .* Y .* Π/h.Πstar .* (Π/h.Πstar - 1)
 	for js in 1:h.Ns
-		h.ξg[js] = h.β * dot(P[js,:], ret_g)
-		h.ξf[js] = h.β * dot(P[js,:], ret_f)
+		Ps = P[js,:]
+		h.ξg[js] = dot(Ps, ret_g)
+		h.ξf[js] = dot(Ps, ret_f)
 	end
+
+	h.ξg = h.β * h.ξg
+	h.ξf = h.β * h.ξf
 
 	Void
 end
