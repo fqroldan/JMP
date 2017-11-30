@@ -164,9 +164,9 @@ function Hank(;	β = (1/1.06)^(1/4),
 	θ = (1-τ) * Ξ
 
 	# Grids for endogenous aggregate states
-	bgrid = collect(linspace(0.7, 0.9, Nb))
-	μgrid = collect(linspace(0.1, 0.3, Nμ))
-	σgrid = collect(linspace(1.0, 2.0, Nσ))
+	bgrid = collect(linspace(0.2, 0.7, Nb))
+	μgrid = collect(linspace(-0.1, 0.2, Nμ))
+	σgrid = collect(linspace(0.5, 1.5, Nσ))
 
 	# Debt parameters
 	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
@@ -268,7 +268,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	q = 0.99 * ones(Ns,)
 
 	Πstar = 1.02^(1/4)
-	i_star = (1 / 100 + Πstar^4)^(1/4) - 1
+	i_star = (4 / 100 + Πstar^4)^(1/4) - 1
 	inflation = Πstar * ones(Ns,)
 
 	ξg = zeros(Ns,)
@@ -533,25 +533,16 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 			ω_corrected = (Rʳ*ωmv - Tʳ + Tᵉ)/((1+rᵉ)/Πᵉ)
 
 			gω = itp_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
-			uc = itp_uc[ω_corrected, ϵv, b, μ, σ, z, q, w]
+			# uc = itp_uc[ω_corrected, ϵv, b, μ, σ, z, q, w]
 			ξg = itp_ξg[ω_corrected, ϵv, b, μ, σ, z]
 			ξf = itp_ξf[ω_corrected, ϵv, b, μ, σ, z]
 			if ω_corrected < h.ωgrid[1] || ω_corrected > h.ωgrid[end] || q < h.qgrid[1] || q > h.qgrid[end]
 				ext_gω = extrapolate(itp_gω, Interpolations.Flat()) 
-				ext_uc = extrapolate(itp_uc, Interpolations.Flat()) 
 				ext_ξg = extrapolate(itp_ξg, Interpolations.Flat())
 				ext_ξf = extrapolate(itp_ξf, Interpolations.Flat())
 				gω = ext_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
-
-				gω < h.ωmin && ispprox(gω, h.ωmin)? gω = h.ωmin: Void
-				ℓ = h.θ^(-1/h.χ) * (ϵv .* w .* (1 - h.τ)).^((1+h.χ)/h.χ)
-				BC = ( Rʳ*ωmv - Tʳ + ℓ )./q
-				gc = (BC - gω) .* q
-				uc = gc^(-h.γ)
-				
 				ξg = ext_ξg[ω_corrected, ϵv, b, μ, σ, z]
 				ξf = ext_ξf[ω_corrected, ϵv, b, μ, σ, z]
-				
 				if gω < h.ωmin
 					warn("gω - h.ωmin = $(gω - h.ωmin) at ω_corr = $(ω_corrected)")
 					outcount += 1
@@ -562,6 +553,11 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 					incount += 1
 				end
 			end
+			gω < h.ωmin && ispprox(gω, h.ωmin)? gω = h.ωmin: Void
+			ℓ = h.θ^(-1/h.χ) * (ϵv .* w .* (1 - h.τ)).^((1+h.χ)/h.χ)
+			BC = ( Rʳ*ωmv - Tʳ + ℓ )./q
+			gc = (BC - gω) .* q
+			uc = gc^(-h.γ)
 
 			valf += prob * (gω / uc * ξf / Y)
 			valg += prob * (gω / uc * ξg)
@@ -786,13 +782,15 @@ end
 
 function compute_ξ!(h::Hank)
 	""" Tener en cuenta que los ξ's hay que calcularlos con el guess viejo """
-	Y = h.Ld .* h.s[:,6]
-	c = h.gc
-
 	rep = h.debt_repay
 	qg 	= h.debtprice
 	Π  	= h.inflation
 	P 	= kron(h.Ps, kron(h.Pϵ, speye(h.Nω)))
+	w   = h.wage
+	L   = (w * (1-h.τ)/h.θ * h.Ξ).^(1/h.χ)
+
+	Y = L .* h.s[:,6]
+	c = h.gc
 
 	ret_g = c.^(-h.γ) .* rep .* (h.κ + (1-h.ρ).*qg) ./ Π
 	ret_f = c.^(-h.γ) .* Y .* Π/h.Πstar .* (Π/h.Πstar - 1)
@@ -1014,7 +1012,7 @@ function plot_state_funcs(h::Hank)
 
 	ψ = Y .* (1 - w./Z - 0.5*h.η*(Π/h.Πstar - 1).^2)
 
-	Π 	= (Π.^4 - 1)*100
+	Π = (Π.^4 - 1)*100
 
 	i = ((1./q).^4 - 1) * 100 # Annualized percent nominal rate
 
