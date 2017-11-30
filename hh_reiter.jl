@@ -97,8 +97,8 @@ type Hank
 	σ′::Vector{Float64}
 
 	# Functions of the state
-	Aplus::Vector{Float64}
-	Aminus::Vector{Float64}
+	A⁺::Vector{Float64}
+	A⁻::Vector{Float64}
 	debt_repay::Vector{Float64}
 	MF_rS::Vector{Float64}
 	τ::Float64
@@ -295,19 +295,19 @@ function Hank(;	β = (1/1.06)^(1/4),
 		return Aup, Adown
 	end
 
-	Aplus_mat, Aminus_mat = zeros(Nμ,Nσ), zeros(Nμ,Nσ)
+	A⁺_mat, A⁻_mat = zeros(Nμ,Nσ), zeros(Nμ,Nσ)
 	for (jσ, σv) in enumerate(σgrid), (jμ, μv) in enumerate(μgrid)
-		Aplus_mat[jμ, jσ], Aminus_mat[jμ, jσ] = compute_grosspositions(μv, σv)
+		A⁺_mat[jμ, jσ], A⁻_mat[jμ, jσ] = compute_grosspositions(μv, σv)
 	end
 
 	js = 0
-	Aplus, Aminus = zeros(Nb*Nμ*Nσ*Nz), zeros(Nb*Nμ*Nσ*Nz)
+	A⁺, A⁻ = zeros(Nb*Nμ*Nσ*Nz), zeros(Nb*Nμ*Nσ*Nz)
 	for (jz, zv) in enumerate(zgrid), (jσ,σv) in enumerate(σgrid), (jμ,μv) in enumerate(μgrid), (jb,bv) in enumerate(bgrid)
 		js += 1
-		Aplus[js], Aminus[js] = Aplus_mat[jμ,jσ], Aminus_mat[jμ,jσ]
+		A⁺[js], A⁻[js] = A⁺_mat[jμ,jσ], A⁻_mat[jμ,jσ]
 	end
 	
-	return Hank(β, γ, θ, χ, ρϵ, σϵ, Ξ, ρ, κ, Φπ, ΦL, η, elast, gc, gω, gc_ext, gω_ext, cc, cω, cv, ce, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nz, Ns, Nω_fine, Pϵ, Pz, Ps, λ, λϵ, ℏ, thr_def, curv, order, ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, zgrid, s, qgrid, wgrid, basis, bs, Φ, dΦ, Emat, Φnotω, ωgrid_fine, snodes, μ′, σ′, Aplus, Aminus, debt_repay, MF_rS, τ, lump_sum, issuance_B, spending, wage, Ld, debtprice, q, inflation, Πstar, i_star, ξg, ξf)
+	return Hank(β, γ, θ, χ, ρϵ, σϵ, Ξ, ρ, κ, Φπ, ΦL, η, elast, gc, gω, gc_ext, gω_ext, cc, cω, cv, ce, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nz, Ns, Nω_fine, Pϵ, Pz, Ps, λ, λϵ, ℏ, thr_def, curv, order, ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, zgrid, s, qgrid, wgrid, basis, bs, Φ, dΦ, Emat, Φnotω, ωgrid_fine, snodes, μ′, σ′, A⁺, A⁻, debt_repay, MF_rS, τ, lump_sum, issuance_B, spending, wage, Ld, debtprice, q, inflation, Πstar, i_star, ξg, ξf)
 end
 
 function _unpackstatefs(h::Hank)
@@ -499,7 +499,7 @@ function _unpack_origvars(x, xmax, xmin)
 end
 
 
-function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, x, xmax=x, xmin=x; get_others::Bool = false, orig_vars::Bool=true)
+function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, x, xmax=x, xmin=x; get_others::Bool = false, orig_vars::Bool=true)
 	F = zeros(x)
 	w, Π, qg = x[1], x[2], x[3]
 	if orig_vars == false
@@ -516,7 +516,7 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 
 	ψ = Y * (1 - w/z - 0.5*h.η*(Π/h.Πstar - 1)^2)
 
-	rS = ((Aminus + rep*b*(h.κ + (1-h.ρ)*qg) + Π*ψ) / Aplus) - 1
+	rS = ((A⁻ + rep*b*(h.κ + (1-h.ρ)*qg) + Π*ψ) / A⁺) - 1
 
 	valf, valg, valp, valv, sum_prob = 0., 0., 0., 0., 0.
 	totcount, incount, outcount = 0, 0, 0
@@ -604,7 +604,7 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Amin
 	end
 end
 
-function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, xguess)
+function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, xguess)
 
 	wguess, Πguess, qgguess = xguess[1], xguess[2], xguess[3]
 	w, Π, qg = 1e10, 1e10, 1e10
@@ -618,7 +618,7 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Ap
 		xmax = [maxw, maxΠ, maxqg]
 		xmin = [minw, minΠ, minqg]
 
-		out = mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, x, xmax, xmin; orig_vars=false)
+		out = mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, x, xmax, xmin; orig_vars=false)
 
 		fvec[:] = out[:]
 	end
@@ -637,16 +637,16 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Ap
 	return res.:converged, res.:f, w, Π, qg
 end
 
-function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, guess)
+function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, guess)
 
 	wguess, Πguess, qgguess = guess[1], guess[2], guess[3]	
 
-	flag, minf, w, Π, qg = wrap_find_mktclearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, [wguess, Πguess, qgguess])
+	flag, minf, w, Π, qg = wrap_find_mktclearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, [wguess, Πguess, qgguess])
 
 	curr_min = sum(minf.^2)
 	minx = [w, Π, qg]
 	if flag == false
-		wrap_mktclearing_nlopt(x::Vector, grad::Vector) = sum(mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, x).^2)
+		wrap_mktclearing_nlopt(x::Vector, grad::Vector) = sum(mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, x).^2)
 
 		# alg_list = [:LN_BOBYQA; :LN_COBYLA] :GN_ISRES :GN_DIRECT_L_RAND
 		alg_list = [:GN_ISRES; :LN_COBYLA]
@@ -672,12 +672,12 @@ function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminu
 		end
 	end
 
-	q, A′, μ′, σ′, rS, Tʳ, minf = mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, [w, Π, qg]; get_others = true)
+	q, A′, μ′, σ′, rS, Tʳ, minf = mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, [w, Π, qg]; get_others = true)
 
 	return [w, Π, qg, q, μ′, σ′, rS, Tʳ], minf
 end
 
-function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gc, itp_gω, itp_uc, repay, issuance, Rᵉ_mat, Tᵉ_mat, G_mat, Πᵉ_mat, Aplus_mat, Aminus_mat)
+function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gc, itp_gω, itp_uc, repay, issuance, Rᵉ_mat, Tᵉ_mat, G_mat, Πᵉ_mat, A⁺_mat, A⁻_mat)
 	results = SharedArray{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nz, 8)
 	minf	= SharedArray{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nz, 3)
 
@@ -697,12 +697,12 @@ function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gc, itp_gω, itp_uc, rep
 			Tᵉ		= Tᵉ_mat[jb, jμ, jσ, jz]
 			G		= G_mat[jb, jμ, jσ, jz]
 			Πᵉ 		= Πᵉ_mat[jb, jμ, jσ, jz]
-			Aplus	= Aplus_mat[jb, jμ, jσ, jz]
-			Aminus	= Aminus_mat[jb, jμ, jσ, jz]
+			A⁺	= A⁺_mat[jb, jμ, jσ, jz]
+			A⁻	= A⁻_mat[jb, jμ, jσ, jz]
 
 			guess = [w[jb,jμ,jσ,jz]; Π[jb,jμ,jσ,jz]; qg[jb,jμ,jσ,jz]]
 
-			results[jb, jμ, jσ, jz, :], minf[jb, jμ, jσ, jz, :] = find_prices(h, itp_ξg, itp_ξf, bv, μv, σv, zv, B′, Aplus, Aminus, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, guess)
+			results[jb, jμ, jσ, jz, :], minf[jb, jμ, jσ, jz, :] = find_prices(h, itp_ξg, itp_ξf, bv, μv, σv, zv, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gc, itp_gω, itp_uc, guess)
 		end
 	end
 							
@@ -753,10 +753,10 @@ function update_state_functions!(h::Hank, upd_η)
 	Tᵉ_mat	 	= reshape(h.lump_sum, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	G_mat	 	= reshape(h.spending, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	Πᵉ_mat	 	= reshape(h.inflation, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	Aplus_mat	= reshape(h.Aplus, h.Nb, h.Nμ, h.Nσ, h.Nz)
-	Aminus_mat	= reshape(h.Aminus, h.Nb, h.Nμ, h.Nσ, h.Nz)
+	A⁺_mat	= reshape(h.A⁺, h.Nb, h.Nμ, h.Nσ, h.Nz)
+	A⁻_mat	= reshape(h.A⁻, h.Nb, h.Nμ, h.Nσ, h.Nz)
 
-	results, minf = find_all_prices(h, itp_ξg, itp_ξf, itp_gc, itp_gω, itp_uc, repay, issuance, Rᵉ_mat, Tᵉ_mat, G_mat, Πᵉ_mat, Aplus_mat, Aminus_mat)
+	results, minf = find_all_prices(h, itp_ξg, itp_ξf, itp_gc, itp_gω, itp_uc, repay, issuance, Rᵉ_mat, Tᵉ_mat, G_mat, Πᵉ_mat, A⁺_mat, A⁻_mat)
 
 	""" Pensar cómo suavizar el update de μ′ y σ′ """
 	μ′	= reshape(results[:, :, :, :, 5], h.Nb*h.Nμ*h.Nσ*h.Nz)
@@ -987,8 +987,8 @@ end
 function plot_state_funcs(h::Hank)
 	R, T, ℓ, Rep, q, Π = _unpackstatefs(h)
 
-	Aplus_mat	= reshape(h.Aplus, h.Nb, h.Nμ, h.Nσ, h.Nz)
-	Aminus_mat	= reshape(h.Aminus, h.Nb, h.Nμ, h.Nσ, h.Nz)
+	A⁺_mat	= reshape(h.A⁺, h.Nb, h.Nμ, h.Nσ, h.Nz)
+	A⁻_mat	= reshape(h.A⁻, h.Nb, h.Nμ, h.Nσ, h.Nz)
 
 	P = kron(h.Ps, kron(h.Pϵ, speye(h.Nω)))
 
@@ -1023,8 +1023,8 @@ function plot_state_funcs(h::Hank)
 	pEβR= plot(h.bgrid, vec(EβR[:,j,j,j]), title=L"\beta E[R^S]", label = "")
 	pqg = plot(h.bgrid, vec(qg[:,j,j,j]), title=L"q^g", label = "")
 	pΠ = plot(h.bgrid, vec(Π[:,j,j,j]), title=L"Π", label = "")
-	pAp = plot(h.bgrid, vec(Aplus_mat[:,j,j,j]), title=L"A^+", label = "")
-	pAm = plot(h.bgrid, vec(Aminus_mat[:,j,j,j]), title=L"A^-", label = "")
+	pAp = plot(h.bgrid, vec(A⁺_mat[:,j,j,j]), title=L"A^+", label = "")
+	pAm = plot(h.bgrid, vec(A⁻_mat[:,j,j,j]), title=L"A^-", label = "")
 	p_i = plot(h.bgrid, vec(i[:,j,j,j]), title=L"i", label = "")
 	pT = plot(h.bgrid, vec(T[:,j,j,j]), title=L"T", label = "")
 	pw = plot(h.bgrid, vec(w[:,j,j,j]), title=L"w", label = "")
@@ -1037,8 +1037,8 @@ function plot_state_funcs(h::Hank)
 	pEβR= plot(h.μgrid, vec(EβR[j,:,j,j]), title=L"\beta E[R^S]", label = "")
 	pqg = plot(h.μgrid, vec(qg[j,:,j,j]), title=L"q^g", label = "")
 	pΠ = plot(h.μgrid, vec(Π[j,:,j,j]), title=L"Π", label = "")
-	pAp = plot(h.μgrid, vec(Aplus_mat[j,:,j,j]), title=L"A^+", label = "")
-	pAm = plot(h.μgrid, vec(Aminus_mat[j,:,j,j]), title=L"A^-", label = "")
+	pAp = plot(h.μgrid, vec(A⁺_mat[j,:,j,j]), title=L"A^+", label = "")
+	pAm = plot(h.μgrid, vec(A⁻_mat[j,:,j,j]), title=L"A^-", label = "")
 	p_i = plot(h.μgrid, vec(i[j,:,j,j]), title=L"i", label = "")
 	pT = plot(h.μgrid, vec(T[j,:,j,j]), title=L"T", label = "")
 	pw = plot(h.μgrid, vec(w[j,:,j,j]), title=L"w", label = "")
@@ -1051,8 +1051,8 @@ function plot_state_funcs(h::Hank)
 	pEβR= plot(h.σgrid, vec(EβR[j,j,:,j]), title=L"\beta E[R^S]", label = "")
 	pqg = plot(h.σgrid, vec(qg[j,j,:,j]), title=L"q^g", label = "")
 	pΠ = plot(h.σgrid, vec(Π[j,j,:,j]), title=L"Π", label = "")
-	pAp = plot(h.σgrid, vec(Aplus_mat[j,j,:,j]), title=L"A^+", label = "")
-	pAm = plot(h.σgrid, vec(Aminus_mat[j,j,:,j]), title=L"A^-", label = "")
+	pAp = plot(h.σgrid, vec(A⁺_mat[j,j,:,j]), title=L"A^+", label = "")
+	pAm = plot(h.σgrid, vec(A⁻_mat[j,j,:,j]), title=L"A^-", label = "")
 	p_i = plot(h.σgrid, vec(i[j,j,:,j]), title=L"i", label = "")
 	pT = plot(h.σgrid, vec(T[j,j,:,j]), title=L"T", label = "")
 	pw = plot(h.σgrid, vec(w[j,j,:,j]), title=L"w", label = "")
@@ -1065,8 +1065,8 @@ function plot_state_funcs(h::Hank)
 	pEβR= plot(h.zgrid, vec(EβR[j,j,j,:]), title=L"\beta E[R^S]", label = "")
 	pqg = plot(h.zgrid, vec(qg[j,j,j,:]), title=L"q^g", label = "")
 	pΠ = plot(h.zgrid, vec(Π[j,j,j,:]), title=L"Π", label = "")
-	pAp = plot(h.zgrid, vec(Aplus_mat[j,j,j,:]), title=L"A^+", label = "")
-	pAm = plot(h.zgrid, vec(Aminus_mat[j,j,j,:]), title=L"A^-", label = "")
+	pAp = plot(h.zgrid, vec(A⁺_mat[j,j,j,:]), title=L"A^+", label = "")
+	pAm = plot(h.zgrid, vec(A⁻_mat[j,j,j,:]), title=L"A^-", label = "")
 	p_i = plot(h.zgrid, vec(i[j,j,j,:]), title=L"i", label = "")
 	pT = plot(h.zgrid, vec(T[j,j,j,:]), title=L"T", label = "")
 	pw = plot(h.zgrid, vec(w[j,j,j,:]), title=L"w", label = "")
