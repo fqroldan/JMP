@@ -533,7 +533,6 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻,
 			ω_corrected = (Rʳ*ωmv - Tʳ + Tᵉ)/((1+rᵉ)/Πᵉ)
 
 			gω = itp_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
-			# uc = itp_uc[ω_corrected, ϵv, b, μ, σ, z, q, w]
 			ξg = itp_ξg[ω_corrected, ϵv, b, μ, σ, z]
 			ξf = itp_ξf[ω_corrected, ϵv, b, μ, σ, z]
 			if ω_corrected < h.ωgrid[1] || ω_corrected > h.ωgrid[end] || q < h.qgrid[1] || q > h.qgrid[end]
@@ -624,9 +623,16 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A�
 	end
 
 	res = fsolve(wrap_mktclear_minpack!, xguess)
+	if res.:converged == false
+		res2 = fsolve(wrap_mktclear_minpack!, xguess, method=:lmdif)
+
+		if res2.:converged || sum(res2.:f.^2) < sum(res.:f.^2)
+			res = res2
+		end
+	end
 
 	f(m::Float64, cmax, cmin) = cmax - (cmax-cmin)/(1+exp(m))
-	g(c, cmax, cmin) = log( (c - cmin) / (cmax - c) )
+	# g(c, cmax, cmin) = log( (c - cmin) / (cmax - c) )
 
 	mw, mΠ, mqg = collect(res.:x)
 
