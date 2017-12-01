@@ -512,7 +512,7 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻,
 	L = (w * (1-h.τ)/h.θ * h.Ξ)^(1./h.χ)
 	Y = z * L
 
-	Tʳ = G + h.κ * rep / Π * b - qᵍ * (B′ - (1-h.ρ)*b) - h.τ * w*L
+	Tʳ = G + h.κ * rep / Π * b - qᵍ * (B′ - rep / Π * (1-h.ρ)*b) - h.τ * w*L
 
 	i = (1+h.i_star) * (Π/h.Πstar)^h.Φπ * L^h.ΦL - 1
 	q = 1/(1+i)
