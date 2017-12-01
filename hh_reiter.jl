@@ -285,8 +285,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 
 				prob = pdf(LogNormal(μ, σ), ωmv-ωmin) * λϵ[jϵ] * (ω1v - ωv)
 
-				val⁺ += prob * max(ωmv, 0)
-				val⁻ += prob * max(-ωmv, 0)
+				ωmv > 0? val⁺ += prob * ωmv: val⁻ += prob * abs(ωmv)
 				sum_prob += prob
 			end
 		end
@@ -537,8 +536,11 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻,
 			ω_corrected = (Rʳ*ωmv - Tʳ + Tᵉ)/((1+rᵉ)/Πᵉ)
 
 			gω = itp_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
-			if ω_corrected < h.ωgrid[1] || ω_corrected > h.ωgrid[end] || q < h.qgrid[1] || q > h.qgrid[end]
+			if ω_corrected < h.ωgrid[1] || ω_corrected > h.ωgrid[end] 
 				ext_gω = extrapolate(itp_gω, Interpolations.Linear())
+				if q < h.qgrid[1] || q > h.qgrid[end]
+					ext_gω = extrapolate(itp_gω, Interpolations.Flat())
+				end
 				gω = ext_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
 			end
 			gω = min.(gω, maximum(h.ωgrid) )
@@ -831,7 +833,6 @@ function vfi!(h::Hank; tol::Float64=1e-2, verbose::Bool=true, maxiter::Int64=500
 
 		R, T, ℓ, Rep, q, Π = _unpackstatefs(h)
 
-		compute_ξ!(h)
 
 		c_old = [h.cv; h.ce]
 		if iter_cycle <= bellman_iter
@@ -862,6 +863,7 @@ function vfi!(h::Hank; tol::Float64=1e-2, verbose::Bool=true, maxiter::Int64=500
 			t1 = time()
 			print_save("\nUpdating functions of the state")
 
+			compute_ξ!(h)
 			err_g, err_R, err_M = update_state_functions!(h, upd_η)
 			upd_P!(h, B′, h.μ′, h.σ′)
 			print_save(": done in $(time_print(time()-t1)) \nAverage errors in gov debt, PC, MF = ($(@sprintf("%0.3g",mean(err_g))), $(@sprintf("%0.3g",mean(err_R))), $(@sprintf("%0.3g",mean(err_M))))")
