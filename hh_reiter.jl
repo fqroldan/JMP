@@ -127,8 +127,8 @@ function Hank(;	β = (1/1.06)^(1/4),
 				ωmax = 7.5,
 				curv = .4,
 				order = 3,
-				Nω = 6,
-				Nω_fine = 1000,
+				Nω = 8,
+				Nω_fine = 1500,
 				ρϵ = 0.9,
 				σϵ = 0.1,
 				Nϵ = 3,
@@ -165,7 +165,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 
 	# Grids for endogenous aggregate states
 	bgrid = collect(linspace(0.2, 0.7, Nb))
-	μgrid = collect(linspace(-0.1, 0.2, Nμ))
+	μgrid = collect(linspace(0.1, 0.2, Nμ))
 	σgrid = collect(linspace(0.5, 1.5, Nσ))
 
 	# Debt parameters
@@ -175,7 +175,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	Φπ = 5.0
 	ΦL = 1.0
 
-	η  = 250.0
+	η  = 250.0 
 	elast = 6.0
 
 	# Transitions
@@ -275,7 +275,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	ξf = zeros(Ns,)
 
 	function compute_grosspositions(μ,σ)
-		valplus, valminus, sum_prob = 0.,0.,0.
+		val⁺, val⁻, sum_prob = 0.,0.,0.
 		for (jϵ, ϵv) in enumerate(ϵgrid)
 			for jω = 1:length(ωgrid_fine)-1
 				ωv  = ωgrid_fine[jω]
@@ -284,15 +284,15 @@ function Hank(;	β = (1/1.06)^(1/4),
 
 				prob = pdf(LogNormal(μ, σ), ωmv-ωmin) * λϵ[jϵ] * (ω1v - ωv)
 
-				valplus  += prob * max(ωmv, 0)
-				valminus += prob * max(-ωmv, 0)
+				val⁺ += prob * max(ωmv, 0)
+				val⁻ += prob * max(-ωmv, 0)
 				sum_prob += prob
 			end
 		end
-		Aup  = valplus  / sum_prob
-		Adown = valminus / sum_prob
+		a⁺ = val⁺ / sum_prob
+		a⁻ = val⁻ / sum_prob
 		
-		return Aup, Adown
+		return a⁺, a⁻
 	end
 
 	A⁺_mat, A⁻_mat = zeros(Nμ,Nσ), zeros(Nμ,Nσ)
@@ -373,16 +373,16 @@ function uprime_inv(h::Hank, c_vec::Vector)
 	end
 end
 
-function value(h::Hank, gω::Vector{Float64}, s, RHS::Vector{Float64}, ℓ, q; solved::Bool=false)
-	h.gc = (RHS - gω) .* q
+function value(h::Hank, gc::Vector{Float64}, gω::Vector{Float64}, s, RHS::Vector{Float64}, ℓ, q; solved::Bool=false)
+	gc[:] = (RHS - gω) .* q
 
-	Ut = utility(h, h.gc - ℓ/(1+h.χ) )
+	Ut = utility(h, gc - ℓ/(1+h.χ) )
 
 	Φωp	= BasisMatrix(h.basis[1], Direct(), gω, 0).vals[1]
 	Φ_new = row_kron(h.Φnotω, Φωp)
 
 	if solved
-		h.cc = h.Φ\h.gc
+		h.cc = h.Φ\gc
 		return Φ_new
 	end
 
@@ -400,41 +400,46 @@ function opt_value!(h::Hank, s::Matrix{Float64}, R, T, ℓ, q, Π; newton::Bool=
 		warn("Budget set empty. $(minimum(upper_bound-lower_bound))")
 	end
 	vf = zeros(h.gω)
+	gc = copy(h.gc)
+	gω = copy(h.gω)
 	if resolve
-		h.gω, vf = golden_method((gω -> value(h, gω, s, upper_bound, ℓ, q)), lower_bound, upper_bound)
-		if minimum(h.gω) > h.ωmin
+		gω, vf = golden_method((gω -> value(h, gc, gω, s, upper_bound, ℓ, q)), lower_bound, upper_bound)
+		if minimum(gω) > h.ωmin
 			Void
-		elseif isapprox(minimum(h.gω), h.ωmin)
-			h.gω = max.(h.gω, h.ωmin)
-			h.gc = (upper_bound - h.gω) .* q
+		elseif isapprox(minimum(gω), h.ωmin)
+			gω = max.(gω, h.ωmin)
+			gc = (upper_bound - gω) .* q
 		else
 			throw(error("Something wrong with the individual's problem"))
 		end
 
-		h.cω = h.Φ\h.gω
 	else
-		vf = value(h, h.gω, s, upper_bound, ℓ, q)
+		vf = value(h, gc, h.gω, s, upper_bound, ℓ, q)
 	end
 
 	# Compute expected value function
 	ve = h.Emat * h.cv
 
-
 	if newton
 		# Get basis for the Newton step
-		Φ_new = value(h, h.gω, s, upper_bound, ℓ, q, solved = true)
+		Φ_new = value(h, gc, gω, s, upper_bound, ℓ, q, solved = true)
 		jac = [h.Φ -h.β*Φ_new; -h.Emat h.Φ]
 		return vf, ve, jac
 	else
-		return vf, ve
+		return vf, ve, gc, gω
 	end
 end
 
 function bellman_iteration!(h::Hank, R, T, ℓ, q, Π; resolve::Bool=true)
 	# Compute values
-	vf, ve = opt_value!(h, h.s, R, T, ℓ, q, Π, resolve = resolve)
+	vf, ve, gc, gω = opt_value!(h, h.s, R, T, ℓ, q, Π, resolve = resolve)
+
+	h.gc = gc
+	h.gω = gω
 
 	# Update coefficients
+	h.cω = h.Φ\gω
+	h.cc = h.Φ\gc
 	h.cv = h.Φ\vf
 	h.ce = h.Φ\ve
 
@@ -463,28 +468,26 @@ function extend_state_space!(h::Hank, R, T, q, Π)
 	Nq, Nw = length(h.qgrid), length(h.wgrid)
 	loop = Nq*Nw-1
 
-	@sync @parallel for jp in 0:loop
-		# println("new value")
-		jq = 1 + jp % Nq
+	qwgrid = [kron(ones(Int, Nw,), 1:Nq) kron(1:Nw, ones(Int, Nq,))]
+	Nqw = size(qwgrid)[1]
+
+	@sync @parallel for jp in 1:Nqw
+		jq = qwgrid[jp, 1]
+		jw = qwgrid[jp, 2]
+		
 		qv = h.qgrid[jq]
-		jw = 1 + Int( (jp - jp % Nq) / Nq)
 		wv = h.wgrid[jw]
-		# println("(jq,jw) = ($jq,$jw)")
 
 		# Re-solve for these values of w and q
 		ℓ = h.θ^(-1/h.χ) * (h.s[:,2] .* wv .* (1 - h.τ)).^((1+h.χ)/h.χ)
-		opt_value!(h, h.s, R, T, ℓ, qv, Π)
+		_, _, gc, gω = opt_value!(h, h.s, R, T, ℓ, qv, Π)
 			
-		gc_ext[:,:,:,:,:,:,jq,jw] = reshape(h.gc, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)
-		gω_ext[:,:,:,:,:,:,jq,jw] = reshape(h.gω, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)
+		gc_ext[:,:,:,:,:,:,jq,jw] = reshape(gc, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)
+		gω_ext[:,:,:,:,:,:,jq,jw] = reshape(gω, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)
 	end
 
 	h.gc_ext = gc_ext
 	h.gω_ext = gω_ext
-
-	# Run once more at the 'normalized' values to mess down (?) the type
-	ℓ = h.θ^(-1/h.χ) * (h.s[:,2] .* h.wage .* (1 - h.τ)).^((1+h.χ)/h.χ)
-	opt_value!(h, h.s, R, T, ℓ, q, Π)
 
 	Void
 end
@@ -533,26 +536,15 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻,
 			ω_corrected = (Rʳ*ωmv - Tʳ + Tᵉ)/((1+rᵉ)/Πᵉ)
 
 			gω = itp_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
-			ξg = itp_ξg[ω_corrected, ϵv, b, μ, σ, z]
-			ξf = itp_ξf[ω_corrected, ϵv, b, μ, σ, z]
 			if ω_corrected < h.ωgrid[1] || ω_corrected > h.ωgrid[end] || q < h.qgrid[1] || q > h.qgrid[end]
-				ext_gω = extrapolate(itp_gω, Interpolations.Flat()) 
-				ext_ξg = extrapolate(itp_ξg, Interpolations.Flat())
-				ext_ξf = extrapolate(itp_ξf, Interpolations.Flat())
+				ext_gω = extrapolate(itp_gω, Interpolations.Linear())
 				gω = ext_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
-				ξg = ext_ξg[ω_corrected, ϵv, b, μ, σ, z]
-				ξf = ext_ξf[ω_corrected, ϵv, b, μ, σ, z]
-				if gω < h.ωmin
-					warn("gω - h.ωmin = $(gω - h.ωmin) at ω_corr = $(ω_corrected)")
-					outcount += 1
-				end
-			else
-				if gω < h.ωmin
-					warn("gω - h.ωmin = $(gω - h.ωmin) at ω_corr = $(ω_corrected)")
-					incount += 1
-				end
 			end
-			gω < h.ωmin && ispprox(gω, h.ωmin)? gω = h.ωmin: Void
+			gω = min.(gω, maximum(h.ωgrid) )
+			gω < h.ωmin && isapprox(gω, h.ωmin)? gω = h.ωmin: Void
+
+			ξg = itp_ξg[gω, ϵv, b, μ, σ, z]
+			ξf = itp_ξf[gω, ϵv, b, μ, σ, z]
 			ℓ = h.θ^(-1/h.χ) * (ϵv .* w .* (1 - h.τ)).^((1+h.χ)/h.χ)
 			BC = ( Rʳ*ωmv - Tʳ + ℓ )./q
 			gc = (BC - gω) .* q
@@ -564,21 +556,18 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻,
 			valv += prob * (gω)^2
 			sum_prob += prob
 
-			totcount += 1
 		end
-	end
-	if incount + outcount > 0 
-		throw(error("$incount errors within bounds, $outcount outside. Total $totcount"))
 	end
 
 	F[1] = qg - valg / valp
 	isnan(F[1])? warn("govt debt pricing error = $(F[1])"): Void
+
 	Rot  = valf / valp
 	""" Pensar Rotemberg + Subsidio!!! """
 	Rotemberg_RHS = h.elast * (w/z - (h.elast - 1)/h.elast) + h.η * Rot
 	
+	F[2] = Π / h.Πstar - (0.5 + sqrt.(0.25 + Rotemberg_RHS/h.η))
 	if 0.25 + Rotemberg_RHS/h.η > 0
-		F[2] = Π / h.Πstar - (0.5 + sqrt.(0.25 + Rotemberg_RHS/h.η))
 	else
 		F[2] = h.η * Π/h.Πstar * (Π/h.Πstar - 1) - Rotemberg_RHS
 	end
@@ -603,19 +592,12 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻,
 	end
 end
 
-function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, xguess)
+function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, xguess, xmax, xmin)
 
 	wguess, Πguess, qgguess = xguess[1], xguess[2], xguess[3]
 	w, Π, qg = 1e10, 1e10, 1e10
 
-	minw, maxw   = minimum(h.wgrid), maximum(h.wgrid)
-	minΠ, maxΠ   = 0.8, 1.1
-	minqg, maxqg = 0.6, h.Πstar
-
 	function wrap_mktclear_minpack!(x::Vector, fvec=similar(x))
-
-		xmax = [maxw, maxΠ, maxqg]
-		xmin = [minw, minΠ, minqg]
 
 		out = mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, x, xmax, xmin; orig_vars=false)
 
@@ -632,9 +614,12 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A�
 	end
 
 	f(m::Float64, cmax, cmin) = cmax - (cmax-cmin)/(1+exp(m))
-	# g(c, cmax, cmin) = log( (c - cmin) / (cmax - c) )
 
 	mw, mΠ, mqg = collect(res.:x)
+	
+	minw, maxw   = xmin[1], xmax[1]
+	minΠ, maxΠ   = xmin[2], xmax[2]
+	minqg, maxqg = xmin[3], xmax[3]
 
 	w  = f(mw,  maxw,  minw)
 	Π  = f(mΠ,  maxΠ,  minΠ)
@@ -643,11 +628,11 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A�
 	return res.:converged, res.:f, w, Π, qg
 end
 
-function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, guess)
+function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, guess, xmax, xmin)
 
 	wguess, Πguess, qgguess = guess[1], guess[2], guess[3]	
 
-	flag, minf, w, Π, qg = wrap_find_mktclearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, [wguess, Πguess, qgguess])
+	flag, minf, w, Π, qg = wrap_find_mktclearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, [wguess, Πguess, qgguess], xmax, xmin)
 
 	curr_min = sum(minf.^2)
 	minx = [w, Π, qg]
@@ -656,9 +641,9 @@ function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, 
 
 		# alg_list = [:LN_BOBYQA; :LN_COBYLA] :GN_ISRES :GN_DIRECT_L_RAND
 		alg_list = [:GN_ISRES; :LN_COBYLA]
-		minw, maxw   = minimum(h.wgrid), maximum(h.wgrid)
-		minΠ, maxΠ   = 0.8, 1.1
-		minqg, maxqg = 0.6, h.Πstar
+		minw, maxw   = xmin[1], xmax[1]
+		minΠ, maxΠ   = xmin[2], xmax[2]
+		minqg, maxqg = xmin[3], xmax[3]
 
 		ftol = 1e-4
 		for jalg in 1:length(alg_list)
@@ -708,7 +693,14 @@ function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gω, repay, issuance, R�
 
 			guess = [w[jb,jμ,jσ,jz]; Π[jb,jμ,jσ,jz]; qg[jb,jμ,jσ,jz]]
 
-			results[jb, jμ, jσ, jz, :], minf[jb, jμ, jσ, jz, :] = find_prices(h, itp_ξg, itp_ξf, bv, μv, σv, zv, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, guess)
+			minw, maxw   = h.zgrid[jz] * (h.elast-1)/h.elast, maximum(h.wgrid)
+			minΠ, maxΠ   = (h.Πstar-0.1)^(0.25), (h.Πstar+0.1)^(0.25)
+			minqg, maxqg = 0.9, h.Πstar
+
+			xmin = [minw; minΠ; minqg]
+			xmax = [maxw; maxΠ; maxqg]
+
+			results[jb, jμ, jσ, jz, :], minf[jb, jμ, jσ, jz, :] = find_prices(h, itp_ξg, itp_ξf, bv, μv, σv, zv, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, guess, xmax, xmin)
 		end
 	end
 							
