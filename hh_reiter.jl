@@ -164,14 +164,12 @@ function Hank(;	β = (1/1.04)^(1/4),
 
 	Ξ = dot(ϵgrid.^(1/χ), λϵ)^χ
 
-	θ = (1-τ) * Ξ
-
 	# Grids for endogenous aggregate states
 	bgrid = collect(linspace(0.1, 0.4, Nb))
 	μgrid = collect(linspace(0.0, 0.3, Nμ))
 	σgrid = collect(linspace(1.0, 2.0, Nσ))
 
-	Φπ = 5.0
+	Φπ = 2.0
 	ΦL = 1.0
 
 	η  = 250.0 
@@ -232,7 +230,7 @@ function Hank(;	β = (1/1.04)^(1/4),
 	qmin, qmax = (1.05)^(-0.25), (0.90)^(-0.25)
 	qˢgrid = collect(linspace(qmin, qmax, Nq))
 	qᵇgrid = collect(linspace(qmin, qmax, Nq))
-	wgrid = collect(linspace(.9, 1.1, Nw))
+	wgrid = collect(linspace(.9, 1.1, Nw)) * (elast-1)/elast
 
 	gc_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nq, Nq, Nw)
 	gω_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nq, Nq, Nw)
@@ -256,11 +254,12 @@ function Hank(;	β = (1/1.04)^(1/4),
 
 	spending = 0.2 - 0.05 * log.(s[:, 6])
 
-	wage = s[:, 6]
+	wage = s[:, 6] * (elast-1)/elast
+	θ = (elast-1)/elast * (1-τ) * Ξ
 	Ld 	 = 1 * ones(Ns,)
 
-	Πstar = 1.02^(1/4)
-	i_star = (0 / 100 + Πstar^4)^(1/4) - 1
+	Πstar = 1.02^(0.25)
+	i_star = (3 / 100 + Πstar^4)^(1/4) - 1
 	inflation = Πstar * ones(Ns,)
 	qˢ = (1/(1+i_star)) * ones(Ns,)
 	qᵇ = (1/(1+i_star)) * ones(Ns,)
@@ -415,11 +414,17 @@ function opt_value!(h::Hank, s::Matrix{Float64}, R, T, ℓ, qˢ, qᵇ, Π; newto
 	gc = copy(h.gc)
 	gω = copy(h.gω)
 	if resolve
-		gω, vf = golden_method((gω -> value(h, gc, gω, s, BC, ℓ, qˢ, qᵇ)), lower_bound, upper_bound)
+		gω_debt, vf_debt = golden_method((gω -> value(h, gc, gω, s, BC, ℓ, qˢ, qᵇ)), lower_bound, zeros(lower_bound))
+		gω_save, vf_save = golden_method((gω -> value(h, gc, gω, s, BC, ℓ, qˢ, qᵇ)), zeros(upper_bound), upper_bound)
+		
+		gω = gω_debt .* (vf_debt .> vf_save) + gω_save .* (vf_save .>= vf_debt)
+		vf = max.(vf_debt, vf_save)
+
 		if minimum(gω) > h.ωmin
 			Void
 		elseif isapprox(minimum(gω), h.ωmin)
 			gω = max.(gω, h.ωmin)
+			q = qˢ .* (gω.>0) + qᵇ .* (gω.<=0)
 			gc = (upper_bound - gω) .* q
 		else
 			throw(error("Something wrong with the individual's problem"))
@@ -506,29 +511,27 @@ end
 
 transform_vars(m::Float64, cmax, cmin) = cmax - (cmax-cmin)/(1+exp(m))
 
-function _unpack_origvars(x, xmax, xmin)	
-	w  = transform_vars(x[1], xmax[1], xmin[1])
-	Π  = transform_vars(x[2], xmax[2], xmin[2])
-	qᵍ = transform_vars(x[3], xmax[3], xmin[3])
-	qˢ = transform_vars(x[4], xmax[4], xmin[4])
-	return w, Π, qᵍ, qˢ
+function _unpack_origvars(x, xmax, xmin)
+	y = zeros(x)
+	for (jx, xv) in enumerate(x)
+		y[jx] = transform_vars(xv, xmax[jx], xmin[jx])
+	end
+
+	return y
 end
 
 
 function mkt_clearing(h::Hank, itp_ξg, itp_ξf, itp_ξp, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, x, xmax=x, xmin=x; get_others::Bool = false, orig_vars::Bool=true)
 	F = zeros(x)
-	w, Π, qᵍ, qˢ = x[1], x[2], x[3], x[4]
+	w, Π, qᵍ, qˢ, qᵇ = collect(x)
 	if orig_vars == false
-		w, Π, qᵍ, qˢ = _unpack_origvars(x, xmax, xmin)
+		w, Π, qᵍ, qˢ, qᵇ = _unpack_origvars(x, xmax, xmin)
 	end
 
 	L = (w * (1-h.τ)/h.θ * h.Ξ)^(1./h.χ)
 	Y = z * L
 
 	Tʳ = G + h.κ * rep / Π * b - qᵍ * (B′ - rep / Π * (1-h.ρ)*b) - h.τ * w*L
-
-	i = (1+h.i_star) * (Π/h.Πstar)^h.Φπ * L^h.ΦL - 1
-	qᵇ = 1/(1+i)
 
 	ψ = Y * (1 - w/z - 0.5*h.η*(Π/h.Πstar - 1)^2)
 
@@ -555,7 +558,6 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, itp_ξp, b, μ, σ, z, B′, A�
 				itp_obj_gω = extrapolate(itp_gω, Interpolations.Flat())
 			end
 			gω = itp_obj_gω[ω_corrected, ϵv, b, μ, σ, z, qˢ, qᵇ, w]
-			# gω = max.(min.(gω, maximum(h.ωgrid) ), minimum(h.ωgrid))
 			gω < h.ωmin && isapprox(gω, h.ωmin)? gω = h.ωmin: Void
 
 			ξg = itp_ξg[gω, ϵv, b, μ, σ, z]
@@ -567,27 +569,30 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, itp_ξp, b, μ, σ, z, B′, A�
 			gc = BC - gω * q
 			uc = gc^(-h.γ)
 
-			valf += prob * (gω / uc * ξf / Y)
-			valg += prob * (gω / uc * ξg)
-			valp += prob * (gω / uc * ξp)
+			if gω > 0
+				valf += prob * (gω / uc * ξf / Y)
+				valg += prob * (gω / uc * ξg)
+				valp += prob * (gω / uc * ξp)
+				val⁺ += prob * gω
+			else
+				val⁻ += prob * abs(gω)
+			end
 			valnorm += prob * (gω)
 			valv += prob * (gω)^2
-
-			gω > 0 ? val⁺ += prob * gω: val⁻ += prob * abs(gω)
 			
 			sum_prob += prob
 		end
 	end
 
-	F[1] = qᵍ - valg / valnorm
+	F[1] = qᵍ - valg / val⁺
 	isnan(F[1])? warn("govt debt pricing error = $(F[1])"): Void
 
-	Rot  = valf / valnorm
+	Rot  = valf / val⁺
 	""" Pensar Rotemberg + Subsidio!!! """
 	Rotemberg_RHS = h.elast * (w/z - (h.elast - 1)/h.elast) + h.η * Rot
 	
+	F[2] = Π / h.Πstar - (0.5 + sqrt.(0.25 + Rotemberg_RHS/h.η))
 	if 0.25 + Rotemberg_RHS/h.η > 0
-		F[2] = Π / h.Πstar - (0.5 + sqrt.(0.25 + Rotemberg_RHS/h.η))
 	else
 		F[2] = h.η * Π/h.Πstar * (Π/h.Πstar - 1) - Rotemberg_RHS
 	end
@@ -609,14 +614,16 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, itp_ξp, b, μ, σ, z, B′, A�
 	isnan(F[3])? warn("mf budget constraint error = $(F[3])"): Void
 
 
-	F[4] = qᵇ - valp / valnorm
+	F[4] = qᵇ - valp / val⁺
 	isnan(F[4])? warn("Euler equation error = $(F[4])"): Void
 
-	weights = [1;1e-2;1e-2;1]
+	F[5] = 1/qᵇ - (1+h.i_star) * ((Π)/h.Πstar)^h.Φπ * L^h.ΦL
+
+	# weights = [1;1e-2;1e-2;1]
 	weights = ones(F)
 
 	if get_others
-		return qᵇ, A′, μ′, σ′, rS, Tʳ, F
+		return A′, μ′, σ′, rS, Tʳ, F
 	else
 		return F .* weights
 	end
@@ -624,8 +631,8 @@ end
 
 function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, itp_ξp, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, xguess, xmax, xmin)
 
-	wguess, Πguess, qᵍguess, qˢguess = collect(xguess)
-	w, Π, qᵍ, qˢ = collect(xguess)
+	# wguess, Πguess, qᵍguess, qˢguess = collect(xguess)
+	# w, Π, qᵍ, qˢ = collect(xguess)
 
 	function wrap_mktclear_minpack!(x::Vector, fvec=similar(x))
 
@@ -643,9 +650,9 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, itp_ξp, b, μ, σ, z,
 		end
 	end
 
-	w, Π, qᵍ, qˢ = _unpack_origvars(res.:x, xmax, xmin)
+	w, Π, qᵍ, qˢ, qᵇ = _unpack_origvars(res.:x, xmax, xmin)
 
-	return res.:converged, res.:f, [w; Π; qᵍ; qˢ]
+	return res.:converged, res.:f, [w; Π; qᵍ; qˢ; qᵇ]
 end
 
 function find_prices(h::Hank, itp_ξg, itp_ξf, itp_ξp, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, guess, xmax, xmin)
@@ -659,11 +666,7 @@ function find_prices(h::Hank, itp_ξg, itp_ξf, itp_ξp, b, μ, σ, z, B′, A�
 
 	# 	# alg_list = [:LN_BOBYQA; :LN_COBYLA] :GN_ISRES :GN_DIRECT_L_RAND
 	# 	alg_list = [:GN_ISRES; :LN_COBYLA]
-	# 	minw, maxw 	= xmin[1], xmax[1]
-	# 	minΠ, maxΠ 	= xmin[2], xmax[2]
-	# 	minqᵍ, maxqᵍ	= xmin[3], xmax[3]
 
-	# 	ftol = 1e-4
 	# 	for jalg in 1:length(alg_list)
 	# 		opt = Opt(alg_list[jalg], length(guess))
 	# 		upper_bounds!(opt, xmax)
@@ -681,49 +684,60 @@ function find_prices(h::Hank, itp_ξg, itp_ξf, itp_ξp, b, μ, σ, z, B′, A�
 	# 	end
 	# end
 
-	qᵇ, A′, μ′, σ′, rS, Tʳ, minf = mkt_clearing(h, itp_ξg, itp_ξf, itp_ξp, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, curr_xmin; get_others = true)
+	A′, μ′, σ′, rS, Tʳ, minf = mkt_clearing(h, itp_ξg, itp_ξf, itp_ξp, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, curr_xmin; get_others = true)
 
-	w, Π, qᵍ, qˢ = curr_xmin
+	w, Π, qᵍ, qˢ, qᵇ = curr_xmin
 
 	return [w, Π, qᵍ, qˢ, qᵇ, μ′, σ′, rS, Tʳ], minf
 end
 
 function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_ξp, itp_gω, repay, issuance, Rᵉ_mat, Tᵉ_mat, G_mat, Πᵉ_mat, A⁺_mat, A⁻_mat)
 	results = SharedArray{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nz, 9)
-	minf	= SharedArray{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nz, 4)
+	minf	= SharedArray{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nz, 5)
 
 	R, T, ℓ, Rep, qˢ, qᵇ, Π = _unpackstatefs(h)
 
 	Π 	= reshape(Π, 		h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	w 	= reshape(h.wage, 	h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	qᵍ 	= reshape(h.qᵍ, 		h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	qˢ 	= reshape(h.qˢ, 		h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	qᵍ 	= reshape(h.qᵍ, 	h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	qˢ 	= reshape(qˢ, 		h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	qᵇ 	= reshape(qᵇ, 		h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 
-	@sync @parallel for jz in 1:length(h.zgrid)
+	exogrid = [kron(ones(Int,h.Nμ*h.Nσ*h.Nz),1:h.Nb) kron(kron(ones(Int,h.Nσ*h.Nz),1:h.Nμ),ones(Int,h.Nb)) kron(kron(ones(Int,h.Nz),1:h.Nσ),ones(Int,h.Nμ*h.Nb)) kron(1:h.Nz,ones(Int,h.Nσ*h.Nμ*h.Nb))]
+	N_exo = size(exogrid)[1]
+
+	@sync @parallel for jp in 1:N_exo
+		jb = exogrid[jp, 1]
+		jμ = exogrid[jp, 2]
+		jσ = exogrid[jp, 3]
+		jz = exogrid[jp, 4]
+
+		bv = h.bgrid[jb]
+		μv = h.μgrid[jμ]
+		σv = h.σgrid[jσ]
 		zv = h.zgrid[jz]
-		for (jσ, σv) in enumerate(h.σgrid), (jμ, μv) in enumerate(h.μgrid), (jb, bv) in enumerate(h.bgrid)
 
-			rep = repay[jb, jμ, jσ, jz]
-			B′  = issuance[jb, jμ, jσ, jz]
-			Rᵉ 	= Rᵉ_mat[jb, jμ, jσ, jz]
-			Tᵉ	= Tᵉ_mat[jb, jμ, jσ, jz]
-			G	= G_mat[jb, jμ, jσ, jz]
-			Πᵉ 	= Πᵉ_mat[jb, jμ, jσ, jz]
-			A⁺	= A⁺_mat[jb, jμ, jσ, jz]
-			A⁻	= A⁻_mat[jb, jμ, jσ, jz]
+		rep = repay[jb, jμ, jσ, jz]
+		B′  = issuance[jb, jμ, jσ, jz]
+		Rᵉ 	= Rᵉ_mat[jb, jμ, jσ, jz]
+		Tᵉ	= Tᵉ_mat[jb, jμ, jσ, jz]
+		G	= G_mat[jb, jμ, jσ, jz]
+		Πᵉ 	= Πᵉ_mat[jb, jμ, jσ, jz]
+		A⁺	= A⁺_mat[jb, jμ, jσ, jz]
+		A⁻	= A⁻_mat[jb, jμ, jσ, jz]
 
-			guess = [w[jb,jμ,jσ,jz]; Π[jb,jμ,jσ,jz]; qᵍ[jb,jμ,jσ,jz]; qˢ[jb,jμ,jσ,jz]]
+		guess = [w[jb,jμ,jσ,jz]; Π[jb,jμ,jσ,jz]; qᵍ[jb,jμ,jσ,jz]; qˢ[jb,jμ,jσ,jz]; qᵇ[jb,jμ,jσ,jz]]
 
-			minw, maxw 	= minimum(h.wgrid), maximum(h.wgrid)
-			minΠ, maxΠ 	= (h.Πstar-0.1)^(0.25), (h.Πstar+0.1)^(0.25)
-			minqᵍ, maxqᵍ	= 0.9, h.Πstar
-			minqˢ, maxqˢ	= minimum(h.qˢgrid), maximum(h.qˢgrid)
+		minw, maxw 	= minimum(h.wgrid), maximum(h.wgrid)
+		minΠ, maxΠ 	= (h.Πstar-0.1)^(0.25), (h.Πstar+0.1)^(0.25)
+		minqᵍ, maxqᵍ	= 0.9, h.Πstar
+		minqˢ, maxqˢ	= minimum(h.qˢgrid), maximum(h.qˢgrid)
+		minqᵇ, maxqᵇ	= minimum(h.qᵇgrid), maximum(h.qᵇgrid)
 
-			xmin = [minw; minΠ; minqᵍ; minqˢ]
-			xmax = [maxw; maxΠ; maxqᵍ; maxqˢ]
+		xmin = [minw; minΠ; minqᵍ; minqˢ; minqᵇ]
+		xmax = [maxw; maxΠ; maxqᵍ; maxqˢ; maxqᵇ]
 
-			results[jb, jμ, jσ, jz, :], minf[jb, jμ, jσ, jz, :] = find_prices(h, itp_ξg, itp_ξf, itp_ξp, bv, μv, σv, zv, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, guess, xmax, xmin)
-		end
+		results[jb, jμ, jσ, jz, :], minf[jb, jμ, jσ, jz, :] = find_prices(h, itp_ξg, itp_ξf, itp_ξp, bv, μv, σv, zv, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, guess, xmax, xmin)
 	end
 							
 	return results, minf
@@ -798,11 +812,15 @@ function update_state_functions!(h::Hank, upd_η)
 	h.MF_rS 	= upd_η * reshape(out[:, :, :, :, :, :, 8], h.Ns) + (1-upd_η) * h.MF_rS
 	h.lump_sum 	= upd_η * reshape(out[:, :, :, :, :, :, 9], h.Ns) + (1-upd_η) * h.lump_sum
 
-	return mean(minf[:,:,:,:,1]), mean(minf[:,:,:,:,2]), mean(minf[:,:,:,:,3]), mean(minf[:,:,:,:,4])
+	meanf = zeros(size(minf)[end])
+	for jf in 1:size(minf)[end]
+		meanf[jf] = mean(minf[:,:,:,:,jf])
+	end
+
+	return meanf
 end
 
 function compute_ξ!(h::Hank)
-	""" Tener en cuenta que los ξ's hay que calcularlos con el guess viejo """
 	rep = h.debt_repay
 	qᵍ 	= h.qᵍ
 	Π  	= h.inflation
@@ -883,9 +901,9 @@ function vfi!(h::Hank; tol::Float64=1e-2, verbose::Bool=true, maxiter::Int64=500
 			print_save("\nUpdating functions of the state")
 
 			compute_ξ!(h)
-			err_g, err_R, err_M, err_E = update_state_functions!(h, upd_η)
+			err_g, err_R, err_M, err_E, err_T = update_state_functions!(h, upd_η)
 			upd_P!(h, B′, h.μ′, h.σ′)
-			print_save(": done in $(time_print(time()-t1)) \nAverage errors in GD, PC, MF, RF = ($(@sprintf("%0.3g",mean(err_g))), $(@sprintf("%0.3g",mean(err_R))), $(@sprintf("%0.3g",mean(err_M))), $(@sprintf("%0.3g",mean(err_E))))")
+			print_save(": done in $(time_print(time()-t1)) \nAverage errors in GD, PC, MF, RF, TR = ($(@sprintf("%0.3g",mean(err_g))), $(@sprintf("%0.3g",mean(err_R))), $(@sprintf("%0.3g",mean(err_M))), $(@sprintf("%0.3g",mean(err_E))), $(@sprintf("%0.3g",mean(err_T))))")
 			iter_cycle = 0
 
 			new_R, new_T, new_ℓ, new_Rep, new_qˢ, new_qᵇ, new_Π = _unpackstatefs(h)
@@ -1030,6 +1048,7 @@ function plot_state_funcs(h::Hank)
 	w 	= reshape(h.wage, 	h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	qᵍ 	= reshape(h.qᵍ, 	h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 
+	Πdev = (Π)/h.Πstar
 
 	Z = zeros(h.Nb, h.Nμ, h.Nσ, h.Nz)
 	for (jz, zv) in enumerate(h.zgrid)
@@ -1049,59 +1068,63 @@ function plot_state_funcs(h::Hank)
 
 	# l = @layout([a b; c d; e f; g h i])
 
-	pEβR= plot(h.bgrid, vec(EβR[:,j,j,j]), title=L"\beta E[R^S]", label = "")
-	pqᵍ = plot(h.bgrid, vec(qᵍ[:,j,j,j]), title=L"q^g", label = "")
-	pΠ = plot(h.bgrid, vec(Π[:,j,j,j]), title=L"Π", label = "")
-	pAp = plot(h.bgrid, vec(A⁺_mat[:,j,j,j]), title=L"A^+", label = "")
-	pAm = plot(h.bgrid, vec(A⁻_mat[:,j,j,j]), title=L"A^-", label = "")
-	p_i = plot(h.bgrid, [vec(iˢ[:,j,j,j]) vec(i[:,j,j,j])], title=L"i", label = [L"i^s" L"i^b"])
-	pT = plot(h.bgrid, vec(T[:,j,j,j]), title=L"T", label = "")
-	pw = plot(h.bgrid, vec(w[:,j,j,j]), title=L"w", label = "")
+	pEβR = plot(h.bgrid, vec(EβR[:,j,j,j]), title=L"\beta E[R^S]", label = "")
+	pqᵍ	 = plot(h.bgrid, vec(qᵍ[:,j,j,j]), 	title=L"q^g", label = "")
+	pΠ	 = plot(h.bgrid, vec(Π[:,j,j,j]), 	title=L"Π", label = "")
+	pAp	 = plot(h.bgrid, vec(A⁺_mat[:,j,j,j]), title=L"A^+", label = "")
+	pAm	 = plot(h.bgrid, vec(A⁻_mat[:,j,j,j]), title=L"A^-", label = "")
+	p_i	 = plot(h.bgrid, [vec(iˢ[:,j,j,j]) vec(i[:,j,j,j])], title=L"i", label = [L"i^s" L"i^b"])
+	pT	 = plot(h.bgrid, vec(T[:,j,j,j]), 	title=L"T", label = "")
+	pL	 = plot(h.bgrid, [vec(L[:,j,j,j]) vec(Πdev[:,j,j,j])], title=L"L", label = [L"L" L"\tilde{\pi}"])
+	pw 	 = plot(h.bgrid, vec(w[:,j,j,j]), title=L"w", label = "")
 	pψ = plot(h.bgrid, vec(ψ[:,j,j,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"B_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pL, pψ, xlabel = L"B_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_b.png")
 
 	# l = @layout([a b; c d; e f g])
-	pEβR= plot(h.μgrid, vec(EβR[j,:,j,j]), title=L"\beta E[R^S]", label = "")
-	pqᵍ = plot(h.μgrid, vec(qᵍ[j,:,j,j]), title=L"q^g", label = "")
-	pΠ = plot(h.μgrid, vec(Π[j,:,j,j]), title=L"Π", label = "")
-	pAp = plot(h.μgrid, vec(A⁺_mat[j,:,j,j]), title=L"A^+", label = "")
-	pAm = plot(h.μgrid, vec(A⁻_mat[j,:,j,j]), title=L"A^-", label = "")
-	p_i = plot(h.μgrid, [vec(iˢ[j,:,j,j]) vec(i[j,:,j,j])], title=L"i", label = [L"i^s" L"i^b"])
-	pT = plot(h.μgrid, vec(T[j,:,j,j]), title=L"T", label = "")
+	pEβR = plot(h.μgrid, vec(EβR[j,:,j,j]), title=L"\beta E[R^S]", label = "")
+	pqᵍ	 = plot(h.μgrid, vec(qᵍ[j,:,j,j]), title=L"q^g", label = "")
+	pΠ	 = plot(h.μgrid, vec(Π[j,:,j,j]), title=L"Π", label = "")
+	pAp	 = plot(h.μgrid, vec(A⁺_mat[j,:,j,j]), title=L"A^+", label = "")
+	pAm	 = plot(h.μgrid, vec(A⁻_mat[j,:,j,j]), title=L"A^-", label = "")
+	p_i	 = plot(h.μgrid, [vec(iˢ[j,:,j,j]) vec(i[j,:,j,j])], title=L"i", label = [L"i^s" L"i^b"])
+	pT	 = plot(h.μgrid, vec(T[j,:,j,j]), title=L"T", label = "")
+	pL	 = plot(h.μgrid, [vec(L[j,:,j,j]) vec(Πdev[j,:,j,j])], title=L"L", label = [L"L" L"\tilde{\pi}"])
 	pw = plot(h.μgrid, vec(w[j,:,j,j]), title=L"w", label = "")
 	pψ = plot(h.μgrid, vec(ψ[j,:,j,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"\mu_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pL, pψ, xlabel = L"\mu_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_mu.png")
 
 	# l = @layout([a b; c d; e f g])
-	pEβR= plot(h.σgrid, vec(EβR[j,j,:,j]), title=L"\beta E[R^S]", label = "")
-	pqᵍ = plot(h.σgrid, vec(qᵍ[j,j,:,j]), title=L"q^g", label = "")
-	pΠ = plot(h.σgrid, vec(Π[j,j,:,j]), title=L"Π", label = "")
-	pAp = plot(h.σgrid, vec(A⁺_mat[j,j,:,j]), title=L"A^+", label = "")
-	pAm = plot(h.σgrid, vec(A⁻_mat[j,j,:,j]), title=L"A^-", label = "")
-	p_i = plot(h.σgrid, [vec(iˢ[j,j,:,j]) vec(i[j,j,:,j])], title=L"i", label = [L"i^s" L"i^b"])
-	pT = plot(h.σgrid, vec(T[j,j,:,j]), title=L"T", label = "")
+	pEβR = plot(h.σgrid, vec(EβR[j,j,:,j]), title=L"\beta E[R^S]", label = "")
+	pqᵍ	 = plot(h.σgrid, vec(qᵍ[j,j,:,j]), title=L"q^g", label = "")
+	pΠ	 = plot(h.σgrid, vec(Π[j,j,:,j]), title=L"Π", label = "")
+	pAp	 = plot(h.σgrid, vec(A⁺_mat[j,j,:,j]), title=L"A^+", label = "")
+	pAm	 = plot(h.σgrid, vec(A⁻_mat[j,j,:,j]), title=L"A^-", label = "")
+	p_i	 = plot(h.σgrid, [vec(iˢ[j,j,:,j]) vec(i[j,j,:,j])], title=L"i", label = [L"i^s" L"i^b"])
+	pT	 = plot(h.σgrid, vec(T[j,j,:,j]), title=L"T", label = "")
+	pL	 = plot(h.σgrid, [vec(L[j,j,:,j]) vec(Πdev[j,j,:,j])], title=L"L", label = [L"L" L"\tilde{\pi}"])
 	pw = plot(h.σgrid, vec(w[j,j,:,j]), title=L"w", label = "")
 	pψ = plot(h.σgrid, vec(ψ[j,j,:,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"\sigma_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pL, pψ, xlabel = L"\sigma_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_sigma.png")
 
 	# l = @layout([a b; c d; e f g])
-	pEβR= plot(h.zgrid, vec(EβR[j,j,j,:]), title=L"\beta E[R^S]", label = "")
-	pqᵍ = plot(h.zgrid, vec(qᵍ[j,j,j,:]), title=L"q^g", label = "")
-	pΠ = plot(h.zgrid, vec(Π[j,j,j,:]), title=L"Π", label = "")
-	pAp = plot(h.zgrid, vec(A⁺_mat[j,j,j,:]), title=L"A^+", label = "")
-	pAm = plot(h.zgrid, vec(A⁻_mat[j,j,j,:]), title=L"A^-", label = "")
-	p_i = plot(h.zgrid, [vec(iˢ[j,j,j,:]) vec(i[j,j,j,:])], title=L"i", label = [L"i^s" L"i^b"])
-	pT = plot(h.zgrid, vec(T[j,j,j,:]), title=L"T", label = "")
+	pEβR = plot(h.zgrid, vec(EβR[j,j,j,:]), title=L"\beta E[R^S]", label = "")
+	pqᵍ	 = plot(h.zgrid, vec(qᵍ[j,j,j,:]), title=L"q^g", label = "")
+	pΠ	 = plot(h.zgrid, vec(Π[j,j,j,:]), title=L"Π", label = "")
+	pAp	 = plot(h.zgrid, vec(A⁺_mat[j,j,j,:]), title=L"A^+", label = "")
+	pAm	 = plot(h.zgrid, vec(A⁻_mat[j,j,j,:]), title=L"A^-", label = "")
+	p_i	 = plot(h.zgrid, [vec(iˢ[j,j,j,:]) vec(i[j,j,j,:])], title=L"i", label = [L"i^s" L"i^b"])
+	pT	 = plot(h.zgrid, vec(T[j,j,j,:]), title=L"T", label = "")
+	pL	 = plot(h.zgrid, [vec(L[j,j,j,:]) vec(Πdev[j,j,j,:])], title=L"L", label = [L"L" L"\tilde{\pi}"])
 	pw = plot(h.zgrid, vec(w[j,j,j,:]), title=L"w", label = "")
 	pψ = plot(h.zgrid, vec(ψ[j,j,j,:]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"z_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pL, pψ, xlabel = L"z_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_z.png")
 
 	Void
