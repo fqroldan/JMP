@@ -229,7 +229,6 @@ function Hank(;	β = (1/1.04)^(1/4),
 	λ = ones(Nω_fine*Nϵ)
 	λ = λ/sum(λ)
 	
-
 	qmin, qmax = (1.05)^(-0.25), (0.90)^(-0.25)
 	qˢgrid = collect(linspace(qmin, qmax, Nq))
 	qᵇgrid = collect(linspace(qmin, qmax, Nq))
