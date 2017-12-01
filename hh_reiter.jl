@@ -462,8 +462,8 @@ end
 
 function extend_state_space!(h::Hank, R, T, q, Π)
 
-	gc_ext = SharedArray{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz, length(h.qgrid), length(h.wgrid))
-	gω_ext = SharedArray{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz, length(h.qgrid), length(h.wgrid))
+	gc_ext = SharedArray{Float64}(size(h.gc_ext))
+	gω_ext = SharedArray{Float64}(size(h.gω_ext))
 	
 	Nq, Nw = length(h.qgrid), length(h.wgrid)
 	loop = Nq*Nw-1
