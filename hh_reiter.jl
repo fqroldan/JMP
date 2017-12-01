@@ -168,10 +168,6 @@ function Hank(;	β = (1/1.06)^(1/4),
 	μgrid = collect(linspace(0.1, 0.2, Nμ))
 	σgrid = collect(linspace(0.5, 1.5, Nσ))
 
-	# Debt parameters
-	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
-	κ = ρ
-
 	Φπ = 5.0
 	ΦL = 1.0
 
@@ -231,7 +227,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 	λ = λ/sum(λ)
 
 	qgrid = collect(linspace(.85, 1.1, Nq))
-	wgrid = collect(linspace(.9, 1.1, Nw))
+	wgrid = collect(linspace(.8, 1.2, Nw))
 
 	gc_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nq, Nw)
 	gω_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nq, Nw)
@@ -264,12 +260,17 @@ function Hank(;	β = (1/1.06)^(1/4),
 	wage = s[:, 6]
 	Ld 	 = 1 * ones(Ns,)
 
-	debtprice = 0.95 * ones(Ns,)
-	q = 0.99 * ones(Ns,)
-
 	Πstar = 1.02^(1/4)
 	i_star = (4 / 100 + Πstar^4)^(1/4) - 1
 	inflation = Πstar * ones(Ns,)
+
+	q = (1/(1+i_star)) * ones(Ns,)
+	debtprice = 1.0 * ones(Ns,)
+
+	# Debt parameters
+	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
+	κ = ρ + i_star
+
 
 	ξg = zeros(Ns,)
 	ξf = zeros(Ns,)
@@ -496,30 +497,30 @@ function _unpack_origvars(x, xmax, xmin)
 	f(m::Float64, cmax, cmin) = cmax - (cmax-cmin)/(1+exp(m))
 	w  = f(x[1], xmax[1], xmin[1])
 	Π  = f(x[2], xmax[2], xmin[2])
-	qg = f(x[3], xmax[3], xmin[3])
+	qᵍ = f(x[3], xmax[3], xmin[3])
 
-	return w, Π, qg
+	return w, Π, qᵍ
 end
 
 
 function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, x, xmax=x, xmin=x; get_others::Bool = false, orig_vars::Bool=true)
 	F = zeros(x)
-	w, Π, qg = x[1], x[2], x[3]
+	w, Π, qᵍ = x[1], x[2], x[3]
 	if orig_vars == false
-		w, Π, qg = _unpack_origvars(x, xmax, xmin)
+		w, Π, qᵍ = _unpack_origvars(x, xmax, xmin)
 	end
 
 	L = (w * (1-h.τ)/h.θ * h.Ξ)^(1./h.χ)
 	Y = z * L
 
-	Tʳ = G + h.κ * rep / Π * b - qg * (B′ - (1-h.ρ)*b) - h.τ * w*L
+	Tʳ = G + h.κ * rep / Π * b - qᵍ * (B′ - (1-h.ρ)*b) - h.τ * w*L
 
 	i = (1+h.i_star) * (Π/h.Πstar)^h.Φπ * L^h.ΦL - 1
 	q = 1/(1+i)
 
 	ψ = Y * (1 - w/z - 0.5*h.η*(Π/h.Πstar - 1)^2)
 
-	rS = ((A⁻ + rep*b*(h.κ + (1-h.ρ)*qg) + Π*ψ) / A⁺) - 1
+	rS = ((A⁻ + rep*b*(h.κ + (1-h.ρ)*qᵍ) + Π*ψ) / A⁺) - 1
 
 	valf, valg, valp, valv, sum_prob = 0., 0., 0., 0., 0.
 	totcount, incount, outcount = 0, 0, 0
@@ -559,7 +560,7 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻,
 		end
 	end
 
-	F[1] = qg - valg / valp
+	F[1] = qᵍ - valg / valp
 	isnan(F[1])? warn("govt debt pricing error = $(F[1])"): Void
 
 	Rot  = valf / valp
@@ -576,13 +577,13 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻,
 	A′ = valp / sum_prob
 	varprime = valv / sum_prob - A′^2
 
-	1 + varprime / ((A′-h.ωmin)^2) > 0 || warn("potentially negative variance at w = $w, Π = $Π, qg = $qg, q = $q")
+	1 + varprime / ((A′-h.ωmin)^2) > 0 || warn("potentially negative variance at w = $w, Π = $Π, qᵍ = $qᵍ, q = $q")
 
 	σ2 = log( 1 + varprime / ((A′-h.ωmin)^2) )
 	μ′ = log(A′-h.ωmin) - 0.5 * σ2
 	σ′ = sqrt(σ2)
 
-	F[3] = q * A′ - qg * B′
+	F[3] = q * A′ - qᵍ * B′
 	isnan(F[3])? warn("mf budget constraint error = $(F[3])"): Void
 
 	if get_others
@@ -594,8 +595,8 @@ end
 
 function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, xguess, xmax, xmin)
 
-	wguess, Πguess, qgguess = xguess[1], xguess[2], xguess[3]
-	w, Π, qg = 1e10, 1e10, 1e10
+	wguess, Πguess, qᵍguess = xguess[1], xguess[2], xguess[3]
+	w, Π, qᵍ = 1e10, 1e10, 1e10
 
 	function wrap_mktclear_minpack!(x::Vector, fvec=similar(x))
 
@@ -615,27 +616,27 @@ function wrap_find_mktclearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A�
 
 	f(m::Float64, cmax, cmin) = cmax - (cmax-cmin)/(1+exp(m))
 
-	mw, mΠ, mqg = collect(res.:x)
+	mw, mΠ, mqᵍ = collect(res.:x)
 	
 	minw, maxw   = xmin[1], xmax[1]
 	minΠ, maxΠ   = xmin[2], xmax[2]
-	minqg, maxqg = xmin[3], xmax[3]
+	minqᵍ, maxqᵍ = xmin[3], xmax[3]
 
 	w  = f(mw,  maxw,  minw)
 	Π  = f(mΠ,  maxΠ,  minΠ)
-	qg = f(mqg, maxqg, minqg)
+	qᵍ = f(mqᵍ, maxqᵍ, minqᵍ)
 
-	return res.:converged, res.:f, w, Π, qg
+	return res.:converged, res.:f, w, Π, qᵍ
 end
 
 function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, guess, xmax, xmin)
 
-	wguess, Πguess, qgguess = guess[1], guess[2], guess[3]	
+	wguess, Πguess, qᵍguess = guess[1], guess[2], guess[3]	
 
-	flag, minf, w, Π, qg = wrap_find_mktclearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, [wguess, Πguess, qgguess], xmax, xmin)
+	flag, minf, w, Π, qᵍ = wrap_find_mktclearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, [wguess, Πguess, qᵍguess], xmax, xmin)
 
 	curr_min = sum(minf.^2)
-	minx = [w, Π, qg]
+	minx = [w, Π, qᵍ]
 	if flag == false
 		wrap_mktclearing_nlopt(x::Vector, grad::Vector) = sum(mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, x).^2)
 
@@ -643,13 +644,13 @@ function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, 
 		alg_list = [:GN_ISRES; :LN_COBYLA]
 		minw, maxw   = xmin[1], xmax[1]
 		minΠ, maxΠ   = xmin[2], xmax[2]
-		minqg, maxqg = xmin[3], xmax[3]
+		minqᵍ, maxqᵍ = xmin[3], xmax[3]
 
 		ftol = 1e-4
 		for jalg in 1:length(alg_list)
 			opt = Opt(alg_list[jalg], 3)
-			upper_bounds!(opt, [maxw, maxΠ, maxqg])
-			lower_bounds!(opt, [maxw, maxΠ, maxqg])
+			upper_bounds!(opt, [maxw, maxΠ, maxqᵍ])
+			lower_bounds!(opt, [maxw, maxΠ, maxqᵍ])
 			xtol_rel!(opt, 1e-10)
 			# maxtime!(opt, 5)
 			# maxeval!(opt, 50)
@@ -658,14 +659,14 @@ function find_prices(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, 
 
 			if minf < curr_min
 				curr_min = minf
-				w, Π, qg = minx
+				w, Π, qᵍ = minx
 			end
 		end
 	end
 
-	q, A′, μ′, σ′, rS, Tʳ, minf = mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, [w, Π, qg]; get_others = true)
+	q, A′, μ′, σ′, rS, Tʳ, minf = mkt_clearing(h, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, [w, Π, qᵍ]; get_others = true)
 
-	return [w, Π, qg, q, μ′, σ′, rS, Tʳ], minf
+	return [w, Π, qᵍ, q, μ′, σ′, rS, Tʳ], minf
 end
 
 function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gω, repay, issuance, Rᵉ_mat, Tᵉ_mat, G_mat, Πᵉ_mat, A⁺_mat, A⁻_mat)
@@ -676,7 +677,7 @@ function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gω, repay, issuance, R�
 
 	Π	= reshape(Π, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	w 	= reshape(h.wage, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	qg 	= reshape(h.debtprice, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	qᵍ 	= reshape(h.debtprice, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 
 	@sync @parallel for jz in 1:length(h.zgrid)
 		zv = h.zgrid[jz]
@@ -691,14 +692,14 @@ function find_all_prices(h::Hank, itp_ξg, itp_ξf, itp_gω, repay, issuance, R�
 			A⁺	= A⁺_mat[jb, jμ, jσ, jz]
 			A⁻	= A⁻_mat[jb, jμ, jσ, jz]
 
-			guess = [w[jb,jμ,jσ,jz]; Π[jb,jμ,jσ,jz]; qg[jb,jμ,jσ,jz]]
+			guess = [w[jb,jμ,jσ,jz]; Π[jb,jμ,jσ,jz]; qᵍ[jb,jμ,jσ,jz]]
 
-			minw, maxw   = h.zgrid[jz] * (h.elast-1)/h.elast, maximum(h.wgrid)
+			minw, maxw   = minimum(h.wgrid), maximum(h.wgrid)
 			minΠ, maxΠ   = (h.Πstar-0.1)^(0.25), (h.Πstar+0.1)^(0.25)
-			minqg, maxqg = 0.9, h.Πstar
+			minqᵍ, maxqᵍ = 0.9, h.Πstar
 
-			xmin = [minw; minΠ; minqg]
-			xmax = [maxw; maxΠ; maxqg]
+			xmin = [minw; minΠ; minqᵍ]
+			xmax = [maxw; maxΠ; maxqᵍ]
 
 			results[jb, jμ, jσ, jz, :], minf[jb, jμ, jσ, jz, :] = find_prices(h, itp_ξg, itp_ξf, bv, μv, σv, zv, B′, A⁺, A⁻, rep, Rᵉ, Tᵉ, G, Πᵉ, itp_gω, guess, xmax, xmin)
 		end
@@ -781,7 +782,7 @@ end
 function compute_ξ!(h::Hank)
 	""" Tener en cuenta que los ξ's hay que calcularlos con el guess viejo """
 	rep = h.debt_repay
-	qg 	= h.debtprice
+	qᵍ 	= h.debtprice
 	Π  	= h.inflation
 	P 	= kron(h.Ps, kron(h.Pϵ, speye(h.Nω)))
 	w   = h.wage
@@ -791,7 +792,7 @@ function compute_ξ!(h::Hank)
 	Y 	= L .* Z
 	uc 	= h.gc.^(-h.γ)
 
-	ret_g = uc .* rep .* (h.κ + (1-h.ρ).*qg) ./ Π
+	ret_g = uc .* rep .* (h.κ + (1-h.ρ).*qᵍ) ./ Π
 	ret_f = uc .* Y .* Π/h.Πstar .* (Π/h.Πstar - 1)
 	for js in 1:h.Ns
 		Ps = P[js,:]
@@ -1003,7 +1004,7 @@ function plot_state_funcs(h::Hank)
 	q	= reshape(q, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	Π	= reshape(Π, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 	w 	= reshape(h.wage, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	qg 	= reshape(h.debtprice, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	qᵍ 	= reshape(h.debtprice, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
 
 
 	Z = zeros(h.Nb, h.Nμ, h.Nσ, h.Nz)
@@ -1024,7 +1025,7 @@ function plot_state_funcs(h::Hank)
 	# l = @layout([a b; c d; e f; g h i])
 
 	pEβR= plot(h.bgrid, vec(EβR[:,j,j,j]), title=L"\beta E[R^S]", label = "")
-	pqg = plot(h.bgrid, vec(qg[:,j,j,j]), title=L"q^g", label = "")
+	pqᵍ = plot(h.bgrid, vec(qᵍ[:,j,j,j]), title=L"q^g", label = "")
 	pΠ = plot(h.bgrid, vec(Π[:,j,j,j]), title=L"Π", label = "")
 	pAp = plot(h.bgrid, vec(A⁺_mat[:,j,j,j]), title=L"A^+", label = "")
 	pAm = plot(h.bgrid, vec(A⁻_mat[:,j,j,j]), title=L"A^-", label = "")
@@ -1033,12 +1034,12 @@ function plot_state_funcs(h::Hank)
 	pw = plot(h.bgrid, vec(w[:,j,j,j]), title=L"w", label = "")
 	pψ = plot(h.bgrid, vec(ψ[:,j,j,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"B_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"B_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_b.png")
 
 	# l = @layout([a b; c d; e f g])
 	pEβR= plot(h.μgrid, vec(EβR[j,:,j,j]), title=L"\beta E[R^S]", label = "")
-	pqg = plot(h.μgrid, vec(qg[j,:,j,j]), title=L"q^g", label = "")
+	pqᵍ = plot(h.μgrid, vec(qᵍ[j,:,j,j]), title=L"q^g", label = "")
 	pΠ = plot(h.μgrid, vec(Π[j,:,j,j]), title=L"Π", label = "")
 	pAp = plot(h.μgrid, vec(A⁺_mat[j,:,j,j]), title=L"A^+", label = "")
 	pAm = plot(h.μgrid, vec(A⁻_mat[j,:,j,j]), title=L"A^-", label = "")
@@ -1047,12 +1048,12 @@ function plot_state_funcs(h::Hank)
 	pw = plot(h.μgrid, vec(w[j,:,j,j]), title=L"w", label = "")
 	pψ = plot(h.μgrid, vec(ψ[j,:,j,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"\mu_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"\mu_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_mu.png")
 
 	# l = @layout([a b; c d; e f g])
 	pEβR= plot(h.σgrid, vec(EβR[j,j,:,j]), title=L"\beta E[R^S]", label = "")
-	pqg = plot(h.σgrid, vec(qg[j,j,:,j]), title=L"q^g", label = "")
+	pqᵍ = plot(h.σgrid, vec(qᵍ[j,j,:,j]), title=L"q^g", label = "")
 	pΠ = plot(h.σgrid, vec(Π[j,j,:,j]), title=L"Π", label = "")
 	pAp = plot(h.σgrid, vec(A⁺_mat[j,j,:,j]), title=L"A^+", label = "")
 	pAm = plot(h.σgrid, vec(A⁻_mat[j,j,:,j]), title=L"A^-", label = "")
@@ -1061,12 +1062,12 @@ function plot_state_funcs(h::Hank)
 	pw = plot(h.σgrid, vec(w[j,j,:,j]), title=L"w", label = "")
 	pψ = plot(h.σgrid, vec(ψ[j,j,:,j]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"\sigma_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"\sigma_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_sigma.png")
 
 	# l = @layout([a b; c d; e f g])
 	pEβR= plot(h.zgrid, vec(EβR[j,j,j,:]), title=L"\beta E[R^S]", label = "")
-	pqg = plot(h.zgrid, vec(qg[j,j,j,:]), title=L"q^g", label = "")
+	pqᵍ = plot(h.zgrid, vec(qᵍ[j,j,j,:]), title=L"q^g", label = "")
 	pΠ = plot(h.zgrid, vec(Π[j,j,j,:]), title=L"Π", label = "")
 	pAp = plot(h.zgrid, vec(A⁺_mat[j,j,j,:]), title=L"A^+", label = "")
 	pAm = plot(h.zgrid, vec(A⁻_mat[j,j,j,:]), title=L"A^-", label = "")
@@ -1075,7 +1076,7 @@ function plot_state_funcs(h::Hank)
 	pw = plot(h.zgrid, vec(w[j,j,j,:]), title=L"w", label = "")
 	pψ = plot(h.zgrid, vec(ψ[j,j,j,:]), title=L"\psi", label = "")
 	
-	plot(pEβR, pqg, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"z_t", layout = (3,3), lw = 1.5)
+	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pw, pψ, xlabel = L"z_t", layout = (3,3), lw = 1.5)
 	savefig(pwd() * "/../Graphs/fs_z.png")
 
 	Void
