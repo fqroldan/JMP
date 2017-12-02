@@ -116,6 +116,7 @@ type Hank
 
 	ξg::Vector{Float64}
 	ξf::Vector{Float64}
+	ξp::Vector{Float64}
 end
 
 
@@ -274,6 +275,8 @@ function Hank(;	β = (1/1.06)^(1/4),
 
 	ξg = zeros(Ns,)
 	ξf = zeros(Ns,)
+	ξp = zeros(Ns,)
+
 
 	function compute_grosspositions(μ,σ)
 		val⁺, val⁻, sum_prob = 0.,0.,0.
@@ -307,7 +310,7 @@ function Hank(;	β = (1/1.06)^(1/4),
 		A⁺[js], A⁻[js] = A⁺_mat[jμ,jσ], A⁻_mat[jμ,jσ]
 	end
 	
-	return Hank(β, γ, θ, χ, ρϵ, σϵ, Ξ, ρ, κ, Φπ, ΦL, η, elast, gc, gω, gc_ext, gω_ext, cc, cω, cv, ce, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nz, Ns, Nω_fine, Pϵ, Pz, Ps, λ, λϵ, ℏ, thr_def, curv, order, ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, zgrid, s, qgrid, wgrid, basis, bs, Φ, dΦ, Emat, Φnotω, ωgrid_fine, snodes, μ′, σ′, A⁺, A⁻, debt_repay, MF_rS, τ, lump_sum, issuance_B, spending, wage, Ld, debtprice, q, inflation, Πstar, i_star, ξg, ξf)
+	return Hank(β, γ, θ, χ, ρϵ, σϵ, Ξ, ρ, κ, Φπ, ΦL, η, elast, gc, gω, gc_ext, gω_ext, cc, cω, cv, ce, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nz, Ns, Nω_fine, Pϵ, Pz, Ps, λ, λϵ, ℏ, thr_def, curv, order, ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, zgrid, s, qgrid, wgrid, basis, bs, Φ, dΦ, Emat, Φnotω, ωgrid_fine, snodes, μ′, σ′, A⁺, A⁻, debt_repay, MF_rS, τ, lump_sum, issuance_B, spending, wage, Ld, debtprice, q, inflation, Πstar, i_star, ξg, ξf, ξp)
 end
 
 function _unpackstatefs(h::Hank)
@@ -796,14 +799,14 @@ function compute_ξ!(h::Hank)
 
 	ret_g = uc .* rep .* (h.κ + (1-h.ρ).*qᵍ) ./ Π
 	ret_f = uc .* Y .* Π/h.Πstar .* (Π/h.Πstar - 1)
+	ret_p = uc .* 1.0 ./ Π
+	
 	for js in 1:h.Ns
 		Ps = P[js,:]
-		h.ξg[js] = dot(Ps, ret_g)
-		h.ξf[js] = dot(Ps, ret_f)
+		h.ξg[js] = h.β * dot(Ps, ret_g)
+		h.ξf[js] = h.β * dot(Ps, ret_f)
+		h.ξp[js] = h.β * dot(Ps, ret_p)
 	end
-
-	h.ξg = h.β * h.ξg
-	h.ξf = h.β * h.ξf
 
 	Void
 end
