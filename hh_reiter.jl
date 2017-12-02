@@ -535,14 +535,14 @@ function mkt_clearing(h::Hank, itp_ξg, itp_ξf, b, μ, σ, z, B′, A⁺, A⁻,
 			rᵉ = (Rᵉ - 1)*(ωmv>=0)
 			ω_corrected = (Rʳ*ωmv - Tʳ + Tᵉ)/((1+rᵉ)/Πᵉ)
 
-			gω = itp_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
+			itp_obj_gω = itp_gω
 			if ω_corrected < h.ωgrid[1] || ω_corrected > h.ωgrid[end] 
-				ext_gω = extrapolate(itp_gω, Interpolations.Linear())
-				if q < h.qgrid[1] || q > h.qgrid[end]
-					ext_gω = extrapolate(itp_gω, Interpolations.Flat())
-				end
-				gω = ext_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
+				itp_obj_gω = extrapolate(itp_gω, Interpolations.Linear())
 			end
+			if q < h.qgrid[1] || q > h.qgrid[end]
+				itp_obj_gω = extrapolate(itp_gω, Interpolations.Flat())
+			end
+			gω = itp_obj_gω[ω_corrected, ϵv, b, μ, σ, z, q, w]
 			gω = min.(gω, maximum(h.ωgrid) )
 			gω < h.ωmin && isapprox(gω, h.ωmin)? gω = h.ωmin: Void
 
