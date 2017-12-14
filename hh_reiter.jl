@@ -338,22 +338,6 @@ end
 
 utility(h::Hank, c::Float64) = ifelse(c > 1e-10, c^(1.0 - h.γ) / (1.0 - h.γ), -1e10)
 
-function utility(h::Hank, c_vec::Vector) 
-	u = zeros(c_vec)
-	for (jc, cv) in enumerate(c_vec)
-		if cv > 1e-10
-			if h.γ == 1.0
-				u[jc] = log(cv)
-			else
-				u[jc] = cv.^(1.0-h.γ) / (1.0 - h.γ)
-			end
-		else
-			u[jc] = -1e10
-		end
-	end
-	return u
-end
-
 function uprime(h::Hank, c_vec)
 	u = zeros(size(c_vec))
 	for (jc, cv) in enumerate(c_vec)
@@ -386,18 +370,18 @@ function uprime_inv(h::Hank, c_vec::Vector)
 	end
 end
 
-function get_abc(RHS::Vector, ωmin::Float64, qʰ::Float64, qᵍ::Float64, ωp::Vector, θp::Vector)
+function get_abc(RHS::Float64, ωmin::Float64, qʰ::Float64, qᵍ::Float64, ωp::Float64, θp::Float64)
 	
 	θp = θp / 1e-2
 
-	ap = ωmin + θp .* ωp / qʰ
-	bp = (1-θp) .* ωp / qᵍ
+	ap = ωmin + θp * ωp / qʰ
+	bp = (1-θp) * ωp / qᵍ
 	C = RHS - qʰ*ωmin - ωp
 
 	return ap, bp, C
 end
 
-function value(h::Hank, ωp::Vector, θp::Vector, itp_vf::Interpolations.GriddedInterpolation, jϵ, js, RHS, qʰ, qᵍ, R_mat)
+function value(h::Hank, ωp::Float64, θp::Float64, itp_vf::Interpolations.GriddedInterpolation, jϵ, js, RHS, qʰ, qᵍ, R_mat)
 
 	ap, bp, C = get_abc(RHS, h.ωmin, qʰ, qᵍ, ωp, θp)
 
@@ -408,14 +392,12 @@ function value(h::Hank, ωp::Vector, θp::Vector, itp_vf::Interpolations.Gridded
 	# itp_vf = itp_obj_vf
 	for (jwp, wpv) in enumerate(h.wgrid), (jzp, zpv) in enumerate(h.zgrid), (jσp, σpv) in enumerate(h.σgrid), (jμp, μpv) in enumerate(h.μgrid), (jbp, bpv) in enumerate(h.bgrid)
 		jsp += 1
-
 		ωpv = ap + bp * R_mat[jbp, jμp, jσp, jzp, jwp]
 
 		# h.ωgrid[1] <= ωpv <= h.ωgrid[end]? Void: itp_vf = extrapolate(itp_obj_vf, Interpolations.Flat())
 		
 		for (jϵp, ϵpv) in enumerate(h.ϵgrid)	
-			new_Ev = itp_vf[ωpv, ϵpv, bpv, μpv, σpv, zpv, wpv] * h.Ps[js, jsp] * h.Pϵ[jϵ, jϵp]
-			Ev += sum(new_Ev)
+			Ev += itp_vf[ωpv, ϵpv, bpv, μpv, σpv, zpv, wpv] * h.Ps[js, jsp] * h.Pϵ[jϵ, jϵp]
 		end
 	end
 
@@ -424,13 +406,36 @@ function value(h::Hank, ωp::Vector, θp::Vector, itp_vf::Interpolations.Gridded
 	return vf
 end
 
+function solve_optvalue(h::Hank, guess::Vector, itp_vf, jϵ, js, RHS, qʰv, qᵍv, R_mat, ωmax)
+
+	wrap_value(x::Vector, grad::Vector) = value(h, x[1], x[2], itp_vf, jϵ, js, RHS, qʰv, qᵍv, R_mat)
+
+	# @code_warntype wrap_value(guess)
+
+	opt = Opt(:LN_NELDERMEAD, length(guess))
+	upper_bounds!(opt, [ωmax, 1e-2])
+	lower_bounds!(opt, [0.0, 0.0])
+	xtol_abs!(opt, 1e-2)
+
+	max_objective!(opt, wrap_value)
+	(fmax, xmax, ret) = NLopt.optimize(opt, guess .* [1.0, 1e-2])
+	# ret == :SUCCESS || println(js)
+
+	ωp = xmax[1]
+	θp = xmax[2]
+	ap, bp, cmax = get_abc(RHS, h.ωmin, qʰv, qᵍv, ωp, θp)
+
+	return ap, bp, cmax, fmax
+end
+
+
 function opt_value!(h::Hank, qʰ_mat, qᵍ_mat, w_mat, T_mat, R_mat, itp_vf; resolve::Bool = true)
 	
 	vf = SharedArray{Float64}(size(h.vf))
 	ϕa = SharedArray{Float64}(size(h.ϕa))
 	ϕb = SharedArray{Float64}(size(h.ϕb))
 	ϕc = SharedArray{Float64}(size(h.ϕc))
-	@sync @parallel for js in 1:size(h.Sgrid,1)
+	for js in 1:size(h.Sgrid,1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
 		jσ = h.Jgrid[js, 3]
@@ -444,61 +449,53 @@ function opt_value!(h::Hank, qʰ_mat, qᵍ_mat, w_mat, T_mat, R_mat, itp_vf; res
 		wv  = w_mat[jb, jμ, jσ, jz, jw]
 		Tv  = T_mat[jb, jμ, jσ, jz, jw]
 
-		@time for (jϵ, ϵv) in enumerate(h.ϵgrid)
+		for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
 
-			RHS = h.ωgrid + wv * ϵv - Tv
+			RHS = ωv + wv * ϵv - Tv
 
-			ap, bp, fmax = zeros(RHS), zeros(RHS), zeros(RHS)
+			ap, bp, fmax = 0., 0., 0.
 			if resolve
-				ag, bg = ϕa[1:h.Nω, jϵ, jb, jμ, jσ, jz, jw], ϕb[1:h.Nω, jϵ, jb, jμ, jσ, jz, jw]
+				ag, bg = ϕa[jω, jϵ, jb, jμ, jσ, jz, jw], ϕb[jω, jϵ, jb, jμ, jσ, jz, jw]
 
 				ωg = qʰv * (ag - h.ωmin) + qᵍv * bg
-				θg = qʰv * (ag - h.ωmin) ./ ωg
+				θg = qʰv * (ag - h.ωmin) / ωg
 
 				ωmax = RHS - qʰv*h.ωmin - 1e-10
 				
-				ωg[ωg.>ωmax] = max.(ωmax[ωg.>ωmax] - 1e-2, 0)
+				if ωg > ωmax
+					ωg = max(ωmax - 1e-2, 0)
+				end
+				guess = [ωg, θg]
 
-				guess = [ωg; θg * 1e-2]
-
-				wrap_value(x::Vector, grad::Vector=similar(x)) = sum(value(h, x[1:h.Nω], x[h.Nω+1:2*h.Nω], itp_vf, jϵ, js, RHS, qʰv, qᵍv, R_mat))
-
-				xmax = [ωmax; 1e-2 * ones(h.Nω)]
+				wrap_value(x::Vector, grad::Vector=similar(x)) = value(h, x[1], x[2], itp_vf, jϵ, js, RHS, qʰv, qᵍv, R_mat)
 
 				# @code_warntype value(h, guess[1], guess[2], itp_vf, jϵ, js, RHS, qʰv, qᵍv, R_mat)
 				# @code_warntype wrap_value(guess)
-
 				opt = Opt(:LN_BOBYQA, length(guess))
-				upper_bounds!(opt, xmax)
-				lower_bounds!(opt, zeros(2*h.Nω))
+				upper_bounds!(opt, [ωmax, 1e-2])
+				lower_bounds!(opt, [0.0, 0.0])
 				xtol_abs!(opt, 1e-2)
 
 				max_objective!(opt, wrap_value)
-				NLopt.optimize(opt, guess)
-				(fmax, xmax, ret) = NLopt.optimize(opt, guess)
+				NLopt.optimize(opt, guess .* [1.0, 1e-2])
+				(fmax, xmax, ret) = NLopt.optimize(opt, guess .* [1.0, 1e-2])
 				# ret == :SUCCESS || println(js)
 
-				# td = TwiceDifferentiable(x-> -1.0 * wrap_value(x), xmax; autodiff = :forward)
-
-				# @time Optim.minimizer(Optim.optimize(td, xmax, Newton()))
-
-				# Optim.optimize( x-> -1.0 * wrap_value(x), xmax, ConjugateGradient())
-
-				ωp = xmax[1:h.Nω]
-				θp = xmax[h.Nω+1:2*h.Nω]
+				ωp = xmax[1]
+				θp = xmax[2]
 				ap, bp, cmax = get_abc(RHS, h.ωmin, qʰv, qᵍv, ωp, θp)
 			else
-				ap = h.ϕa[h.ωgrid, jϵ, jb, jμ, jσ, jz, jw]
-				bp = h.ϕb[h.ωgrid, jϵ, jb, jμ, jσ, jz, jw]
-				cmax = h.ϕc[h.ωgrid, jϵ, jb, jμ, jσ, jz, jw]
+				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jz, jw]
+				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jz, jw]
+				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jz, jw]
 				fmax = value(h, ap, bp, itp_vf, jϵ, js, RHS, qʰv, qᵍv, R_mat)
 			end
-			minimum(cmax) < 0? warn("c < 0 $(sum(cmax.<0)) times at [jϵ,jb,jμ,jσ,jz,jw] = $([jϵ, jb, jμ, jσ, jz, jw])"): Void
+			cmax < 0? warn("c = $cmax"): Void
 			
-			ϕa[:, jϵ, jb, jμ, jσ, jz, jw] = ap
-			ϕb[:, jϵ, jb, jμ, jσ, jz, jw] = bp
-			ϕc[:, jϵ, jb, jμ, jσ, jz, jw] = cmax
-			vf[:, jϵ, jb, jμ, jσ, jz, jw] = fmax
+			ϕa[jω, jϵ, jb, jμ, jσ, jz, jw] = ap
+			ϕb[jω, jϵ, jb, jμ, jσ, jz, jw] = bp
+			ϕc[jω, jϵ, jb, jμ, jσ, jz, jw] = cmax
+			vf[jω, jϵ, jb, jμ, jσ, jz, jw] = fmax
 		end
 	end
 
@@ -944,6 +941,7 @@ function vfi!(h::Hank; tol::Float64=1e-2, verbose::Bool=true, maxiter::Int64=500
 			# plot_hh_policies(h)
 			t_new = time()
 			print_save("\nd(cv, cv′) = $(@sprintf("%0.3g",dist)) at ‖v‖ = $(@sprintf("%0.3g",norm_v)) after $(time_print(t_new-t_old)) and $iter iterations ")
+			print(Dates.format(now(), "HH:MM"))
 		end
 
 		if dist < upd_tol
@@ -1063,7 +1061,6 @@ function plot_hh_policies(h::Hank)
 
 	#=Nq = length(h.qˢgrid)
 	jshow_a, jshow_ϵ, jshow_qˢ, jshow_qᵇ = ceil(Int64, h.Nω/2), ceil(Int64, h.Nϵ/2), ceil(Int64, Nq/2), ceil(Int64, Nq/2)
-
 	leg = Array{LaTeXStrings.LaTeXString}(1, length(h.wgrid))
 	for jw in 1:length(h.wgrid)
 		leg[jw] = latexstring("w = $(round(h.wgrid[jw],2))")
@@ -1071,7 +1068,6 @@ function plot_hh_policies(h::Hank)
 	pc = plot(h.qˢgrid, h.ϕc_ext[jshow_a, jshow_ϵ,jshow_b,jshow_μ,jshow_σ,jshow_z,:,jshow_qᵇ,:], title = "Consumption", label = leg, legend = :bottomright)
 	pa = plot(h.qˢgrid, h.ϕa_ext[jshow_a, jshow_ϵ,jshow_b,jshow_μ,jshow_σ,jshow_z,:,jshow_qᵇ,:], title = "Savings", label = "")
 	plot(pc, pa, layout=(2,1), lw = 1.5, xlabel = L"q^s_t", size = (540,720))
-
 	savefig(pwd() * "/../Graphs/hh_qw.png")
 	savefig(pwd() * "/../Graphs/hh_qw.pdf")=#
 
