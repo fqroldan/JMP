@@ -172,11 +172,11 @@ function Hank(;	β = (1/1.04)^(1/4),
 	μgrid = collect(linspace(0.0, 0.3, Nμ))
 	σgrid = collect(linspace(1.0, 2.0, Nσ))
 
-	Φπ = 2.0
-	ΦL = 0.0
+	# Φπ = 2.0
+	# ΦL = 0.0
 
-	η  = 250.0 
-	elast = 6.0
+	# η  = 250.0 
+	# elast = 6.0
 
 	# Transitions
 	Ps = Array{Float64}(Nb*Nμ*Nσ*Nz*Nw, Nb*Nμ*Nσ*Nz*Nw)
@@ -225,7 +225,16 @@ function Hank(;	β = (1/1.04)^(1/4),
 	ϕb = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nw)
 	ϕc = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nw)
 
-	vf = ones(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nw)
+	vf = Array{Float64}(Nω, Nϵ, Nb, Nμ, Nσ, Nz, Nw)
+	for (jw, wv) in enumerate(wgrid), (jz, zv) in enumerate(zgrid), (jσ, σv) in enumerate(σgrid), (jμ, μv) in enumerate(μgrid), (jb, bv) in enumerate(bgrid), (jϵ, ϵv) in enumerate(ϵgrid), (jω, ωv) in enumerate(ωgrid)
+		Y = ϵv * wv * (1-τ) + (ωv-ωmin) * r_star/(1.0+r_star)
+		c = Y * 0.8
+		ϕa[jω, jϵ, jb, jμ, jσ, jz, jw] = Y * 0.15
+		ϕb[jω, jϵ, jb, jμ, jσ, jz, jw] = Y * 0.05
+		ϕc[jω, jϵ, jb, jμ, jσ, jz, jw] = c
+		ut = ifelse(γ == 1.0, log.(c), c^(1.0-γ) / (1.0-γ))
+		vf[jω, jϵ, jb, jμ, jσ, jz, jw] = (1.0 / 1.0 - β) * ut
+	end
 
 	λ = ones(Nω_fine*Nϵ)
 	λ = λ/sum(λ)
@@ -372,7 +381,7 @@ end
 
 function get_abc(RHS::Float64, ωmin::Float64, qʰ::Float64, qᵍ::Float64, ωp::Float64, θp::Float64)
 	
-	θp = θp / 1e-2
+	θp = θp
 
 	ap = ωmin + θp * ωp / qʰ
 	bp = (1-θp) * ωp / qᵍ
@@ -388,10 +397,15 @@ function value(h::Hank, ωp::Float64, θp::Float64, itp_vf::Interpolations.Gridd
 	u = utility(h, C)
 
 	# Basis matrix for continuation values
-	jsp, Ev = 0, 0.
+	Ev = 0.
 	# itp_vf = itp_obj_vf
-	for (jwp, wpv) in enumerate(h.wgrid), (jzp, zpv) in enumerate(h.zgrid), (jσp, σpv) in enumerate(h.σgrid), (jμp, μpv) in enumerate(h.μgrid), (jbp, bpv) in enumerate(h.bgrid)
-		jsp += 1
+	for jsp in 1:size(h.Sgrid,1)
+		jbp, bpv = h.Jgrid[js, 1], h.Sgrid[js, 1]
+		jμp, μpv = h.Jgrid[js, 2], h.Sgrid[js, 2]
+		jσp, σpv = h.Jgrid[js, 3], h.Sgrid[js, 3]
+		jzp, zpv = h.Jgrid[js, 4], h.Sgrid[js, 4]
+		jwp, wpv = h.Jgrid[js, 5], h.Sgrid[js, 5]
+
 		ωpv = ap + bp * R_mat[jbp, jμp, jσp, jzp, jwp]
 
 		# h.ωgrid[1] <= ωpv <= h.ωgrid[end]? Void: itp_vf = extrapolate(itp_obj_vf, Interpolations.Flat())
@@ -430,7 +444,7 @@ end
 
 
 function opt_value!(h::Hank, qʰ_mat, qᵍ_mat, w_mat, T_mat, R_mat, itp_vf; resolve::Bool = true)
-	
+
 	vf = SharedArray{Float64}(size(h.vf))
 	ϕa = SharedArray{Float64}(size(h.ϕa))
 	ϕb = SharedArray{Float64}(size(h.ϕb))
@@ -459,6 +473,7 @@ function opt_value!(h::Hank, qʰ_mat, qᵍ_mat, w_mat, T_mat, R_mat, itp_vf; res
 
 				ωg = qʰv * (ag - h.ωmin) + qᵍv * bg
 				θg = qʰv * (ag - h.ωmin) / ωg
+				θg = 1.0
 
 				ωmax = RHS - qʰv*h.ωmin - 1e-10
 				
@@ -471,14 +486,15 @@ function opt_value!(h::Hank, qʰ_mat, qᵍ_mat, w_mat, T_mat, R_mat, itp_vf; res
 
 				# @code_warntype value(h, guess[1], guess[2], itp_vf, jϵ, js, RHS, qʰv, qᵍv, R_mat)
 				# @code_warntype wrap_value(guess)
-				opt = Opt(:LN_BOBYQA, length(guess))
-				upper_bounds!(opt, [ωmax, 1e-2])
-				lower_bounds!(opt, [0.0, 0.0])
-				xtol_abs!(opt, 1e-2)
+				opt = Opt(:LN_NELDERMEAD, length(guess))
+				# upper_bounds!(opt, [ωmax, 1e-2])
+				upper_bounds!(opt, [ωmax, 1.0])
+				lower_bounds!(opt, [0.0, 1.0 - 1e-8])
+				# xtol_abs!(opt, 1e-2)
 
 				max_objective!(opt, wrap_value)
-				NLopt.optimize(opt, guess .* [1.0, 1e-2])
-				(fmax, xmax, ret) = NLopt.optimize(opt, guess .* [1.0, 1e-2])
+				NLopt.optimize(opt, guess)
+				(fmax, xmax, ret) = NLopt.optimize(opt, guess)
 				# ret == :SUCCESS || println(js)
 
 				ωp = xmax[1]
@@ -804,7 +820,7 @@ function upd_P!(h::Hank, B′, μ′, σ′)
 	Pσ 		= BasisMatrix(basis, Expanded(), σ′, 0).vals[1]
 
 	basis 	= Basis(LinParams(h.wgrid, 0))
-	w′		= h.w′
+	w′		= reshape(h.wage, h.Nb*h.Nμ*h.Nσ*h.Nz*h.Nw)
 	Pw 		= BasisMatrix(basis, Expanded(), w′, 0).vals[1]
 
 	Q 		= kron(h.Pz, ones(h.Nw*h.Nσ*h.Nμ*h.Nb, 1))
@@ -935,12 +951,13 @@ function vfi!(h::Hank; tol::Float64=1e-2, verbose::Bool=true, maxiter::Int64=500
 		end
 		v_new = copy(h.vf)
 		
-		dist = sqrt.(sum( (v_new - v_old).^2 )) / sqrt.(sum(v_old.^2))
+		dist = sqrt.(sum( (v_new - v_old).^2 ))# / sqrt.(sum(v_old.^2))
 		norm_v = sqrt.(sum(v_old.^2))
 		if verbose
 			# plot_hh_policies(h)
 			t_new = time()
 			print_save("\nd(cv, cv′) = $(@sprintf("%0.3g",dist)) at ‖v‖ = $(@sprintf("%0.3g",norm_v)) after $(time_print(t_new-t_old)) and $iter iterations ")
+			plot_hh_policies(h)
 			print(Dates.format(now(), "HH:MM"))
 		end
 
