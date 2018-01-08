@@ -1,9 +1,8 @@
 using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, Plots, LaTeXStrings, Distributions
-pyplot()
+gr()
 
 # Load codes
 include("../../Julia/printtime.jl")
-# include("hh_col.jl")
 include("hh_reiter.jl")
 
 # Run
