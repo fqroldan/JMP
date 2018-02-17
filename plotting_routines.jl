@@ -1,9 +1,23 @@
-using Interpolations
+using Interpolations, PlotlyJS
+
+col = [	"#1f77b4",  # muted blue
+    	"#ff7f0e",  # safety orange
+    	"#2ca02c",  # cooked asparagus green
+    	"#d62728",  # brick red
+    	"#9467bd",  # muted purple
+    	"#8c564b",  # chestnut brown
+    	"#e377c2",  # raspberry yogurt pink
+    	"#7f7f7f",  # middle gray
+    	"#bcbd22",  # curry yellow-green
+    	"#17becf"   # blue-teal
+    	]
 
 function plot_hh_policies(h::Hank; remote::Bool=false)
-	leg = Array{LaTeXStrings.LaTeXString}(1, h.Nϵ)
+	# leg = Array{LaTeXStrings.LaTeXString}(1, h.Nϵ)
+	leg = Array{String}(1, h.Nϵ)
 	for jϵ in 1:h.Nϵ
-		leg[jϵ] = latexstring("\\epsilon = $(round(h.ϵgrid[jϵ],2))")
+		# leg[jϵ] = latexstring("\\epsilon = $(round(h.ϵgrid[jϵ],2))")
+		leg[jϵ] = "ϵ = $(round(h.ϵgrid[jϵ],2))"
 	end
 
 	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
@@ -14,245 +28,219 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 
 	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], h.zgrid[end]
 
-	ϕc_mat = itp_ϕc[h.ωgrid_fine, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	ϕa_mat = itp_ϕa[h.ωgrid_fine, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	ϕb_mat = itp_ϕb[h.ωgrid_fine, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	vf_mat = itp_vf[h.ωgrid_fine, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+	ϕc_mat = itp_ϕc[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+	ϕa_mat = itp_ϕa[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+	ϕb_mat = itp_ϕb[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+	vf_mat = itp_vf[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
 
-	pc = plot(h.ωgrid_fine, ϕc_mat[:,:,1,1,1,1,1,1], title = "Consumption", label = "")
-	pa = plot(h.ωgrid_fine, ϕa_mat[:,:,1,1,1,1,1,1], title = "Private Savings", label = "")
-	pb = plot(h.ωgrid_fine, ϕb_mat[:,:,1,1,1,1,1,1], title = "Debt Purchases", label = leg)
-	pv = plot(h.ωgrid_fine, vf_mat[:,:,1,1,1,1,1,1], title = "Value Function", label = "")
+	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
+	for jϵ in 1:h.Nϵ
+		l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l[jϵ,1] = l_new
+		l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l[jϵ,2] = l_new
+		l_new = scatter(;x=h.ωgrid, y=ϕa_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l[jϵ,3] = l_new
+		l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l[jϵ,4] = l_new
+	end
+	pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ])
+	pc.plot.layout["title"] = "Consumption"
+	pv = plot([l[jϵ, 2] for jϵ in 1:h.Nϵ])
+	pv.plot.layout["title"] = "Value function"
+	pa = plot([l[jϵ, 3] for jϵ in 1:h.Nϵ])
+	pa.plot.layout["title"] = "Private Savings"
+	pb = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ])
+	pb.plot.layout["title"] = "Debt Purchases"
 
-	l = @layout([a b; c d])
+	p = [pc pv; pa pb]
+	p.plot.layout["xlabel"] = "ω"
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 600
 
-	plot(pc, pv, pa, pb, layout=l, lw = 2, xlabel = L"\omega_t", size = (600,700))
-	plot!(h.ωgrid_fine, ones(h.ωgrid_fine), lw = 1, lc = "black", ls = :dashdot, label = "")
-	plot!(bg_outside = RGBA(0.99,0.99,0.99, 0.75))
-	plot!(titlefont=font(11), guidefont=font(8), tickfont=font(7), titlefont=font(12))
-	# plot!(titlefont=font(11,"Palatino"), guidefont=font(8,"Palatino"), tickfont=font(7,"Palatino"), titlefont=font(12,"Palatino"))
 	if remote
 		path = pwd() * "/../../Graphs/"
+		save(path * "p_hh.jld", "p", p)
 	else
-		path = pwd() * "/../Graphs/"
+		savefig(p, pwd() * "/../Graphs/hh.png")
 	end
-	# savefig(path * "hh2.pdf")
-	if remote
-		path = pwd() * "/../../Graphs/"
-	else
-		path = pwd() * "/../Graphs/"
-	end
-	savefig(path * "hh2.png")
 
 	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[2], h.zgrid[1]
 
-	ϕc_mat = itp_ϕc[h.ωgrid_fine, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	ϕa_mat = itp_ϕa[h.ωgrid_fine, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	ϕb_mat = itp_ϕb[h.ωgrid_fine, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	vf_mat = itp_vf[h.ωgrid_fine, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+	ϕc_mat = itp_ϕc[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+	ϕa_mat = itp_ϕa[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+	ϕb_mat = itp_ϕb[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+	vf_mat = itp_vf[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
 
-	pc = plot(h.ωgrid_fine, ϕc_mat[:,:,1,1,1,1,1,1], title = "Consumption", label = "")
-	pa = plot(h.ωgrid_fine, ϕa_mat[:,:,1,1,1,1,1,1], title = "Private Savings", label = "")
-	pb = plot(h.ωgrid_fine, ϕb_mat[:,:,1,1,1,1,1,1], title = "Debt Purchases", label = leg)
-	pv = plot(h.ωgrid_fine, vf_mat[:,:,1,1,1,1,1,1], title = "Value Function", label = "")
+	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
+	for jϵ in 1:h.Nϵ
+		l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l[jϵ,1] = l_new
+		l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l[jϵ,2] = l_new
+		l_new = scatter(;x=h.ωgrid, y=ϕa_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l[jϵ,3] = l_new
+		l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l[jϵ,4] = l_new
+	end
+	pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ])
+	pc.plot.layout["title"] = "Consumption"
+	pv = plot([l[jϵ, 2] for jϵ in 1:h.Nϵ])
+	pv.plot.layout["title"] = "Value function"
+	pa = plot([l[jϵ, 3] for jϵ in 1:h.Nϵ])
+	pa.plot.layout["title"] = "Private Savings"
+	pb = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ])
+	pb.plot.layout["title"] = "Debt Purchases"
 
-	l = @layout([a b; c d])
+	p = [pc pv; pa pb]
+	p.plot.layout["xlabel"] = "ω"
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 600
 
-	plot(pc, pv, pa, pb, layout=l, lw = 2, xlabel = L"\omega_t", size = (600,700))
-	plot!(h.ωgrid_fine, ones(h.ωgrid_fine), lw = 1, lc = "black", ls = :dashdot, label = "")
-	plot!(bg_outside = RGBA(0.99,0.99,0.99, 0.85))
-	plot!(titlefont=font(11,"Palatino"), guidefont=font(8,"Palatino"), tickfont=font(7,"Palatino"), titlefont=font(12,"Palatino"))
 	if remote
 		path = pwd() * "/../../Graphs/"
+		save(path * "p_hh_def.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
+		savefig(p, path * "hh_def.png")
 	end
-	savefig(path * "hh3.png")
 
 
-#=	leg = Array{LaTeXStrings.LaTeXString}(1, h.Nω)
-	for jω in 1:h.Nω
-		leg[jω] = latexstring("ω = $(round(h.ωgrid[jω],2))")
-	end=#
+	# leg = Array{String}(1, h.Nω)
+	# for jω in 1:h.Nω
+	# 	leg[jω] = "ω = $(round(h.ωgrid[jω],2))"
+	# end
 
-	leg = latexstring("\\omega = $(round(mean(h.ωgrid),2))")
+	# leg = "ω = $(round(mean(h.ωgrid),2))"
 
-	ϕc_mat = itp_ϕc[mean(h.ωgrid), mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
-	ϕa_mat = itp_ϕa[mean(h.ωgrid), mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
-	ϕb_mat = itp_ϕb[mean(h.ωgrid), mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
-	vf_mat = itp_vf[mean(h.ωgrid), mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
+	# ϕc_mat = itp_ϕc[h.ωgrid, mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
+	# ϕa_mat = itp_ϕa[h.ωgrid, mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
+	# ϕb_mat = itp_ϕb[h.ωgrid, mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
+	# vf_mat = itp_vf[h.ωgrid, mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
+    #
+	# pc = plot(h.zgrid, ϕc_mat[:,1,1,1,1,1,1,:]', title = "Consumption", label = "")
+	# pa = plot(h.zgrid, ϕa_mat[:,1,1,1,1,1,1,:]', title = "Private Savings", label = "")
+	# pb = plot(h.zgrid, ϕb_mat[:,1,1,1,1,1,1,:]', title = "Debt Purchases", label = leg)
+	# pv = plot(h.zgrid, vf_mat[:,1,1,1,1,1,1,:]', title = "Value Function", label = "")
 
-	pc = plot(h.zgrid, ϕc_mat[:,1,1,1,1,1,1,:]', title = "Consumption", label = "")
-	pa = plot(h.zgrid, ϕa_mat[:,1,1,1,1,1,1,:]', title = "Private Savings", label = "")
-	pb = plot(h.zgrid, ϕb_mat[:,1,1,1,1,1,1,:]', title = "Debt Purchases", label = leg)
-	pv = plot(h.zgrid, vf_mat[:,1,1,1,1,1,1,:]', title = "Value Function", label = "")
-
-	l = @layout([a b; c d])
-
-	plot(pc, pv, pa, pb, layout=l, lw = 2, xlabel = L"z_t", size = (600,700))
-	plot!(bg_outside = RGBA(0.99,0.99,0.99, 0.85))
-	plot!(titlefont=font(11,"Palatino"), guidefont=font(8,"Palatino"), tickfont=font(7,"Palatino"), titlefont=font(12,"Palatino"))
-	if remote
-		path = pwd() * "/../../Graphs/"
-	else
-		path = pwd() * "/../Graphs/"
-	end
-	savefig(path * "hh_z.png")
+	# if remote
+	path = pwd() * "/../../Graphs/"
+	# 	path = path * "Graphs/"
+	# 	savefig(path * "hh_z.png")
+	# else
+	# 	path = pwd() * "/../Graphs/"
+	# end
 
 
 
 	return Void
 end
 
+function lines(h::Hank, y, x_dim, name="")
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+
+	x = h.bgrid
+	xlabel = "B"
+	if x_dim == 1
+		y = y[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z]
+	elseif x_dim == 2
+		x, xlabel = h.μgrid, "μ"
+		y = y[jshow_b, :, jshow_σ, jshow_w, jshow_ζ, jshow_z]
+	elseif x_dim == 3
+		x, xlabel = h.σgrid, "σ"
+		y = y[jshow_b, jshow_μ, :, jshow_w, jshow_ζ, jshow_z]
+	elseif x_dim == 4
+		x, xlabel = h.wgrid, "w"
+		y = y[jshow_b, jshow_μ, jshow_σ, :, jshow_ζ, jshow_z]
+	elseif x_dim == 6
+		x, xlabel = h.zgrid, "z"
+		y = y[jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :]
+	else
+		print_save("x_dim wrong")
+	end
+
+
+	layout = Layout(;	xaxis=attr(title=xlabel, zeroline=true),
+                 		yaxis=attr(zeroline=true))
+
+	l = scatter(;x=x, y=y, mode="lines+markers", showlegend=false)
+	p = plot(l, layout)
+	if name == ""
+	else
+		p.plot.layout["title"]=name
+	end
+	return p
+end
+
 function plot_state_funcs(h::Hank; remote::Bool=false)
-	R, T, ℓ, Rep, qˢ, qᵇ, Π = _unpackstatefs(h)
 
-	A⁺_mat	= reshape(h.A⁺, h.Nb, h.Nμ, h.Nσ, h.Nz)
-	A⁻_mat	= reshape(h.A⁻, h.Nb, h.Nμ, h.Nσ, h.Nz)
+	pN_mat = reshape(h.pN,   h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	w_mat  = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	Ld_mat = reshape(h.Ld,   h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	P = kron(h.Ps, kron(h.Pϵ, speye(h.Na)))
+	ppN1 = lines(h, pN_mat, 1, "Price of nontradables")
+	pw1  = lines(h, w_mat, 1, "Wage")
+	pLd1 = lines(h, Ld_mat, 1, "Labor supply")
 
-	EβR = (P * (R ./ Π)) ./ qˢ
-	EβR = h.β * reshape(EβR, h.Na, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	ppN2 = lines(h, pN_mat, 2)
+	pw2  = lines(h, w_mat, 2)
+	pLd2 = lines(h, Ld_mat, 2)
 
-	R	= reshape(R, 		h.Na, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	T	= reshape(T, 		h.Na, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	qˢ	= reshape(qˢ, 		h.Na, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	qᵇ	= reshape(qᵇ, 		h.Na, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	Π	= reshape(Π, 		h.Na, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	w 	= reshape(h.wage, 	h.Na, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
-	qᵍ 	= reshape(h.qᵍ, 	h.Na, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nz)[1,1,:,:,:,:]
+	ppN3 = lines(h, pN_mat, 3)
+	pw3  = lines(h, w_mat, 3)
+	pLd3 = lines(h, Ld_mat, 3)
 
-	Πdev = (Π)/h.Πstar
+	ppN4 = lines(h, pN_mat, 4)
+	pw4  = lines(h, w_mat, 4)
+	pLd4 = lines(h, Ld_mat, 4)
 
-	Z = zeros(h.Nb, h.Nμ, h.Nσ, h.Nz)
-	for (jz, zv) in enumerate(h.zgrid)
-		Z[:,:,:,jz] = zv
-	end	
-	L = (w * (1-h.τ)/h.θ * h.Ξ).^(1/h.χ)
-	Y = Z .* L
+	ppN6 = lines(h, pN_mat, 6)
+	pw6  = lines(h, w_mat, 6)
+	pLd6 = lines(h, Ld_mat, 6)
 
-	ψ = Y .* (1 - w./Z - 0.5*h.η*(Π/h.Πstar - 1).^2)
-
-	Π = (Π.^4 - 1)*100
-
-	i = ((1./qᵇ).^4 - 1) * 100 # Annualized percent nominal rate
-	iˢ = ((1./qˢ).^4 - 1) * 100
-	
-	j = 3
-
-	# l = @layout([a b; c d; e f; g h i])
-
-	pEβR = plot(h.bgrid, vec(EβR[:,j,j,j]), title=L"\beta E[R^S]", label = "")
-	pqᵍ	 = plot(h.bgrid, vec(qᵍ[:,j,j,j]), 	title=L"q^g", label = "")
-	pΠ	 = plot(h.bgrid, vec(Π[:,j,j,j]), 	title=L"Π", label = "")
-	pAp	 = plot(h.bgrid, vec(A⁺_mat[:,j,j,j]), title=L"A^+", label = "")
-	pAm	 = plot(h.bgrid, vec(A⁻_mat[:,j,j,j]), title=L"A^-", label = "")
-	p_i	 = plot(h.bgrid, [vec(iˢ[:,j,j,j]) vec(i[:,j,j,j])], title=L"i", label = [L"i^s" L"i^b"])
-	pT	 = plot(h.bgrid, vec(T[:,j,j,j]), 	title=L"T", label = "")
-	pL	 = plot(h.bgrid, [vec(L[:,j,j,j]) vec(Πdev[:,j,j,j])], title=L"L", label = [L"L" L"\tilde{\pi}"])
-	pw 	 = plot(h.bgrid, vec(w[:,j,j,j]), title=L"w", label = "")
-	pψ = plot(h.bgrid, vec(ψ[:,j,j,j]), title=L"\psi", label = "")
-	
-	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pL, pψ, xlabel = L"B_t", layout = (3,3), lw = 1.5)
+	# p = [ppN1 pw1 pLd1; ppN2 pw2 pLd2; ppN3 pw3 pLd3; ppN4 pw4 pLd4; ppN6 pw6 pLd6]
+	p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6]
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 600
 	if remote
 		path = pwd() * "/../../Graphs/"
+		save(path * "p_statefuncs.jld", "p", p)
 	else
-		path = pwd() * "/../Graphs/"
+		savefig(p, pwd() * "/../Graphs/statefuncs.png")
 	end
-	savefig(path * "fs_b.png")
-
-	# l = @layout([a b; c d; e f g])
-	pEβR = plot(h.μgrid, vec(EβR[j,:,j,j]), title=L"\beta E[R^S]", label = "")
-	pqᵍ	 = plot(h.μgrid, vec(qᵍ[j,:,j,j]), title=L"q^g", label = "")
-	pΠ	 = plot(h.μgrid, vec(Π[j,:,j,j]), title=L"Π", label = "")
-	pAp	 = plot(h.μgrid, vec(A⁺_mat[j,:,j,j]), title=L"A^+", label = "")
-	pAm	 = plot(h.μgrid, vec(A⁻_mat[j,:,j,j]), title=L"A^-", label = "")
-	p_i	 = plot(h.μgrid, [vec(iˢ[j,:,j,j]) vec(i[j,:,j,j])], title=L"i", label = [L"i^s" L"i^b"])
-	pT	 = plot(h.μgrid, vec(T[j,:,j,j]), title=L"T", label = "")
-	pL	 = plot(h.μgrid, [vec(L[j,:,j,j]) vec(Πdev[j,:,j,j])], title=L"L", label = [L"L" L"\tilde{\pi}"])
-	pw = plot(h.μgrid, vec(w[j,:,j,j]), title=L"w", label = "")
-	pψ = plot(h.μgrid, vec(ψ[j,:,j,j]), title=L"\psi", label = "")
-	
-	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pL, pψ, xlabel = L"\mu_t", layout = (3,3), lw = 1.5)
-	if remote
-		path = pwd() * "/../../Graphs/"
-	else
-		path = pwd() * "/../Graphs/"
-	end
-	savefig(path * "fs_mu.png")
-
-	# l = @layout([a b; c d; e f g])
-	pEβR = plot(h.σgrid, vec(EβR[j,j,:,j]), title=L"\beta E[R^S]", label = "")
-	pqᵍ	 = plot(h.σgrid, vec(qᵍ[j,j,:,j]), title=L"q^g", label = "")
-	pΠ	 = plot(h.σgrid, vec(Π[j,j,:,j]), title=L"Π", label = "")
-	pAp	 = plot(h.σgrid, vec(A⁺_mat[j,j,:,j]), title=L"A^+", label = "")
-	pAm	 = plot(h.σgrid, vec(A⁻_mat[j,j,:,j]), title=L"A^-", label = "")
-	p_i	 = plot(h.σgrid, [vec(iˢ[j,j,:,j]) vec(i[j,j,:,j])], title=L"i", label = [L"i^s" L"i^b"])
-	pT	 = plot(h.σgrid, vec(T[j,j,:,j]), title=L"T", label = "")
-	pL	 = plot(h.σgrid, [vec(L[j,j,:,j]) vec(Πdev[j,j,:,j])], title=L"L", label = [L"L" L"\tilde{\pi}"])
-	pw = plot(h.σgrid, vec(w[j,j,:,j]), title=L"w", label = "")
-	pψ = plot(h.σgrid, vec(ψ[j,j,:,j]), title=L"\psi", label = "")
-	
-	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pL, pψ, xlabel = L"\sigma_t", layout = (3,3), lw = 1.5)
-	if remote
-		path = pwd() * "/../../Graphs/"
-	else
-		path = pwd() * "/../Graphs/"
-	end
-	savefig(path * "fs_sigma.png")
-
-	# l = @layout([a b; c d; e f g])
-	pEβR = plot(h.zgrid, vec(EβR[j,j,j,:]), title=L"\beta E[R^S]", label = "")
-	pqᵍ	 = plot(h.zgrid, vec(qᵍ[j,j,j,:]), title=L"q^g", label = "")
-	pΠ	 = plot(h.zgrid, vec(Π[j,j,j,:]), title=L"Π", label = "")
-	pAp	 = plot(h.zgrid, vec(A⁺_mat[j,j,j,:]), title=L"A^+", label = "")
-	pAm	 = plot(h.zgrid, vec(A⁻_mat[j,j,j,:]), title=L"A^-", label = "")
-	p_i	 = plot(h.zgrid, [vec(iˢ[j,j,j,:]) vec(i[j,j,j,:])], title=L"i", label = [L"i^s" L"i^b"])
-	pT	 = plot(h.zgrid, vec(T[j,j,j,:]), title=L"T", label = "")
-	pL	 = plot(h.zgrid, [vec(L[j,j,j,:]) vec(Πdev[j,j,j,:])], title=L"L", label = [L"L" L"\tilde{\pi}"])
-	pw = plot(h.zgrid, vec(w[j,j,j,:]), title=L"w", label = "")
-	pψ = plot(h.zgrid, vec(ψ[j,j,j,:]), title=L"\psi", label = "")
-	
-	plot(pEβR, pqᵍ, pΠ, pAp, pAm, p_i, pT, pL, pψ, xlabel = L"z_t", layout = (3,3), lw = 1.5)
-	if remote
-		path = pwd() * "/../../Graphs/"
-	else
-		path = pwd() * "/../Graphs/"
-	end
-	savefig(path * "fs_z.png")
-
 	Void
 end
 
-function plot_LoM(h::Hank, μ′, σ′; remote::Bool=false)
+function plot_LoM(h::Hank; remote::Bool=false)
+	jz = ceil(Int, h.Nz/2)
+	μ′_mat = reshape(h.μ′[:,jz,1], h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	σ′_mat = reshape(h.σ′[:,jz,1], h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	μ′ = reshape(μ′, h.Nb, h.Nμ, h.Nσ, h.Nz)
-	σ′ = reshape(σ′, h.Nb, h.Nμ, h.Nσ, h.Nz)
+	pμ1 = lines(h, μ′_mat, 1, "Next period μ")
+	pσ1 = lines(h, σ′_mat, 1, "Next period σ")
 
-	j 	= ceil(Int, length(h.bgrid)/2)
-	pμb = plot(h.bgrid, vec(μ′[:,j,j,j]), title=L"\mu", xlabel = L"B_t", label = "")
-	pσb = plot(h.bgrid, vec(σ′[:,j,j,j]), title=L"\sigma", xlabel = L"B_t", label = "")
+	pμ2 = lines(h, μ′_mat, 2)
+	pσ2 = lines(h, σ′_mat, 2)
 
-	j 	= ceil(Int, length(h.μgrid)/2)
-	pμμ = plot(h.μgrid, vec(μ′[j,:,j,j]), title=L"\mu", xlabel = L"\mu_t", label = "")
-	pσμ = plot(h.μgrid, vec(σ′[j,:,j,j]), title=L"\sigma", xlabel = L"\mu_t", label = "")
+	pμ3 = lines(h, μ′_mat, 3)
+	pσ3 = lines(h, σ′_mat, 3)
 
-	j 	= ceil(Int, length(h.σgrid)/2)
-	pμσ = plot(h.σgrid, vec(μ′[j,j,:,j]), title=L"\mu", xlabel = L"\sigma_t", label = "")
-	pσσ = plot(h.σgrid, vec(σ′[j,j,:,j]), title=L"\sigma", xlabel = L"\sigma_t", label = "")
+	pμ4 = lines(h, μ′_mat, 4)
+	pσ4 = lines(h, σ′_mat, 4)
 
-	j 	= ceil(Int, length(h.zgrid)/2)
-	pμz = plot(h.zgrid, vec(μ′[j,j,j,:]), title=L"\mu", xlabel = L"z_t", label = "")
-	pσz = plot(h.zgrid, vec(σ′[j,j,j,:]), title=L"\sigma", xlabel = L"z_t", label = "")
-	
-	plot(pμb, pσb, pμμ, pσμ, pμσ, pσσ, pμz, pσz, layout = (4,2), lw = 1.5, size = (600,800))
+	pμ6 = lines(h, μ′_mat, 6)
+	pσ6 = lines(h, σ′_mat, 6)
+
+	p = [pμ1 pμ2 pμ3 pμ4 pμ6; pσ1 pσ2 pσ3 pσ4 pσ6]
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 600
+
 	if remote
 		path = pwd() * "/../../Graphs/"
+		save(path * "p_LoMs.jld", "p", p)
 	else
-		path = pwd() * "/../Graphs/"
+		savefig(p, pwd() * "/../Graphs/LoMs.png")
 	end
-	savefig(path * "LoMs.png")
 	Void
 end
 
@@ -269,41 +257,52 @@ function labor_demand(h::Hank, w, z, pN; get_both::Bool = false)
 end
 
 function plot_labor_demand(h::Hank; remote::Bool=false)
-	jz = floor(Int, h.Nz/2)
+	jz = ceil(Int, h.Nz/2)
 	z_show = h.zgrid[jz]
 
-	plot(title = "Labor demand", xlabel = L"w_t")
-	plot!(h.wgrid, ones(h.wgrid), lw = 1, ls=:dashdot, lc=:black, label = "")
+	vl = 1e8
+	l = scatter(;y=h.wgrid, x=ones(h.wgrid), line_dash="dashdot", marker_color="black", showlegend=false, mode="lines", title="Labor market")
 	for (jpN, pNv) in enumerate(h.pngrid)
 		Ld = labor_demand(h, h.wgrid, z_show, pNv)
-
-		label = "p_N = $(round(pNv,2))"
-		# label = latexstring("p_N = $(round(pNv,2))")
-		plot!(h.wgrid, Ld, label = label)
+		label = "pₙ = $(round(pNv,2))"
+		l = hcat(l, scatter(;y=h.wgrid, x=Ld, name=label, marker_color=col[jpN], line_shape="spline"))
+		if minimum(Ld) < vl
+			vl = minimum(Ld)
+		end
 	end
-	plot!(titlefont=font(11,"Palatino"), guidefont=font(8,"Palatino"), tickfont=font(7,"Palatino"), titlefont=font(12,"Palatino"))
+	shapes = [hline(minimum(h.wgrid), line_width=1)]
+	layout = Layout(;	xaxis=attr(title="L", zeroline=true),
+             			yaxis=attr(title="w", zeroline=true),
+             			title="Labor Market",
+             			annotations=[attr(x=1, y=maximum(h.wgrid),text="Lˢ", xanchor="center", yanchor="bottom", showarrow=false, font_size=18)],
+             			shapes=shapes
+    					)
+
+	p = plot([l[jj] for jj in 1:length(l)], layout)
 
 	if remote
 		path = pwd() * "/../../Graphs/"
+		save(path * "p_labordemand.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
+		savefig(p, path * "labordemand.png")
 	end
-	savefig(path * "labordemand.png")
 	Void
 end
 
 function plot_nontradables_demand(h::Hank; remote::Bool=false)
-	jb = floor(Int, h.Nb/2)
-	jμ = floor(Int, h.Nμ/2)
-	jσ = floor(Int, h.Nσ/2)
-	jw = floor(Int, h.Nw/2)
-	jζ = floor(Int, h.Nζ/2)
-	jz = floor(Int, h.Nz/2)
-	
+	jb = ceil(Int, h.Nb/2)
+	jμ = ceil(Int, h.Nμ/2)
+	jσ = ceil(Int, h.Nσ/2)
+	jw = ceil(Int, h.Nw/2)
+	jζ = ceil(Int, h.Nζ/2)
+	jz = ceil(Int, h.Nz/2)
+
 	bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw], h.ζgrid[jζ], h.zgrid[jz]
 
 	if remote
 		path = pwd() * "/../../Graphs/"
+		path = path * "Graphs/"
 	else
 		path = pwd() * "/../Graphs/"
 	end

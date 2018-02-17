@@ -53,7 +53,6 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf, jϵ, jz, thres, RHS, 
 	# Basis matrix for continuation values
 	check, Ev, test, ut = 0., 0., 0, 0.
 
-	# itp_vf = itp_obj_vf
 	for (jzp, zpv) in enumerate(h.zgrid)
 
 		μpv = μ′[jzp, 1]
@@ -64,18 +63,20 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf, jϵ, jz, thres, RHS, 
 			ζpv = 2.0
 		end
 
-		ωpv = ap + bp * itp_R[bpv, μpv, σpv, wpv, ζpv, zpv]
+		ωpv = ap + bp * itp_R[bpv, μpv, σpv, wpv, ζpv, jzp]
 		ωpv = min(ωpv, maximum(h.ωgrid))		
 		
 		for (jϵp, ϵpv) in enumerate(h.ϵgrid)
 			prob =  h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
 			if jdefault
 				ζ_reent, ζ_cont = 1.0, 3.0
-				Ev += (itp_vf[ωpv, ϵpv, bpv, μ′[jzp, 1], σ′[jzp, 1], wpv, ζ_reent, zpv])^(1.0-h.γ) * prob * h.θ
+				ωpv = min(ap + bp * itp_R[bpv, μpv, σpv, wpv, ζ_reent, jzp], maximum(h.ωgrid))
+				Ev += (itp_vf[ωpv, jϵp, bpv, μ′[jzp, 1], σ′[jzp, 1], wpv, ζ_reent, jzp])^(1.0-h.γ) * prob * h.θ
 
-				Ev += (itp_vf[ωpv, ϵpv, bpv, μ′[jzp, 2], σ′[jzp, 2], wpv, ζ_cont,  zpv])^(1.0-h.γ) * prob * (1.0 - h.θ)
+				ωpv = min(ap + bp * itp_R[bpv, μpv, σpv, wpv, ζ_cont, jzp], maximum(h.ωgrid))
+				Ev += (itp_vf[ωpv, jϵp, bpv, μ′[jzp, 2], σ′[jzp, 2], wpv, ζ_cont,  jzp])^(1.0-h.γ) * prob * (1.0 - h.θ)
 			else
-				Ev += (itp_vf[ωpv, ϵpv, bpv, μpv, σpv, wpv, ζpv, zpv])^(1.0-h.γ) * prob
+				Ev += (itp_vf[ωpv, jϵp, bpv, μpv, σpv, wpv, ζpv, jzp])^(1.0-h.γ) * prob
 			end
 			check += prob
 		end
@@ -108,12 +109,15 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf, jϵ, jz, thres, RHS, qʰ
 	if both
 		wrap_value(x::Vector, grad::Vector=similar(x)) = value(h, x[1], x[2], itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_R, jdef)
 
-		opt = Opt(:LN_COBYLA, length(guess))
+		opt = Opt(:LN_NELDERMEAD, length(guess))
 		# upper_bounds!(opt, [ωmax, 1e-2])
 		upper_bounds!(opt, [ωmax, 1.0])
-		lower_bounds!(opt, [qʰv*ωmin, 0.0])
+		lower_bounds!(opt, [qʰv*h.ωmin, 0.0])
 		# xtol_abs!(opt, 1e-16)
 		# ftol_abs!(opt, 1e-16)
+
+		qʰv*h.ωmin <= guess[1] < ωmax? Void: print_save("WARNING: ω-policy guess unfeasible")
+		0.0 <= guess[2] <= 1.0? Void: print_save("WARNING: θ-policy guess unfeasible at $(guess[2])")
 
 		max_objective!(opt, wrap_value)
 		(fmax, xmax, ret) = NLopt.optimize(opt, guess)
@@ -124,7 +128,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf, jϵ, jz, thres, RHS, qʰ
 		ap, bp, cmax = get_abc(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θp)
 	else
 		curr_min = 1e10
-		for θp in 0:0.25:1
+		for θp in 0:0.2:1
 			res = Optim.optimize(
 				sp -> -value(h, sp, θp, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_R, jdef),
 					qʰv*h.ωmin, ωmax, GoldenSection()
@@ -185,6 +189,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_R, itp
 
 			ωg = qʰv * ag + qᵍv * bg
 			θg = qʰv * (ag - h.ωmin) / (ωg - qʰv*h.ωmin)
+			# print_save("a,b,s,θ = $([ag, bg, ωg, θg])")
 			if resolve
 				# θg = 1.0
 
@@ -198,6 +203,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_R, itp
 					if ωg > ωmax
 						ωg = max(ωmax - 1e-2, 0)
 					end
+					isapprox(θg, 1) && θg > 1? θg = 1.0: Void
 					guess = [ωg, θg]
 
 					ap, bp, cmax, fmax = solve_optvalue(h, guess, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_R, jdef, ωmax)
@@ -222,13 +228,14 @@ end
 
 function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, R_mat, pC_mat; resolve::Bool=true)
 	# Interpolate the value function
-	all_knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:3, h.zgrid)
+	all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
+	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
 
-	sum(isnan(h.vf)) > 0? print_save("\n $(sum(isnan(h.vf))) NaNs detected in h.vf"): Void
+	sum(isnan.(h.vf)) > 0? print_save("\n $(sum(isnan.(h.vf))) NaNs detected in h.vf"): Void
 	sum(h.vf .<= 0) > 0? print_save("\n $(sum(h.vf .<= 0)) negative entries detected in h.vf"): Void
 
-	itp_vf = interpolate(all_knots, h.vf, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
-	itp_R  = interpolate((h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:3, h.zgrid), R_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
+	itp_vf = interpolate(all_knots, h.vf, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
+	itp_R  = interpolate(agg_knots, R_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
 
 	# Compute values
 	vf, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_R, itp_vf, resolve = resolve)
