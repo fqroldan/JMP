@@ -1,10 +1,30 @@
-utility(h::Hank, c::Float64) = ifelse(c > 1e-10, c^(1.0 - h.γ) / (1.0 - h.γ), -1e10)
+utility(h::Hank, c::Float64) = ifelse(c > 1e-10, c^(1.0 - h.ψ) / (1.0 - h.ψ), -1e10)
+
+function G(h::Hank, v::Float64)
+	if h.EpsteinZin
+		if h.γ != 1
+			return v^(1.0-h.γ)
+		else
+			return log(v)
+		end
+	else
+		return v
+	end
+end
+
+function T(h::Hank, Ev::Float64)
+	if h.γ != 1
+		return Ev^(1.0/(1.0-h.γ))
+	else
+		return exp(Ev)
+	end
+end
 
 function uprime(h::Hank, c_vec)
 	u = zeros(size(c_vec))
 	for (jc, cv) in enumerate(c_vec)
 		if cv > 0
-			u[jc] = cv.^(-h.γ)
+			u[jc] = cv.^(-h.ψ)
 		else
 			u[jc] = 1e10
 		end
@@ -20,7 +40,7 @@ function uprime_inv(h::Hank, c_vec::Vector)
 	u = zeros(size(c_vec))
 	for (jc, cv) in enumerate(c_vec)
 		if cv > 0
-			u[jc] = cv.^(-1./h.γ)
+			u[jc] = cv.^(-1./h.ψ)
 		else
 			u[jc] = 1e-10
 		end
@@ -41,7 +61,7 @@ function get_abc(RHS::Float64, ωmin::Float64, qʰ::Float64, qᵍ::Float64, pC::
 	return ap, bp, C
 end
 
-function value(h::Hank, sp::Float64, θp::Float64, itp_vf, jϵ, jz, thres, RHS, qʰ, qᵍ, pC, bpv, μ′, σ′, wpv, itp_R, jdefault)
+function value(h::Hank, sp::Float64, θp::Float64, itp_vf, jϵ, jz, thres, RHS, qʰ, qᵍ, pC, bpv, μ′, σ′, wpv, itp_qᵍ, jdefault)
 
 	ap, bp, C = get_abc(RHS, h.ωmin, qʰ, qᵍ, pC, sp, θp)
 
@@ -53,37 +73,50 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf, jϵ, jz, thres, RHS, 
 	# Basis matrix for continuation values
 	check, Ev, test, ut = 0., 0., 0, 0.
 
-	for (jzp, zpv) in enumerate(h.zgrid)
 
-		μpv = μ′[jzp, 1]
-		σpv = σ′[jzp, 1]
+	if jdefault
+		for (jzp, zpv) in enumerate(h.zgrid)
+			for (jϵp, ϵpv) in enumerate(h.ϵgrid)
+				prob =  h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
 
-		ζpv = 1.0
-		if jdefault == false && zpv <= thres
-			ζpv = 2.0
-		end
-
-		ωpv = ap + bp * itp_R[bpv, μpv, σpv, wpv, ζpv, jzp]
-		ωpv = min(ωpv, maximum(h.ωgrid))		
-		
-		for (jϵp, ϵpv) in enumerate(h.ϵgrid)
-			prob =  h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
-			if jdefault
-				ζ_reent, ζ_cont = 1.0, 3.0
-				ωpv = min(ap + bp * itp_R[bpv, μpv, σpv, wpv, ζ_reent, jzp], maximum(h.ωgrid))
-				Ev += (itp_vf[ωpv, jϵp, bpv, μ′[jzp, 1], σ′[jzp, 1], wpv, ζ_reent, jzp])^(1.0-h.γ) * prob * h.θ
-
-				ωpv = min(ap + bp * itp_R[bpv, μpv, σpv, wpv, ζ_cont, jzp], maximum(h.ωgrid))
-				Ev += (itp_vf[ωpv, jϵp, bpv, μ′[jzp, 2], σ′[jzp, 2], wpv, ζ_cont,  jzp])^(1.0-h.γ) * prob * (1.0 - h.θ)
-			else
-				Ev += (itp_vf[ωpv, jϵp, bpv, μpv, σpv, wpv, ζpv, jzp])^(1.0-h.γ) * prob
+				# Reentry
+				ζpv = 1
+				μpv, σpv = μ′[jzp, 1], σ′[jzp, 1]
+				R = h.κ + (1.0 - h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]
+				ωpv = min(ap + bp * R, h.ωmax)
+				Ev += G(h, itp_vf[ωpv, jϵp, bpv, μpv, σpv, wpv, ζpv, jzp]) * prob * h.θ
+				
+				# Continue in default
+				ζpv = 2
+				μpv, σpv = μ′[jzp, 2], σ′[jzp, 2]
+				R = (1.0 - h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]
+				ωpv = min(ap + bp * R, h.ωmax)
+				Ev += G(h, itp_vf[ωpv, jϵp, bpv, μpv, σpv, wpv, ζpv, jzp]) * prob * (1.0 - h.θ)
+				check += prob
 			end
-			check += prob
 		end
-		# isnan(Ev)? print_save("\n $test NaNs out of $(length(h.zgrid))"): Void
+	else
+		for (jzp, zpv) in enumerate(h.zgrid)
+			for (jϵp, ϵpv) in enumerate(h.ϵgrid)
+				prob =  h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
+				μpv = μ′[jzp, 1]
+				σpv = σ′[jzp, 1]
+				
+				if zpv > thres
+					ζpv = 1
+					R = h.κ + (1.0 - h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]
+					ωpv = min(ap + bp * R, h.ωmax)
+					Ev += G(h, itp_vf[ωpv, jϵp, bpv, μpv, σpv, wpv, ζpv, jzp]) * prob
+				else
+					ζpv = 2
+					R = (1.0 - h.ℏ) * (1.0 - h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp]
+					ωpv = min(ap + bp * R, h.ωmax)
+					Ev += G(h, itp_vf[ωpv, jϵp, (1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp]) * prob				
+				end
+			end
+		end
 	end
-	# test > 0? print_save("\n $test NaNs out of $(length(h.zgrid))"): Void
-	Tv = Ev^(1.0/(1.0-h.γ))
+	Tv = T(h, Ev)
 
 
 	isapprox(check, 1) || warn("wrong expectation operator")
@@ -91,6 +124,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf, jϵ, jz, thres, RHS, 
 	# Compute value
 	if h.EpsteinZin
 		C > 1e-10? ut = C^((h.ψ-1.0)/h.ψ): ut = 1e-10
+
 		vf = (1.0 - h.β) * ut + h.β * Tv^((h.ψ-1.0)/h.ψ)
 		vf = vf^((h.ψ)/(h.ψ-1.0))
 		return vf
@@ -101,13 +135,13 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf, jϵ, jz, thres, RHS, 
 	Void
 end
 
-function solve_optvalue(h::Hank, guess::Vector, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_R, jdef, ωmax)
+function solve_optvalue(h::Hank, guess::Vector, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_qᵍ, jdef, ωmax)
 
 	both = false
 
 	ap, bp, cmax, fmax = 0., 0., 0., 0.
 	if both
-		wrap_value(x::Vector, grad::Vector=similar(x)) = value(h, x[1], x[2], itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_R, jdef)
+		wrap_value(x::Vector, grad::Vector=similar(x)) = value(h, x[1], x[2], itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_qᵍ, jdef)
 
 		opt = Opt(:LN_NELDERMEAD, length(guess))
 		# upper_bounds!(opt, [ωmax, 1e-2])
@@ -128,9 +162,10 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf, jϵ, jz, thres, RHS, qʰ
 		ap, bp, cmax = get_abc(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θp)
 	else
 		curr_min = 1e10
-		for θp in 0:0.2:1
+		θp_grid = (linspace(0., 0.5^0.5, 6)).^(2.)
+		for θp in [θp_grid; 1.]
 			res = Optim.optimize(
-				sp -> -value(h, sp, θp, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_R, jdef),
+				sp -> -value(h, sp, θp, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_qᵍ, jdef),
 					qʰv*h.ωmin, ωmax, GoldenSection()
 				)
 			if res.minimum < curr_min
@@ -146,13 +181,13 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf, jϵ, jz, thres, RHS, qʰ
 end
 
 
-function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_R, itp_vf; resolve::Bool = true)
+function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf; resolve::Bool = true)
 
-	vf = Array{Float64}(size(h.vf))
-	ϕa = Array{Float64}(size(h.ϕa))
-	ϕb = Array{Float64}(size(h.ϕb))
-	ϕc = Array{Float64}(size(h.ϕc))
-	for js in 1:size(h.Jgrid,1)
+	vf = SharedArray{Float64}(size(h.vf))
+	ϕa = SharedArray{Float64}(size(h.ϕa))
+	ϕb = SharedArray{Float64}(size(h.ϕb))
+	ϕc = SharedArray{Float64}(size(h.ϕc))
+	@sync @parallel for js in 1:size(h.Jgrid,1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
 		jσ = h.Jgrid[js, 3]
@@ -198,7 +233,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_R, itp
 				if ωmax < qʰv * h.ωmin
 					print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
 					ap, bp, cmax = h.ωmin, 0., 1e-10
-					fmax = value(h, qʰv*ap, 0., itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_R, jdef)
+					fmax = value(h, qʰv*ap, 0., itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_qᵍ, jdef)
 				else
 					if ωg > ωmax
 						ωg = max(ωmax - 1e-2, 0)
@@ -206,13 +241,13 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_R, itp
 					isapprox(θg, 1) && θg > 1? θg = 1.0: Void
 					guess = [ωg, θg]
 
-					ap, bp, cmax, fmax = solve_optvalue(h, guess, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_R, jdef, ωmax)
+					ap, bp, cmax, fmax = solve_optvalue(h, guess, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_qᵍ, jdef, ωmax)
 				end
 			else
 				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
-				fmax = value(h, ωg, θp, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_R, jdef)
+				fmax = value(h, ωg, θp, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_qᵍ, jdef)
 			end
 			cmax < 0? warn("c = $cmax"): Void
 			
@@ -226,7 +261,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_R, itp
 	return vf, ϕa, ϕb, ϕc
 end
 
-function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, R_mat, pC_mat; resolve::Bool=true)
+function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve::Bool=true)
 	# Interpolate the value function
 	all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
 	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
@@ -235,10 +270,10 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, R_mat, pC
 	sum(h.vf .<= 0) > 0? print_save("\n $(sum(h.vf .<= 0)) negative entries detected in h.vf"): Void
 
 	itp_vf = interpolate(all_knots, h.vf, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
-	itp_R  = interpolate(agg_knots, R_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
+	itp_qᵍ  = interpolate(agg_knots, qᵍ_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
 
 	# Compute values
-	vf, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_R, itp_vf, resolve = resolve)
+	vf, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf, resolve = resolve)
 
 	sum(isnan.(vf)) > 0? print_save("\n$(sum(isnan.(vf))) found in vf"): Void
 	sum(isnan.(ϕa)) > 0? print_save("$(sum(isnan.(ϕa))) found in ϕa"): Void

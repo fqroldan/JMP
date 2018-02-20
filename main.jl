@@ -2,7 +2,6 @@
 write(pwd()*"/../../output.txt", "")
 
 using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStrings, Distributions, JLD
-# gr()
 
 # Load codes
 @everywhere include("reporting_routines.jl")
@@ -13,9 +12,13 @@ include("plotting_routines.jl")
 
 print_save("\nA Theory of Sovereign Risk\n")
 
+print_save("\nStarting run at "*Dates.format(now(), "HH:MM") * " on $(nprocs()) cores")
+
 # Initialize type
 h = Hank();
-save(pwd() * "/../../hank.jld", "h", h)
+# try
+# 	h = load("hank.jld", "h")
+# end
 
 print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")

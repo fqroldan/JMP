@@ -118,9 +118,7 @@ type Hank
 	qᵍ::Vector{Float64}
 	pN::Vector{Float64}
 
-	# # Mutual fund quantities
-	# ξg::Vector{Float64}
-	# ξf::Vector{Float64}
-	# ξp::Vector{Float64}
-	# sdf::String
+
+	# Options
+	upd_tol::Float64
 end

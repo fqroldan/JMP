@@ -1,4 +1,4 @@
-function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat, R_mat)
+function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
 	Npn = length(h.pngrid)
 
@@ -9,11 +9,12 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat, R_mat)
 	all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
 	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
 	itp_vf = interpolate(all_knots, h.vf, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()),Gridded(Linear()),Gridded(Linear()), NoInterp(), NoInterp()))
-	itp_R  = interpolate(agg_knots, R_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
+	itp_qᵍ  = interpolate(agg_knots, qᵍ_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
 
 	print_save("\nExtending the state space ($(Npn) iterations needed)")
 
-	@sync @parallel for jpn in 1:Npn
+	# @sync @parallel for jpn in 1:Npn
+	for jpn in 1:Npn
 
 		pnv = h.pngrid[jpn]
 		
@@ -42,7 +43,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat, R_mat)
 		wL_mat  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * (1.0 - h.τ)
 
 		# Re-solve for these values of wn and pn
-		_, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_R, itp_vf)
+		_, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf)
 			
 		ϕa_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕa, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 		ϕb_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕb, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
@@ -310,30 +311,32 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jd
 	zpv = h.zgrid[jzp]
 
 	ζpv = 1
+	haircut = 0.0
 	if jdef && reentry==false
-		ζpv = 3
+		ζpv = 2
+		haircut = 0.0
 	end
 	if jdef == false && zpv <= thres
 		ζpv = 2
+		haircut = h.ℏ
 	end
 	
-	R = (ζpv==1) * h.κ + (1.0 - h.ℏ * (ζpv==2)) .* ((1.0-h.ρ)*q)
+	R = (ζpv==1) * h.κ + (1.0 - haircut) .* ((1.0-h.ρ)*q)
 
 	Eω   = a + R*b
 	varω = var_a + R^2 * var_b + 2*R * cov_ab
 
 	# print_save("\nEω, varω = $Eω, $varω")
 	Eσ2 = 1.0 + varω / ( (Eω - h.ωmin)^2 )
-	if Eσ2 < 0
-		print_save("\n1 + vω / (Eω-ωmin)² = $( Eσ2)")
-	end
+	
+	Eσ2 > 0 || print_save("\n1 + vω / (Eω-ωmin)² = $(Eσ2)")
 
 	σ2 = log( Eσ2 )
 
 	μpv = log(Eω - h.ωmin) - 0.5 * σ2
 	σpv = sqrt(σ2)
 
-	new_q = itp_qᵍ[Bpv, μpv, σpv, wpv, ζpv, jzp]
+	new_q = itp_qᵍ[(1.0 - haircut) .* Bpv, μpv, σpv, wpv, ζpv, jzp]
 
 	if get_μσ
 		return μpv, σpv
@@ -453,7 +456,7 @@ function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec, w�
 	return μ′, σ′
 end
 
-function update_expectations!(h::Hank, upd_η::Float64)
+function update_expectations!(h::Hank, upd_η::Float64, μ′_old, σ′_old)
 	""" 
 	Computes mean and variance of tomorrow's distribution and deduces parameters for logN
 	"""
@@ -474,8 +477,6 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	function new_grid(x′, xgrid)
 		xmax = maximum(x′)
 		xmin = minimum(x′)
-		print_save("\nmax_x′ = $(@sprintf("%0.3g", xmax))")
-		print_save("\nmin_x′ = $(@sprintf("%0.3g", xmin))")
 
 		Nx = length(xgrid)
 
@@ -490,19 +491,25 @@ function update_expectations!(h::Hank, upd_η::Float64)
 		return collect(linspace(xmin, xmax, Nx))
 	end
 
-	μ′_new = upd_η * μ′_new + (1.0 - upd_η) * h.μ′
-	σ′_new = upd_η * σ′_new + (1.0 - upd_η) * h.σ′
+	dist_exp[1] = sqrt.(sum( (μ′_new - μ′_old).^2 )) / sqrt.(sum(μ′_old.^2))
+	dist_exp[2] = sqrt.(sum( (σ′_new - σ′_old).^2 )) / sqrt.(sum(σ′_old.^2))	
+
+	μ′_new = upd_η * μ′_new + (1.0 - upd_η) * μ′_old
+	σ′_new = upd_η * σ′_new + (1.0 - upd_η) * σ′_old
 
 	new_μgrid = new_grid(μ′_new, h.μgrid)
 	new_σgrid = new_grid(σ′_new, h.σgrid)
 
-	dist_exp[1] = sqrt.(sum( (μ′_new - h.μ′).^2 )) / sqrt.(sum(h.μ′.^2))
-	dist_exp[2] = sqrt.(sum( (σ′_new - h.σ′).^2 )) / sqrt.(sum(h.σ′.^2))	
+	new_μgrid = h.μgrid
+	new_σgrid = h.σgrid
 
 	h.μ′ = μ′_new
 	h.σ′ = σ′_new
 
-	return dist_exp, new_μgrid, new_σgrid
+	h.μ′ = max.(min.(h.μ′, maximum(new_μgrid)), minimum(new_μgrid))
+	h.σ′ = max.(min.(h.σ′, maximum(new_σgrid)), minimum(new_σgrid))
+
+	return dist_exp, new_μgrid, new_σgrid, μ′_new, σ′_new
 end
 
 function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], new_wgrid::Vector=[])
