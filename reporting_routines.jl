@@ -8,7 +8,9 @@ end
 
 function time_print(tfloat::Float64)
 	t = floor(Int, tfloat)
-	if t < 60
+	if t < 1
+		t_print = "no time"
+	elseif t < 60
 		t_print = "$(t) second"
 		t == 1 ? Void : t_print = t_print * "s"
 	elseif t < 3600

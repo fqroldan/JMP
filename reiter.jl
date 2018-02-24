@@ -2,9 +2,9 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStri
 
 include("hh_pb.jl")
 
-function Hank(;	β = (1.0/1.03)^0.25,
-				IES = 3.,
-				RRA = 1.,
+function Hank(;	β = (1.0/1.05)^0.25,
+				IES = 2.,
+				RRA = 2.,
 				γw = 0.99,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
@@ -38,23 +38,23 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	z_chain = tauchen(Nz, ρz, σz, 0, 1)
 	Pz = z_chain.p
 	# zgrid = linspace(minimum(z_chain.state_values), maximum(z_chain.state_values), Nz)
-	zgrid = exp.(z_chain.state_values)
+	zgrid = z_chain.state_values
 
 	# Idiosyncratic risk
 	ρϵ, σϵ = 0., 0.
 	if income_process == "Floden-Lindé"
-		ρϵ = 0.9136			# Floden-Lindé for US
-		σϵ = sqrt(0.0426)	# Floden-Lindé for US
+		ρϵ = 0.9136		# Floden-Lindé for US
+		σϵ = 0.0426		# Floden-Lindé for US
 	elseif income_process == "Mendoza-D'Erasmo"
-		ρϵ = 0.85 			# Mendoza-D'Erasmo for Spain
-		σϵ = 0.2498			# Mendoza-D'Erasmo for Spain
+		ρϵ = 0.85^0.25	# Mendoza-D'Erasmo for Spain
+		σϵ = 0.2498^2/2	# Mendoza-D'Erasmo for Spain
 	else
 		print_save("ERROR: Must specify an income process")
 		throw(error("Must specify an income process"))
 	end
 	ϵ_chain = tauchen(Nϵ, ρϵ, σϵ, 0, 1)
 	Pϵ = ϵ_chain.p
-	ϵgrid = exp.(ϵ_chain.state_values)
+	ϵgrid = ϵ_chain.state_values
 
 	wgrid = linspace(0.45, 1.0, Nw)
 	pngrid = linspace(0.5, 1.25, Np)
@@ -64,7 +64,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	λϵ = stationary_distributions(ϵ_chain)[1]
 
 	χ = 2.0
-	Ξ = dot(ϵgrid.^(1.0/χ), λϵ)^χ
+	Ξ = dot(exp.(ϵgrid).^(1.0/χ), λϵ)^χ
 	θL = (1.0-τ) * Ξ
 
 	α_T = 0.6
@@ -74,17 +74,18 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	ϖ = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
-	bgrid = linspace(0.0, 0.6, Nb)
-	μgrid = linspace(0.0, 0.5, Nμ)
+	bgrid = linspace(0.0, 1.5, Nb)
+	μgrid = linspace(0.0, 1.0, Nμ)
 	σgrid = linspace(0.1, 0.5, Nσ)
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.5
-	ωgrid0	= linspace(0.0, (ωmax-ωmin)^curv, Nω).^(1/curv)
+	# ωgrid0	= linspace(0.0, (ωmax-ωmin)^curv, Nω).^(1/curv)
+	ωgrid0	= linspace(0., (ωmax-ωmin), Nω)
 	ωgrid0	= ωgrid0 + ωmin
 	ωgrid 	= ωgrid0
 
-	ωgrid_fine	= linspace(0., (ωmax-ωmin)^curv, Nω_fine).^(1/curv)
+	ωgrid_fine	= linspace(0., (ωmax-ωmin), Nω_fine)
 	ωgrid_fine	= ωgrid_fine + ωmin
 
 	snodes = [kron(ones(Nϵ,), ωgrid_fine) kron(ϵgrid, ones(Nω_fine,))]
@@ -121,10 +122,10 @@ function Hank(;	β = (1.0/1.03)^0.25,
 		jζ = Jgrid[js, 5]
 		jz = Jgrid[js, 6]
 
-		wv = zgrid[jz]
+		wv = exp(zgrid[jz])
 		for (jϵ, ϵv) in enumerate(ϵgrid), (jω, ωv) in enumerate(ωgrid)
 
-			Y = ϵv * wv * (1.0-τ) + (ωv-ωmin)
+			Y = exp(ϵv) * wv * (1.0-τ) + (ωv-ωmin)
 			c = Y * 0.5
 			ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = Y * 0.5
 			ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = Y * 0.0
@@ -165,7 +166,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	end
 	w′ = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	for (jw, wv) in enumerate(wgrid)
-		w′[:,:,:,jw,:,:] = wv
+		w′[:,:,:,jw,:,:] = max(γw * wv, wgrid[1])
 	end
 	w′ = reshape(w′, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 
@@ -186,16 +187,16 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	issuance  =	Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	def_thres =	Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	for (jz, zv) in enumerate(zgrid)
-		pN[:,:,:,:,:,jz] = mean(pngrid) - 0.1 * log(zv)
-		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * log.(zv)
+		pN[:,:,:,:,:,jz] = mean(pngrid) - 0.1 * zv
+		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,:,jz] = bv + 0.1 * log.(zv) + 0.1 * (mean(bgrid)-bv)
+			issuance[jb,:,:,:,:,jz] = bv + 0.1 * zv + 0.1 * (mean(bgrid)-bv)
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
 			def = (ζv != 1.0)
 			repay[:,:,:,:,jζ,jz] = 1.0 - ℏ * (ζv == 2.0)
 			for (jw, wv) in enumerate(wgrid)
-				wage[:,:,:,:,jζ,jz] = max(zv * (1.0 - Δ * def), γw*wv)
+				wage[:,:,:,:,jζ,jz] = max(exp(zv) * (1.0 - Δ * def), γw*wv)
 			end
 		end
 		def_thres[:,:,:,:,:,jz] = ifelse(jz == Nz, zgrid[1], 0.0)
@@ -207,9 +208,10 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	issuance 	= min.(max.(reshape(issuance,  Nb*Nμ*Nσ*Nw*Nζ*Nz), minimum(bgrid)), maximum(bgrid))
 	def_thres 	= reshape(def_thres, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 
-	upd_tol = 0.015
+	upd_tol = 5e-3
 
-	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕc, ϕa_ext, ϕb_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, curv, order, ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol)
+	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕc, ϕa_ext, ϕb_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
+		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol)
 end
 
 function iterate_qᵍ!(h::Hank; verbose::Bool=false)
@@ -223,8 +225,8 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 	qᵍ = ones(qᵍ_mat)
 	while dist > tol && iter < maxiter
-		old_q = copy(qᵍ)
-		knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, 1:h.Nz)
+		old_q  = copy(qᵍ)
+		knots  = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, 1:h.Nz)
 		itp_qᵍ = interpolate(knots, qᵍ, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
 
 		for js in 1:size(h.Jgrid,1)
@@ -337,7 +339,7 @@ function _unpackstatefs(h::Hank)
 end
 
 
-function vfi!(h::Hank; tol::Float64=1e-4, verbose::Bool=true, maxiter::Int64=1000, bellman_iter::Int64=maxiter)
+function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=1000, bellman_iter::Int64=maxiter)
 
 	print_save("\nSolving household problem: ")
 	time_init = time()
@@ -348,8 +350,10 @@ function vfi!(h::Hank; tol::Float64=1e-4, verbose::Bool=true, maxiter::Int64=100
 
 	iterate_qᵍ!(h, verbose = true)
 
-	upd_η = 0.5
-	dist_statefuncs = [dist]
+	upd_η = 0.25
+	
+	dist_statefuncs = Matrix{Float64}(maxiter, 3)
+	dist_LoMs = Matrix{Float64}(maxiter, 2)
 
 	μ′_old = copy(h.μ′)
 	σ′_old = copy(h.σ′)
@@ -376,22 +380,26 @@ function vfi!(h::Hank; tol::Float64=1e-4, verbose::Bool=true, maxiter::Int64=100
 			t_new = time()
 			print_save("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v‖ = $(@sprintf("%0.3g",norm_v)) after $(time_print(t_new-t_old)) and $iter_cycle iterations ")
 			print_save(Dates.format(now(), "HH:MM"))
+			plot_hh_policies(h, remote = remote)
 		end
 
 		if dist < h.upd_tol
-			plot_hh_policies(h, remote = true)
+			plot_hh_policies(h, remote = remote)
 
 			t1 = time()
 			extend_state_space!(h, qʰ_mat, qᵍ_mat, T_mat)
 			print_save(": done in $(time_print(time()-t1))")
 			t1 = time()
 
-			plot_labor_demand(h, remote = true)
+			plot_labor_demand(h, remote = remote)
 
 			print_save("\nUpdating functions of the state")
 
 			up_prop, down_prop, mean_excS, dists = update_state_functions!(h, upd_η)
-			plot_state_funcs(h, remote = true)
+
+			dist_statefuncs[iter, :] = dists
+
+			plot_state_funcs(h, remote = remote)
 			print_save(": done in $(time_print(time()-t1))")
 			t1 = time()
 
@@ -406,17 +414,21 @@ function vfi!(h::Hank; tol::Float64=1e-4, verbose::Bool=true, maxiter::Int64=100
 			print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
 			dist_s = maximum(dists)
 
-			dist_exp, new_μgrid, new_σgrid, μ′_old, σ′_old = update_expectations!(h, 0.5 * upd_η, μ′_old, σ′_old)
+			dist_exp = update_expectations!(h, 0.5 * upd_η)
+			# dist_exp = [0. 0.]
+			dist_LoMs[iter, :] = dist_exp
 
-			update_grids!(h, new_μgrid = new_μgrid, new_σgrid = new_σgrid)
+			# update_grids!(h, new_μgrid = new_μgrid, new_σgrid = new_σgrid)
 			print_save("\nDistance in expectations: (dμ,dσ) = ($(@sprintf("%0.3g",mean(dist_exp[1]))),$(@sprintf("%0.3g",mean(dist_exp[2]))))")
 			print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(h.μgrid))), $(@sprintf("%0.3g",maximum(h.μgrid)))]")
 			print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(h.σgrid))), $(@sprintf("%0.3g",maximum(h.σgrid)))]")
 
-			plot_LoM(h, remote = true)
+			plot_LoM(h, remote = remote)
 
 			dist_s = max(dist_s, maximum(dist_exp))
-			print_save("\nTime to update grids and expectations: $(time_print(time()-t1))")
+			print_save("\nGrids and expectations updated in $(time_print(time()-t1))")
+
+			plot_convergence(dist_statefuncs, dist_LoMs, iter, remote = remote)
 
 			iterate_qᵍ!(h)
 
@@ -426,7 +438,7 @@ function vfi!(h::Hank; tol::Float64=1e-4, verbose::Bool=true, maxiter::Int64=100
 			var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
 			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 
-			h.upd_tol = exp(0.9*log(1+h.upd_tol))-1
+			h.upd_tol = max(exp(0.9*log(1+h.upd_tol))-1, 1e-6)
 			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))")
 			t_old = time()
 		end

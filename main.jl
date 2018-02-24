@@ -12,7 +12,13 @@ include("plotting_routines.jl")
 
 print_save("\nA Theory of Sovereign Risk\n")
 
-print_save("\nStarting run at "*Dates.format(now(), "HH:MM") * " on $(nprocs()) cores")
+location = "remote"
+if pwd() == "/home/q/Dropbox/NYU/AToSR/Codes"
+	location = "local"
+	using Rsvg
+end
+
+print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(), "HH:MM"))
 
 # Initialize type
 h = Hank();
@@ -25,7 +31,6 @@ print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")
 
 # Run
-vfi!(h, verbose = true)
-# @time A_sample, B_sample, L_sample, Z_sample, R_sample, q_sample, qg_sample, π_sample = simul(h, makefile = true)
+vfi!(h, verbose = true, remote = (location=="remote"))
 
 Void

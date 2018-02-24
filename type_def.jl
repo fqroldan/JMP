@@ -67,8 +67,8 @@ type Hank
 	Δ::Float64
 
 	# Parameters of the a grid
-	curv::Float64
-	order::Int64
+	# curv::Float64
+	# order::Int64
 	ωmin::Float64
 	ωmax::Float64
 

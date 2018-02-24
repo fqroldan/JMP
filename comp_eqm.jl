@@ -6,10 +6,21 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 	ϕb_ext = SharedArray{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, Npn)
 	ϕc_ext = SharedArray{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, Npn)
 
-	all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
-	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
-	itp_vf = interpolate(all_knots, h.vf, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()),Gridded(Linear()),Gridded(Linear()), NoInterp(), NoInterp()))
-	itp_qᵍ  = interpolate(agg_knots, qᵍ_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
+	# all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
+	# agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
+	# itp_vf = interpolate(all_knots, h.vf, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()),Gridded(Linear()),Gridded(Linear()), NoInterp(), NoInterp()))
+	# itp_qᵍ  = interpolate(agg_knots, qᵍ_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
+
+	ωrange = linspace(h.ωgrid[1], h.ωgrid[end], h.Nω)
+	brange = linspace(h.bgrid[1], h.bgrid[end], h.Nb)
+	μrange = linspace(h.μgrid[1], h.μgrid[end], h.Nμ)
+	σrange = linspace(h.σgrid[1], h.σgrid[end], h.Nσ)
+	wrange = linspace(h.wgrid[1], h.wgrid[end], h.Nw)
+
+	unscaled_itp_vf = interpolate(h.vf, (BSpline(Quadratic(Line())), NoInterp(), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), NoInterp(), NoInterp()), OnGrid())
+	unscaled_itp_qᵍ  = interpolate(qᵍ_mat, (BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), NoInterp(), NoInterp()), OnGrid())
+	itp_vf = Interpolations.scale(unscaled_itp_vf, ωrange, 1:h.Nϵ, brange, μrange, σrange, wrange, 1:h.Nζ, 1:h.Nz)
+	itp_qᵍ = Interpolations.scale(unscaled_itp_qᵍ, brange, μrange, σrange, wrange, 1:h.Nζ, 1:h.Nz)
 
 	print_save("\nExtending the state space ($(Npn) iterations needed)")
 
@@ -67,10 +78,10 @@ function _unpack_origvars(x, xmin, xmax)
 	return y
 end
 
-function labor_demand(h::Hank, w, z, pN; get_both::Bool = false)
+function labor_demand(h::Hank, w, tfp, pN; get_both::Bool = false)
 
-	Ld_nontradables = (h.α_N * pN / w).^(1.0/(1.0-h.α_N))
-	Ld_tradables    = (h.α_T * z  / w).^(1.0/(1.0-h.α_T))
+	Ld_nontradables = (h.α_N * pN  / w).^(1.0/(1.0-h.α_N))
+	Ld_tradables    = (h.α_T * tfp / w).^(1.0/(1.0-h.α_T))
 
 	if get_both
 		return Ld_nontradables, Ld_tradables
@@ -81,7 +92,7 @@ end
 
 function labor_market(h::Hank, jdef, zv, wv, pNv)
 	""" Finds w and Lᵈ at the current state given a guess of pNv """
-	TFP = ifelse(jdef, (1.0 - h.Δ) * zv, zv)
+	TFP = ifelse(jdef, (1.0 - h.Δ) * exp(zv), exp(zv))
 	w_constraint = h.γw * wv
 
 	# Step 1: Assume w_t is at the constraint, find labor demand, and check whether the eq'm wage is above or below
@@ -110,7 +121,7 @@ function labor_market(h::Hank, jdef, zv, wv, pNv)
 		Ld = Ld_N + Ld_T
 	end
 
-	profits = pNv .* Ld_N.^h.α_N + zv .* Ld_T.^h.α_T - w_new * (Ld_N + Ld_T)
+	profits = pNv .* Ld_N.^h.α_N + TFP .* Ld_T.^h.α_T - w_new * (Ld_N + Ld_T)
 
 	return Ld, w_new, profits
 end
@@ -146,7 +157,7 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	end
 
 	# Step 4: Check market clearing for nontradables
-	TFP = ifelse(jdefault, (1.0 - h.Δ) * zv, zv)
+	TFP = ifelse(jdefault, (1.0 - h.Δ) * exp(zv), exp(zv))
 	Ld_N, _ = labor_demand(h, w_new, TFP, pN; get_both=true)
 	supply_N = TFP * Ld_N^(h.α_N)
 
@@ -289,12 +300,12 @@ function update_grids_pw!(h::Hank, up_prop, down_prop)
 
 	Ls = 1.0
 	res = Optim.optimize(
-			w -> (labor_demand(h, w, h.zgrid[end], pN_up) - Ls).^2,
+			w -> (labor_demand(h, w, exp(h.zgrid[end]), pN_up) - Ls).^2,
 			h.wgrid[1], h.wgrid[end] * 2.0, GoldenSection()
 			)
 	w_up = res.minimizer
 	res = Optim.optimize(
-			w -> (labor_demand(h, w, h.zgrid[1], pN_down) - Ls).^2,
+			w -> (labor_demand(h, w, (1.0-h.Δ) * exp(h.zgrid[1]), pN_down) - Ls).^2,
 			0.5 * h.wgrid[1], h.wgrid[end], GoldenSection()
 			)
 	w_down = res.minimizer
@@ -456,10 +467,14 @@ function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec, w�
 	return μ′, σ′
 end
 
-function update_expectations!(h::Hank, upd_η::Float64, μ′_old, σ′_old)
+function update_expectations!(h::Hank, upd_η::Float64)
 	""" 
 	Computes mean and variance of tomorrow's distribution and deduces parameters for logN
 	"""
+
+	μ′_old = copy(h.μ′)
+	σ′_old = copy(h.σ′)
+
 	dist_exp = Array{Float64,1}(2)
 	qᵍmt = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
@@ -491,25 +506,19 @@ function update_expectations!(h::Hank, upd_η::Float64, μ′_old, σ′_old)
 		return collect(linspace(xmin, xmax, Nx))
 	end
 
+	μ′_new = max.(min.(μ′_new, maximum(h.μgrid)), minimum(h.μgrid))
+	σ′_new = max.(min.(σ′_new, maximum(h.σgrid)), minimum(h.σgrid))
+
 	dist_exp[1] = sqrt.(sum( (μ′_new - μ′_old).^2 )) / sqrt.(sum(μ′_old.^2))
 	dist_exp[2] = sqrt.(sum( (σ′_new - σ′_old).^2 )) / sqrt.(sum(σ′_old.^2))	
 
 	μ′_new = upd_η * μ′_new + (1.0 - upd_η) * μ′_old
 	σ′_new = upd_η * σ′_new + (1.0 - upd_η) * σ′_old
 
-	new_μgrid = new_grid(μ′_new, h.μgrid)
-	new_σgrid = new_grid(σ′_new, h.σgrid)
-
-	new_μgrid = h.μgrid
-	new_σgrid = h.σgrid
-
 	h.μ′ = μ′_new
 	h.σ′ = σ′_new
 
-	h.μ′ = max.(min.(h.μ′, maximum(new_μgrid)), minimum(new_μgrid))
-	h.σ′ = max.(min.(h.σ′, maximum(new_σgrid)), minimum(new_σgrid))
-
-	return dist_exp, new_μgrid, new_σgrid, μ′_new, σ′_new
+	return dist_exp
 end
 
 function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], new_wgrid::Vector=[])

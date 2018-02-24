@@ -26,22 +26,38 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 	itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
 	itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
 
+	qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
+	itp_qᵍ  = interpolate(agg_knots, qᵍ_mat, Gridded(Linear()))
+
 	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], h.zgrid[end]
 
 	ϕc_mat = itp_ϕc[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
 	ϕa_mat = itp_ϕa[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
 	ϕb_mat = itp_ϕb[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
 	vf_mat = itp_vf[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+	qᵍ_mat = itp_qᵍ[show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+
+	qᵍ_all = zeros(vf_mat)
+	for jω in 1:h.Nω
+		for jϵ in 1:h.Nϵ
+			qᵍ_all[jω, jϵ, :,:,:,:,:,:] = qᵍ_mat
+		end
+	end
+
+	ωg_mat = 1.0/(1.0+h.r_star) * ϕa_mat + qᵍ_all .* ϕb_mat
+	θg_mat = 1.0/(1.0+h.r_star) * (ϕa_mat - h.ωmin) ./ (ωg_mat - 1.0/(1.0+h.r_star)*h.ωmin)
 
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
 	for jϵ in 1:h.Nϵ
-		l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,1] = l_new
-		l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,2] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕa_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l_new = scatter(;x=h.ωgrid, y=ϕa_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,3] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		# l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
+		l_new = scatter(;x=h.ωgrid, y=θg_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,4] = l_new
 	end
 	pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ])
@@ -51,7 +67,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 	pa = plot([l[jϵ, 3] for jϵ in 1:h.Nϵ])
 	pa.plot.layout["title"] = "Private Savings"
 	pb = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ])
-	pb.plot.layout["title"] = "Debt Purchases"
+	pb.plot.layout["title"] = "Proportion risk-free debt"
 
 	p = [pc pv; pa pb]
 	p.plot.layout["xlabel"] = "ω"
@@ -74,13 +90,13 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
 	for jϵ in 1:h.Nϵ
-		l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,1] = l_new
-		l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,2] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕa_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l_new = scatter(;x=h.ωgrid, y=ϕa_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,3] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], mode="lines+markers", showlegend=false, marker_color=col[jϵ])
+		l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,4] = l_new
 	end
 	pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ])
@@ -244,10 +260,10 @@ function plot_LoM(h::Hank; remote::Bool=false)
 	Void
 end
 
-function labor_demand(h::Hank, w, z, pN; get_both::Bool = false)
+function labor_demand(h::Hank, w, tfp, pN; get_both::Bool = false)
 
-	Ld_nontradables = (h.α_N * pN ./ w).^(1.0/(1.0-h.α_N))
-	Ld_tradables    = (h.α_T * z  ./ w).^(1.0/(1.0-h.α_T))
+	Ld_nontradables = (h.α_N * pN  ./ w).^(1.0/(1.0-h.α_N))
+	Ld_tradables    = (h.α_T * tfp ./ w).^(1.0/(1.0-h.α_T))
 
 	if get_both
 		return Ld_nontradables, Ld_tradables
@@ -263,7 +279,7 @@ function plot_labor_demand(h::Hank; remote::Bool=false)
 	vl = 1e8
 	l = scatter(;y=h.wgrid, x=ones(h.wgrid), line_dash="dashdot", marker_color="black", showlegend=false, mode="lines", title="Labor market")
 	for (jpN, pNv) in enumerate(h.pngrid)
-		Ld = labor_demand(h, h.wgrid, z_show, pNv)
+		Ld = labor_demand(h, h.wgrid, exp(z_show), pNv)
 		label = "pₙ = $(round(pNv,2))"
 		l = hcat(l, scatter(;y=h.wgrid, x=Ld, name=label, marker_color=col[jpN], line_shape="spline"))
 		if minimum(Ld) < vl
@@ -302,10 +318,34 @@ function plot_nontradables_demand(h::Hank; remote::Bool=false)
 
 	if remote
 		path = pwd() * "/../../Graphs/"
-		path = path * "Graphs/"
 	else
 		path = pwd() * "/../Graphs/"
 	end
 	savefig(path * "N_demand.png")
+	Void
+end
+
+
+function plot_convergence(dist_statefuncs, dist_LoMs, T::Int64; remote::Bool=false)
+
+	l_funcs1 = scatter(; x=1:T, y = (dist_statefuncs[1:T, 1]), name = "w")
+	l_funcs2 = scatter(; x=1:T, y = (dist_statefuncs[1:T, 2]), name = "pN")
+	l_funcs3 = scatter(; x=1:T, y = (dist_statefuncs[1:T, 3]), name = "Ld")
+	l_LoM1   = scatter(; x=1:T, y = (dist_LoMs[1:T,1]), name = "μ′")
+	l_LoM2   = scatter(; x=1:T, y = (dist_LoMs[1:T,2]), name = "σ′")
+
+	layout = Layout(;	xaxis=attr(title="t", zeroline=true),
+						yaxis_type="log")
+
+
+	p = [plot([l_funcs1, l_funcs2, l_funcs3], layout) plot([l_LoM1, l_LoM2], layout) ]
+
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_conv.jld", "p", p)
+	else
+		path = pwd() * "/../Graphs/"
+		savefig(p, path * "conv.png")
+	end
 	Void
 end
