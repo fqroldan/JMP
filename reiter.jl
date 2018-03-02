@@ -4,13 +4,13 @@ include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.05)^0.25,
 				IES = 2.,
-				RRA = 2.,
-				γw = 0.99,
+				RRA = 5.,
+				γw = 0.98,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
 				ωmax = 10.,
 				curv = .4,
-				income_process = "Mendoza-D'Erasmo",
+				income_process = "Floden-Lindé",
 				EpsteinZin = true,
 				order = 3,
 				Nω_fine = 1000,
@@ -26,7 +26,8 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				ℏ = 0.25,
 				Δ = 0.05,
 				θ = .5,
-				Np = 5
+				Np = 5,
+				tol_θ = 1e-2
 				)
 	ψ = IES
 	γ = 0.
@@ -34,6 +35,11 @@ function Hank(;	β = (1.0/1.05)^0.25,
 		γ = RRA
 	end
 	## Prepare discretized processes
+	function quarterlize_AR1(ρ, σ)
+		ρ4 = ρ^0.25
+		σ4 = sqrt(  σ^2 / ( 1 + ρ4^2 + ρ4^4 + ρ4^6 )  )
+		return ρ4, σ4
+	end
 	# Aggregate risk
 	z_chain = tauchen(Nz, ρz, σz, 0, 1)
 	Pz = z_chain.p
@@ -46,12 +52,14 @@ function Hank(;	β = (1.0/1.05)^0.25,
 		ρϵ = 0.9136		# Floden-Lindé for US
 		σϵ = 0.0426		# Floden-Lindé for US
 	elseif income_process == "Mendoza-D'Erasmo"
-		ρϵ = 0.85^0.25	# Mendoza-D'Erasmo for Spain
-		σϵ = 0.2498^2/2	# Mendoza-D'Erasmo for Spain
+		ρϵ = 0.85		# Mendoza-D'Erasmo for Spain
+		σϵ = 0.2498		# Mendoza-D'Erasmo for Spain
 	else
 		print_save("ERROR: Must specify an income process")
 		throw(error("Must specify an income process"))
 	end
+	ρϵ, σϵ = quarterlize_AR1(ρϵ, σϵ)
+
 	ϵ_chain = tauchen(Nϵ, ρϵ, σϵ, 0, 1)
 	Pϵ = ϵ_chain.p
 	ϵgrid = ϵ_chain.state_values
@@ -199,7 +207,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				wage[:,:,:,:,jζ,jz] = max(exp(zv) * (1.0 - Δ * def), γw*wv)
 			end
 		end
-		def_thres[:,:,:,:,:,jz] = ifelse(jz == Nz, zgrid[1], 0.0)
+		def_thres[:,:,:,:,:,jz] = ifelse(jz == Nz, zgrid[1], -1e10)
 	end
 	pN	 		= reshape(pN, 	 	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
 	repay	 	= reshape(repay, 	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
@@ -211,7 +219,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	upd_tol = 5e-3
 
 	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕc, ϕa_ext, ϕb_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
-		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol)
+		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol, tol_θ)
 end
 
 function iterate_qᵍ!(h::Hank; verbose::Bool=false)
@@ -350,7 +358,7 @@ function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true,
 
 	iterate_qᵍ!(h, verbose = true)
 
-	upd_η = 0.25
+	upd_η = 0.5
 	
 	dist_statefuncs = Matrix{Float64}(maxiter, 3)
 	dist_LoMs = Matrix{Float64}(maxiter, 2)
@@ -439,6 +447,7 @@ function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 
 			h.upd_tol = max(exp(0.9*log(1+h.upd_tol))-1, 1e-6)
+			iter > 10? iter > 20? iter > 30? h.tol_θ = 1e-12: h.tol_θ = 1e-6: h.tol_θ = 1e-4: Void
 			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))")
 			t_old = time()
 		end

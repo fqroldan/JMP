@@ -61,7 +61,7 @@ function get_abc(RHS::Float64, ωmin::Float64, qʰ::Float64, qᵍ::Float64, pC::
 	return ap, bp, C
 end
 
-function value(h::Hank, sp::Float64, θp::Float64, itp_obj_vf, jϵ, jz, thres, RHS, qʰ, qᵍ, pC, bpv, μ′, σ′, wpv, itp_qᵍ, jdefault)
+function value(h::Hank, sp::Float64, θp::Float64, itp_vf, jϵ, jz, thres, RHS, qʰ, qᵍ, qᵍp, pC, bpv, μ′, σ′, wpv, jdefault)
 
 	ap, bp, C = get_abc(RHS, h.ωmin, qʰ, qᵍ, pC, sp, θp)
 
@@ -81,27 +81,27 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_obj_vf, jϵ, jz, thres, R
 				# Reentry
 				ζpv = 1
 				μpv, σpv = μ′[jzp, 1], σ′[jzp, 1]
-				R = h.κ + (1.0 - h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]
+				R = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 1]
 				ωpv = ap + bp * R
-				ωpv = min(ap + bp * R, h.ωmax)
-				if ωpv > h.ωmax
-					itp_vf = extrapolate(itp_obj_vf, Linear())
-				else
-					itp_vf = itp_obj_vf
-				end
+				# ωpv = min(ap + bp * R, h.ωmax)
+				# if ωpv > h.ωmax
+				# 	itp_vf = extrapolate(itp_obj_vf, Linear())
+				# else
+				# 	itp_vf = itp_obj_vf
+				# end
 				Ev += G(h, itp_vf[ωpv, jϵp, bpv, μpv, σpv, wpv, ζpv, jzp]) * prob * h.θ
 				
 				# Continue in default
 				ζpv = 2
 				μpv, σpv = μ′[jzp, 2], σ′[jzp, 2]
-				R = (1.0 - h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]
+				R = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 2]
 				ωpv = ap + bp * R
-				ωpv = min(ap + bp * R, h.ωmax)
-				if ωpv > h.ωmax
-					itp_vf = extrapolate(itp_obj_vf, Linear())
-				else
-					itp_vf = itp_obj_vf
-				end
+				# ωpv = min(ap + bp * R, h.ωmax)
+				# if ωpv > h.ωmax
+				# 	itp_vf = extrapolate(itp_obj_vf, Linear())
+				# else
+				# 	itp_vf = itp_obj_vf
+				# end
 				Ev += G(h, itp_vf[ωpv, jϵp, bpv, μpv, σpv, wpv, ζpv, jzp]) * prob * (1.0 - h.θ)
 				check += prob
 			end
@@ -116,25 +116,25 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_obj_vf, jϵ, jz, thres, R
 				σpv = σ′[jzp, 1]				
 				if zpv > thres
 					ζpv = 1
-					R = h.κ + (1.0 - h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]
+					R = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 1]
 					ωpv = ap + bp * R
-					ωpv = min(ap + bp * R, h.ωmax)
-					if ωpv > h.ωmax
-						itp_vf = extrapolate(itp_obj_vf, Linear())
-					else
-						itp_vf = itp_obj_vf
-					end
+					# ωpv = min(ap + bp * R, h.ωmax)
+					# if ωpv > h.ωmax
+					# 	itp_vf = extrapolate(itp_obj_vf, Linear())
+					# else
+					# 	itp_vf = itp_obj_vf
+					# end
 					Ev += G(h, itp_vf[ωpv, jϵp, bpv, μpv, σpv, wpv, ζpv, jzp]) * prob
 				else
 					ζpv = 2
-					R = (1.0 - h.ℏ) * (1.0 - h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp]
+					R = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 3]
 					ωpv = ap + bp * R
-					ωpv = min(ap + bp * R, h.ωmax)
-					if ωpv > h.ωmax
-						itp_vf = extrapolate(itp_obj_vf, Linear())
-					else
-						itp_vf = itp_obj_vf
-					end
+					# ωpv = min(ap + bp * R, h.ωmax)
+					# if ωpv > h.ωmax
+					# 	itp_vf = extrapolate(itp_obj_vf, Linear())
+					# else
+					# 	itp_vf = itp_obj_vf
+					# end
 					Ev += G(h, itp_vf[ωpv, jϵp, (1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp]) * prob				
 				end
 			end
@@ -161,11 +161,52 @@ end
 
 function solve_optvalue(h::Hank, guess::Vector, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_qᵍ, jdef, ωmax)
 
-	both = false
+	both = true
+
+	qᵍp = Array{Float64}(h.Nz, 3)
+	for (jzp, zpv) in enumerate(h.zgrid)
+		qᵍp[jzp, 1] = itp_qᵍ[bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]
+		qᵍp[jzp, 2] = itp_qᵍ[bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
+		qᵍp[jzp, 3] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, jzp]
+	end
 
 	ap, bp, cmax, fmax = 0., 0., 0., 0.
 	if both
-		wrap_value(x::Vector, grad::Vector=similar(x)) = value(h, x[1], x[2], itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_qᵍ, jdef)
+		function sub_value(h, sp, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, bpv, μpv, σpv, wpv, jdef; get_all::Bool=false)
+			minθ = min(max(0, guess[2]-0.2), 0.8)
+			maxθ = max(min(1, guess[2]+0.2), 0.2)
+
+			# minθ = 0.
+			# maxθ = 1.
+
+			res = Optim.optimize(
+				θ -> -value(h, sp, θ, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, bpv, μpv, σpv, wpv, jdef),
+				minθ, maxθ, Brent(), rel_tol=h.tol_θ
+				)
+
+			if get_all
+				θp = res.minimizer
+				ap, bp, cmax = get_abc(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θp)
+				return ap, bp, cmax, θp
+			else
+				fmax = -res.minimum
+				return fmax
+			end
+		end
+
+		ωspace = ωmax - qʰv*h.ωmin
+		minω = min(max(qʰv*h.ωmin, guess[1] + 0.2*ωspace), qʰv*h.ωmin + 0.8 * ωspace)
+		maxω = max(min(ωmax,       guess[1] + 0.2*ωspace), qʰv*h.ωmin + 0.2 * ωspace)
+
+		res = Optim.optimize(
+				sp -> -sub_value(h, sp, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, bpv, μpv, σpv, wpv, jdef),
+					minω, maxω, GoldenSection()
+				)
+		sp = res.minimizer
+		fmax = -res.minimum
+		ap, bp, cmax, θp = sub_value(h, sp, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, bpv, μpv, σpv, wpv, jdef; get_all=true)
+
+#=		wrap_value(x::Vector, grad::Vector=similar(x)) = value(h, x[1], x[2], itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, jdef)
 
 		opt = Opt(:LN_BOBYQA, length(guess))
 		# upper_bounds!(opt, [ωmax, 1e-2])
@@ -183,13 +224,13 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf, jϵ, jz, thres, RHS, qʰ
 
 		sp = xmax[1]
 		θp = xmax[2]
-		ap, bp, cmax = get_abc(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θp)
+		ap, bp, cmax = get_abc(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θp)			=#
 	else
 		curr_min = 1e10
-		θp_grid = 1-[0 0.0125 0.025 0.05 0.1 0.2 0.5 1]
+		θp_grid = 1.0#-[0 0.02 0.03 0.04 0.05 0.06 0.07 0.09 1]
 		for θp in θp_grid
 			res = Optim.optimize(
-				sp -> -value(h, sp, θp, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, pCv, bpv, μpv, σpv, wpv, itp_qᵍ, jdef),
+				sp -> -value(h, sp, θp, itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, bpv, μpv, σpv, wpv, jdef),
 					qʰv*h.ωmin, ωmax, GoldenSection()
 				)
 			if res.minimum < curr_min
@@ -239,7 +280,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 
 		jdef = (h.ζgrid[jζ] != 1.0)
 
-		for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
+		@time for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
 
 			RHS = ωv + wv * exp(ϵv) - Tv
 
@@ -287,15 +328,6 @@ end
 
 function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve::Bool=true)
 	# Interpolate the value function
-	# all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
-	# agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
-
-	# sum(isnan.(h.vf)) > 0? print_save("\n $(sum(isnan.(h.vf))) NaNs detected in h.vf"): Void
-	# sum(h.vf .<= 0) > 0? print_save("\n $(sum(h.vf .<= 0)) negative entries detected in h.vf"): Void
-
-	# itp_vf = interpolate(all_knots, h.vf, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
-	# itp_qᵍ  = interpolate(agg_knots, qᵍ_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
-
 	ωrange = linspace(h.ωgrid[1], h.ωgrid[end], h.Nω)
 	brange = linspace(h.bgrid[1], h.bgrid[end], h.Nb)
 	μrange = linspace(h.μgrid[1], h.μgrid[end], h.Nμ)

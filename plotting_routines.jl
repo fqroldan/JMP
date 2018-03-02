@@ -47,6 +47,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 
 	ωg_mat = 1.0/(1.0+h.r_star) * ϕa_mat + qᵍ_all .* ϕb_mat
 	θg_mat = 1.0/(1.0+h.r_star) * (ϕa_mat - h.ωmin) ./ (ωg_mat - 1.0/(1.0+h.r_star)*h.ωmin)
+	θg_mat[isapprox.(ϕa_mat, h.ωmin)] = 1.0
 
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
 	for jϵ in 1:h.Nϵ
@@ -54,31 +55,28 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 		l[jϵ,1] = l_new
 		l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,2] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕa_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
+		l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,3] = l_new
 		# l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l_new = scatter(;x=h.ωgrid, y=θg_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,4] = l_new
 	end
-	pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ])
-	pc.plot.layout["title"] = "Consumption"
-	pv = plot([l[jϵ, 2] for jϵ in 1:h.Nϵ])
-	pv.plot.layout["title"] = "Value function"
-	pa = plot([l[jϵ, 3] for jϵ in 1:h.Nϵ])
-	pa.plot.layout["title"] = "Private Savings"
-	pb = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ])
-	pb.plot.layout["title"] = "Proportion risk-free debt"
+	pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Consumption"))
+	pv = plot([l[jϵ, 2] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Value function"))
+	pb = plot([l[jϵ, 3] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Debt purchases"))
+	pθ = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Proportion risk-free debt"))
 
-	p = [pc pv; pa pb]
+	p = [pc pv; pb pθ]
 	p.plot.layout["xlabel"] = "ω"
 	p.plot.layout["width"] = 800
 	p.plot.layout["height"] = 600
+	p.plot.layout["font_family"] = "Fira Sans Light"
 
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_hh.jld", "p", p)
 	else
-		savefig(p, pwd() * "/../Graphs/hh.png")
+		savefig(p, pwd() * "/../Graphs/hh.pdf")
 	end
 
 	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[2], h.zgrid[1]
@@ -87,6 +85,18 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 	ϕa_mat = itp_ϕa[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
 	ϕb_mat = itp_ϕb[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
 	vf_mat = itp_vf[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+	qᵍ_mat = itp_qᵍ[show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+
+	qᵍ_all = zeros(vf_mat)
+	for jω in 1:h.Nω
+		for jϵ in 1:h.Nϵ
+			qᵍ_all[jω, jϵ, :,:,:,:,:,:] = qᵍ_mat
+		end
+	end
+
+	ωg_mat = 1.0/(1.0+h.r_star) * ϕa_mat + qᵍ_all .* ϕb_mat
+	θg_mat = 1.0/(1.0+h.r_star) * (ϕa_mat - h.ωmin) ./ (ωg_mat - 1.0/(1.0+h.r_star)*h.ωmin)
+	θg_mat[isapprox.(ϕa_mat, h.ωmin)] = 1.0
 
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
 	for jϵ in 1:h.Nϵ
@@ -94,31 +104,29 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 		l[jϵ,1] = l_new
 		l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,2] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕa_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
-		l[jϵ,3] = l_new
 		l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
+		l[jϵ,3] = l_new
+		# l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
+		l_new = scatter(;x=h.ωgrid, y=θg_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
 		l[jϵ,4] = l_new
 	end
-	pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ])
-	pc.plot.layout["title"] = "Consumption"
-	pv = plot([l[jϵ, 2] for jϵ in 1:h.Nϵ])
-	pv.plot.layout["title"] = "Value function"
-	pa = plot([l[jϵ, 3] for jϵ in 1:h.Nϵ])
-	pa.plot.layout["title"] = "Private Savings"
-	pb = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ])
-	pb.plot.layout["title"] = "Debt Purchases"
+	pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Consumption"))
+	pv = plot([l[jϵ, 2] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Value function"))
+	pb = plot([l[jϵ, 3] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Debt purchases"))
+	pθ = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Proportion risk-free debt"))
 
-	p = [pc pv; pa pb]
+	p = [pc pv; pb pθ]
 	p.plot.layout["xlabel"] = "ω"
 	p.plot.layout["width"] = 800
 	p.plot.layout["height"] = 600
+	p.plot.layout["font_family"] = "Fira Sans Light"
 
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_hh_def.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
-		savefig(p, path * "hh_def.png")
+		savefig(p, path * "hh_def.pdf")
 	end
 
 
@@ -142,7 +150,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 	# if remote
 	path = pwd() * "/../../Graphs/"
 	# 	path = path * "Graphs/"
-	# 	savefig(path * "hh_z.png")
+	# 	savefig(path * "hh_z.pdf")
 	# else
 	# 	path = pwd() * "/../Graphs/"
 	# end
@@ -177,9 +185,10 @@ function lines(h::Hank, y, x_dim, name="")
 
 
 	layout = Layout(;	xaxis=attr(title=xlabel, zeroline=true),
-                 		yaxis=attr(zeroline=true))
+                 		yaxis=attr(zeroline=true),
+                 		font_size=16, font_family="Fira Sans Light")
 
-	l = scatter(;x=x, y=y, mode="lines+markers", showlegend=false)
+	l = scatter(;x=x, y=y, showlegend=false)
 	p = plot(l, layout)
 	if name == ""
 	else
@@ -218,11 +227,12 @@ function plot_state_funcs(h::Hank; remote::Bool=false)
 	p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6]
 	p.plot.layout["width"] = 800
 	p.plot.layout["height"] = 600
+	p.plot.layout["font_family"] = "Fira Sans Light"
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_statefuncs.jld", "p", p)
 	else
-		savefig(p, pwd() * "/../Graphs/statefuncs.png")
+		savefig(p, pwd() * "/../Graphs/statefuncs.pdf")
 	end
 	Void
 end
@@ -248,14 +258,13 @@ function plot_LoM(h::Hank; remote::Bool=false)
 	pσ6 = lines(h, σ′_mat, 6)
 
 	p = [pμ1 pμ2 pμ3 pμ4 pμ6; pσ1 pσ2 pσ3 pσ4 pσ6]
-	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 600
+	p.plot.layout["font_family"] = "Fira Sans Light"
 
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_LoMs.jld", "p", p)
 	else
-		savefig(p, pwd() * "/../Graphs/LoMs.png")
+		savefig(p, pwd() * "/../Graphs/LoMs.pdf")
 	end
 	Void
 end
@@ -291,8 +300,8 @@ function plot_labor_demand(h::Hank; remote::Bool=false)
              			yaxis=attr(title="w", zeroline=true),
              			title="Labor Market",
              			annotations=[attr(x=1, y=maximum(h.wgrid),text="Lˢ", xanchor="center", yanchor="bottom", showarrow=false, font_size=18)],
-             			shapes=shapes
-    					)
+             			shapes=shapes,
+    					font_size=16, font_family="Fira Sans Light")
 
 	p = plot([l[jj] for jj in 1:length(l)], layout)
 
@@ -301,7 +310,7 @@ function plot_labor_demand(h::Hank; remote::Bool=false)
 		save(path * "p_labordemand.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
-		savefig(p, path * "labordemand.png")
+		savefig(p, path * "labordemand.pdf")
 	end
 	Void
 end
@@ -321,7 +330,7 @@ function plot_nontradables_demand(h::Hank; remote::Bool=false)
 	else
 		path = pwd() * "/../Graphs/"
 	end
-	savefig(path * "N_demand.png")
+	savefig(path * "N_demand.pdf")
 	Void
 end
 
@@ -335,17 +344,18 @@ function plot_convergence(dist_statefuncs, dist_LoMs, T::Int64; remote::Bool=fal
 	l_LoM2   = scatter(; x=1:T, y = (dist_LoMs[1:T,2]), name = "σ′")
 
 	layout = Layout(;	xaxis=attr(title="t", zeroline=true),
-						yaxis_type="log")
+						yaxis_type="log",
+						font_size=16, font_family="Fira Sans Light")
 
 
-	p = [plot([l_funcs1, l_funcs2, l_funcs3], layout) plot([l_LoM1, l_LoM2], layout) ]
+	p = plot([l_funcs1, l_funcs2, l_funcs3, l_LoM1, l_LoM2], layout)
 
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_conv.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
-		savefig(p, path * "conv.png")
+		savefig(p, path * "conv.pdf")
 	end
 	Void
 end

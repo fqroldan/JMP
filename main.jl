@@ -22,9 +22,13 @@ print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(no
 
 # Initialize type
 h = Hank();
-# try
-# 	h = load("hank.jld", "h")
-# end
+try
+	# h2 = load("hank.jld", "h")
+	# h.ϕa = h2.ϕa
+	# h.ϕb = h2.ϕb
+	# h.ϕc = h2.ϕc
+	# h.vf = h2.vf
+end
 
 print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")
