@@ -116,7 +116,7 @@ function labor_market(h::Hank, jdef, zv, wv, pNv)
 			)
 		w_new = res.minimizer
 		minf = Ls - labor_demand(h, w_new, TFP, pNv)
-		# abs(minf) > 1e-4? print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, γw₀) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max)))"): Void
+		abs(minf) > 1e-4? print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, γw₀) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max)))"): Void
 		Ld_N, Ld_T = labor_demand(h, w_new, TFP, pNv; get_both=true)
 		Ld = Ld_N + Ld_T
 	end
@@ -217,7 +217,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	results = [w; pN; Ld; output]
 
 	if abs(minf) > 1e-4
-		print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
+		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
 	end
 
 	return results, minf
