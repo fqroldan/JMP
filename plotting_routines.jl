@@ -163,7 +163,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 end
 
 function lines(h::Hank, y, x_dim, name="")
-	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2)+1, 1, ceil(Int, h.Nz/2)
 
 	x = h.bgrid
 	xlabel = "B"
@@ -316,7 +316,7 @@ function plot_labor_demand(h::Hank; remote::Bool=false)
 	p = plot([l[jj] for jj in 1:length(l)], layout)
 	p.plot.layout["width"] = 800
 	p.plot.layout["height"] = 500
-	
+
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_labordemand.jld", "p", p)
