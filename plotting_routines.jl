@@ -266,6 +266,8 @@ function plot_LoM(h::Hank; remote::Bool=false)
 	pσ6 = lines(h, σ′_mat, 6)
 
 	p = [pμ1 pμ2 pμ3 pμ4 pμ6; pσ1 pσ2 pσ3 pσ4 pσ6]
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 500
 	p.plot.layout["font_family"] = "Fira Sans Light"
 
 	if remote
@@ -357,6 +359,8 @@ function plot_convergence(dist_statefuncs, dist_LoMs, T::Int64; remote::Bool=fal
 
 
 	p = plot([l_funcs1, l_funcs2, l_funcs3, l_LoM1, l_LoM2], layout)
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 600
 
 	if remote
 		path = pwd() * "/../../Graphs/"

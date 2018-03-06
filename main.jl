@@ -30,7 +30,7 @@ try
 	# h.vf = h2.vf
 end
 
-print_save("\nβ, RRA, IES: $(h.β), $(h.γ), $(h.ψ)")
+print_save("\nβ, RRA, IES: $(round(h.β,2)), $(h.γ), $(h.ψ)")
 print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")

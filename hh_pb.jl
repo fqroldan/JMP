@@ -111,7 +111,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 					R = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 3]
 					ωpv = ap + bp * R
 					v = itp_vf_s[jzp, 3][ωpv, jϵp]::Float64
-					Ev += G(h, v) * prob				
+					Ev += G(h, v) * prob
 				end
 			end
 		end
