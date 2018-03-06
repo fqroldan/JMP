@@ -314,7 +314,9 @@ function plot_labor_demand(h::Hank; remote::Bool=false)
     					font_size=16, font_family="Fira Sans Light")
 
 	p = plot([l[jj] for jj in 1:length(l)], layout)
-
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 500
+	
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_labordemand.jld", "p", p)
@@ -360,7 +362,7 @@ function plot_convergence(dist_statefuncs, dist_LoMs, T::Int64; remote::Bool=fal
 
 	p = plot([l_funcs1, l_funcs2, l_funcs3, l_LoM1, l_LoM2], layout)
 	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 600
+	p.plot.layout["height"] = 500
 
 	if remote
 		path = pwd() * "/../../Graphs/"
