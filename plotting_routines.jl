@@ -163,7 +163,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 end
 
 function lines(h::Hank, y, x_dim, name="")
-	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2)+1, 1, ceil(Int, h.Nz/2)
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
 
 	x = h.bgrid
 	xlabel = "B"
