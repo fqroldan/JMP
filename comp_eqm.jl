@@ -43,7 +43,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
 			jdef = (ζv != 1.0)
 
-			labor_pn[js], wage_pn[js], profits_pn[js] = labor_market(h, jdef, zv, wv, pnv)
+			labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, jdef, zv, wv, pnv)
 		end
 
 		pC = price_index(h, pnv)
@@ -116,14 +116,15 @@ function labor_market(h::Hank, jdef, zv, wv, pNv)
 			)
 		w_new = res.minimizer
 		minf = Ls - labor_demand(h, w_new, TFP, pNv)
-		abs(minf) > 1e-4? print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, ̄w) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max)))"): Void
+		abs(minf) > 1e-4? print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, γw₀) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max)))"): Void
 		Ld_N, Ld_T = labor_demand(h, w_new, TFP, pNv; get_both=true)
 		Ld = Ld_N + Ld_T
 	end
 
-	profits = pNv .* Ld_N.^h.α_N + TFP .* Ld_T.^h.α_T - w_new * (Ld_N + Ld_T)
+	output 	= pNv .* Ld_N.^h.α_N + TFP .* Ld_T.^h.α_T
+	profits = output - w_new * (Ld_N + Ld_T)
 
-	return Ld, w_new, profits
+	return Ld, w_new, profits, output
 end
 
 
@@ -135,52 +136,53 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 
 	ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
 
-	Ld, w_new, profits = labor_market(h, jdefault, zv, wv, pN)
+	Ld, w_new, profits, output = labor_market(h, jdefault, zv, wv, pN)
 
 	# Step 3: Get the household's policies at these prices
 
 	val_A, val_B, val_C, sum_prob = 0., 0., 0., 0.
+	val_int_C = 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		for jω = 1:length(h.ωgrid_fine)-1
-			ωv  = h.ωgrid_fine[jω]
-			ω1v = h.ωgrid_fine[jω+1]
-			ωmv = 0.5*(ωv+ω1v)
 
-			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
+		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
 
-			ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+		(val, err) = hquadrature(f, h.ωgrid_fine[1], h.ωgrid_fine[end])
+                        				# reltol=1e-8, abstol=0, maxevals=0)
 
-			val_C += prob * ϕc
+        val_int_C += val
+
+		# for jω = 1:length(h.ωgrid_fine)-1
+		# 	ωv  = h.ωgrid_fine[jω]
+		# 	ω1v = h.ωgrid_fine[jω+1]
+		# 	ωmv = 0.5*(ωv+ω1v)
+
+		# 	prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
+
+		# 	ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+
+		# 	val_C += prob * ϕc
 			
-			sum_prob += prob
-		end
+		# 	sum_prob += prob
+		# end
 	end
 
 	# Step 4: Check market clearing for nontradables
 	TFP = ifelse(jdefault, (1.0 - h.Δ) * exp(zv), exp(zv))
-	Ld_N, _ = labor_demand(h, w_new, TFP, pN; get_both=true)
+	Ld_N, _  = labor_demand(h, w_new, TFP, pN; get_both=true)
 	supply_N = TFP * Ld_N^(h.α_N)
 
-	demand = val_C / sum_prob
+	# demand = val_C / sum_prob
+	demand = val_int_C
 	demand_N_govt = G / pN
 
-	""" Recover nontraded demand from total consumption """
+ 	# Recover nontraded demand from total consumption
 	pC = price_index(h, pN)
 	demand_N = demand * h.ϖ * (pN/pC)^(-h.η) + demand_N_govt
 
 	F = supply_N - demand_N
 
-	# """ Acá elegir qᵍ′ de manera consistente con μ′ y σ′ que a su vez son funciones de qᵍ′ """
-	# ω′ = val_A + val_B * (h.κ + (1.0 - h.ρ) * qᵍ′)
-
-	# μ′, σ′ = tomorrow_dist(h, val_A, val_B)
-
-	# # Step 4: Compute NFI
-
-
-
 	if get_others
-		return w_new, Ld
+		return w_new, Ld, output
 	else
 		return F
 	end
@@ -208,9 +210,9 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 
 	pN = transform_vars(res.:x[1], pNmin, pNmax)
 
-	w, Ld = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; get_others=true)
+	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; get_others=true)
 
-	results = [w; pN; Ld]
+	results = [w; pN; Ld; output]
 
 	if abs(minf) > 1e-4
 		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
@@ -223,7 +225,7 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 
 	N = size(h.Jgrid, 1)
 
-	results = SharedArray{Float64}(N, 3)
+	results = SharedArray{Float64}(N, 4)
 	minf	= SharedArray{Float64}(N, 1)
 
 	pN_guess = h.pN
@@ -270,9 +272,10 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	dist[2] = sqrt.(sum( (results[:, 2] - h.pN).^2 ))   / sqrt.(sum(h.pN.^2))
 	dist[3] = sqrt.(sum( (results[:, 3] - h.Ld).^2 ))   / sqrt.(sum(h.Ld.^2))
 
-	h.wage 	= upd_η * results[:, 1] + (1.0-upd_η) * h.wage
-	h.pN 	= upd_η * results[:, 2] + (1.0-upd_η) * h.pN
-	h.Ld 	= upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
+	h.wage 	 = upd_η * results[:, 1] + (1.0-upd_η) * h.wage
+	h.pN 	 = upd_η * results[:, 2] + (1.0-upd_η) * h.pN
+	h.Ld 	 = upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
+	h.output = upd_η * results[:, 3] + (1.0-upd_η) * h.output
 
 	h.w′	= h.wage
 

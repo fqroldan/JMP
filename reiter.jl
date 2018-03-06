@@ -1,8 +1,8 @@
-using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStrings, Distributions, JLD
+using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Distributions, JLD, Cubature
 
 include("hh_pb.jl")
 
-function Hank(;	β = (1.0/1.05)^0.25,
+function Hank(;	β = (1.0/1.08)^0.25,
 				IES = 2.,
 				RRA = 5.,
 				γw = 0.98,
@@ -14,15 +14,15 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				EpsteinZin = true,
 				order = 3,
 				Nω_fine = 1000,
-				Nω = 5,
-				Nϵ = 5,
-				Nμ = 4,
+				Nω = 6,
+				Nϵ = 4,
+				Nμ = 5,
 				Nσ = 3,
-				Nb = 3,
-				Nw = 3,
-				Nz = 3,
+				Nb = 4,
+				Nw = 4,
+				Nz = 5,
 				ρz = 0.9,
-				σz = 0.015,
+				σz = 0.05,
 				ℏ = 0.25,
 				Δ = 0.05,
 				θ = .5,
@@ -194,8 +194,10 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	spending  =	Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	issuance  =	Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	def_thres =	Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	output	  = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	for (jz, zv) in enumerate(zgrid)
 		pN[:,:,:,:,:,jz] = mean(pngrid) - 0.1 * zv
+		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
 			issuance[jb,:,:,:,:,jz] = bv + 0.1 * zv + 0.1 * (mean(bgrid)-bv)
@@ -207,7 +209,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				wage[:,:,:,:,jζ,jz] = max(exp(zv) * (1.0 - Δ * def), γw*wv)
 			end
 		end
-		def_thres[:,:,:,:,:,jz] = ifelse(jz == Nz, zgrid[1], -1e10)
+		def_thres[:,:,:,:,:,jz] = zgrid[1]
 	end
 	pN	 		= reshape(pN, 	 	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
 	repay	 	= reshape(repay, 	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
@@ -215,11 +217,12 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	spending 	= reshape(spending,	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
 	issuance 	= min.(max.(reshape(issuance,  Nb*Nμ*Nσ*Nw*Nζ*Nz), minimum(bgrid)), maximum(bgrid))
 	def_thres 	= reshape(def_thres, Nb*Nμ*Nσ*Nw*Nζ*Nz)
+	output 		= reshape(output, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 
 	upd_tol = 5e-3
 
 	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕc, ϕa_ext, ϕb_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
-		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol, tol_θ)
+		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, output, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol, tol_θ)
 end
 
 function iterate_qᵍ!(h::Hank; verbose::Bool=false)
@@ -447,7 +450,7 @@ function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 
 			h.upd_tol = max(exp(0.9*log(1+h.upd_tol))-1, 1e-6)
-			iter > 10? iter > 20? iter > 30? h.tol_θ = 1e-12: h.tol_θ = 1e-6: h.tol_θ = 1e-4: Void
+			iter > 10? iter > 20? iter > 30? h.tol_θ = 1e-16: h.tol_θ = 1e-8: h.tol_θ = 1e-4: Void
 			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))")
 			t_old = time()
 		end

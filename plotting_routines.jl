@@ -27,8 +27,10 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 	itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
 
 	qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	pN_mat  = reshape(h.pN, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
 	itp_qᵍ  = interpolate(agg_knots, qᵍ_mat, Gridded(Linear()))
+	itp_pN  = interpolate(agg_knots, pN_mat, Gridded(Linear()))
 
 	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], h.zgrid[end]
 
@@ -47,7 +49,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 
 	ωg_mat = 1.0/(1.0+h.r_star) * ϕa_mat + qᵍ_all .* ϕb_mat
 	θg_mat = 1.0/(1.0+h.r_star) * (ϕa_mat - h.ωmin) ./ (ωg_mat - 1.0/(1.0+h.r_star)*h.ωmin)
-	θg_mat[isapprox.(ϕa_mat, h.ωmin)] = 1.0
+	θg_mat[isapprox.(ωg_mat, h.ωmin)] = 1.0
 
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
 	for jϵ in 1:h.Nϵ
@@ -96,7 +98,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 
 	ωg_mat = 1.0/(1.0+h.r_star) * ϕa_mat + qᵍ_all .* ϕb_mat
 	θg_mat = 1.0/(1.0+h.r_star) * (ϕa_mat - h.ωmin) ./ (ωg_mat - 1.0/(1.0+h.r_star)*h.ωmin)
-	θg_mat[isapprox.(ϕa_mat, h.ωmin)] = 1.0
+	θg_mat[isapprox.(ωg_mat, h.ωmin)] = 1.0
 
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
 	for jϵ in 1:h.Nϵ
@@ -199,34 +201,40 @@ end
 
 function plot_state_funcs(h::Hank; remote::Bool=false)
 
-	pN_mat = reshape(h.pN,   h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	w_mat  = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	Ld_mat = reshape(h.Ld,   h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	pN_mat = reshape(h.pN,     h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	w_mat  = reshape(h.wage,   h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	Ld_mat = reshape(h.Ld,     h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	Y_mat  = reshape(h.output, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	ppN1 = lines(h, pN_mat, 1, "Price of nontradables")
 	pw1  = lines(h, w_mat, 1, "Wage")
 	pLd1 = lines(h, Ld_mat, 1, "Labor supply")
+	pY1  = lines(h, Y_mat, 1, "Output")
 
 	ppN2 = lines(h, pN_mat, 2)
 	pw2  = lines(h, w_mat, 2)
 	pLd2 = lines(h, Ld_mat, 2)
+	pY2  = lines(h, Y_mat, 2)
 
 	ppN3 = lines(h, pN_mat, 3)
 	pw3  = lines(h, w_mat, 3)
 	pLd3 = lines(h, Ld_mat, 3)
+	pY3  = lines(h, Y_mat, 3)
 
 	ppN4 = lines(h, pN_mat, 4)
 	pw4  = lines(h, w_mat, 4)
 	pLd4 = lines(h, Ld_mat, 4)
+	pY4  = lines(h, Y_mat, 4)
 
 	ppN6 = lines(h, pN_mat, 6)
 	pw6  = lines(h, w_mat, 6)
 	pLd6 = lines(h, Ld_mat, 6)
+	pY6  = lines(h, Y_mat, 6)
 
 	# p = [ppN1 pw1 pLd1; ppN2 pw2 pLd2; ppN3 pw3 pLd3; ppN4 pw4 pLd4; ppN6 pw6 pLd6]
-	p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6]
+	p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6; pY1 pY2 pY3 pY4 pY6]
 	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 600
+	p.plot.layout["height"] = 800
 	p.plot.layout["font_family"] = "Fira Sans Light"
 	if remote
 		path = pwd() * "/../../Graphs/"

@@ -110,6 +110,7 @@ type Hank
 	T::Vector{Float64}
 	issuance::Vector{Float64}
 	def_thres::Vector{Float64}
+	output::Vector{Float64}
 	spending::Vector{Float64}
 	wage::Vector{Float64}
 	Ld::Vector{Float64}
