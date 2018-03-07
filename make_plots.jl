@@ -14,10 +14,12 @@ using PlotlyJS, JLD, LaTeXStrings, Rsvg, Interpolations
 p_names = ["conv" "hh" "hh_def" "statefuncs" "LoMs" "labordemand"]
 
 for name in p_names
-	print("\n$name")
+	print("$name")
 	try
-	p = load(pwd() * "/../HPC_Output/p_" * name * ".jld", "p")
-	savefig(p, pwd() * "/../Graphs/" * name * ".png")
-	print(": ✓")
+		p = load(pwd() * "/../HPC_Output/p_" * name * ".jld", "p")
+		savefig(p, pwd() * "/../Graphs/" * name * ".png")
+		print(": ✓\n")
+	catch
+		print("\n")
 	end
 end
