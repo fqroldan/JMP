@@ -234,7 +234,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false)
 	# p = [ppN1 pw1 pLd1; ppN2 pw2 pLd2; ppN3 pw3 pLd3; ppN4 pw4 pLd4; ppN6 pw6 pLd6]
 	p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6; pY1 pY2 pY3 pY4 pY6]
 	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 800
+	p.plot.layout["height"] = 640
 	p.plot.layout["font_family"] = "Fira Sans Light"
 	if remote
 		path = pwd() * "/../../Graphs/"

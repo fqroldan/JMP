@@ -16,7 +16,7 @@ function Hank(;	β = (1.0/1.08)^0.25,
 				Nω_fine = 1000,
 				Nω = 6,
 				Nϵ = 4,
-				Nμ = 5,
+				Nμ = 4,
 				Nσ = 3,
 				Nb = 4,
 				Nw = 5,
@@ -82,8 +82,8 @@ function Hank(;	β = (1.0/1.08)^0.25,
 	ϖ = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
-	bgrid = linspace(0.0, 3.0, Nb)
-	μgrid = linspace(0.0, 1.5, Nμ)
+	bgrid = linspace(0.0, 2.0, Nb)
+	μgrid = linspace(0.0, 1.0, Nμ)
 	σgrid = linspace(0.1, 0.5, Nσ)
 
 	# Prepare grid for cash in hand.
@@ -200,7 +200,7 @@ function Hank(;	β = (1.0/1.08)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,:,jz] = bv + 0.1 * zv + 0.1 * (mean(bgrid)-bv)
+			issuance[jb,:,:,:,:,jz] = bv + 0.025 * zv + 0.025 * (mean(bgrid)-bv)
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
 			def = (ζv != 1.0)
@@ -378,16 +378,16 @@ function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true,
 		qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat = _unpackstatefs(h)
 
 		v_old = copy(h.vf)
-		if iter_cycle <= 5 || iter_cycle % 7 == 0 || iter_cycle == 1
+		if iter_cycle <= 5 || iter_cycle % 2 == 0 || iter_cycle == 1
 			bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve=true)
 		else
-			bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve=true) # false
+			bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve=false)
 		end
 		v_new = copy(h.vf)
 
 		dist = sqrt.(sum( (v_new - v_old).^2 )) / sqrt.(sum(v_old.^2))
 		norm_v = sqrt.(sum(v_old.^2))
-		if verbose && (iter_cycle % 10 == 0 || dist < h.upd_tol)
+		if verbose && (iter_cycle % 20 == 0 || dist < h.upd_tol)
 			t_new = time()
 			print_save("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v‖ = $(@sprintf("%0.3g",norm_v)) after $(time_print(t_new-t_old)) and $iter_cycle iterations ")
 			print_save(Dates.format(now(), "HH:MM"))

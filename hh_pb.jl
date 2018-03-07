@@ -82,6 +82,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 				ζpv = 1
 				R = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 1]
 				ωpv = ap + bp * R
+				ωpv = min(h.ωmax, ωpv)
 				v = itp_vf_s[jzp, 1][ωpv, jϵp]::Float64
 				Ev += G(h, v) * prob * h.θ
 				
@@ -89,6 +90,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 				ζpv = 2
 				R = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 2]
 				ωpv = ap + bp * R
+				ωpv = min(h.ωmax, ωpv)
 				v = itp_vf_s[jzp, 2][ωpv, jϵp]::Float64
 				Ev += G(h, v) * prob * (1.0 - h.θ)
 				check += prob
@@ -104,29 +106,32 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 					ζpv = 1
 					R = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 1]
 					ωpv = ap + bp * R
+					ωpv = min(h.ωmax, ωpv)
 					v = itp_vf_s[jzp, 1][ωpv, jϵp]::Float64
 					Ev += G(h, v) * prob
 				else
 					ζpv = 2
 					R = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 3]
 					ωpv = ap + bp * R
+					ωpv = min(h.ωmax, ωpv)
 					v = itp_vf_s[jzp, 3][ωpv, jϵp]::Float64
 					Ev += G(h, v) * prob
 				end
 			end
 		end
 	end
-	Tv = T(h, Ev)
 
-
-	isapprox(check, 1) || warn("wrong expectation operator")
+	isapprox(check, 1) || print_save("\nwrong expectation operator")
 
 	# Compute value
 	if h.EpsteinZin
-		C > 1e-10? ut = C^((h.ψ-1.0)/h.ψ): ut = 1e-10
+		Tv = T(h, Ev)
 
-		vf = (1.0 - h.β) * ut + h.β * Tv^((h.ψ-1.0)/h.ψ)
-		vf = vf^((h.ψ)/(h.ψ-1.0))
+		EZ_exp = (h.ψ-1.0)/h.ψ
+		C > 1e-10? ut = C^(EZ_exp): ut = 1e-10
+
+		vf = (1.0 - h.β) * ut + h.β * Tv^(EZ_exp)
+		vf = vf^(1.0/EZ_exp)
 		return vf
 	else
 		vf = (1.0 - h.β) * u + h.β * Ev
@@ -138,7 +143,7 @@ end
 function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef, ωmax)
 
 
-	optim_type = "multivar"
+	optim_type = "multivariate"
 	
 	minθ = min(max(0.0, guess[2]-0.2), 0.8)
 	maxθ = max(min(1.0, guess[2]+0.2), 0.2)
@@ -148,12 +153,12 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, q
 	maxω = max(min(ωmax,       guess[1] + 0.2*ωspace), qʰv*h.ωmin + 0.2 * ωspace)
 
 	ap, bp, cmax, fmax = 0., 0., 0., 0.
-	if optim_type == "both"
+	if optim_type == "sequential"
 		# print_save("\ntype = $(typeof(itp_vf_s))")
 		function sub_value(h, sp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef; get_all::Bool=false)
 
-			minθ = 0.
-			maxθ = 1.
+			# minθ = 0.
+			# maxθ = 1.
 
 			res = Optim.optimize(
 				θ -> -value(h, sp, θ, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef),
@@ -177,7 +182,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, q
 		sp = res.minimizer
 		fmax = -res.minimum
 		ap, bp, cmax, θp = sub_value(h, sp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef; get_all=true)
-	elseif optim_type == "multivar"
+	elseif optim_type == "multivariate"
 
 		guess[1] = max(min(guess[1], ωmax-1e-6), qʰv*h.ωmin+1e-6)
 		guess[2] = max(min(guess[2], 1.0-1e-6), 1e-6)
@@ -188,25 +193,6 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, q
 
 		sp, θp = res.minimizer
 		fmax = -res.minimum
-
-#=
-		wrap_value(x::Vector, grad::Vector=similar(x)) = value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
-		opt = Opt(:LN_NELDERMEAD, length(guess))
-		upper_bounds!(opt, [maxω, maxθ])
-		lower_bounds!(opt, [minω, minθ])
-		xtol_abs!(opt, h.tol_θ)
-		# ftol_rel!(opt, 1e-4)
-
-
-		max_objective!(opt, wrap_value)
-
-		@code_warntype value(h, guess[1], guess[2], itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
-
-		(fmax, xmax, ret) = NLopt.optimize(opt, guess)
-		# ret == :SUCCESS || println(ret)		
-
-		sp = xmax[1]
-		θp = xmax[2]		=#
 
 		ap, bp, cmax = get_abc(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θp)
 	else
@@ -293,35 +279,33 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 
 			RHS = ωv + wv * exp(ϵv) - Tv
 
-			ap, bp, fmax = 0., 0., 0.
+			ap, bp, cmax, fmax = 0., 0., 0., 0.
 			ag, bg = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz], h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 
 			ωg = qʰv * ag + qᵍv * bg
 			θg = qʰv * (ag - h.ωmin) / (ωg - qʰv*h.ωmin)
 			# print_save("a,b,s,θ = $([ag, bg, ωg, θg])")
+			ωmax = RHS - 1e-10
+			if ωg > ωmax
+				ωg = max(ωmax - 1e-2, 0)
+			end
+			if ωmax < qʰv * h.ωmin
+				print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
+				ap, bp, cmax = h.ωmin, 0., 1e-10
+				fmax = value(h, qʰv*ap, 0., itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
+			end
+			isapprox(θg, 1) && θg > 1? θg = 1.0: Void
+			
 			if resolve
 				# θg = 1.0
+				guess = [ωg, θg]
 
-				ωmax = RHS - 1e-10
-
-				if ωmax < qʰv * h.ωmin
-					print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
-					ap, bp, cmax = h.ωmin, 0., 1e-10
-					fmax = value(h, qʰv*ap, 0., itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
-				else
-					if ωg > ωmax
-						ωg = max(ωmax - 1e-2, 0)
-					end
-					isapprox(θg, 1) && θg > 1? θg = 1.0: Void
-					guess = [ωg, θg]
-
-					ap, bp, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef, ωmax)
-				end
+				ap, bp, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef, ωmax)
 			else
 				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
-				fmax = value(h, ωg, θp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
+				fmax = value(h, ωg, θg, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
 			end
 			cmax < 0? warn("c = $cmax"): Void
 			

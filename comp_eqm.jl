@@ -144,26 +144,26 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	val_int_C = 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 
-		# f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
 
-		# (val, err) = hquadrature(f, h.ωmin, h.ωmax,
-									# reltol=1e-8, abstol=0, maxevals=0)
+		(val, err) = hquadrature(f, h.ωmin, h.ωmax,
+									reltol=1e-8, abstol=0, maxevals=0)
 
-		# val_int_C += val
+		val_int_C += val
 
-		for jω = 1:length(h.ωgrid_fine)-1
-			ωv  = h.ωgrid_fine[jω]
-			ω1v = h.ωgrid_fine[jω+1]
-			ωmv = 0.5*(ωv+ω1v)
+		# for jω = 1:length(h.ωgrid_fine)-1
+		# 	ωv  = h.ωgrid_fine[jω]
+		# 	ω1v = h.ωgrid_fine[jω+1]
+		# 	ωmv = 0.5*(ωv+ω1v)
 
-			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
+		# 	prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
 
-			ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+		# 	ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
 
-			val_C += prob * ϕc
+		# 	val_C += prob * ϕc
 			
-			sum_prob += prob
-		end
+		# 	sum_prob += prob
+		# end
 	end
 	if sum_prob > 0
 		val_int_C = val_C / sum_prob
