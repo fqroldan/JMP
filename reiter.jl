@@ -2,7 +2,7 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 
 include("hh_pb.jl")
 
-function Hank(;	β = (1.0/1.08)^0.25,
+function Hank(;	β = (1.0/1.15)^0.25,
 				IES = 2.,
 				RRA = 5.,
 				γw = 0.98,
@@ -14,11 +14,11 @@ function Hank(;	β = (1.0/1.08)^0.25,
 				EpsteinZin = true,
 				order = 3,
 				Nω_fine = 1000,
-				Nω = 6,
+				Nω = 8,
 				Nϵ = 4,
 				Nμ = 4,
 				Nσ = 3,
-				Nb = 4,
+				Nb = 6,
 				Nw = 5,
 				Nz = 4,
 				ρz = 0.9,
@@ -82,7 +82,7 @@ function Hank(;	β = (1.0/1.08)^0.25,
 	ϖ = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
-	bgrid = linspace(0.0, 2.0, Nb)
+	bgrid = linspace(0.0, 2.5, Nb)
 	μgrid = linspace(0.0, 1.0, Nμ)
 	σgrid = linspace(0.1, 0.5, Nσ)
 
@@ -200,7 +200,8 @@ function Hank(;	β = (1.0/1.08)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,:,jz] = bv + 0.025 * zv + 0.025 * (mean(bgrid)-bv)
+			issuance[jb,:,:,:,1,jz] = bv + 0.025 * zv + 0.025 * (mean(bgrid)-bv)
+			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
 			def = (ζv != 1.0)

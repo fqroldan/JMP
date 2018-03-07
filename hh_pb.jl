@@ -154,7 +154,6 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, q
 
 	ap, bp, cmax, fmax = 0., 0., 0., 0.
 	if optim_type == "sequential"
-		# print_save("\ntype = $(typeof(itp_vf_s))")
 		function sub_value(h, sp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef; get_all::Bool=false)
 
 			# minθ = 0.
@@ -242,10 +241,10 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 		wpv = h.w′[js]
 		thres = h.def_thres[js]
 
-		minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid)? print_save("μ out of bounds"): Void
-		minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid)? print_save("σ out of bounds"): Void
-		bpv < minimum(h.bgrid) || bpv > maximum(h.bgrid)? print_save("b out of bounds"): Void
-		wpv < minimum(h.wgrid) || wpv > maximum(h.wgrid)? print_save("w out of bounds"): Void
+		minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid)? print_save("\nμ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
+		minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid)? print_save("\nσ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
+		bpv < minimum(h.bgrid) || bpv > maximum(h.bgrid)? print_save("\nb out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
+		wpv < minimum(h.wgrid) || wpv > maximum(h.wgrid)? print_save("\nw out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
 
 
 		jdef = (h.ζgrid[jζ] != 1.0)
