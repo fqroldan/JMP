@@ -364,7 +364,7 @@ function compute_stats_logN(h::Hank, ζv, a, b, var_a, var_b, cov_ab, itp_qᵍ, 
 
 		res = Optim.optimize(
 			q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry) - q)^2,
-			qmin, qmax, GoldenSection()
+			qmin, qmax, Brent()
 			)
 		qᵍ[jzp, 1] = res.minimizer
 		res.minimum > 1e-4? print_save("WARNING: Error in qᵍ = $(@sprintf("%0.3g",res.minimum))"): Void
@@ -472,7 +472,7 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	qᵍmt = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	all_knots = (h.ωgrid, 1:h.Nϵ, 1:h.Nb, 1:h.Nμ, 1:h.Nσ, 1:h.Nw, 1:h.Nζ, 1:h.Nz)
-	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
+	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
 
 	itp_ϕa = interpolate(all_knots, h.ϕa, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
 	itp_ϕb = interpolate(all_knots, h.ϕb, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
