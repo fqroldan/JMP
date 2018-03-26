@@ -35,7 +35,7 @@ function trim_path!(p::Path, T_burnin::Int64)
 	Void
 end
 	
-function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λt, Qϵ)
+function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_w′, itp_Zthres, λt, Qϵ)
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal p.y(t, :z)
 	# B, ζ, and z are decided at the end of the last period
@@ -51,24 +51,23 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	println("$([Bt, μt, σt, w0, ζt, zt])")
 
 	Bprime 	= itp_B′[Bt, μt, σt, w0, ζt, zt]
-	G 		= itp_G[Bt, μt, σt, w0, ζt, zt]
+	Gt 		= itp_G[Bt, μt, σt, w0, ζt, zt]
 	pNg 	= itp_pN[Bt, μt, σt, w0, ζt, zt]
 	thres 	= itp_Zthres[Bt, μt, σt, w0, ζt, zt]
 
 	# Find pN at the current state. Deduce w, L, Π, T.
 	pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 	jdef = (ζt != 1)
-	results, _ = find_prices(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, w0, ζt, jz, jdef)
+	results, _ = find_prices(h, itp_ϕc, Gt, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, w0, ζt, jz, jdef)
 
 	wt, pN, Ld, output = results
 
+	# wt = itp_w′[Bt, μt, σt, w0, ζt, zt]
+
 	# Integrate the household's policy functions to get μ′, σ′
 
-	ϕa = itp_ϕa[h.ωgrid_fine, 1:h.Nϵ, Bt, μt, σt, w0, ζt, zt]
-	ϕb = itp_ϕb[h.ωgrid_fine, 1:h.Nϵ, Bt, μt, σt, w0, ζt, zt]
-
-	ϕa = reshape(ϕa, h.Nω_fine*h.Nϵ)
-	ϕb = reshape(ϕb, h.Nω_fine*h.Nϵ)
+	ϕa = reshape(itp_ϕa[h.ωgrid_fine, 1:h.Nϵ, Bt, μt, σt, w0, ζt, zt], h.Nω_fine*h.Nϵ)
+	ϕb = reshape(itp_ϕb[h.ωgrid_fine, 1:h.Nϵ, Bt, μt, σt, w0, ζt, zt], h.Nω_fine*h.Nϵ)
 
 	a  = dot(λt, ϕa)
 	a2 = dot(λt, ϕa.^2)
@@ -133,7 +132,7 @@ end
 
 function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	# Setup
-	B0, μ0, σ0, w0, ζ0, z0 = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], mean(h.zgrid)
+	B0, μ0, σ0, w0, ζ0, z0 = h.bgrid[ceil(Int,h.Nb/2)], h.μgrid[ceil(Int,h.Nμ/2)], h.σgrid[ceil(Int,h.Nσ/2)], h.wgrid[ceil(Int,h.Nw/2)], h.ζgrid[1], h.zgrid[ceil(Int,h.Nz/2)]
 	T = burn_in + simul_length
 	p = Path(T = T)
 	fill_path!(p,1; B = B0, μ = μ0, σ = σ0, w = w0, ζ = ζ0, z = z0)
@@ -157,6 +156,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	itp_G		= itp_agg(h, h.spending)
 	itp_pN		= itp_agg(h, h.pN)
 	itp_qᵍ 		= itp_agg(h, h.qᵍ)
+	itp_w′		= itp_agg(h, h.w′)
 	itp_Zthres	= itp_agg(h, h.def_thres)
 
 	jz_series = Vector{Int64}(T)
@@ -182,7 +182,8 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	# Simulate
 	for t in 1:T
 		# Advance one step
-		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λ, Qϵ)
+		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_w′, itp_Zthres, λ, Qϵ)
+		println(t)
 	end
 
 	# Keep only after the burn_in period
