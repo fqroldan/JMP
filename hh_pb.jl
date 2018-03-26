@@ -65,11 +65,6 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 
 	ap, bp, C = get_abc(RHS, h.ωmin, qʰ, qᵍ, pC, sp, θp)
 
-	""" CHANGE THIS FOR GHH """
-	ℓ = 0
-	itp_s = true
-	u = utility(h, C - ℓ)
-
 	# Basis matrix for continuation values
 	check, Ev, test, ut = 0., 0., 0, 0.
 
@@ -88,7 +83,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 				
 				# Continue in default
 				ζpv = 2
-				R = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 2]
+				R = (1.0 - h.ρ) * qᵍp[jzp, 2]
 				ωpv = ap + bp * R
 				ωpv = min(h.ωmax, ωpv)
 				v = itp_vf_s[jzp, 2][ωpv, jϵp]::Float64
@@ -111,7 +106,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 					Ev += G(h, v) * prob
 				else
 					ζpv = 2
-					R = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 3]
+					R = (1.0 - h.ρ) * qᵍp[jzp, 3]
 					ωpv = ap + bp * R
 					ωpv = min(h.ωmax, ωpv)
 					v = itp_vf_s[jzp, 3][ωpv, jϵp]::Float64
@@ -134,6 +129,10 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 		vf = vf^(1.0/EZ_exp)
 		return vf
 	else
+		""" CHANGE THIS FOR GHH """
+		ℓ = 0
+		u = utility(h, C - ℓ)
+		
 		vf = (1.0 - h.β) * u + h.β * Ev
 		return vf
 	end
@@ -153,6 +152,25 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, q
 	maxω = max(min(ωmax,       guess[1] + 0.2*ωspace), qʰv*h.ωmin + 0.2 * ωspace)
 
 	ap, bp, cmax, fmax = 0., 0., 0., 0.
+	if optim_type == "multivariate"
+		guess[1] = max(min(guess[1], ωmax-1e-6), qʰv*h.ωmin+1e-6)
+		guess[2] = max(min(guess[2], 1.0-1e-6), 1e-6)
+
+		try
+			res = Optim.optimize(
+				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
+				, guess, [minω, minθ], [maxω, maxθ], Fminbox{LBFGS}())
+		catch
+			res = Optim.optimize(
+				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
+				, guess, [minω, minθ], [maxω, maxθ], Fminbox{NelderMead}())
+		end
+
+		sp, θp = res.minimizer
+		fmax = -res.minimum
+
+		ap, bp, cmax = get_abc(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θp)
+	end
 	if optim_type == "sequential"
 		function sub_value(h, sp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef; get_all::Bool=false)
 
@@ -180,20 +198,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, q
 				)
 		sp = res.minimizer
 		fmax = -res.minimum
-		ap, bp, cmax, θp = sub_value(h, sp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef; get_all=true)
-	elseif optim_type == "multivariate"
-
-		guess[1] = max(min(guess[1], ωmax-1e-6), qʰv*h.ωmin+1e-6)
-		guess[2] = max(min(guess[2], 1.0-1e-6), 1e-6)
-
-		res = Optim.optimize(
-			x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
-			, guess, [minω, minθ], [maxω, maxθ], Fminbox{LBFGS}())
-
-		sp, θp = res.minimizer
-		fmax = -res.minimum
-
-		ap, bp, cmax = get_abc(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θp)
+		ap, bp, cmax, θp = sub_value(h, sp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef; get_all=true)		
 	else
 		curr_min = 1e10
 		θp_grid = linspace(0,1,8)
@@ -243,18 +248,27 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 
 		minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid)? print_save("\nμ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
 		minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid)? print_save("\nσ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
-		bpv < minimum(h.bgrid) || bpv > maximum(h.bgrid)? print_save("\nb out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
 		wpv < minimum(h.wgrid) || wpv > maximum(h.wgrid)? print_save("\nw out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
 
+		# Issuance should never be outside the bounds
+		if bpv < minimum(h.bgrid) || bpv > maximum(h.bgrid)
+			if isapprox(bpv, h.bgrid[1])
+				bpv = h.bgrid[1]
+			elseif isapprox(bpv, h.bgrid[end])
+				bpv = h.bgrid[end]
+			else
+				print_save("\nb out of bounds at $([jb, jμ, jσ, jw, jζ, jz])")
+			end
+		end
 
 		jdef = (h.ζgrid[jζ] != 1.0)
 
 		qᵍp = Array{Float64}(h.Nz, h.Nϵ, 3)
 		itp_vf_s = Array{Interpolations.ScaledInterpolation{Float64,2,Interpolations.BSplineInterpolation{Float64,2,Array{Float64,2},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,(1, 0)},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,Tuple{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},UnitRange{Int64}}}, 2}(h.Nz, 3)
 		for (jzp, zpv) in enumerate(h.zgrid)
-			qᵍp[jzp, 1] = itp_qᵍ[bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]
-			qᵍp[jzp, 2] = itp_qᵍ[bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
-			qᵍp[jzp, 3] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, jzp]
+			qᵍp[jzp, 1] = itp_qᵍ[bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]				# Normal times
+			qᵍp[jzp, 2] = itp_qᵍ[bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]				# Remain in default
+			qᵍp[jzp, 3] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, jzp]	# Enter default
 
 			vf_mat = Array{Float64}(h.Nω, h.Nϵ, 3)
 			for (jϵp, ϵpv) in enumerate(h.ϵgrid)

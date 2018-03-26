@@ -38,4 +38,7 @@ print_save("\nω: $(h.ωgrid)\n")
 # Run
 vfi!(h, verbose = true, remote = (location=="remote"))
 
+include("simul.jl")
+p, jz_series = simul(h; simul_length=1000, burn_in=100)
+
 Void

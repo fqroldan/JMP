@@ -3,21 +3,21 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.15)^0.25,
-				IES = 2.,
+				IES = 0.5,
 				RRA = 5.,
-				γw = 0.98,
+				γw = 0.99,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
-				ωmax = 10.,
+				ωmax = 20.,
 				curv = .4,
 				income_process = "Floden-Lindé",
 				EpsteinZin = true,
 				order = 3,
-				Nω_fine = 1000,
+				Nω_fine = 100,
 				Nω = 8,
 				Nϵ = 4,
 				Nμ = 4,
-				Nσ = 3,
+				Nσ = 4,
 				Nb = 6,
 				Nw = 5,
 				Nz = 4,
@@ -78,8 +78,11 @@ function Hank(;	β = (1.0/1.15)^0.25,
 	α_T = 0.6
 	α_N = 0.6
 
-	η = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
-	ϖ = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
+	temp_μ = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
+	temp_ω = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
+
+	ϖ = temp_ω^temp_μ
+	η = log(ϖ - temp_ω)
 
 	# Grids for endogenous aggregate states
 	bgrid = linspace(0.0, 2.5, Nb)
@@ -231,6 +234,10 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	dist, iter = 10.0, 0
 	tol, maxiter = 1e-12, 1500
 
+	tax_foreign = 1.0 - 1e-2
+
+	coupon = h.κ * tax_foreign
+
 	init_t = time()
 
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
@@ -270,7 +277,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 						ζpv = 1.0
 						μpv = h.μ′[js, jzp, 1]
 						σpv = h.σ′[js, jzp, 1]
-						E_rep += h.Pz[jz, jzp] * (h.κ + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
+						E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
 						check += h.Pz[jz, jzp]
 					end
 				end
@@ -279,7 +286,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 					ζ_reent = 1.0
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
-					E_rep += h.Pz[jz, jzp] * (h.κ + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
+					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
 					check += h.Pz[jz, jzp] * h.θ
 					ζ_cont = 2.0
 					μpv = h.μ′[js, jzp, 2]
@@ -351,7 +358,7 @@ function _unpackstatefs(h::Hank)
 end
 
 
-function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=1000, bellman_iter::Int64=maxiter)
+function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=100, bellman_iter::Int64=maxiter)
 
 	print_save("\nSolving household problem: ")
 	time_init = time()

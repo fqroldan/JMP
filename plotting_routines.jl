@@ -247,6 +247,7 @@ end
 
 function plot_LoM(h::Hank; remote::Bool=false)
 	jz = ceil(Int, h.Nz/2)
+
 	μ′_mat = reshape(h.μ′[:,jz,1], h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	σ′_mat = reshape(h.σ′[:,jz,1], h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
