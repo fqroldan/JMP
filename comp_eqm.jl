@@ -311,9 +311,7 @@ function update_grids_pw!(h::Hank, up_prop, down_prop)
 end
 
 
-function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry; get_μσ::Bool=false)
-
-	zpv = h.zgrid[jzp]
+function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, zpv, jdef, itp_qᵍ, reentry; get_μσ::Bool=false)
 
 	ζpv = 1
 	haircut = 0.0
@@ -341,7 +339,7 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jd
 	μpv = log(Eω - h.ωmin) - 0.5 * σ2
 	σpv = sqrt(σ2)
 
-	new_q = itp_qᵍ[(1.0 - haircut) .* Bpv, μpv, σpv, wpv, ζpv, jzp]
+	new_q = itp_qᵍ[(1.0 - haircut) .* Bpv, μpv, σpv, wpv, ζpv, zpv]
 
 	if get_μσ
 		return μpv, σpv
@@ -363,24 +361,24 @@ function compute_stats_logN(h::Hank, ζv, a, b, var_a, var_b, cov_ab, itp_qᵍ, 
 		qmin, qmax = minimum(h.qᵍ), maximum(h.qᵍ)
 
 		res = Optim.optimize(
-			q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry) - q)^2,
+			q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, zpv, jdef, itp_qᵍ, reentry) - q)^2,
 			qmin, qmax, Brent()
 			)
 		qᵍ[jzp, 1] = res.minimizer
 		res.minimum > 1e-4? print_save("WARNING: Error in qᵍ = $(@sprintf("%0.3g",res.minimum))"): Void
 
-		μ[jzp, 1], σ[jzp, 1] = find_q(h, qᵍ[jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
+		μ[jzp, 1], σ[jzp, 1] = find_q(h, qᵍ[jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, zpv, jdef, itp_qᵍ, reentry; get_μσ = true)
 
 		if jdef
 			reentry = false
 			res = Optim.optimize(
-				q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry) - q)^2,
+				q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, zpv, jdef, itp_qᵍ, reentry) - q)^2,
 				qmin, qmax, GoldenSection()
 				)
 			qᵍ[jzp,2] = res.minimizer
 			res.minimum > 1e-4? print_save("WARNING: Error in qᵍ = $(@sprintf("%0.3g",res.minimum))"): Void
 
-			μ[jzp, 2], σ[jzp, 2] = find_q(h, qᵍ[jzp,2], a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
+			μ[jzp, 2], σ[jzp, 2] = find_q(h, qᵍ[jzp,2], a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, zpv, jdef, itp_qᵍ, reentry; get_μσ = true)
 		else
 			μ[jzp, 2], σ[jzp, 2] = μ[jzp, 1], σ[jzp, 1]
 			qᵍ[jzp, 2] = qᵍ[jzp, 1]
@@ -471,7 +469,7 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	dist_exp = Array{Float64,1}(2)
 	qᵍmt = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	all_knots = (h.ωgrid, 1:h.Nϵ, 1:h.Nb, 1:h.Nμ, 1:h.Nσ, 1:h.Nw, 1:h.Nζ, 1:h.Nz)
+	all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
 	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
 
 	itp_ϕa = interpolate(all_knots, h.ϕa, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
