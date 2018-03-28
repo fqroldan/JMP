@@ -1,6 +1,6 @@
 utility(h::Hank, c::Float64) = ifelse(c > 1e-10, c^(1.0 - h.ψ) / (1.0 - h.ψ), -1e10)
 
-function G(h::Hank, v::Float64)
+function EZ_G(h::Hank, v::Float64)
 	if h.EpsteinZin
 		if h.γ != 1
 			return v^(1.0-h.γ)
@@ -12,7 +12,7 @@ function G(h::Hank, v::Float64)
 	end
 end
 
-function T(h::Hank, Ev::Float64)
+function EZ_T(h::Hank, Ev::Float64)
 	if h.γ != 1
 		return Ev^(1.0/(1.0-h.γ))
 	else
@@ -79,7 +79,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 				ωpv = ap + bp * R
 				ωpv = min(h.ωmax, ωpv)
 				v = itp_vf_s[jzp, 1][ωpv, jϵp]::Float64
-				Ev += G(h, v) * prob * h.θ
+				Ev += EZ_G(h, v) * prob * h.θ
 				
 				# Continue in default
 				ζpv = 2
@@ -87,7 +87,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 				ωpv = ap + bp * R
 				ωpv = min(h.ωmax, ωpv)
 				v = itp_vf_s[jzp, 2][ωpv, jϵp]::Float64
-				Ev += G(h, v) * prob * (1.0 - h.θ)
+				Ev += EZ_G(h, v) * prob * (1.0 - h.θ)
 				check += prob
 			end
 		end
@@ -103,14 +103,14 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 					ωpv = ap + bp * R
 					ωpv = min(h.ωmax, ωpv)
 					v = itp_vf_s[jzp, 1][ωpv, jϵp]::Float64
-					Ev += G(h, v) * prob
+					Ev += EZ_G(h, v) * prob
 				else
 					ζpv = 2
 					R = (1.0 - h.ρ) * qᵍp[jzp, 3]
 					ωpv = ap + bp * R
 					ωpv = min(h.ωmax, ωpv)
 					v = itp_vf_s[jzp, 3][ωpv, jϵp]::Float64
-					Ev += G(h, v) * prob
+					Ev += EZ_G(h, v) * prob
 				end
 			end
 		end
@@ -120,7 +120,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 
 	# Compute value
 	if h.EpsteinZin
-		Tv = T(h, Ev)
+		Tv = EZ_T(h, Ev)
 
 		EZ_exp = (h.ψ-1.0)/h.ψ
 		C > 1e-10? ut = C^(EZ_exp): ut = 1e-10
