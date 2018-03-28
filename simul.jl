@@ -51,14 +51,14 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	println("$([Bt, μt, σt, w0, ζt, zt])")
 
 	Bprime 	= itp_B′[Bt, μt, σt, w0, ζt, zt]
-	Gt 		= itp_G[Bt, μt, σt, w0, ζt, zt]
+	G 		= itp_G[Bt, μt, σt, w0, ζt, zt]
 	pNg 	= itp_pN[Bt, μt, σt, w0, ζt, zt]
 	thres 	= itp_Zthres[Bt, μt, σt, w0, ζt, zt]
 
 	# Find pN at the current state. Deduce w, L, Π, T.
 	pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 	jdef = (ζt != 1)
-	results, _ = find_prices(h, itp_ϕc, Gt, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, w0, ζt, jz, jdef)
+	results, _ = find_prices(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, w0, ζt, jz, jdef)
 
 	wt, pN, Ld, output = results
 
@@ -66,8 +66,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	# Integrate the household's policy functions to get μ′, σ′
 
-	ϕa = reshape(itp_ϕa[h.ωgrid_fine, 1:h.Nϵ, Bt, μt, σt, w0, ζt, zt], h.Nω_fine*h.Nϵ)
-	ϕb = reshape(itp_ϕb[h.ωgrid_fine, 1:h.Nϵ, Bt, μt, σt, w0, ζt, zt], h.Nω_fine*h.Nϵ)
+	ϕa = reshape(itp_ϕa[h.ωgrid_fine, 1:h.Nϵ, Bt, μt, σt, w0, ζt, zt], h.Nω_fine*h.Nϵ);
+	ϕb = reshape(itp_ϕb[h.ωgrid_fine, 1:h.Nϵ, Bt, μt, σt, w0, ζt, zt], h.Nω_fine*h.Nϵ);
 
 	a  = dot(λt, ϕa)
 	a2 = dot(λt, ϕa.^2)
