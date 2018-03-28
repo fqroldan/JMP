@@ -266,8 +266,8 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 		qᵍp = Array{Float64}(h.Nz, h.Nϵ, 3)
 		itp_vf_s = Array{Interpolations.ScaledInterpolation{Float64,2,Interpolations.BSplineInterpolation{Float64,2,Array{Float64,2},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,(1, 0)},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,Tuple{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},UnitRange{Int64}}}, 2}(h.Nz, 3)
 		for (jzp, zpv) in enumerate(h.zgrid)
-			qᵍp[jzp, 1] = itp_qᵍ[bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]				# Normal times
-			qᵍp[jzp, 2] = itp_qᵍ[bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]				# Remain in default
+			qᵍp[jzp, 1] = itp_qᵍ[bpv			, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]	# Normal times
+			qᵍp[jzp, 2] = itp_qᵍ[bpv			, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]	# Remain in default
 			qᵍp[jzp, 3] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, jzp]	# Enter default
 
 			vf_mat = Array{Float64}(h.Nω, h.Nϵ, 3)

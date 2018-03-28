@@ -4,9 +4,9 @@ write(pwd()*"/../../output.txt", "")
 using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStrings, Distributions, JLD
 
 # Load codes
-@everywhere include("interp_atosr.jl")
 @everywhere include("reporting_routines.jl")
 @everywhere include("type_def.jl")
+@everywhere include("interp_atosr.jl")
 @everywhere include("reiter.jl")
 @everywhere include("comp_eqm.jl")
 include("plotting_routines.jl")
@@ -38,7 +38,7 @@ print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")
 
 # Run
-vfi!(h, verbose = true, remote = (location=="remote"))
+vfi!(h, maxiter = 50, verbose = true, remote = (location=="remote"))
 
 p, jz_series = simul(h; simul_length=1000, burn_in=100)
 

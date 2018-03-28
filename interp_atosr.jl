@@ -6,6 +6,7 @@ function make_itps(h::Hank, Y; agg::Bool=true)
 	wrange = linspace(h.wgrid[1], h.wgrid[end], h.Nw)
 	zrange = linspace(h.zgrid[1], h.zgrid[end], h.Nz)
 
+	ext = false
 	if length(size(Y)) == 9
 		agg = false
 		ext = true
