@@ -245,8 +245,9 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	qᵍ = ones(qᵍ_mat)
 	while dist > tol && iter < maxiter
 		old_q  = copy(qᵍ)
-		knots  = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, 1:h.Nz)
-		itp_qᵍ = interpolate(knots, qᵍ, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
+		itp_qᵍ = make_itps(h, qᵍ; agg=true)
+		# knots  = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, 1:h.Nz)
+		# itp_qᵍ = interpolate(knots, qᵍ, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
 
 		for js in 1:size(h.Jgrid,1)
 			jb = h.Jgrid[js, 1]

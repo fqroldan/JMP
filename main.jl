@@ -4,6 +4,7 @@ write(pwd()*"/../../output.txt", "")
 using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStrings, Distributions, JLD
 
 # Load codes
+@everywhere include("interp_atosr.jl")
 @everywhere include("reporting_routines.jl")
 @everywhere include("type_def.jl")
 @everywhere include("reiter.jl")

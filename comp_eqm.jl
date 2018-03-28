@@ -252,9 +252,9 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 end
 
 function update_state_functions!(h::Hank, upd_η::Float64)
-	all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz, h.pngrid)
-
-	itp_ϕc  = interpolate(all_knots, h.ϕc_ext, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp(), Gridded(Linear())))
+	# all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz, h.pngrid)
+	# itp_ϕc  = interpolate(all_knots, h.ϕc_ext, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp(), Gridded(Linear())))
+	itp_ϕc = make_itps(h, h.ϕc_ext)
 
 	results, minf = find_all_prices(h, itp_ϕc, h.issuance, h.spending)
 
@@ -467,14 +467,18 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	σ′_old = copy(h.σ′)
 
 	dist_exp = Array{Float64,1}(2)
-	qᵍmt = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
-	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
+	# all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
+	# agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
+	# qᵍmt = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	# itp_ϕa = interpolate(all_knots, h.ϕa, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
+	# itp_ϕb = interpolate(all_knots, h.ϕb, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
+	# itp_qᵍ = interpolate(agg_knots, qᵍmt, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
 
-	itp_ϕa = interpolate(all_knots, h.ϕa, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
-	itp_ϕb = interpolate(all_knots, h.ϕb, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
-	itp_qᵍ = interpolate(agg_knots, qᵍmt, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
+	itp_ϕa = make_itps(h, h.ϕa; agg=false)
+	itp_ϕb = make_itps(h, h.ϕb; agg=false)
+	itp_qᵍ = make_itps(h, h.qᵍ; agg=true)
+
 
 	μ′_new, σ′_new = find_all_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, h.issuance, h.w′, h.def_thres)
 	# μ′_new, σ′_new = h.μ′, h.σ′
@@ -525,13 +529,14 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 	end
 
 	function reinterp(h::Hank, y; agg::Bool=false)
-		knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
-		if agg
-			knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
-			y = reshape(y, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-		end
+		# knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
+		# if agg
+		# 	knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
+		# 	y = reshape(y, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+		# end
 
-		itp_obj_y = interpolate(knots, y, Gridded(Linear()))
+		# itp_obj_y = interpolate(knots, y, Gridded(Linear()))
+		itp_obj_y = make_itps(h, y; agg=agg)
 		itp_y = extrapolate(itp_obj_y, Linear())
 
 		if agg

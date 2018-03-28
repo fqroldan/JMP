@@ -62,7 +62,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	wt, pN, Ld, output = results
 
-	# wt = itp_w′[Bt, μt, σt, w0, ζt, zt]
+	w2 = itp_w′[Bt, μt, σt, w0, ζt, zt]
 
 	# Integrate the household's policy functions to get μ′, σ′
 
@@ -137,27 +137,27 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	p = Path(T = T)
 	fill_path!(p,1; B = B0, μ = μ0, σ = σ0, w = w0, ζ = ζ0, z = z0)
 
-	function itp_all(h::Hank, Y::Array{Float64})
-		all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
-		return interpolate(all_knots, Y, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
-	end
+	# function itp_all(h::Hank, Y::Array{Float64})
+	# 	all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
+	# 	return interpolate(all_knots, Y, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
+	# end
 
-	itp_ϕa = itp_all(h, h.ϕa)
-	itp_ϕb = itp_all(h, h.ϕb)
-	itp_ϕc = itp_all(h, h.ϕc)
+	itp_ϕa = make_itps(h, h.ϕa; agg = false)
+	itp_ϕb = make_itps(h, h.ϕb; agg = false)
+	itp_ϕc = make_itps(h, h.ϕc; agg = false)
 
-	function itp_agg(h::Hank, Y::Vector{Float64})
-		Y_mat = reshape(Y, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-		agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
-		return interpolate(agg_knots, Y_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
-	end
+	# function itp_agg(h::Hank, Y::Vector{Float64})
+	# 	Y_mat = reshape(Y, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	# 	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
+	# 	return interpolate(agg_knots, Y_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
+	# end
 
-	itp_B′		= itp_agg(h, h.issuance)
-	itp_G		= itp_agg(h, h.spending)
-	itp_pN		= itp_agg(h, h.pN)
-	itp_qᵍ 		= itp_agg(h, h.qᵍ)
-	itp_w′		= itp_agg(h, h.w′)
-	itp_Zthres	= itp_agg(h, h.def_thres)
+	itp_B′		= make_itps(h, h.issuance; agg=true)
+	itp_G		= make_itps(h, h.spending; agg=true)
+	itp_pN		= make_itps(h, h.pN; agg=true)
+	itp_qᵍ 		= make_itps(h, h.qᵍ; agg=true)
+	itp_w′		= make_itps(h, h.w′; agg=true)
+	itp_Zthres	= make_itps(h, h.def_thres; agg=true)
 
 	jz_series = Vector{Int64}(T)
 	jz_series[1] = ceil(Int,h.Nz/2)
