@@ -9,6 +9,7 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStri
 @everywhere include("reiter.jl")
 @everywhere include("comp_eqm.jl")
 include("plotting_routines.jl")
+include("simul.jl")
 
 print_save("\nA Theory of Sovereign Risk\n")
 
@@ -38,7 +39,6 @@ print_save("\nω: $(h.ωgrid)\n")
 # Run
 vfi!(h, verbose = true, remote = (location=="remote"))
 
-include("simul.jl")
 p, jz_series = simul(h; simul_length=1000, burn_in=100)
 
 Void
