@@ -160,7 +160,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	itp_Zthres	= itp_agg(h, h.def_thres)
 
 	jz_series = Vector{Int64}(T)
-	jz_series[1] = 1
+	jz_series[1] = ceil(Int,h.Nz/2)
 
 	# Initialize objects for iterating the distribution
 	# λ = ones(h.Nω_fine*h.Nϵ) / (h.Nω_fine*h.Nϵ)
