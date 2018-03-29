@@ -272,13 +272,13 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 						ζpv = 2.0
 						μpv = h.μ′[js, jzp, 1]
 						σpv = h.σ′[js, jzp, 1]
-						E_rep += h.Pz[jz, jzp] * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp]
+						E_rep += h.Pz[jz, jzp] * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, zpv]
 						check += h.Pz[jz, jzp]
 					else
 						ζpv = 1.0
 						μpv = h.μ′[js, jzp, 1]
 						σpv = h.σ′[js, jzp, 1]
-						E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
+						E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, zpv])
 						check += h.Pz[jz, jzp]
 					end
 				end
@@ -287,12 +287,12 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 					ζ_reent = 1.0
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
-					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
+					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, zpv]) * h.θ
 					check += h.Pz[jz, jzp] * h.θ
 					ζ_cont = 2.0
 					μpv = h.μ′[js, jzp, 2]
 					σpv = h.σ′[js, jzp, 2]
-					E_rep += h.Pz[jz, jzp] * (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp] * (1.0 - h.θ)
+					E_rep += h.Pz[jz, jzp] * (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, zpv] * (1.0 - h.θ)
 					check += h.Pz[jz, jzp] * (1.0 - h.θ)
 				end
 			end
@@ -434,8 +434,8 @@ function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
 			dist_s = maximum(dists)
 
+			dist_exp = [0. 0.]
 			dist_exp = update_expectations!(h, 0.5 * upd_η)
-			# dist_exp = [0. 0.]
 			dist_LoMs[iter, :] = dist_exp
 
 			# update_grids!(h, new_μgrid = new_μgrid, new_σgrid = new_σgrid)

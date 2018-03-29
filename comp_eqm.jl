@@ -6,24 +6,8 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 	ϕb_ext = Array{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, Npn)
 	ϕc_ext = Array{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, Npn)
 
-	# all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
-	# agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
-	# itp_vf = interpolate(all_knots, h.vf, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()),Gridded(Linear()),Gridded(Linear()), NoInterp(), NoInterp()))
-	# itp_qᵍ  = interpolate(agg_knots, qᵍ_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
-
-	# ωrange = linspace(h.ωgrid[1], h.ωgrid[end], h.Nω)
-	# brange = linspace(h.bgrid[1], h.bgrid[end], h.Nb)
-	# μrange = linspace(h.μgrid[1], h.μgrid[end], h.Nμ)
-	# σrange = linspace(h.σgrid[1], h.σgrid[end], h.Nσ)
-	# wrange = linspace(h.wgrid[1], h.wgrid[end], h.Nw)
-
-	# unscaled_itp_vf = interpolate(h.vf, (BSpline(Quadratic(Line())), NoInterp(), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), NoInterp(), NoInterp()), OnGrid())
-	# unscaled_itp_qᵍ  = interpolate(qᵍ_mat, (BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), NoInterp(), NoInterp()), OnGrid())
-	# itp_vf = Interpolations.scale(unscaled_itp_vf, ωrange, 1:h.Nϵ, brange, μrange, σrange, wrange, 1:h.Nζ, 1:h.Nz)
-	# itp_qᵍ = Interpolations.scale(unscaled_itp_qᵍ, brange, μrange, σrange, wrange, 1:h.Nζ, 1:h.Nz)
-
-	itp_vf, itp_qᵍ = make_itps(h, h.vf, qᵍ_mat)
-
+	itp_vf = make_itps(h, h.vf; agg=false)
+	itp_qᵍ = make_itps(h, h.qᵍ; agg=true)
 
 	print_save("\nExtending the state space ($(Npn) iterations needed)")
 
@@ -182,7 +166,6 @@ end
 function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
 
 	function wrap_mktclear!(pN::Vector, fvec=similar(x))
-
 		out = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = false)
 
 		fvec[:] = out
@@ -540,10 +523,10 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 		itp_y = extrapolate(itp_obj_y, Linear())
 
 		if agg
-			y_new = itp_y[h.bgrid, new_μgrid, new_σgrid, new_wgrid, h.ζgrid, h.zgrid]
+			y_new = itp_y[h.bgrid, new_μgrid, new_σgrid, new_wgrid, 1:h.Nζ, h.zgrid]
 			return reshape(y_new, size(h.Jgrid,1))
 		else
-			y_new = itp_y[h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, new_wgrid, h.ζgrid, h.zgrid]
+			y_new = itp_y[h.ωgrid, 1:h.Nϵ, h.bgrid, new_μgrid, new_σgrid, new_wgrid, 1:h.Nζ, h.zgrid]
 			return y_new
 		end
 	end

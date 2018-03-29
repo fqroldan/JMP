@@ -266,16 +266,16 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 		qᵍp = Array{Float64}(h.Nz, h.Nϵ, 3)
 		itp_vf_s = Array{Interpolations.ScaledInterpolation{Float64,2,Interpolations.BSplineInterpolation{Float64,2,Array{Float64,2},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,(1, 0)},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,Tuple{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},UnitRange{Int64}}}, 2}(h.Nz, 3)
 		for (jzp, zpv) in enumerate(h.zgrid)
-			qᵍp[jzp, 1] = itp_qᵍ[bpv			, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]	# Normal times
-			qᵍp[jzp, 2] = itp_qᵍ[bpv			, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]	# Remain in default
-			qᵍp[jzp, 3] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, jzp]	# Enter default
+			qᵍp[jzp, 1] = itp_qᵍ[bpv			, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, zpv]	# Normal times
+			qᵍp[jzp, 2] = itp_qᵍ[bpv			, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, zpv]	# Remain in default
+			qᵍp[jzp, 3] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, zpv]	# Enter default
 
 			vf_mat = Array{Float64}(h.Nω, h.Nϵ, 3)
 			for (jϵp, ϵpv) in enumerate(h.ϵgrid)
 				for (jωp, ωpv) in enumerate(h.ωgrid)
-					vf_mat[jωp, jϵp, 1] = itp_vf[ωpv, jϵp, bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]
-					vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
-					vf_mat[jωp, jϵp, 3] = itp_vf[ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, jzp]
+					vf_mat[jωp, jϵp, 1] = itp_vf[ωpv, jϵp, bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, zpv]
+					vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, zpv]
+					vf_mat[jωp, jϵp, 3] = itp_vf[ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, zpv]
 				end
 				unscaled = interpolate(vf_mat[:,:,1], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
 				itp_vf_s[jzp, 1] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
