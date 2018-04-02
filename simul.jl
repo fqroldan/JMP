@@ -2,16 +2,16 @@ include("type_def.jl")
 	
 function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λt, Qϵ)
 	# Enter with a state B, μ, σ, w0, ζ, z.
-	# h.zgrid[jz] must equal p.y(t, :z)
+	# h.zgrid[jz] must equal get(p, t, :z)
 	# B, ζ, and z are decided at the end of the last period
 	jz = jz_series[t]
 
-	Bt = p.y(t, :B)
-	μt = p.y(t, :μ)
-	σt = p.y(t, :σ)
-	w0 = p.y(t, :w)
-	ζt = Int(p.y(t, :ζ))
-	zt = p.y(t, :z)
+	Bt = get(p, t, :B)
+	μt = get(p, t, :μ)
+	σt = get(p, t, :σ)
+	w0 = get(p, t, :w)
+	ζt = Int(get(p, t, :ζ))
+	zt = get(p, t, :z)
 
 	# print_save("\n$([Bt, μt, σt, w0, ζt, zt])")
 
@@ -169,15 +169,14 @@ function plot_simul(p::Path; remote::Bool=false)
 	ζ_vec = series(p,:ζ)-1
 	z_vec = exp.(series(p,:z))
 
-	pB = plot(scatter(; x=1:T, y=B_vec, showlegend=false), Layout(; font_size=16, title="Bonds"))
-	pμ = plot(scatter(; x=1:T, y=μ_vec, showlegend=false), Layout(; font_size=16, title="μ"))
-	pσ = plot(scatter(; x=1:T, y=σ_vec, showlegend=false), Layout(; font_size=16, title="σ"))
-	pw = plot(scatter(; x=1:T, y=w_vec, showlegend=false), Layout(; font_size=16, title="Wage"))
-	pζ = plot(scatter(; x=1:T, y=ζ_vec, showlegend=false), Layout(; font_size=16, title="Default state"))
-	pz = plot(scatter(; x=1:T, y=z_vec, showlegend=false), Layout(; font_size=16, title="TFP"))
+	pB = plot(scatter(; x=1:T, y=B_vec, showlegend=false), Layout(; font_size=16, title="Bonds", xlabel="t"))
+	pμ = plot(scatter(; x=1:T, y=μ_vec, showlegend=false), Layout(; font_size=16, title="μ", xlabel="t"))
+	pσ = plot(scatter(; x=1:T, y=σ_vec, showlegend=false), Layout(; font_size=16, title="σ", xlabel="t"))
+	pw = plot(scatter(; x=1:T, y=w_vec, showlegend=false), Layout(; font_size=16, title="Wage", xlabel="t"))
+	pζ = plot(scatter(; x=1:T, y=ζ_vec, showlegend=false), Layout(; font_size=16, title="Default state", xlabel="t"))
+	pz = plot(scatter(; x=1:T, y=z_vec, showlegend=false), Layout(; font_size=16, title="TFP", xlabel="t"))
 
 	p = [pB pw; pμ pσ; pζ pz]
-	p.plot.layout["xlabel"] = "t"
 	p.plot.layout["width"] = 800
 	p.plot.layout["height"] = 600
 	p.plot.layout["font_family"] = "Fira Sans Light"

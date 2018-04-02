@@ -128,7 +128,6 @@ end
 type Path
 	data::Matrix{Float64}
 	n::Dict{Symbol,Int64}
-	y::Function
 end
 function Path(; T::Int64 = 1)
 	n = Dict(
@@ -140,11 +139,12 @@ function Path(; T::Int64 = 1)
 		:z => 6,
 		)
 	data = Matrix{Float64}(T, length(n))
-
-	y(t::Int64, sym::Symbol) = data[t, n[sym]]
-
-	return Path(data, n, y)
+	return Path(data, n)
 end
+
+get(p::Path, t::Int64, sym::Symbol) = p.data[t, p.n[sym]]
+get(p::Path, t::AbstractArray, sym::Symbol) = p.data[t, p.n[sym]]
+
 function fill_path!(p::Path, t::Int64; B::Float64=-Inf, μ::Float64=-Inf, σ::Float64=-Inf, w::Float64=-Inf, ζ::Float64=-Inf, z::Float64=-Inf)
 	0 < t <= size(p.data, 1) || throw("t out of bounds")
 	B != -Inf? p.data[t, p.n[:B]] = B: Void
@@ -164,7 +164,7 @@ function series(p::Path, sym::Symbol)
 
 	y = zeros(T)
 	for jt in 1:T
-		y[jt] = p.y(jt, sym)
+		y[jt] = get(p, jt, sym)
 	end
 
 	return y
