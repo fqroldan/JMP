@@ -35,7 +35,7 @@ function trim_path!(p::Path, T_burnin::Int64)
 	Void
 end
 	
-function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_w′, itp_Zthres, λt, Qϵ)
+function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λt, Qϵ)
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal p.y(t, :z)
 	# B, ζ, and z are decided at the end of the last period
@@ -48,12 +48,12 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	ζt = Int(p.y(t, :ζ))
 	zt = p.y(t, :z)
 
-	println("$([Bt, μt, σt, w0, ζt, zt])")
+	print_save("\n$([Bt, μt, σt, w0, ζt, zt])")
 
-	Bprime 	= itp_B′[Bt, μt, σt, w0, ζt, zt]
-	G 		= itp_G[Bt, μt, σt, w0, ζt, zt]
-	pNg 	= itp_pN[Bt, μt, σt, w0, ζt, zt]
-	thres 	= itp_Zthres[Bt, μt, σt, w0, ζt, zt]
+	Bprime 	= itp_B′[Bt, μt, σt, w0, ζt, jz]
+	G 		= itp_G[Bt, μt, σt, w0, ζt, jz]
+	pNg 	= itp_pN[Bt, μt, σt, w0, ζt, jz]
+	thres 	= itp_Zthres[Bt, μt, σt, w0, ζt, jz]
 
 	# Find pN at the current state. Deduce w, L, Π, T.
 	pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
@@ -62,12 +62,19 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	wt, pN, Ld, output = results
 
-	w2 = itp_w′[Bt, μt, σt, w0, ζt, zt]
+	# print_save("\npN = $pN, pN^e = $(pNg)")
 
 	# Integrate the household's policy functions to get μ′, σ′
-
-	ϕa = reshape(itp_ϕa[h.ωgrid_fine, 1:h.Nϵ, Bt, μt, σt, w0, ζt, zt], h.Nω_fine*h.Nϵ);
-	ϕb = reshape(itp_ϕb[h.ωgrid_fine, 1:h.Nϵ, Bt, μt, σt, w0, ζt, zt], h.Nω_fine*h.Nϵ);
+	ϕa = zeros(h.Nω_fine*h.Nϵ)
+	ϕb = zeros(h.Nω_fine*h.Nϵ)
+	js = 0
+	for (jϵ, ϵv) in enumerate(h.ϵgrid)
+		for (jω, ωv) in enumerate(h.ωgrid_fine)
+			js += 1
+			ϕa[js] = itp_ϕa[ωv, jϵ, Bt, μt, σt, w0, ζt, jz]
+			ϕb[js] = itp_ϕb[ωv, jϵ, Bt, μt, σt, w0, ζt, jz]
+		end
+	end
 
 	a  = dot(λt, ϕa)
 	a2 = dot(λt, ϕa.^2)
@@ -79,9 +86,11 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	var_b  = b2 - b^2
 	cov_ab = ab - a*b
 
+	# print_save("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab])")
+
 	μ′, σ′, q′ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, wt, thres)
 	# μ′, σ′, q′ = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bprime, wt, thres, Bt, μt, σt, w0, ζt, zt, jdef) # This would assume that λₜ is lognormal
-	println(q′)
+	# print_save("\n$(q′)")
 
 	# Draw z and the reentry shock for tomorrow, deduce ζ and correct B, μ, and σ as needed, and update the distribution
 	probs = cumsum(h.Pz[jz,:])
@@ -116,8 +125,11 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		end
 	end
 
+	savings = ϕa + R*ϕb
+	savings = max.(min.(savings, h.ωmax), h.ωmin)
+
 	basis = Basis(LinParams(h.ωgrid_fine, 0))
-	Qω = BasisMatrix(basis, Expanded(), ϕa + R*ϕb, 0).vals[1]
+	Qω = BasisMatrix(basis, Expanded(), savings, 0).vals[1]
 	Q = row_kron(Qϵ, Qω)
 
 	λprime = Q' * λt
@@ -132,35 +144,23 @@ end
 
 function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	# Setup
-	B0, μ0, σ0, w0, ζ0, z0 = h.bgrid[ceil(Int,h.Nb/2)], h.μgrid[ceil(Int,h.Nμ/2)], h.σgrid[ceil(Int,h.Nσ/2)], h.wgrid[ceil(Int,h.Nw/2)], h.ζgrid[1], h.zgrid[ceil(Int,h.Nz/2)]
 	T = burn_in + simul_length
 	p = Path(T = T)
+	B0, μ0, σ0, w0, ζ0, z0 = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], mean(h.zgrid)
 	fill_path!(p,1; B = B0, μ = μ0, σ = σ0, w = w0, ζ = ζ0, z = z0)
 
-	# function itp_all(h::Hank, Y::Array{Float64})
-	# 	all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
-	# 	return interpolate(all_knots, Y, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
-	# end
+	itp_ϕa = make_itp(h, h.ϕa; agg=false)
+	itp_ϕb = make_itp(h, h.ϕb; agg=false)
+	itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
 
-	itp_ϕa = make_itps(h, h.ϕa; agg = false)
-	itp_ϕb = make_itps(h, h.ϕb; agg = false)
-	itp_ϕc = make_itps(h, h.ϕc; agg = false)
-
-	# function itp_agg(h::Hank, Y::Vector{Float64})
-	# 	Y_mat = reshape(Y, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	# 	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, h.zgrid)
-	# 	return interpolate(agg_knots, Y_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), Gridded(Linear())))
-	# end
-
-	itp_B′		= make_itps(h, h.issuance; agg=true)
-	itp_G		= make_itps(h, h.spending; agg=true)
-	itp_pN		= make_itps(h, h.pN; agg=true)
-	itp_qᵍ 		= make_itps(h, h.qᵍ; agg=true)
-	itp_w′		= make_itps(h, h.w′; agg=true)
-	itp_Zthres	= make_itps(h, h.def_thres; agg=true)
+	itp_B′		= make_itp(h, h.issuance; agg=true)
+	itp_G		= make_itp(h, h.spending; agg=true)
+	itp_pN		= make_itp(h, h.pN; agg=true)
+	itp_qᵍ 		= make_itp(h, h.qᵍ; agg=true)
+	itp_Zthres	= make_itp(h, h.def_thres; agg=true)
 
 	jz_series = Vector{Int64}(T)
-	jz_series[1] = ceil(Int,h.Nz/2)
+	jz_series[1] = 1
 
 	# Initialize objects for iterating the distribution
 	# λ = ones(h.Nω_fine*h.Nϵ) / (h.Nω_fine*h.Nϵ)
@@ -180,10 +180,10 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	Qϵ = kron(h.Pϵ, ones(h.Nω_fine,1))
 
 	# Simulate
-	for t in 1:T
+	for t in 1:T-1
 		# Advance one step
-		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_w′, itp_Zthres, λ, Qϵ)
-		println(t)
+		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λ, Qϵ)
+		print_save("\nt = $t")
 	end
 
 	# Keep only after the burn_in period

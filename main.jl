@@ -9,8 +9,8 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStri
 @everywhere include("interp_atosr.jl")
 @everywhere include("reiter.jl")
 @everywhere include("comp_eqm.jl")
-include("plotting_routines.jl")
 include("simul.jl")
+include("plotting_routines.jl")
 
 print_save("\nA Theory of Sovereign Risk\n")
 
@@ -25,11 +25,16 @@ print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(no
 # Initialize type
 h = Hank();
 try
-	# h2 = load("hank.jld", "h")
-	# h.ϕa = h2.ϕa
-	# h.ϕb = h2.ϕb
-	# h.ϕc = h2.ϕc
-	# h.vf = h2.vf
+	h2 = load("hank.jld", "h")
+	if h.ψ == h2.ψ && h.γ == h2.γ && h.Ns == h2.Ns
+		h.ϕa = h2.ϕa
+		h.ϕb = h2.ϕb
+		h.ϕc = h2.ϕc
+		h.vf = h2.vf
+		h.pN = h2.pN
+		h.wage = h2.wage
+		h.Ld = h2.Ld
+	end
 end
 
 print_save("\nβ, RRA, IES: $(round(h.β,2)), $(h.γ), $(h.ψ)")
@@ -38,8 +43,10 @@ print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")
 
 # Run
-vfi!(h, maxiter = 50, verbose = true, remote = (location=="remote"))
+vfi!(h, verbose = true, remote = (location=="remote"))
+save(pwd() * "/../../hank.jld", "h", h)
 
 p, jz_series = simul(h; simul_length=1000, burn_in=100)
+save(pwd() * "/../../simul.jld", "p", p)
 
 Void

@@ -3,12 +3,12 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.15)^0.25,
-				IES = 0.5,
+				IES = 2.,
 				RRA = 5.,
-				γw = 0.99,
+				γw = 0.98,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
-				ωmax = 20.,
+				ωmax = 10.,
 				curv = .4,
 				income_process = "Floden-Lindé",
 				EpsteinZin = true,
@@ -17,7 +17,7 @@ function Hank(;	β = (1.0/1.15)^0.25,
 				Nω = 8,
 				Nϵ = 4,
 				Nμ = 4,
-				Nσ = 4,
+				Nσ = 3,
 				Nb = 6,
 				Nw = 5,
 				Nz = 4,
@@ -78,11 +78,8 @@ function Hank(;	β = (1.0/1.15)^0.25,
 	α_T = 0.6
 	α_N = 0.6
 
-	temp_μ = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
-	temp_ω = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
-
-	ϖ = temp_ω^temp_μ
-	η = log(ϖ - temp_ω)
+	η = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
+	ϖ = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
 	bgrid = linspace(0.0, 2.5, Nb)
@@ -234,10 +231,6 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	dist, iter = 10.0, 0
 	tol, maxiter = 1e-12, 1500
 
-	tax_foreign = 1.0 - 1e-2
-
-	coupon = h.κ * tax_foreign
-
 	init_t = time()
 
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
@@ -245,9 +238,8 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	qᵍ = ones(qᵍ_mat)
 	while dist > tol && iter < maxiter
 		old_q  = copy(qᵍ)
-		itp_qᵍ = make_itps(h, qᵍ; agg=true)
-		# knots  = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, 1:h.Nz)
-		# itp_qᵍ = interpolate(knots, qᵍ, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
+		knots  = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, 1:h.Nz)
+		itp_qᵍ = interpolate(knots, qᵍ, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
 
 		for js in 1:size(h.Jgrid,1)
 			jb = h.Jgrid[js, 1]
@@ -272,13 +264,13 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 						ζpv = 2.0
 						μpv = h.μ′[js, jzp, 1]
 						σpv = h.σ′[js, jzp, 1]
-						E_rep += h.Pz[jz, jzp] * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, zpv]
+						E_rep += h.Pz[jz, jzp] * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp]
 						check += h.Pz[jz, jzp]
 					else
 						ζpv = 1.0
 						μpv = h.μ′[js, jzp, 1]
 						σpv = h.σ′[js, jzp, 1]
-						E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, zpv])
+						E_rep += h.Pz[jz, jzp] * (h.κ + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
 						check += h.Pz[jz, jzp]
 					end
 				end
@@ -287,12 +279,12 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 					ζ_reent = 1.0
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
-					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, zpv]) * h.θ
+					E_rep += h.Pz[jz, jzp] * (h.κ + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
 					check += h.Pz[jz, jzp] * h.θ
 					ζ_cont = 2.0
 					μpv = h.μ′[js, jzp, 2]
 					σpv = h.σ′[js, jzp, 2]
-					E_rep += h.Pz[jz, jzp] * (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, zpv] * (1.0 - h.θ)
+					E_rep += h.Pz[jz, jzp] * (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp] * (1.0 - h.θ)
 					check += h.Pz[jz, jzp] * (1.0 - h.θ)
 				end
 			end
@@ -359,7 +351,7 @@ function _unpackstatefs(h::Hank)
 end
 
 
-function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=100, bellman_iter::Int64=maxiter)
+function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=1000, bellman_iter::Int64=maxiter)
 
 	print_save("\nSolving household problem: ")
 	time_init = time()
@@ -434,8 +426,8 @@ function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
 			dist_s = maximum(dists)
 
-			dist_exp = [0. 0.]
 			dist_exp = update_expectations!(h, 0.5 * upd_η)
+			# dist_exp = [0. 0.]
 			dist_LoMs[iter, :] = dist_exp
 
 			# update_grids!(h, new_μgrid = new_μgrid, new_σgrid = new_σgrid)
@@ -483,8 +475,6 @@ function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true,
 	end
 
 	print_save("\nTotal time: $(time_print(time()-time_init))\n")
-
-	save(pwd() * "/../../hank.jld", "h", h)
 
 	Void
 end
