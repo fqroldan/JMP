@@ -124,3 +124,38 @@ type Hank
 	upd_tol::Float64
 	tol_θ::Float64
 end
+
+type Path
+	data::Matrix{Float64}
+	n::Dict{Symbol,Int64}
+	y::Function
+end
+function Path(; T::Int64 = 1)
+	n = Dict(
+		:B => 1,
+		:μ => 2,
+		:σ => 3,
+		:w => 4,
+		:ζ => 5,
+		:z => 6,
+		)
+	data = Matrix{Float64}(T, length(n))
+
+	y(t::Int64, sym::Symbol) = data[t, n[sym]]
+
+	return Path(data, n, y)
+end
+function fill_path!(p::Path, t::Int64; B::Float64=-Inf, μ::Float64=-Inf, σ::Float64=-Inf, w::Float64=-Inf, ζ::Float64=-Inf, z::Float64=-Inf)
+	0 < t <= size(p.data, 1) || throw("t out of bounds")
+	B != -Inf? p.data[t, p.n[:B]] = B: Void
+	μ != -Inf? p.data[t, p.n[:μ]] = μ: Void
+	σ != -Inf? p.data[t, p.n[:σ]] = σ: Void
+	w != -Inf? p.data[t, p.n[:w]] = w: Void
+	ζ != -Inf? p.data[t, p.n[:ζ]] = ζ: Void
+	z != -Inf? p.data[t, p.n[:z]] = z: Void
+	Void
+end
+function trim_path!(p::Path, T_burnin::Int64)
+	p.data = p.data[T_burnin+1:end, :]
+	Void
+end

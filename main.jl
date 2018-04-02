@@ -48,5 +48,6 @@ save(pwd() * "/../../hank.jld", "h", h)
 
 p, jz_series = simul(h; simul_length=1000, burn_in=100)
 save(pwd() * "/../../simul.jld", "p", p)
+print_save("$(typeof(p))")
 
 Void
