@@ -6,17 +6,6 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 	ϕb_ext = Array{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, Npn)
 	ϕc_ext = Array{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, Npn)
 
-	# ωrange = linspace(h.ωgrid[1], h.ωgrid[end], h.Nω)
-	# brange = linspace(h.bgrid[1], h.bgrid[end], h.Nb)
-	# μrange = linspace(h.μgrid[1], h.μgrid[end], h.Nμ)
-	# σrange = linspace(h.σgrid[1], h.σgrid[end], h.Nσ)
-	# wrange = linspace(h.wgrid[1], h.wgrid[end], h.Nw)
-
-	# unscaled_itp_vf = interpolate(h.vf, (BSpline(Quadratic(Line())), NoInterp(), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), NoInterp(), NoInterp()), OnGrid())
-	# unscaled_itp_qᵍ  = interpolate(qᵍ_mat, (BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), NoInterp(), NoInterp()), OnGrid())
-	# itp_vf = Interpolations.scale(unscaled_itp_vf, ωrange, 1:h.Nϵ, brange, μrange, σrange, wrange, 1:h.Nζ, 1:h.Nz)
-	# itp_qᵍ = Interpolations.scale(unscaled_itp_qᵍ, brange, μrange, σrange, wrange, 1:h.Nζ, 1:h.Nz)
-
 	itp_vf = make_itp(h, h.vf; agg=false)
 	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
 
