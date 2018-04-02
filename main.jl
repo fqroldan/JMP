@@ -46,8 +46,8 @@ print_save("\nω: $(h.ωgrid)\n")
 vfi!(h, verbose = true, remote = (location=="remote"))
 save(pwd() * "/../../hank.jld", "h", h)
 
-p, jz_series = simul(h; simul_length=1000, burn_in=100)
-save(pwd() * "/../../simul.jld", "p", p)
+p, jz_series = simul(h; simul_length=400, burn_in=300)
+plot_simul(p; remote=(location=="remote"))
 print_save("$(typeof(p))")
 
 Void

@@ -13,7 +13,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	ζt = Int(p.y(t, :ζ))
 	zt = p.y(t, :z)
 
-	print_save("\n$([Bt, μt, σt, w0, ζt, zt])")
+	# print_save("\n$([Bt, μt, σt, w0, ζt, zt])")
 
 	Bprime 	= itp_B′[Bt, μt, σt, w0, ζt, jz]
 	G 		= itp_G[Bt, μt, σt, w0, ζt, jz]
@@ -148,7 +148,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	for t in 1:T-1
 		# Advance one step
 		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λ, Qϵ)
-		print_save("\nt = $t")
+		# print_save("\nt = $t")
 	end
 
 	# Keep only after the burn_in period
@@ -157,4 +157,39 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 
 	# Return stuff
 	return p, jz_series
+end
+
+function plot_simul(p::Path; remote::Bool=false)
+	T = size(p.data, 1)
+
+	B_vec = series(p,:B)
+	μ_vec = series(p,:μ)
+	σ_vec = series(p,:σ)
+	w_vec = series(p,:w)
+	ζ_vec = series(p,:ζ)-1
+	z_vec = exp.(series(p,:z))
+
+	pB = plot(scatter(; x=1:T, y=B_vec, showlegend=false), Layout(; font_size=16, title="Bonds"))
+	pμ = plot(scatter(; x=1:T, y=μ_vec, showlegend=false), Layout(; font_size=16, title="μ"))
+	pσ = plot(scatter(; x=1:T, y=σ_vec, showlegend=false), Layout(; font_size=16, title="σ"))
+	pw = plot(scatter(; x=1:T, y=w_vec, showlegend=false), Layout(; font_size=16, title="Wage"))
+	pζ = plot(scatter(; x=1:T, y=ζ_vec, showlegend=false), Layout(; font_size=16, title="Default state"))
+	pz = plot(scatter(; x=1:T, y=z_vec, showlegend=false), Layout(; font_size=16, title="TFP"))
+
+	p = [pB pw; pμ pσ; pζ pz]
+	p.plot.layout["xlabel"] = "t"
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 600
+	p.plot.layout["font_family"] = "Fira Sans Light"
+
+	name = "simul"
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_"*name*".jld", "p", p)
+	else
+		path = pwd() * "/../Graphs/"
+		savefig(p, path*name*".pdf")
+	end
+
+	Void
 end
