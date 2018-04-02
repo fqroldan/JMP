@@ -159,3 +159,13 @@ function trim_path!(p::Path, T_burnin::Int64)
 	p.data = p.data[T_burnin+1:end, :]
 	Void
 end
+function series(p::Path, sym::Symbol)
+	T = size(p.data, 1)
+
+	y = zeros(T)
+	for jt in 1:T
+		y[jt] = p.y(jt, sym)
+	end
+
+	return y
+end
