@@ -59,7 +59,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	# Draw z and the reentry shock for tomorrow, deduce ζ and correct B, μ, and σ as needed, and update the distribution
 	probs = cumsum(h.Pz[jz,:])
-	jzp = 1 + findfirst(rand() .> probs)
+	jzp = findfirst(probs .> rand())
 
 	zprime = h.zgrid[jzp]
 
@@ -111,7 +111,10 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	# Setup
 	T = burn_in + simul_length
 	p = Path(T = T)
-	B0, μ0, σ0, w0, ζ0, z0 = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], mean(h.zgrid)
+
+	jz = 4
+
+	B0, μ0, σ0, w0, ζ0, z0 = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], h.zgrid[jz]
 	fill_path!(p,1; B = B0, μ = μ0, σ = σ0, w = w0, ζ = ζ0, z = z0)
 
 	itp_ϕa = make_itp(h, h.ϕa; agg=false)
@@ -125,7 +128,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	itp_Zthres	= make_itp(h, h.def_thres; agg=true)
 
 	jz_series = Vector{Int64}(T)
-	jz_series[1] = 1
+	jz_series[1] = jz
 
 	# Initialize objects for iterating the distribution
 	# λ = ones(h.Nω_fine*h.Nϵ) / (h.Nω_fine*h.Nϵ)
@@ -169,14 +172,24 @@ function plot_simul(p::Path; remote::Bool=false)
 	ζ_vec = series(p,:ζ)-1
 	z_vec = exp.(series(p,:z))
 
-	pB = plot(scatter(; x=1:T, y=B_vec, showlegend=false), Layout(; font_size=16, title="Bonds", xlabel="t"))
-	pμ = plot(scatter(; x=1:T, y=μ_vec, showlegend=false), Layout(; font_size=16, title="μ", xlabel="t"))
-	pσ = plot(scatter(; x=1:T, y=σ_vec, showlegend=false), Layout(; font_size=16, title="σ", xlabel="t"))
-	pw = plot(scatter(; x=1:T, y=w_vec, showlegend=false), Layout(; font_size=16, title="Wage", xlabel="t"))
-	pζ = plot(scatter(; x=1:T, y=ζ_vec, showlegend=false), Layout(; font_size=16, title="Default state", xlabel="t"))
-	pz = plot(scatter(; x=1:T, y=z_vec, showlegend=false), Layout(; font_size=16, title="TFP", xlabel="t"))
+	shiftζ = [0; ζ_vec[1:end-1]]
+
+	defaults = find((ζ_vec.==1) .* (shiftζ.==0))./4
+	exits    = find((ζ_vec.==0) .* (shiftζ.==1))./4
+
+	times = (1:T)./4
+
+	default_shades = rect(defaults, exits, 0, 1; fillcolor="#d3d3d3", opacity=0.5, line_width=0, xref="x", yref="paper")
+
+	pB = plot(scatter(; x=times, y=B_vec, showlegend=false), Layout(; shapes=default_shades, title="Bonds", xlabel="t"));
+	pμ = plot(scatter(; x=times, y=μ_vec, showlegend=false), Layout(; shapes=default_shades, title="μ", xlabel="t"));
+	pσ = plot(scatter(; x=times, y=σ_vec, showlegend=false), Layout(; shapes=default_shades, title="σ", xlabel="t"));
+	pw = plot(scatter(; x=times, y=w_vec, showlegend=false), Layout(; shapes=default_shades, title="Wage", xlabel="t"));
+	pζ = plot(scatter(; x=times, y=ζ_vec, showlegend=false), Layout(; shapes=default_shades, title="Default", xlabel="t"));
+	pz = plot(scatter(; x=times, y=z_vec, showlegend=false), Layout(; shapes=default_shades, title="TFP", xlabel="t"));
 
 	p = [pB pw; pμ pσ; pζ pz]
+	# p.plot.layout["shapes"] = default_shades
 	p.plot.layout["width"] = 800
 	p.plot.layout["height"] = 600
 	p.plot.layout["font_family"] = "Fira Sans Light"
