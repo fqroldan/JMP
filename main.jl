@@ -1,5 +1,13 @@
 using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStrings, Distributions, JLD
 
+location = "remote"
+if pwd() == "/home/q/Dropbox/NYU/AToSR/Codes"
+	location = "local"
+	using Rsvg
+end
+
+remote = (location=="remote")
+
 # Initialize output file
 if remote
 	write(pwd()*"/../../output.txt", "")
@@ -15,14 +23,6 @@ include("simul.jl")
 include("plotting_routines.jl")
 
 print_save("\nA Theory of Sovereign Risk\n")
-
-location = "remote"
-if pwd() == "/home/q/Dropbox/NYU/AToSR/Codes"
-	location = "local"
-	using Rsvg
-end
-
-remote = (location=="remote")
 
 print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(), "HH:MM"))
 
