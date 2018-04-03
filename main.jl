@@ -1,5 +1,10 @@
 using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStrings, Distributions, JLD
 
+# Initialize output file
+if remote
+	write(pwd()*"/../../output.txt", "")
+end
+
 # Load codes
 @everywhere include("reporting_routines.jl")
 @everywhere include("type_def.jl")
@@ -12,17 +17,12 @@ include("plotting_routines.jl")
 print_save("\nA Theory of Sovereign Risk\n")
 
 location = "remote"
-remote = true
 if pwd() == "/home/q/Dropbox/NYU/AToSR/Codes"
 	location = "local"
-	remote = false
 	using Rsvg
 end
 
-# Initialize output file
-if remote
-	write(pwd()*"/../../output.txt", "")
-end
+remote = (location=="remote")
 
 print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(), "HH:MM"))
 
@@ -41,7 +41,7 @@ try
 	end
 end
 
-h = load("../HPC_Output/hank.jld", "h")
+# h = load("../HPC_Output/hank.jld", "h")
 
 print_save("\nβ, RRA, IES: $(round(h.β,2)), $(h.γ), $(h.ψ)")
 print_save("\nϵ: $(h.ϵgrid)")
@@ -49,8 +49,8 @@ print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")
 
 # Run
-# vfi!(h, verbose = true, remote = remote)
-# save(pwd() * "/../../hank.jld", "h", h)
+vfi!(h, verbose = true, remote = remote)
+save(pwd() * "/../../hank.jld", "h", h)
 
 p, jz_series = simul(h; simul_length=200, burn_in=200)
 plot_simul(p; remote=remote)
