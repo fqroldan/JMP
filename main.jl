@@ -9,9 +9,7 @@ end
 remote = (location=="remote")
 
 # Initialize output file
-if remote
-	write(pwd()*"/../../output.txt", "")
-end
+write(pwd()*"/../../output.txt", "")
 
 # Load codes
 @everywhere include("reporting_routines.jl")
