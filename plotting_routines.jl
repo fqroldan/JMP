@@ -375,20 +375,20 @@ function plot_convergence(dist_statefuncs, dist_LoMs, T::Int64; remote::Bool=fal
 end
 
 
-function plot_simul(p::Path; remote::Bool=false)
-	T = size(p.data, 1)
+function plot_simul(path::Path; remote::Bool=false)
+	T = size(path.data, 1)
 
-	B_vec = series(p,:B)
-	μ_vec = series(p,:μ)
-	σ_vec = series(p,:σ)
-	w_vec = series(p,:w)
-	ζ_vec = series(p,:ζ)-1
-	z_vec = exp.(series(p,:z))
-	Y_vec = series(p,:Y)
-	L_vec = series(p,:L)
-	π_vec = series(p,:π)
-	P_vec = series(p,:P)
-	ψ_vec = series(p,:ψ)
+	B_vec = series(path,:B)
+	μ_vec = series(path,:μ)
+	σ_vec = series(path,:σ)
+	w_vec = series(path,:w)
+	ζ_vec = series(path,:ζ)-1
+	z_vec = exp.(series(path,:z))
+	Y_vec = series(path,:Y)
+	L_vec = series(path,:L)
+	π_vec = series(path,:π)
+	P_vec = series(path,:P)
+	ψ_vec = series(path,:ψ)
 
 	shiftζ = [0; ζ_vec[1:end-1]]
 

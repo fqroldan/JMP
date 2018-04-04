@@ -26,7 +26,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	results, _ = find_prices(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, w0, ζt, jz, jdef)
 
 	wt, pN, Ld, output = results
-	print_save("\npN = $pN, pN^e = $(pNg)")
+	print_save("\npN = $pN, pN^e = $(pNg), σ = $(σt) at t = $t")
 
 	def_prob = 0.
 	if !jdef
