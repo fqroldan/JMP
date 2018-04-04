@@ -20,59 +20,66 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 		leg[jϵ] = "ϵ = $(round(h.ϵgrid[jϵ],2))"
 	end
 
-	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
-	itp_ϕa  = interpolate(knots, h.ϕa, Gridded(Linear()))
-	itp_ϕb  = interpolate(knots, h.ϕb, Gridded(Linear()))
-	itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
-	itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
-
-	qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	pN_mat  = reshape(h.pN, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
-	itp_qᵍ  = interpolate(agg_knots, qᵍ_mat, Gridded(Linear()))
-	itp_pN  = interpolate(agg_knots, pN_mat, Gridded(Linear()))
-
 	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], h.zgrid[end]
 
-	ϕc_mat = itp_ϕc[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	ϕa_mat = itp_ϕa[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	ϕb_mat = itp_ϕb[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	vf_mat = itp_vf[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	qᵍ_mat = itp_qᵍ[show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+	function hh_pol(h::Hank, show_b, show_μ, show_σ, show_w, show_ζ, show_z)
+		knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
+		itp_ϕa  = interpolate(knots, h.ϕa, Gridded(Linear()))
+		itp_ϕb  = interpolate(knots, h.ϕb, Gridded(Linear()))
+		itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
+		itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
 
-	qᵍ_all = zeros(vf_mat)
-	for jω in 1:h.Nω
-		for jϵ in 1:h.Nϵ
-			qᵍ_all[jω, jϵ, :,:,:,:,:,:] = qᵍ_mat
+		qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+		pN_mat  = reshape(h.pN, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+		agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
+		itp_qᵍ  = interpolate(agg_knots, qᵍ_mat, Gridded(Linear()))
+		itp_pN  = interpolate(agg_knots, pN_mat, Gridded(Linear()))
+
+
+		ϕc_mat = itp_ϕc[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+		ϕa_mat = itp_ϕa[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+		ϕb_mat = itp_ϕb[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+		vf_mat = itp_vf[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+		qᵍ_mat = itp_qᵍ[show_b, show_μ, show_σ, show_w, show_ζ, show_z]
+
+		qᵍ_all = zeros(vf_mat)
+		for jω in 1:h.Nω
+			for jϵ in 1:h.Nϵ
+				qᵍ_all[jω, jϵ, :,:,:,:,:,:] = qᵍ_mat
+			end
 		end
+
+		ωg_mat = 1.0/(1.0+h.r_star) * ϕa_mat + qᵍ_all .* ϕb_mat
+		θg_mat = 1.0/(1.0+h.r_star) * (ϕa_mat - h.ωmin) ./ (ωg_mat - 1.0/(1.0+h.r_star)*h.ωmin)
+		θg_mat[isapprox.(ωg_mat, h.ωmin)] = 1.0
+
+		l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
+		for jϵ in 1:h.Nϵ
+			l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
+			l[jϵ,1] = l_new
+			l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
+			l[jϵ,2] = l_new
+			l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
+			l[jϵ,3] = l_new
+			# l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
+			l_new = scatter(;x=h.ωgrid, y=θg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
+			l[jϵ,4] = l_new
+		end
+		pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Consumption"))
+		pv = plot([l[jϵ, 2] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Value function"))
+		pb = plot([l[jϵ, 3] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Debt purchases"))
+		pθ = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Proportion risk-free debt"))
+
+		p = [pc pv; pb pθ]
+		p.plot.layout["xlabel"] = "ω"
+		p.plot.layout["width"] = 800
+		p.plot.layout["height"] = 600
+		p.plot.layout["font_family"] = "Fira Sans Light"
+
+		return p
 	end
 
-	ωg_mat = 1.0/(1.0+h.r_star) * ϕa_mat + qᵍ_all .* ϕb_mat
-	θg_mat = 1.0/(1.0+h.r_star) * (ϕa_mat - h.ωmin) ./ (ωg_mat - 1.0/(1.0+h.r_star)*h.ωmin)
-	θg_mat[isapprox.(ωg_mat, h.ωmin)] = 1.0
-
-	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
-	for jϵ in 1:h.Nϵ
-		l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
-		l[jϵ,1] = l_new
-		l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
-		l[jϵ,2] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
-		l[jϵ,3] = l_new
-		# l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
-		l_new = scatter(;x=h.ωgrid, y=θg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
-		l[jϵ,4] = l_new
-	end
-	pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Consumption"))
-	pv = plot([l[jϵ, 2] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Value function"))
-	pb = plot([l[jϵ, 3] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Debt purchases"))
-	pθ = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Proportion risk-free debt"))
-
-	p = [pc pv; pb pθ]
-	p.plot.layout["xlabel"] = "ω"
-	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 600
-	p.plot.layout["font_family"] = "Fira Sans Light"
+	p = hh_pol(h, show_b, show_μ, show_σ, show_w, show_ζ, show_z)
 
 	if remote
 		path = pwd() * "/../../Graphs/"
@@ -83,45 +90,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 
 	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[2], h.zgrid[1]
 
-	ϕc_mat = itp_ϕc[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	ϕa_mat = itp_ϕa[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	ϕb_mat = itp_ϕb[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	vf_mat = itp_vf[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-	qᵍ_mat = itp_qᵍ[show_b, show_μ, show_σ, show_w, show_ζ, show_z]
-
-	qᵍ_all = zeros(vf_mat)
-	for jω in 1:h.Nω
-		for jϵ in 1:h.Nϵ
-			qᵍ_all[jω, jϵ, :,:,:,:,:,:] = qᵍ_mat
-		end
-	end
-
-	ωg_mat = 1.0/(1.0+h.r_star) * ϕa_mat + qᵍ_all .* ϕb_mat
-	θg_mat = 1.0/(1.0+h.r_star) * (ϕa_mat - h.ωmin) ./ (ωg_mat - 1.0/(1.0+h.r_star)*h.ωmin)
-	θg_mat[isapprox.(ωg_mat, h.ωmin)] = 1.0
-
-	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
-	for jϵ in 1:h.Nϵ
-		l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
-		l[jϵ,1] = l_new
-		l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
-		l[jϵ,2] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
-		l[jϵ,3] = l_new
-		# l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
-		l_new = scatter(;x=h.ωgrid, y=θg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
-		l[jϵ,4] = l_new
-	end
-	pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Consumption"))
-	pv = plot([l[jϵ, 2] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Value function"))
-	pb = plot([l[jϵ, 3] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Debt purchases"))
-	pθ = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ], Layout(; font_size=16, title="Proportion risk-free debt"))
-
-	p = [pc pv; pb pθ]
-	p.plot.layout["xlabel"] = "ω"
-	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 600
-	p.plot.layout["font_family"] = "Fira Sans Light"
+	p = hh_pol(h, show_b, show_μ, show_σ, show_w, show_ζ, show_z)
 
 	if remote
 		path = pwd() * "/../../Graphs/"
