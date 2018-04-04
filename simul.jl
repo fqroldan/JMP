@@ -28,11 +28,13 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	wt, pN, Ld, output = results
 
 	def_prob = 0.
-	for (jzp, zvp) in enumerate(h.zgrid)
-		zvp <= thres? def_prob += h.Pz[jz, jzp]: Void
+	if ζt == 1
+		for (jzp, zvp) in enumerate(h.zgrid)
+			zvp <= thres? def_prob += h.Pz[jz, jzp]: Void
+		end
 	end
 
-	fill_path!(p,t; p = pN, Y = output, L = Ld, π = def_prob)
+	fill_path!(p,t; P = pN, Y = output, L = Ld, π = def_prob)
 	# print_save("\npN = $pN, pN^e = $(pNg)")
 
 	# Integrate the household's policy functions to get μ′, σ′
@@ -170,59 +172,3 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	return p, jz_series
 end
 
-function plot_simul(p::Path; remote::Bool=false)
-	T = size(p.data, 1)
-
-	B_vec = series(p,:B)
-	μ_vec = series(p,:μ)
-	σ_vec = series(p,:σ)
-	w_vec = series(p,:w)
-	ζ_vec = series(p,:ζ)-1
-	z_vec = exp.(series(p,:z))
-	Y_vec = series(p,:Y)
-	L_vec = series(p,:L)
-	π_vec = series(p,:π)
-	P_vec = series(p,:P)
-	ψ_vec = series(p,:ψ)
-
-	shiftζ = [0; ζ_vec[1:end-1]]
-
-	defaults = find((ζ_vec.==1) .* (shiftζ.==0))./4
-	exits    = find((ζ_vec.==0) .* (shiftζ.==1))./4
-
-	times = (1:T)./4
-
-	default_shades = rect(defaults, exits, 0, 1; fillcolor="#d3d3d3", opacity=0.5, line_width=0, xref="x", yref="paper")
-
-	pB = plot(scatter(; x=times, y=B_vec, showlegend=false), Layout(; shapes=default_shades, title="Bonds", xaxis=attr(title="t")));
-	pμ = plot(scatter(; x=times, y=μ_vec, showlegend=false), Layout(; shapes=default_shades, title="μ", xaxis=attr(title="t")));
-	pσ = plot(scatter(; x=times, y=σ_vec, showlegend=false), Layout(; shapes=default_shades, title="σ", xaxis=attr(title="t")));
-	pw = plot(scatter(; x=times, y=w_vec, showlegend=false), Layout(; shapes=default_shades, title="Wage", xaxis=attr(title="t")));
-	pζ = plot(scatter(; x=times, y=ζ_vec, showlegend=false), Layout(; shapes=default_shades, title="Default", xaxis=attr(title="t")));
-	pz = plot(scatter(; x=times, y=z_vec, showlegend=false), Layout(; shapes=default_shades, title="TFP", xaxis=attr(title="t")));
-	pY = plot([ scatter(; x=times, y=y_vec, showlegend=false);
-				scatter(; x=times, y=L_vec, showlegend=false)],
-			Layout(; shapes=default_shades, title="Output", xaxis=attr(title="t")));
-	pπ = plot(scatter(; x=times, y=π_vec, showlegend=false), Layout(; shapes=default_shades, title="Default prob", xaxis=attr(title="t")));
-	pP = plot(scatter(; x=times, y=P_vec, showlegend=false), Layout(; shapes=default_shades, title="Price of nontradables", xaxis=attr(title="t")));
-	pψ = plot(scatter(; x=times, y=ψ_vec, showlegend=false), Layout(; shapes=default_shades, title="Fraction domestic", xaxis=attr(title="t")));
-
-
-	p = [pB pw; pμ pσ; pζ pz]
-	# p.plot.layout["shapes"] = default_shades
-	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 600
-	p.plot.layout["font_family"] = "Fira Sans Light"
-
-	name = "simul"
-	if remote
-		path = pwd() * "/../../Graphs/"
-		save(path * "p_"*name*".jld", "p", p)
-	else
-		path = pwd() * "/../Graphs/"
-		savefig(p, path*name*".pdf")
-		savefig(p, path*name*".png")
-	end
-
-	Void
-end
