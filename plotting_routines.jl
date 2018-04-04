@@ -413,7 +413,7 @@ function plot_simul(p::Path; remote::Bool=false)
 	pψ = plot(scatter(; x=times, y=ψ_vec, showlegend=false), Layout(; shapes=default_shades, title="Fraction domestic", xaxis=attr(title="t")));
 
 
-	p = [pB pw; pμ pσ; pζ pz]
+	p = [pB pw; pY pz; pψ pπ; pP pζ; pμ pσ]
 	# p.plot.layout["shapes"] = default_shades
 	p.plot.layout["width"] = 800
 	p.plot.layout["height"] = 600
