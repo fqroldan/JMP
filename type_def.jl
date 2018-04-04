@@ -141,7 +141,7 @@ function Path(; T::Int64 = 1)
 		:Y => 8,
 		:L => 9,
 		:ψ => 10,
-		:p => 11
+		:P => 11
 		)
 	data = Matrix{Float64}(T, length(n))
 	return Path(data, n)
@@ -161,7 +161,7 @@ function fill_path!(p::Path, t::Int64;
 					Y::Float64=-Inf,
 					L::Float64=-Inf,
 					ψ::Float64=-Inf,
-					p::Float64=-Inf)
+					P::Float64=-Inf)
 	0 < t <= size(p.data, 1) || throw("t out of bounds")
 	B != -Inf? p.data[t, p.n[:B]] = B: Void
 	μ != -Inf? p.data[t, p.n[:μ]] = μ: Void
@@ -173,7 +173,7 @@ function fill_path!(p::Path, t::Int64;
 	Y != -Inf? p.data[t, p.n[:Y]] = Y: Void
 	L != -Inf? p.data[t, p.n[:L]] = L: Void
 	ψ != -Inf? p.data[t, p.n[:ψ]] = ψ: Void
-	p != -Inf? p.data[t, p.n[:p]] = p: Void
+	P != -Inf? p.data[t, p.n[:P]] = P: Void
 	Void
 end
 function trim_path!(p::Path, T_burnin::Int64)

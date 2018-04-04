@@ -182,7 +182,7 @@ function plot_simul(p::Path; remote::Bool=false)
 	Y_vec = series(p,:Y)
 	L_vec = series(p,:L)
 	π_vec = series(p,:π)
-	P_vec = series(p,:p)
+	P_vec = series(p,:P)
 	ψ_vec = series(p,:ψ)
 
 	shiftζ = [0; ζ_vec[1:end-1]]
