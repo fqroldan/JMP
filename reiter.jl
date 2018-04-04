@@ -82,7 +82,7 @@ function Hank(;	β = (1.0/1.15)^0.25,
 	ϖ = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
-	bgrid = linspace(0.0, 2.5, Nb)
+	bgrid = linspace(0.0, 4.0, Nb)
 	μgrid = linspace(0.0, 1.0, Nμ)
 	σgrid = linspace(0.1, 0.5, Nσ)
 
