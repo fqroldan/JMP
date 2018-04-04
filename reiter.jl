@@ -450,7 +450,7 @@ function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true,
 			var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
 			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 
-			h.upd_tol = max(exp(0.9*log(1+h.upd_tol))-1, 1e-6)
+			h.upd_tol = max(exp(0.85*log(1+h.upd_tol))-1, 1e-6)
 			iter > 10? iter > 20? iter > 30? h.tol_θ = 1e-16: h.tol_θ = 1e-8: h.tol_θ = 1e-4: Void
 			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))")
 			t_old = time()
