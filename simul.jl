@@ -28,14 +28,14 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	wt, pN, Ld, output = results
 
 	def_prob = 0.
-	if ζt == 1
+	if !jdef
 		for (jzp, zvp) in enumerate(h.zgrid)
 			zvp <= thres? def_prob += h.Pz[jz, jzp]: Void
 		end
 	end
 
 	fill_path!(p,t; P = pN, Y = output, L = Ld, π = def_prob)
-	# print_save("\npN = $pN, pN^e = $(pNg)")
+	print_save("\npN = $pN, pN^e = $(pNg)")
 
 	# Integrate the household's policy functions to get μ′, σ′
 	ϕa = zeros(h.Nω_fine*h.Nϵ)

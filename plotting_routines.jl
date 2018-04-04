@@ -416,7 +416,7 @@ function plot_simul(p::Path; remote::Bool=false)
 	p = [pB pw; pY pz; pψ pπ; pP pζ; pμ pσ]
 	# p.plot.layout["shapes"] = default_shades
 	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 600
+	p.plot.layout["height"] = 1000
 	p.plot.layout["font_family"] = "Fira Sans Light"
 
 	name = "simul"
