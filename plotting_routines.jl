@@ -100,34 +100,6 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 		savefig(p, path * "hh_def.pdf")
 	end
 
-
-	# leg = Array{String}(1, h.Nω)
-	# for jω in 1:h.Nω
-	# 	leg[jω] = "ω = $(round(h.ωgrid[jω],2))"
-	# end
-
-	# leg = "ω = $(round(mean(h.ωgrid),2))"
-
-	# ϕc_mat = itp_ϕc[h.ωgrid, mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
-	# ϕa_mat = itp_ϕa[h.ωgrid, mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
-	# ϕb_mat = itp_ϕb[h.ωgrid, mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
-	# vf_mat = itp_vf[h.ωgrid, mean(h.ϵgrid), show_b, show_μ, show_σ, show_w, show_ζ, h.zgrid]
-    #
-	# pc = plot(h.zgrid, ϕc_mat[:,1,1,1,1,1,1,:]', title = "Consumption", label = "")
-	# pa = plot(h.zgrid, ϕa_mat[:,1,1,1,1,1,1,:]', title = "Private Savings", label = "")
-	# pb = plot(h.zgrid, ϕb_mat[:,1,1,1,1,1,1,:]', title = "Debt Purchases", label = leg)
-	# pv = plot(h.zgrid, vf_mat[:,1,1,1,1,1,1,:]', title = "Value Function", label = "")
-
-	# if remote
-	path = pwd() * "/../../Graphs/"
-	# 	path = path * "Graphs/"
-	# 	savefig(path * "hh_z.pdf")
-	# else
-	# 	path = pwd() * "/../Graphs/"
-	# end
-
-
-
 	return Void
 end
 
