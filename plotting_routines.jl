@@ -406,7 +406,7 @@ function plot_simul(p::Path; remote::Bool=false)
 	pζ = plot(scatter(; x=times, y=ζ_vec, showlegend=false), Layout(; shapes=default_shades, title="Default", xaxis=attr(title="t")));
 	pz = plot(scatter(; x=times, y=z_vec, showlegend=false), Layout(; shapes=default_shades, title="TFP", xaxis=attr(title="t")));
 	pY = plot([ scatter(; x=times, y=Y_vec, showlegend=false);
-				scatter(; x=times, y=L_vec, showlegend=false)],
+				scatter(; x=times, y=L_vec, showlegend=false, line_dash="dashdot")],
 			Layout(; shapes=default_shades, title="Output", xaxis=attr(title="t")));
 	pπ = plot(scatter(; x=times, y=π_vec, showlegend=false), Layout(; shapes=default_shades, title="Default prob", xaxis=attr(title="t")));
 	pP = plot(scatter(; x=times, y=P_vec, showlegend=false), Layout(; shapes=default_shades, title="Price of nontradables", xaxis=attr(title="t")));
