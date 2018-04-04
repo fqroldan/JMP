@@ -27,6 +27,12 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	wt, pN, Ld, output = results
 
+	def_prob = 0.
+	for (jzp, zvp) in enumerate(h.zgrid)
+		zvp <= thres? def_prob += h.Pz[jz, jzp]: Void
+	end
+
+	fill_path!(p,t; p = pN, Y = output, L = Ld, π = def_prob)
 	# print_save("\npN = $pN, pN^e = $(pNg)")
 
 	# Integrate the household's policy functions to get μ′, σ′
@@ -50,6 +56,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	var_a  = a2 - a^2
 	var_b  = b2 - b^2
 	cov_ab = ab - a*b
+
+	prop_domestic = b/Bprime
 
 	# print_save("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab])")
 
@@ -102,7 +110,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	jz_series[t+1] = jzp
 
 	# Fill the path for next period
-	fill_path!(p,t+1; B = Bprime, μ = μprime, σ = σprime, w = wt, ζ = ζprime, z = zprime)
+	fill_path!(p,t+1; B = Bprime, μ = μprime, σ = σprime, w = wt, ζ = ζprime, z = zprime, ψ = prop_domestic)
 
 	return λprime
 end
@@ -171,6 +179,11 @@ function plot_simul(p::Path; remote::Bool=false)
 	w_vec = series(p,:w)
 	ζ_vec = series(p,:ζ)-1
 	z_vec = exp.(series(p,:z))
+	Y_vec = series(p,:Y)
+	L_vec = series(p,:L)
+	π_vec = series(p,:π)
+	P_vec = series(p,:p)
+	ψ_vec = series(p,:ψ)
 
 	shiftζ = [0; ζ_vec[1:end-1]]
 
@@ -187,6 +200,13 @@ function plot_simul(p::Path; remote::Bool=false)
 	pw = plot(scatter(; x=times, y=w_vec, showlegend=false), Layout(; shapes=default_shades, title="Wage", xaxis=attr(title="t")));
 	pζ = plot(scatter(; x=times, y=ζ_vec, showlegend=false), Layout(; shapes=default_shades, title="Default", xaxis=attr(title="t")));
 	pz = plot(scatter(; x=times, y=z_vec, showlegend=false), Layout(; shapes=default_shades, title="TFP", xaxis=attr(title="t")));
+	pY = plot([ scatter(; x=times, y=y_vec, showlegend=false);
+				scatter(; x=times, y=L_vec, showlegend=false)],
+			Layout(; shapes=default_shades, title="Output", xaxis=attr(title="t")));
+	pπ = plot(scatter(; x=times, y=π_vec, showlegend=false), Layout(; shapes=default_shades, title="Default prob", xaxis=attr(title="t")));
+	pP = plot(scatter(; x=times, y=P_vec, showlegend=false), Layout(; shapes=default_shades, title="Price of nontradables", xaxis=attr(title="t")));
+	pψ = plot(scatter(; x=times, y=ψ_vec, showlegend=false), Layout(; shapes=default_shades, title="Fraction domestic", xaxis=attr(title="t")));
+
 
 	p = [pB pw; pμ pσ; pζ pz]
 	# p.plot.layout["shapes"] = default_shades
