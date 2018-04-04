@@ -181,12 +181,12 @@ function plot_simul(p::Path; remote::Bool=false)
 
 	default_shades = rect(defaults, exits, 0, 1; fillcolor="#d3d3d3", opacity=0.5, line_width=0, xref="x", yref="paper")
 
-	pB = plot(scatter(; x=times, y=B_vec, showlegend=false), Layout(; shapes=default_shades, title="Bonds", xlabel="t"));
-	pμ = plot(scatter(; x=times, y=μ_vec, showlegend=false), Layout(; shapes=default_shades, title="μ", xlabel="t"));
-	pσ = plot(scatter(; x=times, y=σ_vec, showlegend=false), Layout(; shapes=default_shades, title="σ", xlabel="t"));
-	pw = plot(scatter(; x=times, y=w_vec, showlegend=false), Layout(; shapes=default_shades, title="Wage", xlabel="t"));
-	pζ = plot(scatter(; x=times, y=ζ_vec, showlegend=false), Layout(; shapes=default_shades, title="Default", xlabel="t"));
-	pz = plot(scatter(; x=times, y=z_vec, showlegend=false), Layout(; shapes=default_shades, title="TFP", xlabel="t"));
+	pB = plot(scatter(; x=times, y=B_vec, showlegend=false), Layout(; shapes=default_shades, title="Bonds", xaxis_label="t"));
+	pμ = plot(scatter(; x=times, y=μ_vec, showlegend=false), Layout(; shapes=default_shades, title="μ", xaxis_label="t"));
+	pσ = plot(scatter(; x=times, y=σ_vec, showlegend=false), Layout(; shapes=default_shades, title="σ", xaxis_label="t"));
+	pw = plot(scatter(; x=times, y=w_vec, showlegend=false), Layout(; shapes=default_shades, title="Wage", xaxis_label="t"));
+	pζ = plot(scatter(; x=times, y=ζ_vec, showlegend=false), Layout(; shapes=default_shades, title="Default", xaxis_label="t"));
+	pz = plot(scatter(; x=times, y=z_vec, showlegend=false), Layout(; shapes=default_shades, title="TFP", xaxis_label="t"));
 
 	p = [pB pw; pμ pσ; pζ pz]
 	# p.plot.layout["shapes"] = default_shades
