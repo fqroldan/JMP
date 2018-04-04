@@ -26,6 +26,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	results, _ = find_prices(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, w0, ζt, jz, jdef)
 
 	wt, pN, Ld, output = results
+	print_save("\npN = $pN, pN^e = $(pNg)")
 
 	def_prob = 0.
 	if !jdef
@@ -35,7 +36,6 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	end
 
 	fill_path!(p,t; P = pN, Y = output, L = Ld, π = def_prob)
-	print_save("\npN = $pN, pN^e = $(pNg)")
 
 	# Integrate the household's policy functions to get μ′, σ′
 	ϕa = zeros(h.Nω_fine*h.Nϵ)
