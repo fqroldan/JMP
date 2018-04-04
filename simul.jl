@@ -201,6 +201,7 @@ function plot_simul(p::Path; remote::Bool=false)
 	else
 		path = pwd() * "/../Graphs/"
 		savefig(p, path*name*".pdf")
+		savefig(p, path*name*".png")
 	end
 
 	Void
