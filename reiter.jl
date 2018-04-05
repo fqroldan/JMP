@@ -4,7 +4,7 @@ include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.15)^0.25,
 				IES = 2.,
-				RRA = 5.,
+				RRA = 10.,
 				γw = 0.99^0.25,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
@@ -82,9 +82,9 @@ function Hank(;	β = (1.0/1.15)^0.25,
 	ϖ = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
-	bgrid = linspace(0.0, 4.0, Nb)
-	μgrid = linspace(1.0, 2.0, Nμ)
-	σgrid = linspace(0.1, 0.5, Nσ)
+	bgrid = linspace(0.0, 3.0, Nb)
+	μgrid = linspace(0.5, 1.25, Nμ)
+	σgrid = linspace(0.01, 0.2, Nσ)
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.5
