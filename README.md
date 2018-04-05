@@ -1,3 +1,3 @@
-# A Theory of Sovereign Risk
+# Aggregate Demand around Debt Crises
 
 Preliminary and incomplete codes.
