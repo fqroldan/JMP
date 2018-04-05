@@ -109,10 +109,11 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	λprime = Q' * λt
 
-	jz_series[t+1] = jzp
-
 	# Fill the path for next period
-	fill_path!(p,t+1; B = Bprime, μ = μprime, σ = σprime, w = wt, ζ = ζprime, z = zprime, ψ = prop_domestic)
+	if t < length(jz_series)
+		jz_series[t+1] = jzp
+		fill_path!(p,t+1; B = Bprime, μ = μprime, σ = σprime, w = wt, ζ = ζprime, z = zprime, ψ = prop_domestic)
+	end
 
 	return λprime
 end
@@ -158,7 +159,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	Qϵ = kron(h.Pϵ, ones(h.Nω_fine,1))
 
 	# Simulate
-	for t in 1:T-1
+	for t in 1:T
 		# Advance one step
 		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λ, Qϵ)
 		# print_save("\nt = $t")
