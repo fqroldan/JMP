@@ -83,7 +83,7 @@ function Hank(;	β = (1.0/1.15)^0.25,
 
 	# Grids for endogenous aggregate states
 	bgrid = linspace(0.0, 3.0, Nb)
-	μgrid = linspace(0.5, 1.5, Nμ)
+	μgrid = linspace(0.5, 1.75, Nμ)
 	σgrid = linspace(0.01, 0.2, Nσ)
 
 	# Prepare grid for cash in hand.
@@ -351,7 +351,7 @@ function _unpackstatefs(h::Hank)
 end
 
 
-function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=1000, bellman_iter::Int64=maxiter)
+function vfi!(h::Hank; tol::Float64=1e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=100, bellman_iter::Int64=maxiter)
 
 	print_save("\nSolving household problem: ")
 	time_init = time()
