@@ -35,7 +35,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		end
 	end
 
-	fill_path!(p,t; P = pN, Y = output, L = Ld, π = def_prob)
+	fill_path!(p,t, Dict(:P => pN, :Y => output, :L => Ld, :π => def_prob))
 
 	# Integrate the household's policy functions to get μ′, σ′
 	ϕa = zeros(h.Nω_fine*h.Nϵ)
@@ -112,7 +112,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	# Fill the path for next period
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
-		fill_path!(p,t+1; B = Bprime, μ = μprime, σ = σprime, w = wt, ζ = ζprime, z = zprime, ψ = prop_domestic)
+		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :w => wt, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bprime-b))
 	end
 
 	return λprime
@@ -126,7 +126,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
 	jz = 4
 
 	B0, μ0, σ0, w0, ζ0, z0 = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], h.zgrid[jz]
-	fill_path!(p,1; B = B0, μ = μ0, σ = σ0, w = w0, ζ = ζ0, z = z0)
+	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w => w0, :ζ => ζ0, :z => z0))
 
 	itp_ϕa = make_itp(h, h.ϕa; agg=false)
 	itp_ϕb = make_itp(h, h.ϕb; agg=false)

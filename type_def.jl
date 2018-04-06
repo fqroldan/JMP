@@ -141,7 +141,10 @@ function Path(; T::Int64 = 1)
 		:Y => 8,
 		:L => 9,
 		:ψ => 10,
-		:P => 11
+		:P => 11,
+		:A => 12,
+		:Bh => 13,
+		:Bf => 14
 		)
 	data = Matrix{Float64}(T, length(n))
 	return Path(data, n)
@@ -150,7 +153,7 @@ end
 get(p::Path, t::Int64, sym::Symbol) = p.data[t, p.n[sym]]
 get(p::Path, t::AbstractArray, sym::Symbol) = p.data[t, p.n[sym]]
 
-function fill_path!(p::Path, t::Int64; 
+function fill_path!(p::Path, t::Int64, d::Dict{Symbol, Float64}=Dict(:VOID=>-Inf);
 					B::Float64=-Inf,
 					μ::Float64=-Inf,
 					σ::Float64=-Inf,
@@ -161,21 +164,35 @@ function fill_path!(p::Path, t::Int64;
 					Y::Float64=-Inf,
 					L::Float64=-Inf,
 					ψ::Float64=-Inf,
-					P::Float64=-Inf)
+					P::Float64=-Inf,
+					A::Float64=-Inf,
+					Bh::Float64=-Inf,
+					Bf::Float64=-Inf)
 	0 < t <= size(p.data, 1) || throw("t out of bounds")
-	B != -Inf? p.data[t, p.n[:B]] = B: Void
-	μ != -Inf? p.data[t, p.n[:μ]] = μ: Void
-	σ != -Inf? p.data[t, p.n[:σ]] = σ: Void
-	w != -Inf? p.data[t, p.n[:w]] = w: Void
-	ζ != -Inf? p.data[t, p.n[:ζ]] = ζ: Void
-	z != -Inf? p.data[t, p.n[:z]] = z: Void
-	π != -Inf? p.data[t, p.n[:π]] = π: Void
-	Y != -Inf? p.data[t, p.n[:Y]] = Y: Void
-	L != -Inf? p.data[t, p.n[:L]] = L: Void
-	ψ != -Inf? p.data[t, p.n[:ψ]] = ψ: Void
-	P != -Inf? p.data[t, p.n[:P]] = P: Void
+	if d != Dict(:VOID=>-Inf)
+		for (jd, dv) in enumerate(d)
+			sym, val = dv[1], dv[2]
+			p.data[t, p.n[sym]] = val
+		end
+	else
+		B != -Inf? p.data[t, p.n[:B]] = B: Void
+		μ != -Inf? p.data[t, p.n[:μ]] = μ: Void
+		σ != -Inf? p.data[t, p.n[:σ]] = σ: Void
+		w != -Inf? p.data[t, p.n[:w]] = w: Void
+		ζ != -Inf? p.data[t, p.n[:ζ]] = ζ: Void
+		z != -Inf? p.data[t, p.n[:z]] = z: Void
+		π != -Inf? p.data[t, p.n[:π]] = π: Void
+		Y != -Inf? p.data[t, p.n[:Y]] = Y: Void
+		L != -Inf? p.data[t, p.n[:L]] = L: Void
+		ψ != -Inf? p.data[t, p.n[:ψ]] = ψ: Void
+		P != -Inf? p.data[t, p.n[:P]] = P: Void
+		A != -Inf? p.data[t, p.n[:A]] = A: Void
+		Bh != -Inf? p.data[t, p.n[:Bh]] = Bh: Void
+		Bf != -Inf? p.data[t, p.n[:Bf]] = Bf: Void
+	end
 	Void
 end
+
 function trim_path!(p::Path, T_burnin::Int64)
 	p.data = p.data[T_burnin+1:end, :]
 	Void
