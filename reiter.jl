@@ -64,8 +64,8 @@ function Hank(;	β = (1.0/1.15)^0.25,
 	Pϵ = ϵ_chain.p
 	ϵgrid = ϵ_chain.state_values
 
-	wgrid = linspace(0.45, 1.0, Nw)
-	pngrid = linspace(0.5, 1.25, Np)
+	wgrid = linspace(0.75, 1.0, Nw)
+	pngrid = linspace(0.7, 1.25, Np)
 	ζgrid = 1:2
 	Nζ = length(ζgrid)
 
@@ -83,7 +83,7 @@ function Hank(;	β = (1.0/1.15)^0.25,
 
 	# Grids for endogenous aggregate states
 	bgrid = linspace(0.0, 3.0, Nb)
-	μgrid = linspace(0.5, 2.25, Nμ)
+	μgrid = linspace(1.25, 2.0, Nμ)
 	σgrid = linspace(0.01, 0.2, Nσ)
 
 	# Prepare grid for cash in hand.
@@ -458,8 +458,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 		dist = max(dist, dist_s)
 
-		if iter % 10 == 0
-			# plot_hh_policies(h)
+		if iter % 20 == 0
+			save(pwd() * "/hank.jld", "h", h)
 		end
 
 		if isnan.(dist) && iter > 1
