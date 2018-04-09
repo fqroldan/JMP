@@ -352,7 +352,7 @@ function _unpackstatefs(h::Hank)
 end
 
 
-function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=50, bellman_iter::Int64=maxiter)
+function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=30, bellman_iter::Int64=maxiter)
 
 	print_save("\nSolving household problem: ")
 	time_init = time()
@@ -459,7 +459,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 		dist = max(dist, dist_s)
 
-		if iter % 20 == 0
+		if iter % 10 == 0
 			save(pwd() * "/hank.jld", "h", h)
 		end
 
