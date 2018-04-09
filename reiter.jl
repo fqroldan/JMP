@@ -233,7 +233,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 	init_t = time()
 
-	coupon = h.κ * (1.0 - 1e-2)
+	coupon = h.κ * (1.0 - 1e-3)
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	qᵍ = ones(qᵍ_mat)
