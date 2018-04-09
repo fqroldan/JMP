@@ -3,7 +3,7 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.15)^0.25,
-				IES = 2.,
+				IES = 1.5,
 				RRA = 10.,
 				γw = 0.99^0.25,
 				τ = 0.35,
@@ -65,7 +65,7 @@ function Hank(;	β = (1.0/1.15)^0.25,
 	ϵgrid = ϵ_chain.state_values
 
 	wgrid = linspace(0.75, 1.0, Nw)
-	pngrid = linspace(0.7, 1.25, Np)
+	pngrid = linspace(0.9, 1.1, Np)
 	ζgrid = 1:2
 	Nζ = length(ζgrid)
 
