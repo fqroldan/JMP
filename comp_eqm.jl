@@ -159,7 +159,7 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	# Step 4: Check market clearing for nontradables
 	TFP = ifelse(jdefault, (1.0 - h.Δ) * exp(zv), exp(zv))
 	Ld_N, _  = labor_demand(h, w_new, TFP, pN; get_both=true)
-	supply_N = TFP * Ld_N^(h.α_N)
+	supply_N = Ld_N^(h.α_N)
 
 	demand = val_int_C
 	demand_N_govt = G / pN
@@ -265,7 +265,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	h.wage 	 = upd_η * results[:, 1] + (1.0-upd_η) * h.wage
 	h.pN 	 = upd_η * results[:, 2] + (1.0-upd_η) * h.pN
 	h.Ld 	 = upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
-	h.output = upd_η * results[:, 3] + (1.0-upd_η) * h.output
+	h.output = upd_η * results[:, 4] + (1.0-upd_η) * h.output
 
 	h.w′	 = h.wage
 
