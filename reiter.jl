@@ -22,7 +22,7 @@ function Hank(;	β = (1.0/1.15)^0.25,
 				Nw = 5,
 				Nz = 5,
 				ρz = 0.9,
-				σz = 0.025,
+				σz = 0.05,
 				ℏ = 0.5,
 				Δ = 0.075,
 				θ = .1,
@@ -233,6 +233,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 	init_t = time()
 
+	coupon = h.κ * (1.0 - 1e-2)
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	qᵍ = ones(qᵍ_mat)
@@ -270,7 +271,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 						ζpv = 1.0
 						μpv = h.μ′[js, jzp, 1]
 						σpv = h.σ′[js, jzp, 1]
-						E_rep += h.Pz[jz, jzp] * (h.κ + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
+						E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
 						check += h.Pz[jz, jzp]
 					end
 				end
@@ -279,7 +280,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 					ζ_reent = 1.0
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
-					E_rep += h.Pz[jz, jzp] * (h.κ + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
+					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
 					check += h.Pz[jz, jzp] * h.θ
 					ζ_cont = 2.0
 					μpv = h.μ′[js, jzp, 2]
