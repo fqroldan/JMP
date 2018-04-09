@@ -20,7 +20,7 @@ write(pwd()*"/../../output.txt", "")
 include("simul.jl")
 include("plotting_routines.jl")
 
-print_save("\nA Theory of Sovereign Risk\n")
+print_save("\nAggregate Demand around Debt Crises\n")
 
 print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(), "HH:MM"))
 
