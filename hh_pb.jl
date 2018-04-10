@@ -1,4 +1,10 @@
-utility(h::Hank, c::Float64) = ifelse(c > 1e-10, c^(1.0 - h.ψ) / (1.0 - h.ψ), -1e10)
+function utility(h::Hank, c::Float64)
+	if c > 1e-10
+		u = c^(1.0 - h.ψ) / (1.0 - h.ψ)
+	else
+		u = -1e10
+	end
+end
 
 function EZ_G(h::Hank, v::Float64)
 	if h.EpsteinZin
@@ -65,10 +71,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 
 	ap, bp, C = get_abc(RHS, h.ωmin, qʰ, qᵍ, pC, sp, θp)
 
-	""" CHANGE THIS FOR GHH """
-	ℓ = 0
 	itp_s = true
-	u = utility(h, C - ℓ)
 
 	# Basis matrix for continuation values
 	check, Ev, test, ut = 0., 0., 0, 0.
@@ -123,6 +126,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 
 	isapprox(check, 1) || print_save("\nwrong expectation operator")
 
+	""" CHANGE THIS FOR GHH """
 	# Compute value
 	if h.EpsteinZin
 		Tv = EZ_T(h, Ev)
@@ -134,6 +138,8 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 		vf = vf^(1.0/EZ_exp)
 		return vf
 	else
+		ℓ = 0
+		u = utility(h, C - ℓ)
 		vf = (1.0 - h.β) * u + h.β * Ev
 		return vf
 	end
@@ -301,7 +307,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 			end
 			isapprox(θg, 1) && θg > 1? θg = 1.0: Void
 			
-			if resolve
+			if resolve && ωmax > qʰv * h.ωmin
 				# θg = 1.0
 				guess = [ωg, θg]
 
