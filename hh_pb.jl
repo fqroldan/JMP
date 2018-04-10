@@ -300,11 +300,6 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 			if ωg > ωmax
 				ωg = max(ωmax - 1e-2, 0)
 			end
-			if ωmax < qʰv * h.ωmin
-				print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
-				ap, bp, cmax = h.ωmin, 0., 1e-10
-				fmax = value(h, qʰv*ap, 0., itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
-			end
 			isapprox(θg, 1) && θg > 1? θg = 1.0: Void
 			
 			if resolve && ωmax > qʰv * h.ωmin
@@ -313,6 +308,11 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 
 				ap, bp, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef, ωmax)
 			else
+				if ωmax < qʰv * h.ωmin
+					print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
+					ap, bp, cmax = h.ωmin, 0., 1e-10
+					# fmax = value(h, qʰv*ap, 0., itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
+				end
 				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
