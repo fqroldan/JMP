@@ -227,7 +227,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, q
 end
 
 
-function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf; resolve::Bool = true)
+function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf; resolve::Bool = true, verbose::Bool=true)
 
 	vf = SharedArray{Float64}(size(h.vf))
 	ϕa = SharedArray{Float64}(size(h.ϕa))
@@ -253,10 +253,12 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 		wpv = h.w′[js]
 		thres = h.def_thres[js]
 
-		minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid)? print_save("\nμ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
-		minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid)? print_save("\nσ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
-		bpv - minimum(h.bgrid) < -1e-4 || bpv - maximum(h.bgrid) > 1e-4? print_save("\nb = $(round(bpv,6)) out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
-		wpv < minimum(h.wgrid) || wpv > maximum(h.wgrid)? print_save("\nw out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
+		if verbose
+			minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid)? print_save("\nμ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
+			minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid)? print_save("\nσ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
+			bpv - minimum(h.bgrid) < -1e-4 || bpv - maximum(h.bgrid) > 1e-4? print_save("\nb = $(round(bpv,6)) out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
+			wpv < minimum(h.wgrid) || wpv > maximum(h.wgrid)? print_save("\nw out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
+		end
 
 
 		jdef = (h.ζgrid[jζ] != 1.0)
@@ -309,7 +311,9 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 				ap, bp, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef, ωmax)
 			else
 				if ωmax < qʰv * h.ωmin
-					print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
+					if verbose
+						print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
+					end
 					ap, bp, cmax = h.ωmin, 0., 1e-10
 					# fmax = value(h, qʰv*ap, 0., itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
 				end
@@ -345,14 +349,14 @@ function make_itps(h::Hank, vf, qᵍ_mat)
 	return itp_vf, itp_qᵍ
 end
 
-function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve::Bool=true)
+function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve::Bool=true, verbose::Bool=true)
 	# Interpolate the value function
 	itp_vf = make_itp(h, h.vf; agg=false)
 	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
 	# itp_vf, itp_qᵍ = make_itps(h, h.vf, qᵍ_mat)
 
 	# Compute values
-	vf, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf, resolve = resolve)
+	vf, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf, resolve = resolve, verbose = verbose)
 
 	sum(isnan.(vf)) > 0? print_save("\n$(sum(isnan.(vf))) found in vf"): Void
 	sum(isnan.(ϕa)) > 0? print_save("$(sum(isnan.(ϕa))) found in ϕa"): Void

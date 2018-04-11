@@ -41,7 +41,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 		wL_mat  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * (1.0 - h.τ)
 
 		# Re-solve for these values of wn and pn
-		_, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf)
+		_, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf; resolve = true, verbose = false)
 			
 		ϕa_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕa, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 		ϕb_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕb, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
