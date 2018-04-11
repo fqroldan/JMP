@@ -82,12 +82,12 @@ function Hank(;	β = (1.0/1.15)^0.25,
 	ϖ = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
-	bgrid = linspace(0.0, 4.0, Nb)
-	μgrid = linspace(0.75, 3.0, Nμ)
+	bgrid = linspace(0.0, 3.5, Nb)
+	μgrid = linspace(1.0, 2.25, Nμ)
 	σgrid = linspace(0.01, 0.2, Nσ)
 
 	# Prepare grid for cash in hand.
-	ωmin	= -0.5
+	ωmin	= -0.3
 	# ωgrid0	= linspace(0.0, (ωmax-ωmin)^curv, Nω).^(1/curv)
 	ωgrid0	= linspace(0., (ωmax-ωmin), Nω)
 	ωgrid0	= ωgrid0 + ωmin
@@ -200,7 +200,7 @@ function Hank(;	β = (1.0/1.15)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv + 0.025 * zv + 0.025 * (mean(bgrid)-bv)
+			issuance[jb,:,:,:,1,jz] = bv + 0.025 * zv + 0.05 * (mean(bgrid)-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
@@ -341,7 +341,11 @@ function _unpackstatefs(h::Hank)
 
 	pC = price_index(h, h.pN)
 
-	T_mat = govt_bc(h, h.wage .* h.Ld)
+	taxes_mat = govt_bc(h, h.wage .* h.Ld)
+
+	profits_mat = reshape( h.output - h.wage .* h.Ld, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+
+	T_mat = taxes_mat - profits_mat
 
 	qʰ_mat = reshape(h.qʰ, 	h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	qᵍ_mat = reshape(h.qᵍ, 	h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
