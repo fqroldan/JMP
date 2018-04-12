@@ -4,7 +4,7 @@ include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.15)^0.25,
 				IES = 2.0,
-				RRA = 10.,
+				RRA = 15.,
 				γw = 0.99^0.25,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
@@ -18,9 +18,9 @@ function Hank(;	β = (1.0/1.15)^0.25,
 				Nϵ = 4,
 				Nμ = 4,
 				Nσ = 3,
-				Nb = 6,
+				Nb = 4,
 				Nw = 5,
-				Nz = 5,
+				Nz = 7,
 				ρz = 0.9,
 				σz = 0.025,
 				ℏ = 0.5,
@@ -82,8 +82,9 @@ function Hank(;	β = (1.0/1.15)^0.25,
 	ϖ = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
-	bgrid = linspace(0.0, 3.5, Nb)
-	μgrid = linspace(1.0, 2.25, Nμ)
+	Bbar  = 2.5
+	bgrid = linspace(0.0, 3.0, Nb)
+	μgrid = linspace(1.0, 2.5, Nμ)
 	σgrid = linspace(0.01, 0.2, Nσ)
 
 	# Prepare grid for cash in hand.
@@ -200,7 +201,7 @@ function Hank(;	β = (1.0/1.15)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv + 0.025 * zv + 0.05 * (mean(bgrid)-bv)
+			issuance[jb,:,:,:,1,jz] = bv + 0.025 * zv + 0.05 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
@@ -233,7 +234,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 	init_t = time()
 
-	coupon = h.κ * (1.0 - 1e-3)
+	coupon = h.κ * (1.0 - 1e-4)
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	qᵍ = ones(qᵍ_mat)

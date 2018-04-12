@@ -1,6 +1,6 @@
 include("type_def.jl")
 	
-function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λt, Qϵ)
+function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λt, Qϵ; only_def_end::Bool=false)
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal get(p, t, :z)
 	# B, ζ, and z are decided at the end of the last period
@@ -71,6 +71,10 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	probs = cumsum(h.Pz[jz,:])
 	jzp = findfirst(probs .> rand())
 
+	if only_def_end && 4*t < 40
+		jzp = max(2, jzp)
+	end
+
 	zprime = h.zgrid[jzp]
 
 	μprime = μ′[jzp, 1]
@@ -118,7 +122,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	return λprime
 end
 
-function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0)
+function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::Bool=false)
 	# Setup
 	T = burn_in + simul_length
 	p = Path(T = T)

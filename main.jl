@@ -50,7 +50,7 @@ print_save("\nω: $(h.ωgrid)\n")
 vfi!(h, verbose = true, remote = remote)
 save(pwd() * "/../../hank.jld", "h", h)
 
-p, jz_series = simul(h; simul_length=200, burn_in=100)
+p, jz_series = simul(h; simul_length=200, burn_in=100, only_def_end=true)
 plot_simul(p; remote=remote)
 
 Void
