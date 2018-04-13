@@ -201,7 +201,7 @@ function Hank(;	β = (1.0/1.15)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv + 0.025 * zv + 0.05 * (Bbar-bv)
+			issuance[jb,:,:,:,1,jz] = bv + 0.5 * zv + 0.05 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
@@ -234,7 +234,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 	init_t = time()
 
-	coupon = h.κ * (1.0 - 1e-4)
+	coupon = h.κ * (1.0 - 1e-5)
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	qᵍ = ones(qᵍ_mat)

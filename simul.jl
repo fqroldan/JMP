@@ -71,7 +71,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	probs = cumsum(h.Pz[jz,:])
 	jzp = findfirst(probs .> rand())
 
-	if only_def_end && 4*t < 40
+	if only_def_end
 		jzp = max(2, jzp)
 	end
 
@@ -165,7 +165,9 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	# Simulate
 	for t in 1:T
 		# Advance one step
-		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λ, Qϵ)
+		only_def_end && t - burn_in < 4*40? no_def = true: no_def = false
+
+		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λ, Qϵ; only_def_end=no_def)
 		# print_save("\nt = $t")
 	end
 
