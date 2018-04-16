@@ -1,6 +1,6 @@
 include("type_def.jl")
 	
-function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λt, Qϵ; only_def_end::Bool=false)
+function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λt, Qϵ; phase::String="")
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal get(p, t, :z)
 	# B, ζ, and z are decided at the end of the last period
@@ -71,8 +71,10 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	probs = cumsum(h.Pz[jz,:])
 	jzp = findfirst(probs .> rand())
 
-	if only_def_end
-		jzp = max(2, jzp)
+	if phase == "no_def"
+		jzp = max(jzp, 2)
+	elseif phase == "danger"
+		jzp = 2
 	end
 
 	zprime = h.zgrid[jzp]
@@ -165,9 +167,17 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	# Simulate
 	for t in 1:T
 		# Advance one step
-		only_def_end && t - burn_in < 4*40? no_def = true: no_def = false
+		phase = ""
+		if only_def_end
+			if t - burn_in < 4*40
+				phase = "no_def"
+				if t - burn_in > 4*20
+					phase = "danger"
+				end
+			end
+		end
 
-		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λ, Qϵ; only_def_end=no_def)
+		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λ, Qϵ; phase = phase)
 		# print_save("\nt = $t")
 	end
 
