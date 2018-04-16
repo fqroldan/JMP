@@ -3,8 +3,8 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.15)^0.25,
-				IES = 2.0,
-				RRA = 15.,
+				IES = 5.0,
+				RRA = 20.,
 				γw = 0.99^0.25,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
@@ -20,7 +20,7 @@ function Hank(;	β = (1.0/1.15)^0.25,
 				Nσ = 3,
 				Nb = 4,
 				Nw = 5,
-				Nz = 7,
+				Nz = 11,
 				ρz = 0.9,
 				σz = 0.025,
 				ℏ = 0.5,
@@ -82,8 +82,8 @@ function Hank(;	β = (1.0/1.15)^0.25,
 	ϖ = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
-	Bbar  = 2.5
-	bgrid = linspace(0.0, 3.0, Nb)
+	Bbar  = 2.75
+	bgrid = linspace(0.0, 3.5, Nb)
 	μgrid = linspace(1.0, 2.5, Nμ)
 	σgrid = linspace(0.01, 0.2, Nσ)
 
