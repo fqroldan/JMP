@@ -362,7 +362,10 @@ function plot_simul(path::Path; remote::Bool=false)
 				scatter(; x=times, y=L_vec, showlegend=false, line_dash="dashdot")],
 			Layout(; shapes=default_shades, title="Output", xaxis=attr(title="t")));
 	pπ = plot(scatter(; x=times, y=π_vec, showlegend=false), Layout(; shapes=default_shades, title="Default prob", xaxis=attr(title="t")));
-	pP = plot(scatter(; x=times, y=P_vec, showlegend=false), Layout(; shapes=default_shades, title="Price of nontradables", xaxis=attr(title="t")));
+	pP = plot(scatter(; x=times, y=P_vec, showlegend=false,
+						x=times, y=ones(times)*maximum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5,
+						x=times, y=ones(times)*minimum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
+						Layout(; shapes=default_shades, title="Price of nontradables", xaxis=attr(title="t")));
 	pψ = plot(scatter(; x=times, y=ψ_vec, showlegend=false), Layout(; shapes=default_shades, title="Fraction domestic", xaxis=attr(title="t")));
 
 
