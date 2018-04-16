@@ -340,10 +340,22 @@ function plot_simul(path::Path; remote::Bool=false)
 
 	default_shades = rect(defaults, exits, 0, 1; fillcolor="#d3d3d3", opacity=0.5, line_width=0, xref="x", yref="paper")
 
-	pB = plot(scatter(; x=times, y=B_vec, showlegend=false), Layout(; shapes=default_shades, title="Bonds", xaxis=attr(title="t")));
-	pμ = plot(scatter(; x=times, y=μ_vec, showlegend=false), Layout(; shapes=default_shades, title="μ", xaxis=attr(title="t")));
-	pσ = plot(scatter(; x=times, y=σ_vec, showlegend=false), Layout(; shapes=default_shades, title="σ", xaxis=attr(title="t")));
-	pw = plot(scatter(; x=times, y=w_vec, showlegend=false), Layout(; shapes=default_shades, title="Wage", xaxis=attr(title="t")));
+	pB = plot(scatter(; x=times, y=B_vec, showlegend=false,
+						x=times, y=ones(times)*maximum(h.Bgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5,
+						x=times, y=ones(times)*minimum(h.Bgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
+						Layout(; shapes=default_shades, title="Bonds", xaxis=attr(title="t")));
+	pμ = plot(scatter(; x=times, y=μ_vec, showlegend=false,
+						x=times, y=ones(times)*maximum(h.μgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5,
+						x=times, y=ones(times)*minimum(h.μgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
+						Layout(; shapes=default_shades, title="μ", xaxis=attr(title="t")));
+	pσ = plot(scatter(; x=times, y=σ_vec, showlegend=false,
+						x=times, y=ones(times)*maximum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5,
+						x=times, y=ones(times)*minimum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
+						Layout(; shapes=default_shades, title="σ", xaxis=attr(title="t")));
+	pw = plot(scatter(; x=times, y=w_vec, showlegend=false,
+						x=times, y=ones(times)*maximum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5,
+						x=times, y=ones(times)*minimum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
+						Layout(; shapes=default_shades, title="Wage", xaxis=attr(title="t")));
 	pζ = plot(scatter(; x=times, y=ζ_vec, showlegend=false), Layout(; shapes=default_shades, title="Default", xaxis=attr(title="t")));
 	pz = plot(scatter(; x=times, y=z_vec, showlegend=false), Layout(; shapes=default_shades, title="TFP", xaxis=attr(title="t")));
 	pY = plot([ scatter(; x=times, y=Y_vec, showlegend=false);
