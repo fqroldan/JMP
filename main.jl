@@ -29,6 +29,7 @@ local_run = false
 
 # Initialize type
 if remote || local_run == false
+	print_save("\nLoading solved model file\n")
 	h = Hank();
 	try
 		h2 = load("hank.jld", "h")
