@@ -26,6 +26,7 @@ print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(no
 
 # Initialize type
 h = Hank();
+# h = load("hank.jld", "h")
 try
 	h2 = load("hank.jld", "h")
 	if h.ψ == h2.ψ && h.γ == h2.γ && h.Ns == h2.Ns
