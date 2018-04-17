@@ -286,13 +286,13 @@ end
 function update_grids_pw!(h::Hank, up_prop, down_prop)
 	
 	pN_down = minimum(h.pngrid)
-	if up_prop > 0.05
+	if up_prop > 0.025
 		pN_down = pN_down * 0.95
 	elseif up_prop == 0.
 		pN_down = pN_down * 1.01
 	end
 	pN_up = maximum(h.pngrid)
-	if down_prop > 0.05
+	if down_prop > 0.025
 		pN_up = pN_up * 1.05
 	elseif down_prop == 0.
 		pN_up = pN_up * 0.99
