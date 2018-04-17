@@ -79,7 +79,7 @@ function Hank(;	β = (1.0/1.15)^0.25,
 	α_N = 0.6
 
 	η = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
-	ϖ = 0.80 # Taken from Anzoategui, targets SS output share of nontradables at 88%
+	ϖ = 0.33 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
 	Bbar  = 2.75
