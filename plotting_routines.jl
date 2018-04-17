@@ -330,6 +330,8 @@ function plot_simul(path::Path; remote::Bool=false)
 	π_vec = series(path,:π)
 	P_vec = series(path,:P)
 	ψ_vec = series(path,:ψ)
+	A_vec = series(path,:A)
+	Bf_vec= series(path,:Bf)
 
 	shiftζ = [0; ζ_vec[1:end-1]]
 
@@ -366,13 +368,15 @@ function plot_simul(path::Path; remote::Bool=false)
 				scatter(; x=times, y=ones(times)*maximum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*minimum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; shapes=default_shades, title="Price of nontradables", xaxis=attr(title="t")));
-	pψ = plot(scatter(; x=times, y=ψ_vec, showlegend=false), Layout(; shapes=default_shades, title="Fraction domestic", xaxis=attr(title="t")));
+	pψ = plot(scatter(; x=times, y=ψ_vec,  showlegend=false), Layout(; shapes=default_shades, title="Fraction domestic", xaxis=attr(title="t")));
+	pA = plot(scatter(; x=times, y=A_vec,  showlegend=false), Layout(; shapes=default_shades, title="Domestic risk-free debt", xaxis_title="t"));
+	pBf= plot(scatter(; x=times, y=Bf_vec, showlegend=false), Layout(; shapes=default_shades, title="Foreign debt", xaxis_title="t"));
 
 
-	p = [pB pw; pY pz; pψ pπ; pP pζ; pμ pσ]
+	p = [pB pw pz; pA pBf pψ; pY pμ pσ; pπ pζ pP]
 	# p.plot.layout["shapes"] = default_shades
-	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 1000
+	p.plot.layout["width"] = 900
+	p.plot.layout["height"] = 900
 	p.plot.layout["font_family"] = "Fira Sans Light"
 
 	name = "simul"
