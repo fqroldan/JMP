@@ -31,7 +31,9 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	def_prob = 0.
 	if !jdef
 		for (jzp, zvp) in enumerate(h.zgrid)
-			zvp <= thres? def_prob += h.Pz[jz, jzp]: Void
+			if zvp <= thres
+				def_prob += h.Pz[jz, jzp]
+			end
 		end
 	end
 
