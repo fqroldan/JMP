@@ -248,11 +248,31 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	dist[2] = sqrt.(sum( (results[:, 2] - h.pN).^2 ))   / sqrt.(sum(h.pN.^2))
 	dist[3] = sqrt.(sum( (results[:, 3] - h.Ld).^2 ))   / sqrt.(sum(h.Ld.^2))
 
-	h.wage 	 = upd_η * results[:, 1] + (1.0-upd_η) * h.wage
 	h.pN 	 = upd_η * results[:, 2] + (1.0-upd_η) * h.pN
-	h.Ld 	 = upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
-	h.output = upd_η * results[:, 4] + (1.0-upd_η) * h.output
 
+	consistent_others = true
+
+	if consistent_others
+		for js in 1:size(h.Jgrid, 1)
+			Bpv = h.issuance[js]
+			G = h.spending[js]
+			
+			pN = h.pN[js]
+			pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
+
+			bv = h.bgrid[h.Jgrid[js, 1]]
+			μv = h.μgrid[h.Jgrid[js, 2]]
+			σv = h.σgrid[h.Jgrid[js, 3]]
+			wv = h.wgrid[h.Jgrid[js, 4]]
+			jζ = h.Jgrid[js, 5]
+			jz = h.Jgrid[js, 6]
+
+			h.wage[js], h.Ld[js], h.output[js] = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ!=1); get_others=true)
+	else
+		h.wage 	 = upd_η * results[:, 1] + (1.0-upd_η) * h.wage
+		h.Ld 	 = upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
+		h.output = upd_η * results[:, 4] + (1.0-upd_η) * h.output
+	end
 	h.w′	 = h.wage
 
 	mean_f = mean(minf)
