@@ -188,8 +188,13 @@ end
 
 function plot_LoM(h::Hank; remote::Bool=false)
 	jz = ceil(Int, h.Nz/2)
-	μ′_mat = reshape(h.μ′[:,jz,1], h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	σ′_mat = reshape(h.σ′[:,jz,1], h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+
+	μ′_mat = zeros(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	σ′_mat = zeros(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	for jz in 1:h.Nz
+		μ′_mat[jz] = h.μ′[jz,jz,1]
+		σ′_mat[jz] = h.σ′[jz,jz,1]
+	end		
 
 	pμ1 = lines(h, μ′_mat, 1, "Next period μ")
 	pσ1 = lines(h, σ′_mat, 1, "Next period σ")
