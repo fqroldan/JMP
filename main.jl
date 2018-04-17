@@ -33,6 +33,7 @@ if remote || local_run
 	try
 		h2 = load("hank.jld", "h")
 		if h.ψ == h2.ψ && h.γ == h2.γ && h.Ns == h2.Ns
+			print_save("Starting from loaded guess")
 			h.ϕa = h2.ϕa
 			h.ϕb = h2.ϕb
 			h.ϕc = h2.ϕc

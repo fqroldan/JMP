@@ -201,7 +201,7 @@ function Hank(;	β = (1.0/1.25)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv - 0.25 * zv + 0.05 * (Bbar-bv)
+			issuance[jb,:,:,:,1,jz] = bv - 0.125 * zv + 0.05 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
