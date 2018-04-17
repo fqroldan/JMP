@@ -268,6 +268,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 			jz = h.Jgrid[js, 6]
 
 			h.wage[js], h.Ld[js], h.output[js] = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ!=1); get_others=true)
+		end
 	else
 		h.wage 	 = upd_η * results[:, 1] + (1.0-upd_η) * h.wage
 		h.Ld 	 = upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
