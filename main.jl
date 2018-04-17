@@ -28,7 +28,7 @@ print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(no
 local_run = false
 
 # Initialize type
-if remote || local_run == false
+if remote || local_run
 	h = Hank();
 	try
 		h2 = load("hank.jld", "h")

@@ -373,7 +373,7 @@ function plot_simul(path::Path; remote::Bool=false)
 	pBf= plot(scatter(; x=times, y=Bf_vec, showlegend=false), Layout(; shapes=default_shades, title="Foreign debt", xaxis_title="t"));
 
 
-	p = [pB pw pz; pA pBf pψ; pY pμ pσ; pπ pζ pP]
+	p = [pB pw pz; pY pμ pσ; pA pBf pψ; pπ pζ pP]
 	# p.plot.layout["shapes"] = default_shades
 	p.plot.layout["width"] = 900
 	p.plot.layout["height"] = 900
