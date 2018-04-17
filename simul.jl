@@ -173,7 +173,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 		if only_def_end
 			if t - burn_in < 4*40
 				phase = "no_def"
-				if t - burn_in > 4*20
+				if t - burn_in > 4*35
 					phase = "danger"
 				end
 			end
