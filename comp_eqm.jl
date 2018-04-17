@@ -248,7 +248,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	dist[2] = sqrt.(sum( (results[:, 2] - h.pN).^2 ))   / sqrt.(sum(h.pN.^2))
 	dist[3] = sqrt.(sum( (results[:, 3] - h.Ld).^2 ))   / sqrt.(sum(h.Ld.^2))
 
-	h.pN 	 = upd_η * results[:, 2] + (1.0-upd_η) * h.pN
+	h.pN = upd_η * results[:, 2] + (1.0-upd_η) * h.pN
 
 	consistent_others = true
 
@@ -274,8 +274,8 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 		h.Ld 	 = upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
 		h.output = upd_η * results[:, 4] + (1.0-upd_η) * h.output
 	end
-	h.w′	 = h.wage
 
+	h.w′ = h.wage
 	mean_f = mean(minf)
 
 	up_prop   = sum(minf .>  1e-4) / length(minf)
