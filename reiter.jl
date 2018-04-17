@@ -20,7 +20,7 @@ function Hank(;	β = (1.0/1.25)^0.25,
 				Nσ = 3,
 				Nb = 4,
 				Nw = 5,
-				Nz = 11,
+				Nz = 7,
 				ρz = 0.9,
 				σz = 0.025,
 				ℏ = 0.5,
@@ -85,7 +85,7 @@ function Hank(;	β = (1.0/1.25)^0.25,
 	Bbar  = 2.75
 	bgrid = linspace(0.0, 3.5, Nb)
 	μgrid = linspace(1.0, 2.5, Nμ)
-	σgrid = linspace(0.005, 0.2, Nσ)
+	σgrid = linspace(0.005, 0.5, Nσ)
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.3
