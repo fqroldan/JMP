@@ -193,7 +193,7 @@ function plot_LoM(h::Hank; remote::Bool=false)
 	σ′_mat = zeros(h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
 
 	for js in 1:size(h.Jgrid, 1)
-		jz = h.zgrid[h.Jgrid[js, 6]]
+		jz = h.Jgrid[js, 6]
 
 		μ′_mat[js] = h.μ′[js,jz,1]
 		σ′_mat[js] = h.σ′[js,jz,1]
