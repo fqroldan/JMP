@@ -13,7 +13,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	ζt = Int(get(p, t, :ζ))
 	zt = get(p, t, :z)
 
-	# print_save("\n$([Bt, μt, σt, w0, ζt, zt])")
+	print_save("\n$([Bt, μt, σt, w0, ζt, zt])")
 
 	Bprime 	= itp_B′[Bt, μt, σt, w0, ζt, jz]
 	G 		= itp_G[Bt, μt, σt, w0, ζt, jz]
