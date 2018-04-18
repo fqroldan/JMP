@@ -195,8 +195,8 @@ function plot_LoM(h::Hank; remote::Bool=false)
 	for js in 1:size(h.Jgrid, 1)
 		jz = h.zgrid[h.Jgrid[js, 6]]
 
-		μ′_mat[js] = h.μ′[jz,jz,1]
-		σ′_mat[js] = h.σ′[jz,jz,1]
+		μ′_mat[js] = h.μ′[js,jz,1]
+		σ′_mat[js] = h.σ′[js,jz,1]
 	end
 
 	μ′_mat = reshape(μ′_mat, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
