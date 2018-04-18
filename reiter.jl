@@ -84,7 +84,7 @@ function Hank(;	β = (1.0/1.25)^0.25,
 	# Grids for endogenous aggregate states
 	Bbar  = 2.75
 	bgrid = linspace(0.0, 3.5, Nb)
-	μgrid = linspace(1.0, 2.5, Nμ)
+	μgrid = linspace(-1.0, 2.5, Nμ)
 	σgrid = linspace(0.005, 0.5, Nσ)
 
 	# Prepare grid for cash in hand.
