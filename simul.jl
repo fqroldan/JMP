@@ -127,6 +127,9 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 end
 
 function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::Bool=false)
+
+	srand(3)
+
 	# Setup
 	T = burn_in + simul_length
 	p = Path(T = T)
