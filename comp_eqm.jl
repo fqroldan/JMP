@@ -513,6 +513,8 @@ function update_expectations!(h::Hank, upd_η::Float64)
 		return collect(linspace(xmin, xmax, Nx))
 	end
 
+	σ′_new = max.(σ′_new, 1e-2)
+
 	new_μgrid = new_grid(μ′_new, h.μgrid)
 	new_σgrid = new_grid(σ′_new, h.σgrid)
 
