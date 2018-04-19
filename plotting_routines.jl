@@ -353,35 +353,35 @@ function plot_simul(path::Path; remote::Bool=false)
 
 	default_shades = rect(defaults, exits, 0, 1; fillcolor="#d3d3d3", opacity=0.5, line_width=0, xref="x", yref="paper")
 
-	pB = plot([	scatter(; x=times, y=B_vec, showlegend=false),
+	pB = plot([	scatter(; x=times, y=B_vec, marker_color=col[1], showlegend=false),
 				scatter(; x=times, y=ones(times)*maximum(h.bgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*minimum(h.bgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; shapes=default_shades, title="Bonds", xaxis=attr(title="t")));
-	pμ = plot([ scatter(; x=times, y=μ_vec, showlegend=false),
+	pμ = plot([ scatter(; x=times, y=μ_vec, marker_color=col[1], showlegend=false),
 				scatter(; x=times, y=ones(times)*maximum(h.μgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*minimum(h.μgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; shapes=default_shades, title="μ", xaxis=attr(title="t")));
-	pσ = plot([ scatter(; x=times, y=σ_vec, showlegend=false),
+	pσ = plot([ scatter(; x=times, y=σ_vec, marker_color=col[1], showlegend=false),
 				scatter(; x=times, y=ones(times)*maximum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*minimum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; shapes=default_shades, title="σ", xaxis=attr(title="t")));
-	pw = plot([ scatter(; x=times, y=w_vec, showlegend=false),
+	pw = plot([ scatter(; x=times, y=w_vec, marker_color=col[1], showlegend=false),
 				scatter(; x=times, y=ones(times)*maximum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*minimum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; shapes=default_shades, title="Wage", xaxis=attr(title="t")));
-	pζ = plot(scatter(; x=times, y=ζ_vec, showlegend=false), Layout(; shapes=default_shades, title="Default", xaxis=attr(title="t")));
-	pz = plot(scatter(; x=times, y=z_vec, showlegend=false), Layout(; shapes=default_shades, title="TFP", xaxis=attr(title="t")));
-	pY = plot([ scatter(; x=times, y=Y_vec, showlegend=false),
-				scatter(; x=times, y=L_vec, showlegend=false, line_dash="dashdot")],
+	pζ = plot(scatter(; x=times, y=ζ_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="Default", xaxis=attr(title="t")));
+	pz = plot(scatter(; x=times, y=z_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="TFP", xaxis=attr(title="t")));
+	pY = plot([ scatter(; x=times, y=Y_vec, marker_color=col[1], showlegend=false),
+				scatter(; x=times, y=L_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")],
 			Layout(; shapes=default_shades, title="Output", xaxis=attr(title="t")));
-	pπ = plot(scatter(; x=times, y=π_vec, showlegend=false), Layout(; shapes=default_shades, title="Default prob", xaxis=attr(title="t")));
-	pP = plot([ scatter(; x=times, y=P_vec, showlegend=false),
+	pπ = plot(scatter(; x=times, y=π_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="Default prob", xaxis=attr(title="t")));
+	pP = plot([ scatter(; x=times, y=P_vec, marker_color=col[1], showlegend=false),
 				scatter(; x=times, y=ones(times)*maximum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*minimum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; shapes=default_shades, title="Price of nontradables", xaxis=attr(title="t")));
-	pψ = plot(scatter(; x=times, y=ψ_vec,  showlegend=false), Layout(; shapes=default_shades, title="Fraction domestic", xaxis=attr(title="t")));
-	pA = plot(scatter(; x=times, y=A_vec,  showlegend=false), Layout(; shapes=default_shades, title="Domestic risk-free debt", xaxis_title="t"));
-	pBf= plot(scatter(; x=times, y=Bf_vec, showlegend=false), Layout(; shapes=default_shades, title="Foreign debt", xaxis_title="t"));
+	pψ = plot(scatter(; x=times, y=ψ_vec, marker_color=col[1],  showlegend=false), Layout(; shapes=default_shades, title="Fraction domestic", xaxis=attr(title="t")));
+	pA = plot(scatter(; x=times, y=A_vec, marker_color=col[1],  showlegend=false), Layout(; shapes=default_shades, title="Domestic risk-free debt", xaxis_title="t"));
+	pBf= plot(scatter(; x=times, y=Bf_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="Foreign debt", xaxis_title="t"));
 
 
 	p = [pB pw pz; pY pμ pσ; pA pBf pψ; pπ pζ pP]
