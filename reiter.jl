@@ -433,11 +433,11 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
 			dist_s = maximum(dists)
 
-			dist_exp = update_expectations!(h, 0.5 * upd_η)
+			dist_exp, new_μgrid, new_σgrid = update_expectations!(h, 0.5 * upd_η)
 			# dist_exp = [0. 0.]
 			dist_LoMs[iter, :] = dist_exp
 
-			# update_grids!(h, new_μgrid = new_μgrid, new_σgrid = new_σgrid)
+			update_grids!(h, new_μgrid = new_μgrid, new_σgrid = new_σgrid)
 			print_save("\nDistance in expectations: (dμ,dσ) = ($(@sprintf("%0.3g",mean(dist_exp[1]))),$(@sprintf("%0.3g",mean(dist_exp[2]))))")
 			print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(h.μgrid))), $(@sprintf("%0.3g",maximum(h.μgrid)))]")
 			print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(h.σgrid))), $(@sprintf("%0.3g",maximum(h.σgrid)))]")

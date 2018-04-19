@@ -496,7 +496,6 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	μ′_new, σ′_new = find_all_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, h.issuance, h.w′, h.def_thres)
 	# μ′_new, σ′_new = h.μ′, h.σ′
 
-
 	function new_grid(x′, xgrid)
 		xmax = maximum(x′)
 		xmin = minimum(x′)
@@ -514,6 +513,9 @@ function update_expectations!(h::Hank, upd_η::Float64)
 		return collect(linspace(xmin, xmax, Nx))
 	end
 
+	new_μgrid = new_grid(μ′, h.μgrid)
+	new_σgrid = new_grid(σ′, h.σgrid)
+
 	μ′_new = max.(min.(μ′_new, maximum(h.μgrid)), minimum(h.μgrid))
 	σ′_new = max.(min.(σ′_new, maximum(h.σgrid)), minimum(h.σgrid))
 
@@ -526,7 +528,7 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	h.μ′ = μ′_new
 	h.σ′ = σ′_new
 
-	return dist_exp
+	return dist_exp, new_μgrid, new_σgrid
 end
 
 function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], new_wgrid::Vector=[])
