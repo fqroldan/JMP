@@ -60,7 +60,7 @@ if remote || local_run
 	save(pwd() * "/../../hank.jld", "h", h)
 end
 
-p, jz_series = simul(h; simul_length=200, burn_in=100, only_def_end=true)
+p, jz_series = simul(h; simul_length=4*25, burn_in=4*50, only_def_end=true)
 plot_simul(p; remote=remote)
 
 Void

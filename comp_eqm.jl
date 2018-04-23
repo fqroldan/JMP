@@ -442,7 +442,7 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 	var_b  = b2 - b^2
 	cov_ab = ab - a*b
 
-	# print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab")
+	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab at $([jb, jμ, jσ, jw, jζ, jz])")
 
 	μ′, σ′, _ = compute_stats_logN(h, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, thres)
 
@@ -503,20 +503,20 @@ function update_expectations!(h::Hank, upd_η::Float64)
 		Nx = length(xgrid)
 
 		# Expand grids if x′ goes beyond the bounds
-		maximum(x′) > maximum(xgrid)? xmax = xmax + 0.125 * (maximum(x′) - xmax): Void
-		minimum(x′) < minimum(xgrid)? xmin = xmin - 0.125 * (xmin - minimum(x′)): Void
+		xmax > maximum(xgrid)? Xmax = maximum(xgrid) + 0.0125: Xmax = maximum(xgrid)# * (maximum(x′) - xmax): Void
+		xmin < minimum(xgrid)? Xmin = minimum(xgrid) - 0.0125: Xmin = minimum(xgrid)# * (xmin - minimum(x′)): Void
 
 		# Retract grids if x′ doesn't reach the bounds
-		maximum(x′) < maximum(xgrid)? xmax = xmax - 0.025 * (xmax - maximum(x′)): Void
-		minimum(x′) > minimum(xgrid)? xmin = xmin + 0.025 * (minimum(x′) - xmin): Void
+		xmax < maximum(xgrid)? Xmax = maximum(xgrid) - 0.0025: Xmax = maximum(xgrid)# * (xmax - maximum(x′)): Void
+		xmin > minimum(xgrid)? Xmin = minimum(xgrid) + 0.0025: Xmin = minimum(xgrid)# * (minimum(x′) - xmin): Void
 
-		return collect(linspace(xmin, xmax, Nx))
+		return collect(linspace(Xmin, Xmax, Nx))
 	end
 
-	σ′_new = max.(σ′_new, 1e-2)
+	# σ′_new = max.(σ′_new, 1e-2)
 
 	new_μgrid = new_grid(μ′_new, h.μgrid)
-	new_σgrid = new_grid(σ′_new, h.σgrid)
+	new_σgrid = h.σgrid
 
 	μ′_new = max.(min.(μ′_new, maximum(h.μgrid)), minimum(h.μgrid))
 	σ′_new = max.(min.(σ′_new, maximum(h.σgrid)), minimum(h.σgrid))

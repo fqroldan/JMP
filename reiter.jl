@@ -2,7 +2,7 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 
 include("hh_pb.jl")
 
-function Hank(;	β = (1.0/1.05)^0.25,
+function Hank(;	β = (1.0/1.03)^0.25,
 				IES = 2.0,
 				RRA = 20.,
 				γw = 0.99^0.25,
@@ -82,8 +82,8 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	ϖ = 0.33 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
-	Bbar  = 2.75
-	bgrid = linspace(0.0, 3.5, Nb)
+	Bbar  = 3.75
+	bgrid = linspace(0.0, 4.5, Nb)
 	μgrid = linspace(-1.0, 2.5, Nμ)
 	σgrid = linspace(0.005, 0.5, Nσ)
 
@@ -201,7 +201,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv - 0.125 * zv + 0.05 * (Bbar-bv)
+			issuance[jb,:,:,:,1,jz] = bv - 0.4 * zv + 0.05 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
@@ -437,7 +437,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			# dist_exp = [0. 0.]
 			dist_LoMs[iter, :] = dist_exp
 
-			update_grids!(h, new_μgrid = new_μgrid, new_σgrid = new_σgrid)
+			update_grids!(h, new_μgrid = new_μgrid)#, new_σgrid = new_σgrid)
 			print_save("\nDistance in expectations: (dμ,dσ) = ($(@sprintf("%0.3g",mean(dist_exp[1]))),$(@sprintf("%0.3g",mean(dist_exp[2]))))")
 			print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(h.μgrid))), $(@sprintf("%0.3g",maximum(h.μgrid)))]")
 			print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(h.σgrid))), $(@sprintf("%0.3g",maximum(h.σgrid)))]")
