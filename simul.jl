@@ -174,9 +174,10 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 		# Advance one step
 		phase = ""
 		if only_def_end
-			if t - burn_in < 4*40
+			start_def = floor(Int, burn_in + 3/4 * simul_length)
+			if t - burn_in < start_def
 				phase = "no_def"
-				if t - burn_in > 4*35
+				if t - burn_in > start_def - 4*3.5
 					phase = "danger"
 				end
 			end
