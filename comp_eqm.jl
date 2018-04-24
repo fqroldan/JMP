@@ -503,12 +503,12 @@ function update_expectations!(h::Hank, upd_η::Float64)
 		Nx = length(xgrid)
 
 		# Expand grids if x′ goes beyond the bounds
-		xmax > maximum(xgrid)? Xmax = maximum(xgrid) + 0.0125: Xmax = maximum(xgrid)# * (maximum(x′) - xmax): Void
-		xmin < minimum(xgrid)? Xmin = minimum(xgrid) - 0.0125: Xmin = minimum(xgrid)# * (xmin - minimum(x′)): Void
+		xmax > maximum(xgrid)? Xmax = maximum(xgrid) + 0.25: Xmax = maximum(xgrid)# * (maximum(x′) - xmax): Void
+		xmin < minimum(xgrid)? Xmin = minimum(xgrid) - 0.25: Xmin = minimum(xgrid)# * (xmin - minimum(x′)): Void
 
 		# Retract grids if x′ doesn't reach the bounds
-		xmax < maximum(xgrid)? Xmax = maximum(xgrid) - 0.0025: Xmax = maximum(xgrid)# * (xmax - maximum(x′)): Void
-		xmin > minimum(xgrid)? Xmin = minimum(xgrid) + 0.0025: Xmin = minimum(xgrid)# * (minimum(x′) - xmin): Void
+		xmax < maximum(xgrid)? Xmax = maximum(xgrid) - 0.05: Xmax = maximum(xgrid)# * (xmax - maximum(x′)): Void
+		xmin > minimum(xgrid)? Xmin = minimum(xgrid) + 0.05: Xmin = minimum(xgrid)# * (minimum(x′) - xmin): Void
 
 		return collect(linspace(Xmin, Xmax, Nx))
 	end

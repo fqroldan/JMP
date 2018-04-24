@@ -4,7 +4,7 @@ include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.03)^0.25,
 				IES = 2.0,
-				RRA = 20.,
+				RRA = 30.,
 				γw = 0.99^0.25,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
@@ -88,7 +88,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	σgrid = linspace(0.005, 0.5, Nσ)
 
 	# Prepare grid for cash in hand.
-	ωmin	= -0.3
+	ωmin	= -0.5
 	# ωgrid0	= linspace(0.0, (ωmax-ωmin)^curv, Nω).^(1/curv)
 	ωgrid0	= linspace(0., (ωmax-ωmin), Nω)
 	ωgrid0	= ωgrid0 + ωmin
@@ -201,7 +201,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv - 0.4 * zv + 0.05 * (Bbar-bv)
+			issuance[jb,:,:,:,1,jz] = bv - 0.75 * zv + 0.05 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
