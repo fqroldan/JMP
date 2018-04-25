@@ -3,7 +3,7 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.03)^0.25,
-				IES = 1.001,
+				IES = 1.0,
 				RRA = 15.,
 				γw = 0.99^0.25,
 				τ = 0.35,
