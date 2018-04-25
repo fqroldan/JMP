@@ -13,6 +13,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	ζt = Int(get(p, t, :ζ))
 	zt = get(p, t, :z)
 
+	zt == h.zgrid[jz] || throw(error("something wrong with the simulator"))
+
 	print_save("\n$([Bt, μt, σt, w0, ζt, zt])")
 
 	Bprime 	= itp_B′[Bt, μt, σt, w0, ζt, jz]
@@ -29,7 +31,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	print_save("\npN = $pN, pN^e = $(pNg), σ = $(σt) at t = $t")
 
 	def_prob = 0.
-	if !jdef
+	if ζt == 1
 		for (jzp, zvp) in enumerate(h.zgrid)
 			if zvp <= thres
 				def_prob += h.Pz[jz, jzp]
