@@ -410,19 +410,19 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 	val_a, val_b, val_a2, val_b2, val_ab, sum_prob = 0., 0., 0., 0., 0., 0.
 
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]
 		(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
 		val_a += val
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]^2
+		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]^2
 		(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
 		val_a2 += val
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]
 		(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
 		val_b += val
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]^2
+		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]^2
 		(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
 		val_b2 += val
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]
 		(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
 		val_ab += val
 	end
