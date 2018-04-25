@@ -1,6 +1,10 @@
 function utility(h::Hank, c::Float64)
 	if c > 1e-10
-		u = c^(1.0 - h.ψ) / (1.0 - h.ψ)
+		if h.ψ != 1.0
+			u = c^(1.0 - h.ψ) / (1.0 - h.ψ)
+		else
+			u = log(c)
+		end
 	else
 		u = -1e10
 	end
@@ -8,7 +12,7 @@ end
 
 function EZ_G(h::Hank, v::Float64)
 	if h.EpsteinZin
-		if h.γ != 1
+		if h.γ != 1.0
 			return v^(1.0-h.γ)
 		else
 			return log(v)
@@ -19,7 +23,7 @@ function EZ_G(h::Hank, v::Float64)
 end
 
 function EZ_T(h::Hank, Ev::Float64)
-	if h.γ != 1
+	if h.γ != 1.0
 		return Ev^(1.0/(1.0-h.γ))
 	else
 		return exp(Ev)
@@ -131,11 +135,15 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 	if h.EpsteinZin
 		Tv = EZ_T(h, Ev)
 
-		EZ_exp = (h.ψ-1.0)/h.ψ
-		C > 1e-10? ut = C^(EZ_exp): ut = 1e-10
+		if h.ψ != 1.0
+			EZ_exp = (h.ψ-1.0)/h.ψ
+			C > 1e-10? ut = C^(EZ_exp): ut = 1e-10
 
-		vf = (1.0 - h.β) * ut + h.β * Tv^(EZ_exp)
-		vf = vf^(1.0/EZ_exp)
+			vf = (1.0 - h.β) * ut + h.β * Tv^(EZ_exp)
+			vf = vf^(1.0/EZ_exp)
+		else
+			vf = C^(1.0-h.β) * Tv^(h.β) # This is the same as saying that vf = exp( (1.0-h.β)*log(c) + h.β * log(Tv) )
+		end
 		return vf
 	else
 		ℓ = 0
