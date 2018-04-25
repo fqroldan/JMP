@@ -366,8 +366,8 @@ function plot_simul(path::Path; remote::Bool=false)
 				scatter(; x=times, y=ones(times)*minimum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; shapes=default_shades, title="σ", xaxis=attr(title="t")));
 	pw = plot([ scatter(; x=times, y=w_vec, marker_color=col[1], showlegend=false),
-				scatter(; x=times, y=ones(times)*maximum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
-				scatter(; x=times, y=ones(times)*minimum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
+				# scatter(; x=times, y=ones(times)*minimum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
+				scatter(; x=times, y=ones(times)*maximum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; shapes=default_shades, title="Wage", xaxis=attr(title="t")));
 	pζ = plot(scatter(; x=times, y=ζ_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="Default", xaxis=attr(title="t")));
 	pz = plot(scatter(; x=times, y=z_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="TFP", xaxis=attr(title="t")));
