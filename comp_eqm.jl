@@ -334,7 +334,7 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jd
 	Eω   = a + R*b
 	varω = var_a + R^2 * var_b + 2*R * cov_ab
 
-	# varω > 0. || print_save("\nvar_a, var_b, cov_ab = $(var_a), $(var_b), $(cov_ab)")
+	varω > 0. || print_save("\nvar_a, var_b, cov_ab = $(var_a), $(var_b), $(cov_ab)")
 
 	# print_save("\nEω, varω = $Eω, $varω")
 	Eσ2 = 1.0 + varω / ( (Eω - h.ωmin)^2 )
