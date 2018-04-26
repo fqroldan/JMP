@@ -409,49 +409,49 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 	
 	val_a, val_b, val_a2, val_b2, val_ab, sum_prob = 0., 0., 0., 0., 0., 0.
 
-	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]
-		(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
-		val_a += val
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]^2
-		(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
-		val_a2 += val
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]
-		(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
-		val_b += val
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]^2
-		(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
-		val_b2 += val
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]
-		(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
-		val_ab += val
-	end
 	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
-	# 	for jω = 1:length(h.ωgrid_fine)-1
-	# 		ωv  = h.ωgrid_fine[jω]
-	# 		ω1v = h.ωgrid_fine[jω+1]
-	# 		ωmv = 0.5*(ωv+ω1v)
-
-	# 		prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
-
-	# 		ϕa = itp_ϕa[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
-	# 		ϕb = itp_ϕb[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
-
-	# 		val_a  += prob * ϕa
-	# 		val_a2 += prob * ϕa^2
-	# 		val_b  += prob * ϕb
-	# 		val_b2 += prob * ϕb^2
-	# 		val_ab += prob * ϕa * ϕb
-			
-	# 		sum_prob += prob
-	# 	end
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]
+	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
+	# 	val_a += val
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]^2
+	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
+	# 	val_a2 += val
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]
+	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
+	# 	val_b += val
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]^2
+	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
+	# 	val_b2 += val
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]
+	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
+	# 	val_ab += val
 	# end
+	for (jϵ, ϵv) in enumerate(h.ϵgrid)
+		for jω = 1:length(h.ωgrid_fine)-1
+			ωv  = h.ωgrid_fine[jω]
+			ω1v = h.ωgrid_fine[jω+1]
+			ωmv = 0.5*(ωv+ω1v)
 
-	a  = val_a  #/ sum_prob
-	a2 = val_a2 #/ sum_prob
-	b  = val_b  #/ sum_prob
-	b2 = val_b2 #/ sum_prob
-	ab = val_ab #/ sum_prob
+			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
+
+			ϕa = itp_ϕa[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
+			ϕb = itp_ϕb[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
+
+			val_a  += prob * ϕa
+			val_a2 += prob * ϕa^2
+			val_b  += prob * ϕb
+			val_b2 += prob * ϕb^2
+			val_ab += prob * ϕa * ϕb
+			
+			sum_prob += prob
+		end
+	end
+
+	a  = val_a  / sum_prob
+	a2 = val_a2 / sum_prob
+	b  = val_b  / sum_prob
+	b2 = val_b2 / sum_prob
+	ab = val_ab / sum_prob
 
 	var_a  = a2 - a^2
 	var_b  = b2 - b^2
