@@ -39,6 +39,8 @@ if remote || local_run
 			h.ϕc = h2.ϕc
 			h.vf = h2.vf
 			h.pN = h2.pN
+			h.μ′ = h2.μ′
+			h.σ′ = h2.σ′
 			h.wage = h2.wage
 			h.Ld = h2.Ld
 		end
