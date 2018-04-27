@@ -49,6 +49,9 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 		ϕc_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕc, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	end
 
+	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext")
+	!isnan(sum(ϕa_ext)) || throw(error("$(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext"))
+
 	h.ϕa_ext = ϕa_ext
 	h.ϕb_ext = ϕb_ext
 	h.ϕc_ext = ϕc_ext
