@@ -1,3 +1,6 @@
+TFP_N(z, Δ, ζ) = 1.0    * (1.0 - Δ*(ζ==2))
+TFP_T(z, Δ, ζ) = exp(z) * (1.0 - Δ*(ζ==2))
+
 function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
 	Npn = length(h.pngrid)
@@ -28,9 +31,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 			ζv = h.ζgrid[jζ]
 			zv = h.zgrid[jz]
 
-			jdef = (ζv != 1.0)
-
-			labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, jdef, zv, wv, pnv)
+			labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, ζv, zv, wv, pnv)
 		end
 
 		pC = price_index(h, pnv)
@@ -65,10 +66,12 @@ function _unpack_origvars(x, xmin, xmax)
 	return y
 end
 
-function labor_demand(h::Hank, w, tfp, pN; get_both::Bool = false)
+function labor_demand(h::Hank, w, z, ζ, pN; get_both::Bool = false)
 
-	Ld_nontradables = (h.α_N * pN  / w).^(1.0/(1.0-h.α_N))
-	Ld_tradables    = (h.α_T * tfp / w).^(1.0/(1.0-h.α_T))
+	Δ = h.Δ
+
+	Ld_nontradables = (h.α_N * pN * TFP_N(z,Δ,ζ) / w).^(1.0/(1.0-h.α_N))
+	Ld_tradables    = (h.α_T * 1.0* TFP_T(z,Δ,ζ) / w).^(1.0/(1.0-h.α_T))
 
 	if get_both
 		return Ld_nontradables, Ld_tradables
@@ -77,13 +80,14 @@ function labor_demand(h::Hank, w, tfp, pN; get_both::Bool = false)
 	end
 end
 
-function labor_market(h::Hank, jdef, zv, wv, pNv)
+function labor_market(h::Hank, ζv, zv, wv, pNv)
 	""" Finds w and Lᵈ at the current state given a guess of pNv """
-	TFP = ifelse(jdef, (1.0 - h.Δ) * exp(zv), exp(zv))
+	jdef = (ζv != 1)
+	# TFP = ifelse(jdef, (1.0 - h.Δ) * exp(zv), exp(zv))
 	w_constraint = h.γw * wv
 
 	# Step 1: Assume w_t is at the constraint, find labor demand, and check whether the eq'm wage is above or below
-	Ld_N, Ld_T = labor_demand(h, w_constraint, TFP, pNv; get_both=true)
+	Ld_N, Ld_T = labor_demand(h, w_constraint, zv, ζv, pNv; get_both=true)
 	Ld = Ld_N + Ld_T
 
 	# Step 2: If labor demand is lower than supply, find the wage above γw * wv that clears the labor mkt
@@ -98,17 +102,17 @@ function labor_market(h::Hank, jdef, zv, wv, pNv)
 
 	if Ld - Ls > 1e-4
 		res = Optim.optimize(
-			w -> (labor_demand(h, w, TFP, pNv) - Ls)^2,
+			w -> (labor_demand(h, w, zv, ζv, pNv) - Ls)^2,
 				w_constraint, w_max, GoldenSection()
 			)
 		w_new = res.minimizer
-		minf = Ls - labor_demand(h, w_new, TFP, pNv)
+		minf = Ls - labor_demand(h, w_new, zv, ζv, pNv)
 		abs(minf) > 1e-4? print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, γw₀) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max)))"): Void
-		Ld_N, Ld_T = labor_demand(h, w_new, TFP, pNv; get_both=true)
+		Ld_N, Ld_T = labor_demand(h, w_new, zv, ζv, pNv; get_both=true)
 		Ld = Ld_N + Ld_T
 	end
 
-	output 	= pNv .* Ld_N.^h.α_N + TFP .* Ld_T.^h.α_T
+	output 	= pNv .* TFP_N(zv,h.Δ,ζv) * Ld_N.^h.α_N + TFP_T(zv,h.Δ,ζv) .* Ld_T.^h.α_T
 	profits = output - w_new * (Ld_N + Ld_T)
 
 	return Ld, w_new, profits, output
@@ -123,7 +127,7 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 
 	ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
 
-	Ld, w_new, profits, output = labor_market(h, jdefault, zv, wv, pN)
+	Ld, w_new, profits, output = labor_market(h, ζv, zv, wv, pN)
 
 	# Step 3: Get the household's policies at these prices
 
@@ -140,9 +144,9 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	end
 
 	# Step 4: Check market clearing for nontradables
-	TFP = ifelse(jdefault, (1.0 - h.Δ) * exp(zv), exp(zv))
-	Ld_N, _  = labor_demand(h, w_new, TFP, pN; get_both=true)
-	supply_N = Ld_N^(h.α_N)
+	# TFP = ifelse(jdefault, (1.0 - h.Δ) * exp(zv), exp(zv))
+	Ld_N, _  = labor_demand(h, w_new, zv, ζv, pN; get_both=true)
+	supply_N = TFP_N(zv, h.Δ, ζv) * Ld_N^(h.α_N)
 
 	demand = val_int_C
 	demand_N_govt = G / pN
