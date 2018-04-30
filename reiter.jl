@@ -2,15 +2,15 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 
 include("hh_pb.jl")
 
-function Hank(;	β = (1.0/1.08)^0.25,
+function Hank(;	β = (1.0/1.20)^0.25,
 				IES = 1.5,
-				RRA = 15.,
+				RRA = 5.,
 				γw = 0.99^0.25,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
 				ωmax = 10.,
 				curv = .4,
-				income_process = "Mendoza-D'Erasmo",
+				income_process = "Floden-Lindé",
 				EpsteinZin = true,
 				order = 3,
 				Nω_fine = 1000,
@@ -83,9 +83,9 @@ function Hank(;	β = (1.0/1.08)^0.25,
 
 	# Grids for endogenous aggregate states
 	Bbar  = 3.75
-	bgrid = linspace(0.0, 5.0, Nb)
+	bgrid = linspace(0.0, 4.5, Nb)
 	μgrid = linspace(-1.0, 2.5, Nμ)
-	σgrid = linspace(0.001, 0.25, Nσ)
+	σgrid = linspace(0.005, 0.5, Nσ)
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.5
@@ -201,7 +201,7 @@ function Hank(;	β = (1.0/1.08)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv - 0.9 * zv + 0.05 * (Bbar-bv)
+			issuance[jb,:,:,:,1,jz] = bv - 0.75 * zv + 0.05 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
