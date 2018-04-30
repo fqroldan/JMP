@@ -30,7 +30,7 @@ print_save("\nAggregate Demand around Debt Crises\n")
 print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(), "HH:MM"))
 
 # Set options
-local_run = true
+local_run = false
 
 # Initialize type
 if remote || local_run
@@ -67,7 +67,9 @@ if remote || local_run
 	save(pwd() * "/../../hank.jld", "h", h)
 end
 
-p, jz_series = simul(h; simul_length=4*25, burn_in=4*50, only_def_end=true)
+p, jz_series, ols = simul(h; simul_length=4*25, burn_in=4*250, only_def_end=true)
+save(pwd()*path*"/ols.jld", "ols", ols)
+
 plot_simul(p; remote=remote)
 
 Void
