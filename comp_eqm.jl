@@ -454,6 +454,9 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 		end
 	end
 
+	!isnan(val_a+val_a2+val_b+val_b2+val_ab) || print_save("\na,a2,b,b2,ab = $([val_a,val_a2,val_b,val_b2,val_ab])")
+	!isapprox(sum_prob, 0.) || print_save("\nsum_prob = $(sum_prob)")
+
 	a  = val_a  / sum_prob
 	a2 = val_a2 / sum_prob
 	b  = val_b  / sum_prob
