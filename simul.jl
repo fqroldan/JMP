@@ -198,3 +198,22 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	return p, jz_series
 end
 
+function simul_regs(path::Path)
+	T = size(path.data, 1)
+
+	B_vec = series(path,:B)
+	μ_vec = series(path,:μ)
+	σ_vec = series(path,:σ)
+	w_vec = series(path,:w)
+	ζ_vec = series(path,:ζ)-1
+	z_vec = exp.(series(path,:z))
+	Y_vec = series(path,:Y)
+
+
+	using DataFrames, GLM
+	data = DataFrame(Y = log.(Y_vec), lz = log.(z_vec), w = log.(w_vec), μ = log.(μ_vec), σ = log.(σ_vec), B = log.(B_vec), ζ = ζ_vec)
+
+	OLS = glm(@formula(Y ~ lz + w + μ + σ + B + ζ), data, Normal(), IdentityLink())
+
+	OLS
+end
