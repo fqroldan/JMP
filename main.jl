@@ -9,7 +9,12 @@ end
 remote = (location=="remote")
 
 # Initialize output file
-write(pwd()*"/../../output.txt", "")
+if remote
+	path = "/../../"
+else
+	path = "/../"
+end
+write(pwd()*path*"output.txt", "")
 
 # Load codes
 @everywhere include("reporting_routines.jl")
@@ -25,7 +30,7 @@ print_save("\nAggregate Demand around Debt Crises\n")
 print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(), "HH:MM"))
 
 # Set options
-local_run = false
+local_run = true
 
 # Initialize type
 if remote || local_run

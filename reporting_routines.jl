@@ -1,7 +1,7 @@
 function print_save(s::String)
 	print(s)
-	output = readstring(pwd()*"/../../output.txt")
-	write(pwd()*"/../../output.txt", output * s)
+	output = readstring(pwd()*path*"output.txt")
+	write(pwd()*path*"output.txt", output * s)
 
 	Void
 end
