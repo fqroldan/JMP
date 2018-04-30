@@ -1,3 +1,4 @@
+Pkg.update()
 using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStrings, Distributions, JLD
 
 location = "remote"
@@ -64,12 +65,13 @@ print_save("\nω: $(h.ωgrid)\n")
 # Run
 if remote || local_run 
 	vfi!(h, verbose = true, remote = remote)
-	save(pwd() * "/../../hank.jld", "h", h)
+	save(pwd() * "/hank.jld", "h", h)
 end
 
-p, jz_series, ols = simul(h; simul_length=4*25, burn_in=4*250, only_def_end=true)
-save(pwd()*path*"/ols.jld", "ols", ols)
+p, p_full, jz_series, ols = simul(h; simul_length=4*25, burn_in=4*250, only_def_end=true)
+save(pwd()*"/ols.jld", "ols", ols)
 
+plot_simul(p_full; remote=remote, name="_full")
 plot_simul(p; remote=remote)
 
 Void
