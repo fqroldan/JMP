@@ -40,7 +40,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		end
 	end
 
-	fill_path!(p,t, Dict(:P => pN, :Y => output, :L => Ld, :π => def_prob))
+	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob))
 
 	# Integrate the household's policy functions to get μ′, σ′
 	ϕa = zeros(h.Nω_fine*h.Nϵ)

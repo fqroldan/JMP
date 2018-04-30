@@ -340,6 +340,7 @@ function plot_simul(path::Path; remote::Bool=false)
 	L_vec = series(path,:L)
 	π_vec = series(path,:π)
 	P_vec = series(path,:P)
+	Pe_vec= series(path,:Pe)
 	ψ_vec = series(path,:ψ)
 	A_vec = series(path,:A)
 	Bf_vec= series(path,:Bf)
@@ -376,6 +377,7 @@ function plot_simul(path::Path; remote::Bool=false)
 			Layout(; shapes=default_shades, title="Output", xaxis=attr(title="t")));
 	pπ = plot(scatter(; x=times, y=π_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="Default prob", xaxis=attr(title="t")));
 	pP = plot([ scatter(; x=times, y=P_vec, marker_color=col[1], showlegend=false),
+				scatter(; x=times, y=Pe_vec,marker_color=col[2], showlegend=false, line_dash="dashdot"),
 				scatter(; x=times, y=ones(times)*maximum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*minimum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; shapes=default_shades, title="Price of nontradables", xaxis=attr(title="t")));

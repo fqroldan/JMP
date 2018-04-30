@@ -144,7 +144,8 @@ function Path(; T::Int64 = 1)
 		:P => 11,
 		:A => 12,
 		:Bh => 13,
-		:Bf => 14
+		:Bf => 14,
+		:Pe => 15
 		)
 	data = Matrix{Float64}(T, length(n))
 	return Path(data, n)
