@@ -373,11 +373,11 @@ function plot_simul(path::Path; remote::Bool=false)
 	pζ = plot(scatter(; x=times, y=ζ_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="Default", xaxis=attr(title="t")));
 	pz = plot(scatter(; x=times, y=z_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="TFP", xaxis=attr(title="t")));
 	pY = plot([ scatter(; x=times, y=Y_vec, marker_color=col[1], showlegend=false),
-				scatter(; x=times, y=L_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")],
+				scatter(; x=times, y=L_vec, marker_color=col[3], showlegend=false, line_dash="dashdot")],
 			Layout(; shapes=default_shades, title="Output", xaxis=attr(title="t")));
 	pπ = plot(scatter(; x=times, y=π_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="Default prob", xaxis=attr(title="t")));
 	pP = plot([ scatter(; x=times, y=P_vec, marker_color=col[1], showlegend=false),
-				scatter(; x=times, y=Pe_vec,marker_color=col[2], showlegend=false, line_dash="dashdot"),
+				scatter(; x=times, y=Pe_vec,marker_color=col[3], showlegend=false, line_dash="dashdot"),
 				scatter(; x=times, y=ones(times)*maximum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*minimum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; shapes=default_shades, title="Price of nontradables", xaxis=attr(title="t")));
