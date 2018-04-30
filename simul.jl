@@ -194,11 +194,12 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	ols = simul_regs(p)
 
 	# Keep only after the burn_in period
+	p_full = copy(p)
 	trim_path!(p, burn_in)
 	jz_series = jz_series[burn_in+1:end]
 
 	# Return stuff
-	return p, jz_series, ols
+	return p, p_full, jz_series, ols
 end
 
 using DataFrames, GLM

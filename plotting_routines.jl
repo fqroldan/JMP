@@ -327,7 +327,7 @@ function plot_convergence(dist_statefuncs, dist_LoMs, T::Int64; remote::Bool=fal
 end
 
 
-function plot_simul(path::Path; remote::Bool=false)
+function plot_simul(path::Path; remote::Bool=false, name::String="")
 	T = size(path.data, 1)
 
 	B_vec = series(path,:B)
@@ -392,7 +392,8 @@ function plot_simul(path::Path; remote::Bool=false)
 	p.plot.layout["height"] = 850
 	p.plot.layout["font_family"] = "Fira Sans Light"
 
-	name = "simul"
+
+	name = "simul"*name
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_"*name*".jld", "p", p)
