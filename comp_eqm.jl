@@ -12,7 +12,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 	itp_vf = make_itp(h, h.vf; agg=false)
 	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
 
-	print_save("\nExtending the state space ($(Npn) iterations needed)")
+	print_save("\nExtending the state space ($(Npn) iterations needed)", remote=remote)
 
 	# @sync @parallel for jpn in 1:Npn
 	for jpn in 1:Npn
@@ -49,7 +49,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 		ϕc_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕc, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	end
 
-	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext")
+	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext", remote=remote)
 	!isnan(sum(ϕa_ext)) || throw(error("$(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext"))
 
 	h.ϕa_ext = ϕa_ext
@@ -97,7 +97,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 	Ls = 1.0
 	w_max = maximum(h.wgrid)
 	if w_max < w_constraint
-		print_save("\nSomething wrong with wages")
+		print_save("\nSomething wrong with wages", remote=remote)
 		w_max = w_constraint
 	end
 
@@ -110,7 +110,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 			)
 		w_new = res.minimizer
 		minf = Ls - labor_demand(h, w_new, zv, ζv, pNv)
-		abs(minf) > 1e-4? print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, γw₀) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max)))"): Void
+		abs(minf) > 1e-4? print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, γw₀) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max)))", remote=remote): Void
 		Ld_N, Ld_T = labor_demand(h, w_new, zv, ζv, pNv; get_both=true)
 		Ld = Ld_N + Ld_T
 	end
@@ -134,17 +134,36 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 
 	# Step 3: Get the household's policies at these prices
 
-	val_A, val_B, val_C, sum_prob = 0., 0., 0., 0.
-	val_int_C = 0.
+	# val_int_C = 0.
+	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
+
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+
+	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax,
+	# 								reltol=1e-8, abstol=0, maxevals=0)
+
+	# 	val_int_C += val
+	# end
+	val_C, sum_prob = 0., 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
+		for jω = 1:length(h.ωgrid_fine)-1
+			ωv  = h.ωgrid_fine[jω]
+			ω1v = h.ωgrid_fine[jω+1]
+			ωmv = 0.5*(ωv+ω1v)
 
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
+			print_save("\n[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN] = $([ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN])", remote=remote)
+			print_save("\nitp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN] = $(itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN])")
 
-		(val, err) = hquadrature(f, h.ωmin, h.ωmax,
-									reltol=1e-8, abstol=0, maxevals=0)
+			!isnan(itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]) || throw(error("NaNs in ϕc at pN = $(pN)"))
 
-		val_int_C += val
+			ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+
+			val_C  += prob * ϕc
+			sum_prob += prob
+		end
 	end
+	val_int_C = val_C / sum_prob
 
 	# Step 4: Check market clearing for nontradables
 	# TFP = ifelse(jdefault, (1.0 - h.Δ) * exp(zv), exp(zv))
@@ -194,7 +213,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	results = [w; pN; Ld; output]
 
 	if abs(minf) > 1e-4
-		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
+		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))", remote=remote)
 	end
 
 	return results, minf
@@ -341,12 +360,12 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jd
 	Eω   = a + R*b
 	varω = var_a + R^2 * var_b + 2*R * cov_ab
 
-	varω > 0. || print_save("\nvar_a, var_b, cov_ab = $(var_a), $(var_b), $(cov_ab)")
+	varω > 0. || print_save("\nvar_a, var_b, cov_ab = $(var_a), $(var_b), $(cov_ab)", remote=remote)
 
-	# print_save("\nEω, varω = $Eω, $varω")
+	# print_save("\nEω, varω = $Eω, $varω", remote=remote)
 	Eσ2 = 1.0 + varω / ( (Eω - h.ωmin)^2 )
 	
-	Eσ2 > 1. || print_save("\n1 + vω / (Eω-ωmin)² = $(Eσ2)")
+	Eσ2 > 1. || print_save("\n1 + vω / (Eω-ωmin)² = $(Eσ2)", remote=remote)
 
 	σ2 = log( Eσ2 )
 
@@ -379,7 +398,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 			qmin, qmax, GoldenSection()
 			)
 		q[jzp, 1] = res.minimizer
-		res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ"): Void
+		res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ", remote=remote): Void
 
 		μ[jzp, 1], σ[jzp, 1] = find_q(h, q[jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 
@@ -390,7 +409,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 				qmin, qmax, GoldenSection()
 				)
 			q[jzp, 2] = res.minimizer
-			res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ"): Void
+			res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ", remote=remote): Void
 
 			μ[jzp, 2], σ[jzp, 2] = find_q(h, q[jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 		else
@@ -454,8 +473,8 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 		end
 	end
 
-	!isnan(val_a+val_a2+val_b+val_b2+val_ab) || print_save("\na,a2,b,b2,ab = $([val_a,val_a2,val_b,val_b2,val_ab])")
-	!isapprox(sum_prob, 0.) || print_save("\nsum_prob = $(sum_prob)")
+	!isnan(val_a+val_a2+val_b+val_b2+val_ab) || print_save("\na,a2,b,b2,ab = $([val_a,val_a2,val_b,val_b2,val_ab])", remote=remote)
+	!isapprox(sum_prob, 0.) || print_save("\nsum_prob = $(sum_prob)", remote=remote)
 
 	a  = val_a  / sum_prob
 	a2 = val_a2 / sum_prob
@@ -467,7 +486,7 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 	var_b  = b2 - b^2
 	cov_ab = ab - a*b
 
-	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab at $([jb, jμ, jσ, jw, jζ, jz])")
+	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab at $([jb, jμ, jσ, jw, jζ, jz])", remote=remote)
 
 	μ′, σ′, _ = compute_stats_logN(h, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, thres)
 

@@ -1,7 +1,12 @@
-function print_save(s::String)
+function print_save(s::String; remote::Bool=false)
+	if remote
+		dir_path = "/../../"
+	else
+		dir_path = "/../"
+	end
 	print(s)
-	output = readstring(pwd()*path*"output.txt")
-	write(pwd()*path*"output.txt", output * s)
+	output = readstring(pwd()*dir_path*"output.txt")
+	write(pwd()*dir_path*"output.txt", output * s)
 
 	Void
 end

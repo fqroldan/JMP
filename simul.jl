@@ -13,10 +13,10 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	ζt = Int(get(p, t, :ζ))
 	zt = get(p, t, :z)
 
-	zt == h.zgrid[jz] || print_save("something wrong with the simulator")
+	zt == h.zgrid[jz] || print_save("something wrong with the simulator", remote=remote)
 	abs(zt - h.zgrid[jz]) < 1e-8 || throw(error("something wrong with the simulator"))
 
-	print_save("\n$([Bt, μt, σt, w0, ζt, zt])")
+	print_save("\n$([Bt, μt, σt, w0, ζt, zt])", remote=remote)
 
 	Bprime 	= itp_B′[Bt, μt, σt, w0, ζt, jz]
 	G 		= itp_G[Bt, μt, σt, w0, ζt, jz]
@@ -29,7 +29,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	results, _ = find_prices(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, w0, ζt, jz, jdef)
 
 	wt, pN, Ld, output = results
-	print_save("\npN = $pN, pN^e = $(pNg), σ = $(σt) at t = $t")
+	print_save("\npN = $pN, pN^e = $(pNg), σ = $(σt) at t = $t", remote=remote)
 
 	def_prob = 0.
 	if ζt == 1
@@ -66,11 +66,11 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	prop_domestic = b/Bprime
 
-	# print_save("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab])")
+	# print_save("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab]), remote=remote")
 
 	μ′, σ′, q′ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, wt, thres)
 	# μ′, σ′, q′ = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bprime, wt, thres, Bt, μt, σt, w0, ζt, zt, jdef) # This would assume that λₜ is lognormal
-	# print_save("\n$(q′)")
+	# print_save("\n$(q′)", remote=remote)
 
 	# Draw z and the reentry shock for tomorrow, deduce ζ and correct B, μ, and σ as needed, and update the distribution
 	probs = cumsum(h.Pz[jz,:])
@@ -187,7 +187,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 		end
 
 		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λ, Qϵ; phase = phase)
-		# print_save("\nt = $t")
+		# print_save("\nt = $t", remote=remote)
 	end
 
 	# Compute regs

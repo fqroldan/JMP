@@ -128,7 +128,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 		end
 	end
 
-	isapprox(check, 1) || print_save("\nwrong expectation operator")
+	isapprox(check, 1) || print_save("\nwrong expectation operator", remote=remote)
 
 	""" CHANGE THIS FOR GHH """
 	# Compute value
@@ -262,10 +262,10 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 		thres = h.def_thres[js]
 
 		if verbose
-			minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid)? print_save("\nμ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
-			minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid)? print_save("\nσ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
-			bpv - minimum(h.bgrid) < -1e-4 || bpv - maximum(h.bgrid) > 1e-4? print_save("\nb = $(round(bpv,6)) out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
-			wpv < minimum(h.wgrid) || wpv > maximum(h.wgrid)? print_save("\nw out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
+			minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid)? print_save("\nμ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])", remote=remote): Void
+			minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid)? print_save("\nσ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])", remote=remote): Void
+			bpv - minimum(h.bgrid) < -1e-4 || bpv - maximum(h.bgrid) > 1e-4? print_save("\nb = $(round(bpv,6)) out of bounds at $([jb, jμ, jσ, jw, jζ, jz])", remote=remote): Void
+			wpv < minimum(h.wgrid) || wpv > maximum(h.wgrid)? print_save("\nw out of bounds at $([jb, jμ, jσ, jw, jζ, jz])", remote=remote): Void
 		end
 
 
@@ -305,7 +305,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 
 			ωg = qʰv * ag + qᵍv * bg
 			θg = qʰv * (ag - h.ωmin) / (ωg - qʰv*h.ωmin)
-			# print_save("a,b,s,θ = $([ag, bg, ωg, θg])")
+			# print_save(", remote=remotea,b,s,θ = $([ag, bg, ωg, θg])")
 			ωmax = RHS - 1e-10
 			if ωg > ωmax
 				ωg = max(ωmax - 1e-2, 0)
@@ -320,7 +320,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 			else
 				if ωmax < qʰv * h.ωmin
 					if verbose
-						print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
+						print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))", remote=remote)
 					end
 					ap, bp, cmax = h.ωmin, 0., 1e-10
 					# fmax = value(h, qʰv*ap, 0., itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, pCv, jdef)
@@ -366,10 +366,10 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; r
 	# Compute values
 	vf, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf, resolve = resolve, verbose = verbose)
 
-	sum(isnan.(vf)) > 0? print_save("\n$(sum(isnan.(vf))) found in vf"): Void
-	sum(isnan.(ϕa)) > 0? print_save("$(sum(isnan.(ϕa))) found in ϕa"): Void
-	sum(isnan.(ϕb)) > 0? print_save("$(sum(isnan.(ϕb))) found in ϕb"): Void
-	sum(isnan.(ϕc)) > 0? print_save("$(sum(isnan.(ϕc))) found in ϕc"): Void
+	sum(isnan.(vf)) > 0? print_save("\n$(sum(isnan.(vf))) found in vf", remote=remote): Void
+	sum(isnan.(ϕa)) > 0? print_save("$(sum(isnan.(ϕa))) found in ϕa", remote=remote): Void
+	sum(isnan.(ϕb)) > 0? print_save("$(sum(isnan.(ϕb))) found in ϕb", remote=remote): Void
+	sum(isnan.(ϕc)) > 0? print_save("$(sum(isnan.(ϕc))) found in ϕc", remote=remote): Void
 
 	# Store results in the type
 	h.ϕa = ϕa
