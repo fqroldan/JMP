@@ -8,14 +8,8 @@ end
 
 remote = (location=="remote")
 
-if remote
-	dir_path = "/../../"
-else
-	dir_path = "/../"
-end
-
 # Initialize output file
-write(pwd()*dir_path*"output.txt", "")
+write(pwd()*"/../../output.txt", "")
 
 # Load codes
 @everywhere include("reporting_routines.jl")

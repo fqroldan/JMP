@@ -128,6 +128,8 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 		pN = transform_vars(pN, pNmin, pNmax)
 	end
 
+	isnan(pN)? print_save("\nWARNING: pNv, pN = $(pNv[1]), $(pN)"): Void
+
 	ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
 
 	Ld, w_new, profits, output = labor_market(h, ζv, zv, wv, pN)
@@ -152,12 +154,14 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 			ωmv = 0.5*(ωv+ω1v)
 
 			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
-			print_save("\n[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN] = $([ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN])", remote=remote)
-			print_save("\nitp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN] = $(itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN])")
-
-			!isnan(itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]) || throw(error("NaNs in ϕc at pN = $(pN)"))
 
 			ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+			# catch
+			# 	print_save(pNv[1])
+			# 	print_save("\n[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN] = $([ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN])")
+			# 	!isnan(itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]) || throw(error("NaNs in ϕc at pN = $(pN)"))
+			# 	print_save("\nitp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN] = $(itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN])")
+			# end
 
 			val_C  += prob * ϕc
 			sum_prob += prob
@@ -188,25 +192,32 @@ end
 
 function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
 
-	function wrap_mktclear!(pN::Vector, fvec=similar(x))
+	res = Optim.optimize(
+		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)^2,
+		pNmin, pNmax, GoldenSection()
+		)
+	pN = res.minimizer
+	minf = res.minimum
 
-		out = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = false)
+	# function wrap_mktclear!(pN::Vector, fvec=similar(x))
 
-		fvec[:] = out
-	end
+	# 	out = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = false)
+
+	# 	fvec[:] = out
+	# end
 	
-	res = fsolve(wrap_mktclear!, [pNg])
-	if res.:converged == false
-		res2 = fsolve(wrap_mktclear!, [pNg], method=:lmdif)
+	# res = fsolve(wrap_mktclear!, [pNg])
+	# if res.:converged == false
+	# 	res2 = fsolve(wrap_mktclear!, [pNg], method=:lmdif)
 
-		if res2.:converged || sum(res2.:f.^2) < sum(res.:f.^2)
-			res = res2
-		end
-	end
+	# 	if res2.:converged || sum(res2.:f.^2) < sum(res.:f.^2)
+	# 		res = res2
+	# 	end
+	# end
 
-	minf = res.:f[1]
+	# minf = res.:f[1]
 
-	pN = transform_vars(res.:x[1], pNmin, pNmax)
+	# pN = transform_vars(res.:x[1], pNmin, pNmax)
 
 	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; get_others=true)
 

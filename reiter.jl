@@ -27,7 +27,7 @@ function Hank(;	β = (1.0/1.20)^0.25,
 				Δ = 0.075,
 				θ = .1,
 				Np = 5,
-				upd_tol = 1#5e-3
+				upd_tol = 5e-3
 				)
 	ψ = IES
 	γ = 0.
@@ -456,7 +456,6 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))", remote=remote)
 
 			h.upd_tol = max(exp(0.85*log(1+h.upd_tol))-1, 1e-6)
-			iter > 10? iter > 20? iter > 30? h.tol_θ = 1e-16: h.tol_θ = 1e-8: h.tol_θ = 1e-4: Void
 			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))", remote=remote)
 			t_old = time()
 		end
