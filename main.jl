@@ -1,4 +1,3 @@
-Pkg.update()
 using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStrings, Distributions, JLD
 
 location = "remote"
