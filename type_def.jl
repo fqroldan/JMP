@@ -122,7 +122,6 @@ type Hank
 
 	# Options
 	upd_tol::Float64
-	tol_θ::Float64
 end
 
 type Path

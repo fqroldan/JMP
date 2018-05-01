@@ -26,8 +26,7 @@ function Hank(;	β = (1.0/1.20)^0.25,
 				ℏ = 0.5,
 				Δ = 0.075,
 				θ = .1,
-				Np = 5,
-				tol_θ = 1e-2
+				Np = 5
 				)
 	ψ = IES
 	γ = 0.
@@ -225,7 +224,7 @@ function Hank(;	β = (1.0/1.20)^0.25,
 	upd_tol = 5e-3
 
 	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕc, ϕa_ext, ϕb_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
-		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, output, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol, tol_θ)
+		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, output, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol)
 end
 
 function iterate_qᵍ!(h::Hank; verbose::Bool=false)
