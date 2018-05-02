@@ -65,7 +65,7 @@ function Hank(;	β = (1.0/1.20)^0.25,
 	ϵgrid = ϵ_chain.state_values
 
 	wgrid = linspace(0.75, 1.0, Nw)
-	pngrid = linspace(0.95, 1.05, Np)
+	pngrid = linspace(0.9, 1.1, Np)
 	ζgrid = 1:2
 	Nζ = length(ζgrid)
 
@@ -356,7 +356,7 @@ function _unpackstatefs(h::Hank)
 end
 
 
-function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=75, bellman_iter::Int64=maxiter)
+function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=50, bellman_iter::Int64=maxiter)
 
 	print_save("\nSolving household problem: ", remote=remote)
 	time_init = time()
