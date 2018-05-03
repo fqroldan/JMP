@@ -106,7 +106,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 	if Ld - Ls > 1e-4
 		res = Optim.optimize(
 			w -> (labor_demand(h, w, zv, ζv, pNv) - Ls)^2,
-				w_constraint, w_max, GoldenSection()
+				w_constraint, 1.25*w_max, GoldenSection()
 			)
 		w_new = res.minimizer
 		minf = Ls - labor_demand(h, w_new, zv, ζv, pNv)
