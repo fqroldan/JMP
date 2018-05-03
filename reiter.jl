@@ -414,7 +414,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 			print_save("\nUpdating functions of the state", remote=remote)
 
-			up_prop, down_prop, mean_excS, dists = update_state_functions!(h, upd_η)
+			exc_dem_prop, exc_sup_prop, mean_excS, dists = update_state_functions!(h, upd_η)
 
 			dist_statefuncs[iter, :] = dists
 
@@ -425,7 +425,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nStates with exc supply, demand = $(@sprintf("%0.3g",up_prop)), $(@sprintf("%0.3g",down_prop))", remote=remote)
 			print_save("\nAverage exc supply = $(@sprintf("%0.3g",mean_excS))", remote=remote)
 
-			new_wgrid = update_grids_pw!(h, up_prop, down_prop)
+			new_wgrid = update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
 			update_grids!(h, new_wgrid=new_wgrid)
 
 			print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(h.pngrid))), $(@sprintf("%0.3g",maximum(h.pngrid)))]", remote=remote)

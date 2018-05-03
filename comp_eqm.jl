@@ -192,8 +192,8 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	pN = res.minimizer
 	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
 
-	pN > pNmax? up = 1: up = 0
-	pN < pNmin? down = 1: down = 0
+	pN > pNmax? exc_dem = 1: exc_dem = 0
+	pN < pNmin? exc_sup = 1: exc_sup = 0
 
 	# function wrap_mktclear!(pN::Vector, fvec=similar(x))
 
@@ -223,7 +223,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))", remote=remote)
 	end
 
-	return results, minf, up, down
+	return results, minf, exc_dem, exc_sup
 end
 
 function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
@@ -232,8 +232,8 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 
 	results = SharedArray{Float64}(N, 4)
 	minf	= SharedArray{Float64}(N, 1)
-	up 		= SharedArray{Float64}(N)
-	down	= SharedArray{Float64}(N)
+	exc_dem = SharedArray{Float64}(N)
+	exc_sup = SharedArray{Float64}(N)
 
 	pN_guess = h.pN
 
@@ -262,7 +262,7 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 
 		pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
-		results[js, :], minf[js, :], up[js], down[js] = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
+		results[js, :], minf[js, :], exc_dem[js], exc_sup[js] = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
 		if make_plot
 			exc_dem_N = Vector{Float64}(length(h.pngrid))
 			for (jpn, pnv) in enumerate(h.pngrid)
@@ -272,7 +272,7 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		end
 	end
 	
-	return results, minf, up, down
+	return results, minf, exc_dem, exc_sup
 end
 
 function update_state_functions!(h::Hank, upd_η::Float64)
@@ -281,7 +281,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	# itp_ϕc  = interpolate(all_knots, h.ϕc_ext, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp(), Gridded(Linear())))
 	itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
 
-	results, minf, up, down = find_all_prices(h, itp_ϕc, h.issuance, h.spending)
+	results, minf, exc_dem, exc_sup = find_all_prices(h, itp_ϕc, h.issuance, h.spending)
 
 	dist = Array{Float64,1}(3)
 	dist[1] = sqrt.(sum( (results[:, 1] - h.wage).^2 )) / sqrt.(sum(h.wage.^2))
@@ -321,24 +321,24 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	# up_prop   = sum(minf .>  1e-4) / length(minf)
 	# down_prop = sum(minf .< -1e-4) / length(minf)
 
-	up_prop   = sum(up) / length(up)
-	down_prop = sum(down) / length(down)
+	exc_dem_prop = sum(exc_dem) / length(exc_dem)
+	exc_sup_prop = sum(exc_sup) / length(exc_sup)
 
-	return up_prop, down_prop, mean_f, dist
+	return exc_dem_prop, exc_sup_prop, mean_f, dist
 end
 
-function update_grids_pw!(h::Hank, up_prop, down_prop)
+function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 	
 	pN_down = minimum(h.pngrid)
-	if up_prop > 0.025
+	if exc_sup_prop > 0.025
 		pN_down = pN_down * 0.95
-	elseif up_prop == 0.
+	elseif exc_sup_prop == 0.
 		pN_down = pN_down * 1.01
 	end
 	pN_up = maximum(h.pngrid)
-	if down_prop > 0.025
+	if exc_dem_prop > 0.025
 		pN_up = pN_up * 1.05
-	elseif down_prop == 0.
+	elseif exc_dem_prop == 0.
 		pN_up = pN_up * 0.99
 	end
 
