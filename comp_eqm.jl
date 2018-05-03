@@ -1,4 +1,4 @@
-TFP_N(z, Δ, ζ) = 1.0#    * (1.0 - Δ*(ζ==2))
+TFP_N(z, Δ, ζ) = 1.0    * (1.0 - Δ*(ζ==2))
 TFP_T(z, Δ, ζ) = exp(z) * (1.0 - Δ*(ζ==2))
 
 function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
@@ -12,7 +12,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 	itp_vf = make_itp(h, h.vf; agg=false)
 	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
 
-	print_save("\nExtending the state space ($(Npn) iterations needed)", remote=remote)
+	print_save("\nExtending the state space ($(Npn) iterations needed)")
 
 	# @sync @parallel for jpn in 1:Npn
 	for jpn in 1:Npn
@@ -49,7 +49,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 		ϕc_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕc, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	end
 
-	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext", remote=remote)
+	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext")
 	!isnan(sum(ϕa_ext)) || throw(error("$(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext"))
 
 	h.ϕa_ext = ϕa_ext
@@ -97,7 +97,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 	Ls = 1.0
 	w_max = maximum(h.wgrid)
 	if w_max < w_constraint
-		print_save("\nSomething wrong with wages", remote=remote)
+		print_save("\nSomething wrong with wages")
 		w_max = w_constraint
 	end
 
@@ -110,7 +110,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 			)
 		w_new = res.minimizer
 		minf = Ls - labor_demand(h, w_new, zv, ζv, pNv)
-		abs(minf) > 1e-4? print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, w_max) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max))) at (z,ζ,pN) = $([zv, ζv, pNv])"): Void
+		abs(minf) > 1e-4? print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, γw₀) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max)))"): Void
 		Ld_N, Ld_T = labor_demand(h, w_new, zv, ζv, pNv; get_both=true)
 		Ld = Ld_N + Ld_T
 	end
@@ -128,14 +128,13 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 		pN = transform_vars(pN, pNmin, pNmax)
 	end
 
-	isnan(pN)? print_save("\nWARNING: pNv, pN = $(pNv[1]), $(pN)"): Void
-
 	ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
 
 	Ld, w_new, profits, output = labor_market(h, ζv, zv, wv, pN)
 
 	# Step 3: Get the household's policies at these prices
 
+	val_A, val_B, val_C, sum_prob = 0., 0., 0., 0.
 	val_int_C = 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 
@@ -146,33 +145,18 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 
 		val_int_C += val
 	end
-	# val_C, sum_prob = 0., 0.
-	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
-	# 	for jω = 1:length(h.ωgrid_fine)-1
-	# 		ωv  = h.ωgrid_fine[jω]
-	# 		ω1v = h.ωgrid_fine[jω+1]
-	# 		ωmv = 0.5*(ωv+ω1v)
-
-	# 		prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
-
-	# 		ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
-
-	# 		val_C  += prob * ϕc
-	# 		sum_prob += prob
-	# 	end
-	# end
-	# val_int_C = val_C / sum_prob
 
 	# Step 4: Check market clearing for nontradables
+	# TFP = ifelse(jdefault, (1.0 - h.Δ) * exp(zv), exp(zv))
 	Ld_N, _  = labor_demand(h, w_new, zv, ζv, pN; get_both=true)
 	supply_N = TFP_N(zv, h.Δ, ζv) * Ld_N^(h.α_N)
 
- 	# Recover nontraded demand from total consumption
-	pC = price_index(h, pN)
-	demand_N_cons = val_int_C * h.ϖ * (pN/pC)^(-h.η)
+	demand = val_int_C
 	demand_N_govt = G / pN
 
-	demand_N = demand_N_cons + demand_N_govt
+ 	# Recover nontraded demand from total consumption
+	pC = price_index(h, pN)
+	demand_N = demand * h.ϖ * (pN/pC)^(-h.η) + demand_N_govt
 
 	F = supply_N - demand_N
 
@@ -185,45 +169,35 @@ end
 
 function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
 
-	res = Optim.optimize(
-		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)^2,
-		0.75*pNmin, 1.25*pNmax, GoldenSection()
-		)
-	pN = res.minimizer
-	minf = res.minimum
+	function wrap_mktclear!(pN::Vector, fvec=similar(x))
 
-	pN > pNmax? up = 1: up = 0
-	pN < pNmin? down = 1: down = 0
+		out = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = false)
 
-	# function wrap_mktclear!(pN::Vector, fvec=similar(x))
-
-	# 	out = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = false)
-
-	# 	fvec[:] = out
-	# end
+		fvec[:] = out
+	end
 	
-	# res = fsolve(wrap_mktclear!, [pNg])
-	# if res.:converged == false
-	# 	res2 = fsolve(wrap_mktclear!, [pNg], method=:lmdif)
+	res = fsolve(wrap_mktclear!, [pNg])
+	if res.:converged == false
+		res2 = fsolve(wrap_mktclear!, [pNg], method=:lmdif)
 
-	# 	if res2.:converged || sum(res2.:f.^2) < sum(res.:f.^2)
-	# 		res = res2
-	# 	end
-	# end
+		if res2.:converged || sum(res2.:f.^2) < sum(res.:f.^2)
+			res = res2
+		end
+	end
 
-	# minf = res.:f[1]
+	minf = res.:f[1]
 
-	# pN = transform_vars(res.:x[1], pNmin, pNmax)
+	pN = transform_vars(res.:x[1], pNmin, pNmax)
 
 	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; get_others=true)
 
 	results = [w; pN; Ld; output]
 
 	if abs(minf) > 1e-4
-		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))", remote=remote)
+		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
 	end
 
-	return results, minf, up, down
+	return results, minf
 end
 
 function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
@@ -232,8 +206,6 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 
 	results = SharedArray{Float64}(N, 4)
 	minf	= SharedArray{Float64}(N, 1)
-	up 		= SharedArray{Float64}(N)
-	down	= SharedArray{Float64}(N)
 
 	pN_guess = h.pN
 
@@ -260,11 +232,11 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 
 		pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
-		results[js, :], minf[js, :], up[js], down[js] = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
+		results[js, :], minf[js, :] = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
 	end
 		
 	
-	return results, minf, up, down
+	return results, minf
 end
 
 function update_state_functions!(h::Hank, upd_η::Float64)
@@ -273,7 +245,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	# itp_ϕc  = interpolate(all_knots, h.ϕc_ext, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp(), Gridded(Linear())))
 	itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
 
-	results, minf, up, down = find_all_prices(h, itp_ϕc, h.issuance, h.spending)
+	results, minf = find_all_prices(h, itp_ϕc, h.issuance, h.spending)
 
 	dist = Array{Float64,1}(3)
 	dist[1] = sqrt.(sum( (results[:, 1] - h.wage).^2 )) / sqrt.(sum(h.wage.^2))
@@ -310,12 +282,8 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	h.w′ = h.wage
 	mean_f = mean(minf)
 
-	# up_prop   = sum(minf .>  1e-4) / length(minf)
-	# down_prop = sum(minf .< -1e-4) / length(minf)
-
-	up_prop   = sum(up) / length(up)
-	down_prop = sum(down) / length(down)
-
+	up_prop   = sum(minf .>  1e-4) / length(minf)
+	down_prop = sum(minf .< -1e-4) / length(minf)
 	return up_prop, down_prop, mean_f, dist
 end
 
@@ -335,24 +303,16 @@ function update_grids_pw!(h::Hank, up_prop, down_prop)
 	end
 
 	Ls = 1.0
-	res1 = Optim.optimize(
+	res = Optim.optimize(
 			w -> (labor_demand(h, w, exp(h.zgrid[end]), pN_up) - Ls).^2,
 			h.wgrid[1], h.wgrid[end] * 2.0, GoldenSection()
 			)
-	res2 = Optim.optimize(
-			w -> (labor_demand(h, w, exp(h.zgrid[end]), pN_down) - Ls).^2,
-			h.wgrid[1], h.wgrid[end] * 2.0, GoldenSection()
-			)
-	w_up = max(res1.minimizer, res2.minimizer) * 1.05
-	res1 = Optim.optimize(
-			w -> (labor_demand(h, w, (1.0-h.Δ) * exp(h.zgrid[1]), pN_up) - Ls).^2,
-			0.5 * h.wgrid[1], h.wgrid[end], GoldenSection()
-			)
-	res2 = Optim.optimize(
+	w_up = res.minimizer
+	res = Optim.optimize(
 			w -> (labor_demand(h, w, (1.0-h.Δ) * exp(h.zgrid[1]), pN_down) - Ls).^2,
 			0.5 * h.wgrid[1], h.wgrid[end], GoldenSection()
 			)
-	w_down = min(res1.minimizer, res2.minimizer) * 0.95
+	w_down = res.minimizer
 
 	h.pngrid = collect(linspace(pN_down, pN_up, length(h.pngrid)))
 	new_wgrid = collect(linspace(w_down, w_up, h.Nw))
@@ -381,12 +341,12 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jd
 	Eω   = a + R*b
 	varω = var_a + R^2 * var_b + 2*R * cov_ab
 
-	varω > 0. || print_save("\nvar_a, var_b, cov_ab = $(var_a), $(var_b), $(cov_ab)", remote=remote)
+	varω > 0. || print_save("\nvar_a, var_b, cov_ab = $(var_a), $(var_b), $(cov_ab)")
 
-	# print_save("\nEω, varω = $Eω, $varω", remote=remote)
+	# print_save("\nEω, varω = $Eω, $varω")
 	Eσ2 = 1.0 + varω / ( (Eω - h.ωmin)^2 )
 	
-	Eσ2 > 1. || print_save("\n1 + vω / (Eω-ωmin)² = $(Eσ2)", remote=remote)
+	Eσ2 > 1. || print_save("\n1 + vω / (Eω-ωmin)² = $(Eσ2)")
 
 	σ2 = log( Eσ2 )
 
@@ -419,7 +379,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 			qmin, qmax, GoldenSection()
 			)
 		q[jzp, 1] = res.minimizer
-		res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ", remote=remote): Void
+		res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ"): Void
 
 		μ[jzp, 1], σ[jzp, 1] = find_q(h, q[jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 
@@ -430,7 +390,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 				qmin, qmax, GoldenSection()
 				)
 			q[jzp, 2] = res.minimizer
-			res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ", remote=remote): Void
+			res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ"): Void
 
 			μ[jzp, 2], σ[jzp, 2] = find_q(h, q[jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 		else
@@ -494,9 +454,6 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 		end
 	end
 
-	!isnan(val_a+val_a2+val_b+val_b2+val_ab) || print_save("\na,a2,b,b2,ab = $([val_a,val_a2,val_b,val_b2,val_ab])", remote=remote)
-	!isapprox(sum_prob, 0.) || print_save("\nsum_prob = $(sum_prob)", remote=remote)
-
 	a  = val_a  / sum_prob
 	a2 = val_a2 / sum_prob
 	b  = val_b  / sum_prob
@@ -507,7 +464,7 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 	var_b  = b2 - b^2
 	cov_ab = ab - a*b
 
-	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab at $([jb, jμ, jσ, jw, jζ, jz])", remote=remote)
+	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab at $([jb, jμ, jσ, jw, jζ, jz])")
 
 	μ′, σ′, _ = compute_stats_logN(h, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, thres)
 

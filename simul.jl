@@ -13,10 +13,10 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	ζt = Int(get(p, t, :ζ))
 	zt = get(p, t, :z)
 
-	zt == h.zgrid[jz] || print_save("something wrong with the simulator", remote=remote)
+	zt == h.zgrid[jz] || print_save("something wrong with the simulator")
 	abs(zt - h.zgrid[jz]) < 1e-8 || throw(error("something wrong with the simulator"))
 
-	print_save("\n$([Bt, μt, σt, w0, ζt, zt])", remote=remote)
+	print_save("\n$([Bt, μt, σt, w0, ζt, zt])")
 
 	Bprime 	= itp_B′[Bt, μt, σt, w0, ζt, jz]
 	G 		= itp_G[Bt, μt, σt, w0, ζt, jz]
@@ -29,7 +29,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	results, _ = find_prices(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, w0, ζt, jz, jdef)
 
 	wt, pN, Ld, output = results
-	print_save("\npN = $pN, pN^e = $(pNg), σ = $(σt) at t = $t", remote=remote)
+	print_save("\npN = $pN, pN^e = $(pNg), σ = $(σt) at t = $t")
 
 	def_prob = 0.
 	if ζt == 1
@@ -66,11 +66,11 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	prop_domestic = b/Bprime
 
-	# print_save("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab]), remote=remote")
+	# print_save("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab])")
 
 	μ′, σ′, q′ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, wt, thres)
 	# μ′, σ′, q′ = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bprime, wt, thres, Bt, μt, σt, w0, ζt, zt, jdef) # This would assume that λₜ is lognormal
-	# print_save("\n$(q′)", remote=remote)
+	# print_save("\n$(q′)")
 
 	# Draw z and the reentry shock for tomorrow, deduce ζ and correct B, μ, and σ as needed, and update the distribution
 	probs = cumsum(h.Pz[jz,:])
@@ -187,37 +187,14 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 		end
 
 		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λ, Qϵ; phase = phase)
-		# print_save("\nt = $t", remote=remote)
+		# print_save("\nt = $t")
 	end
 
-	# Compute regs
-	ols = simul_regs(p)
-
 	# Keep only after the burn_in period
-	p_full = copy(p)
 	trim_path!(p, burn_in)
 	jz_series = jz_series[burn_in+1:end]
 
 	# Return stuff
-	return p, p_full, jz_series, ols
+	return p, jz_series
 end
 
-using DataFrames, GLM
-function simul_regs(path::Path)
-	T = size(path.data, 1)
-
-	B_vec = series(path,:B)
-	μ_vec = series(path,:μ)
-	σ_vec = series(path,:σ)
-	w_vec = series(path,:w)
-	ζ_vec = series(path,:ζ)-1
-	z_vec = exp.(series(path,:z))
-	Y_vec = series(path,:Y)
-	π_vec = series(path,:π)
-
-	data = DataFrame(Y = log.(Y_vec), lz = log.(z_vec), w = log.(w_vec), μ = log.(μ_vec), σ = log.(σ_vec), B = log.(B_vec), π = π_vec)
-
-	OLS = glm(@formula(Y ~ lz + w + μ + σ + B + π), data, Normal(), IdentityLink())
-
-	OLS
-end

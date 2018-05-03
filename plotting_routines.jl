@@ -72,8 +72,8 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 
 		p = [pc pv; pb pθ]
 		p.plot.layout["xlabel"] = "ω"
-		p.plot.layout["width"] = 800/2
-		p.plot.layout["height"] = 600/2
+		p.plot.layout["width"] = 800
+		p.plot.layout["height"] = 600
 		p.plot.layout["font_family"] = "Fira Sans Light"
 
 		return p
@@ -123,7 +123,7 @@ function lines(h::Hank, y, x_dim, name="")
 		x, xlabel = h.zgrid, "z"
 		y = y[jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :]
 	else
-		print_save("x_dim wrong", remote=remote)
+		print_save("x_dim wrong")
 	end
 
 
@@ -174,8 +174,8 @@ function plot_state_funcs(h::Hank; remote::Bool=false)
 
 	# p = [ppN1 pw1 pLd1; ppN2 pw2 pLd2; ppN3 pw3 pLd3; ppN4 pw4 pLd4; ppN6 pw6 pLd6]
 	p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6; pY1 pY2 pY3 pY4 pY6]
-	p.plot.layout["width"] = 800/2
-	p.plot.layout["height"] = 640/2
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 640
 	p.plot.layout["font_family"] = "Fira Sans Light"
 	if remote
 		path = pwd() * "/../../Graphs/"
@@ -218,8 +218,8 @@ function plot_LoM(h::Hank; remote::Bool=false)
 	pσ6 = lines(h, σ′_mat, 6)
 
 	p = [pμ1 pμ2 pμ3 pμ4 pμ6; pσ1 pσ2 pσ3 pσ4 pσ6]
-	p.plot.layout["width"] = 800/2
-	p.plot.layout["height"] = 500/2
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 500
 	p.plot.layout["font_family"] = "Fira Sans Light"
 
 	if remote
@@ -266,8 +266,8 @@ function plot_labor_demand(h::Hank; remote::Bool=false)
     					font_size=16, font_family="Fira Sans Light")
 
 	p = plot([l[jj] for jj in 1:length(l)], layout)
-	p.plot.layout["width"] = 800/2
-	p.plot.layout["height"] = 500/2
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 500
 
 	if remote
 		path = pwd() * "/../../Graphs/"
@@ -313,8 +313,8 @@ function plot_convergence(dist_statefuncs, dist_LoMs, T::Int64; remote::Bool=fal
 
 
 	p = plot([l_funcs1, l_funcs2, l_funcs3, l_LoM1, l_LoM2], layout)
-	p.plot.layout["width"] = 800/2
-	p.plot.layout["height"] = 500/2
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 500
 
 	if remote
 		path = pwd() * "/../../Graphs/"
@@ -327,7 +327,7 @@ function plot_convergence(dist_statefuncs, dist_LoMs, T::Int64; remote::Bool=fal
 end
 
 
-function plot_simul(path::Path; remote::Bool=false, name::String="")
+function plot_simul(path::Path; remote::Bool=false)
 	T = size(path.data, 1)
 
 	B_vec = series(path,:B)
@@ -373,11 +373,11 @@ function plot_simul(path::Path; remote::Bool=false, name::String="")
 	pζ = plot(scatter(; x=times, y=ζ_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="Default", xaxis=attr(title="t")));
 	pz = plot(scatter(; x=times, y=z_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="TFP", xaxis=attr(title="t")));
 	pY = plot([ scatter(; x=times, y=Y_vec, marker_color=col[1], showlegend=false),
-				scatter(; x=times, y=L_vec, marker_color=col[3], showlegend=false, line_dash="dashdot")],
+				scatter(; x=times, y=L_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")],
 			Layout(; shapes=default_shades, title="Output", xaxis=attr(title="t")));
 	pπ = plot(scatter(; x=times, y=π_vec, marker_color=col[1], showlegend=false), Layout(; shapes=default_shades, title="Default prob", xaxis=attr(title="t")));
 	pP = plot([ scatter(; x=times, y=P_vec, marker_color=col[1], showlegend=false),
-				scatter(; x=times, y=Pe_vec,marker_color=col[3], showlegend=false, line_dash="dashdot"),
+				scatter(; x=times, y=Pe_vec,marker_color=col[2], showlegend=false, line_dash="dashdot"),
 				scatter(; x=times, y=ones(times)*maximum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*minimum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; shapes=default_shades, title="Price of nontradables", xaxis=attr(title="t")));
@@ -388,12 +388,11 @@ function plot_simul(path::Path; remote::Bool=false, name::String="")
 
 	p = [pB pw pz; pY pμ pσ; pA pBf pψ; pπ pζ pP]
 	# p.plot.layout["shapes"] = default_shades
-	p.plot.layout["width"] = 850/2
-	p.plot.layout["height"] = 850/2
+	p.plot.layout["width"] = 850
+	p.plot.layout["height"] = 850
 	p.plot.layout["font_family"] = "Fira Sans Light"
 
-
-	name = "simul"*name
+	name = "simul"
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_"*name*".jld", "p", p)
