@@ -55,7 +55,6 @@ function Hank(;	β = (1.0/1.20)^0.25,
 		ρϵ = 0.85		# Mendoza-D'Erasmo for Spain
 		σϵ = 0.2498		# Mendoza-D'Erasmo for Spain
 	else
-		print_save("ERROR: Must specify an income process", remote=remote)
 		throw(error("Must specify an income process"))
 	end
 	ρϵ, σϵ = quarterlize_AR1(ρϵ, σϵ)
@@ -78,8 +77,11 @@ function Hank(;	β = (1.0/1.20)^0.25,
 	α_T = 0.6
 	α_N = 0.6
 
-	η = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
-	ϖ = 0.33 # Taken from Anzoategui, targets SS output share of nontradables at 88%
+	μ_anzo = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
+	ω_anzo = 0.8  # Taken from Anzoategui, targets SS output share of nontradables at 88%
+
+	η = μ_anzo
+	ϖ = ω_anzo^(1.0/μ_anzo)
 
 	# Grids for endogenous aggregate states
 	Bbar  = 3.75

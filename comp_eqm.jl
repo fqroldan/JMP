@@ -167,11 +167,11 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	Ld_N, _  = labor_demand(h, w_new, zv, ζv, pN; get_both=true)
 	supply_N = TFP_N(zv, h.Δ, ζv) * Ld_N^(h.α_N)
 
+ 	# Recover nontraded demand from total consumption
+	pC = price_index(h, pN)
 	demand_N_cons = val_int_C * h.ϖ * (pN/pC)^(-h.η)
 	demand_N_govt = G / pN
 
- 	# Recover nontraded demand from total consumption
-	pC = price_index(h, pN)
 	demand_N = demand_N_cons + demand_N_govt
 
 	F = supply_N - demand_N
