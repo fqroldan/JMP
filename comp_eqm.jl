@@ -187,7 +187,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)^2,
-		0.85*pNmin, 1.15*pNmax, GoldenSection()
+		0.75*pNmin, 1.25*pNmax, GoldenSection()
 		)
 	pN = res.minimizer
 	minf = res.minimum
