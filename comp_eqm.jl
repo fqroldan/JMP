@@ -249,6 +249,8 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		jζ = h.Jgrid[js, 5]
 		jz = h.Jgrid[js, 6]
 
+		make_plot = (jb == floor(h.Nb/2)+1 && jμ == floor(h.Nμ/2)+1 && jσ == floor(h.Nσ/2)+1 && jw == floor(h.Nw/2)+1 && jζ == floor(h.Nζ/2)+1 && jz == floor(h.Nz/2)+1)
+
 		bv = h.bgrid[jb]
 		μv = h.μgrid[jμ]
 		σv = h.σgrid[jσ]
@@ -261,8 +263,14 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
 		results[js, :], minf[js, :], up[js], down[js] = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
+		if make_plot
+			exc_dem_N = Vector{Float64}(length(h.pngrid))
+			for (jpn, pnv) in enumerate(h.pngrid)
+				F = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
+				exc_dem_N[jpn] = F
+			end
+		end
 	end
-		
 	
 	return results, minf, up, down
 end
