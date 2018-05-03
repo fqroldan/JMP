@@ -422,7 +422,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save(": done in $(time_print(time()-t1))", remote=remote)
 			t1 = time()
 
-			print_save("\nStates with exc supply, demand = $(@sprintf("%0.3g",up_prop)), $(@sprintf("%0.3g",down_prop))", remote=remote)
+			print_save("\nStates with exc supply, demand = $(@sprintf("%0.3g",exc_dem_prop)), $(@sprintf("%0.3g",exc_sup_prop))", remote=remote)
 			print_save("\nAverage exc supply = $(@sprintf("%0.3g",mean_excS))", remote=remote)
 
 			new_wgrid = update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
