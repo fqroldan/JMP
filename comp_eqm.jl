@@ -190,7 +190,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 		0.75*pNmin, 1.25*pNmax, GoldenSection()
 		)
 	pN = res.minimizer
-	minf = res.minimum
+	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
 
 	pN > pNmax? up = 1: up = 0
 	pN < pNmin? down = 1: down = 0
