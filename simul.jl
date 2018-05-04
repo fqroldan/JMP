@@ -194,7 +194,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	ols = simul_regs(p)
 
 	# Keep only after the burn_in period
-	p_full = copy(p)
+	p_full = p
 	trim_path!(p, burn_in)
 	jz_series = jz_series[burn_in+1:end]
 
@@ -214,6 +214,8 @@ function simul_regs(path::Path)
 	z_vec = exp.(series(path,:z))
 	Y_vec = series(path,:Y)
 	π_vec = series(path,:π)
+
+	print("\nT = $T")
 
 	data = DataFrame(Y = log.(Y_vec), lz = log.(z_vec), w = log.(w_vec), μ = log.(μ_vec), σ = log.(σ_vec), B = log.(B_vec), π = π_vec)
 
