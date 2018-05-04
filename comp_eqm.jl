@@ -489,8 +489,8 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 
 			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
 
-			ϕa = itp_ϕa[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
-			ϕb = itp_ϕb[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
+			ϕa = max(itp_ϕa[ωmv, jϵ, bv, μv, σv, wv, jζ, jz], h.ωmin)
+			ϕb = max(itp_ϕb[ωmv, jϵ, bv, μv, σv, wv, jζ, jz], 0.)
 
 			val_a  += prob * ϕa
 			val_a2 += prob * ϕa^2
