@@ -97,7 +97,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 	Ls = 1.0
 	w_max = maximum(h.wgrid)
 	if w_max < w_constraint
-		print_save("\nSomething wrong with wages", remote=remote)
+		# print_save("\nSomething wrong with wages", remote=remote)
 		w_max = w_constraint
 	end
 

@@ -20,9 +20,9 @@ write(pwd()*"/../../output.txt", "")
 include("simul.jl")
 include("plotting_routines.jl")
 
-print_save("\nAggregate Demand around Debt Crises\n", remote=remote)
+print_save("\nAggregate Demand around Debt Crises\n")
 
-print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(),"HH:MM"), remote=remote)
+print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(),"HH:MM"))
 
 # Set options
 local_run = true
@@ -33,7 +33,7 @@ if remote || local_run
 	try
 		h2 = load("hank.jld", "h")
 		if h.ψ == h2.ψ && h.γ == h2.γ && h.Ns == h2.Ns
-			print_save("Starting from loaded guess", remote=remote)
+			print_save("Starting from loaded guess")
 			h.ϕa = h2.ϕa
 			h.ϕb = h2.ϕb
 			h.ϕc = h2.ϕc
@@ -46,15 +46,15 @@ if remote || local_run
 		end
 	end
 else
-	print_save("\nLoading solved model file\n", remote=remote)
+	print_save("\nLoading solved model file\n")
 	h = load("../HPC_Output/hank.jld", "h")
 end
 
 
-print_save("\nβ, RRA, IES: $(round(h.β,2)), $(h.γ), $(h.ψ)", remote=remote)
-print_save("\nϵ: $(h.ϵgrid)", remote=remote)
-print_save("\nz: $(h.zgrid)", remote=remote)
-print_save("\nω: $(h.ωgrid)\n", remote=remote)
+print_save("\nβ, RRA, IES: $(round(h.β,2)), $(h.γ), $(h.ψ)")
+print_save("\nϵ: $(h.ϵgrid)")
+print_save("\nz: $(h.zgrid)")
+print_save("\nω: $(h.ωgrid)\n")
 
 # Run
 if remote || local_run 
