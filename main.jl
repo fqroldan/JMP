@@ -62,10 +62,10 @@ if remote || local_run
 	save(pwd() * "/hank.jld", "h", h)
 end
 
-p, p_full, jz_series, ols = simul(h; simul_length=4*25, burn_in=4*250, only_def_end=true)
+p, jz_series, ols = simul(h; simul_length=4*(250+25), only_def_end=true)
 save(pwd()*"/ols.jld", "ols", ols)
 
-plot_simul(p_full; remote=remote, name="_full")
-plot_simul(p; remote=remote)
+plot_simul(p; trim = 4*250, remote=remote)
+plot_simul(p; trim = 0, remote=remote)
 
 Void

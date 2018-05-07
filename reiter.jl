@@ -3,8 +3,8 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.10)^0.25,
-				IES = 1.5,
-				RRA = 2.,
+				IES = 2.0,
+				RRA = 5.,
 				γw = 0.99^0.25,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
@@ -23,8 +23,8 @@ function Hank(;	β = (1.0/1.10)^0.25,
 				Nz = 7,
 				ρz = 0.9,
 				σz = 0.025,
-				ℏ = 0.95,
-				Δ = 0.0005,
+				ℏ = 0.25,
+				Δ = 0.05,
 				θ = .1,
 				Np = 5,
 				upd_tol = 5e-3
@@ -84,7 +84,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 	ϖ = ω_anzo^(1.0/μ_anzo)
 
 	# Grids for endogenous aggregate states
-	Bbar  = 3.5
+	Bbar  = 4.5
 	bgrid = linspace(0.0, 5.0, Nb)
 	μgrid = linspace(-1.0, 2.5, Nμ)
 	σgrid = linspace(0.005, 0.5, Nσ)

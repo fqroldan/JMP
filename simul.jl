@@ -131,7 +131,7 @@ end
 
 function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::Bool=false)
 
-	srand(3)
+	srand(1)
 
 	# Setup
 	T = burn_in + simul_length
@@ -193,13 +193,10 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	# Compute regs
 	ols = simul_regs(p)
 
-	# Keep only after the burn_in period
-	p_full = p
-	trim_path!(p, burn_in)
 	jz_series = jz_series[burn_in+1:end]
 
 	# Return stuff
-	return p, p_full, jz_series, ols
+	return p, jz_series, ols
 end
 
 using DataFrames, GLM
@@ -216,8 +213,15 @@ function simul_regs(path::Path)
 	π_vec = series(path,:π)
 
 	print("\nT = $T")
+	
+	y = log.(Y_vec)
+	lz = log.(z_vec)
+	lw = log.(w_vec)
+	μ = μ_vec
+	σ = σ_vec
+	lB = log.(B_vec)
 
-	data = DataFrame(Y = log.(Y_vec), lz = log.(z_vec), w = log.(w_vec), μ = log.(μ_vec), σ = log.(σ_vec), B = log.(B_vec), π = π_vec)
+	data = DataFrame(Y = y, lz = lz, w = lw, μ = μ, σ = σ, B = lB, π = π_vec)
 
 	OLS = glm(@formula(Y ~ lz + w + μ + σ + B + π), data, Normal(), IdentityLink())
 
