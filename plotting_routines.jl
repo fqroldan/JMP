@@ -123,7 +123,7 @@ function lines(h::Hank, y, x_dim, name="")
 		x, xlabel = h.zgrid, "z"
 		y = y[jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :]
 	else
-		print_save("x_dim wrong", remote=remote)
+		print_save("x_dim wrong")
 	end
 
 

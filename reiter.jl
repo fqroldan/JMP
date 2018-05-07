@@ -10,7 +10,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 				r_star = 1.02^0.25 - 1.0,
 				ωmax = 10.,
 				curv = .4,
-				income_process = "Floden-Lindé",
+				income_process = "Mendoza-D'Erasmo",
 				EpsteinZin = true,
 				order = 3,
 				Nω_fine = 1000,
@@ -27,7 +27,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 				Δ = 0.05,
 				θ = .1,
 				Np = 5,
-				upd_tol = 5e-3
+				tol_θ = 1e-2
 				)
 	ψ = IES
 	γ = 0.
@@ -55,6 +55,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 		ρϵ = 0.85		# Mendoza-D'Erasmo for Spain
 		σϵ = 0.2498		# Mendoza-D'Erasmo for Spain
 	else
+		print_save("ERROR: Must specify an income process")
 		throw(error("Must specify an income process"))
 	end
 	ρϵ, σϵ = quarterlize_AR1(ρϵ, σϵ)
@@ -77,17 +78,14 @@ function Hank(;	β = (1.0/1.10)^0.25,
 	α_T = 0.6
 	α_N = 0.6
 
-	μ_anzo = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
-	ω_anzo = 0.8  # Taken from Anzoategui, targets SS output share of nontradables at 88%
-
-	η = μ_anzo
-	ϖ = ω_anzo^(1.0/μ_anzo)
+	η = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
+	ϖ = 0.33 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
 	Bbar  = 4.5
 	bgrid = linspace(0.0, 5.0, Nb)
 	μgrid = linspace(-1.0, 2.5, Nμ)
-	σgrid = linspace(0.005, 0.5, Nσ)
+	σgrid = linspace(0.001, 0.25, Nσ)
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.5
@@ -203,7 +201,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv - 0.75 * zv + 0.05 * (Bbar-bv)
+			issuance[jb,:,:,:,1,jz] = bv - 0.9 * zv + 0.05 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
@@ -224,8 +222,10 @@ function Hank(;	β = (1.0/1.10)^0.25,
 	def_thres 	= reshape(def_thres, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 	output 		= reshape(output, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 
+	upd_tol = 5e-3
+
 	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕc, ϕa_ext, ϕb_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
-		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, output, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol)
+		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, output, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol, tol_θ)
 end
 
 function iterate_qᵍ!(h::Hank; verbose::Bool=false)
@@ -292,7 +292,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 				end
 			end
 
-			isapprox(check, 1.0) || print_save("WARNING: wrong transitions in update_qᵍ!", remote=remote)
+			isapprox(check, 1.0) || print_save("WARNING: wrong transitions in update_qᵍ!")
 			qᵍ[jb, jμ, jσ, jw, jζ, jz] = E_rep / (1.0 + h.r_star)
 		end
 		iter += 1
@@ -304,7 +304,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	if verbose
 		end_t = time()
 		if dist <= tol
-			print_save("Updated prices after $iter iterations in $(time_print(end_t-init_t))", remote=remote)
+			print_save("Updated prices after $iter iterations in $(time_print(end_t-init_t))")
 		else
 			warn("Iteration on qᵍ aborted at distance $(@sprintf("%.3g",dist)) after $(time_print(end_t-init_t))")
 		end
@@ -358,9 +358,9 @@ function _unpackstatefs(h::Hank)
 end
 
 
-function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=50, bellman_iter::Int64=maxiter)
+function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=75, bellman_iter::Int64=maxiter)
 
-	print_save("\nSolving household problem: ", remote=remote)
+	print_save("\nSolving household problem: ")
 	time_init = time()
 	t_old = time_init
 	iter = 1
@@ -377,7 +377,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	μ′_old = copy(h.μ′)
 	σ′_old = copy(h.σ′)
 
-	print_save("\nIteration $iter", remote=remote)
+	print_save("\nIteration $iter")
 	t_old = time()
 	while dist > tol && iter < maxiter
 		iter_cycle += 1
@@ -397,8 +397,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		norm_v = sqrt.(sum(v_old.^2))
 		if verbose && (iter_cycle % 20 == 0 || dist < h.upd_tol)
 			t_new = time()
-			print_save("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v‖ = $(@sprintf("%0.3g",norm_v)) after $(time_print(t_new-t_old)) and $iter_cycle iterations ", remote=remote)
-			print_save(Dates.format(now(), "HH:MM"), remote=remote)
+			print_save("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v‖ = $(@sprintf("%0.3g",norm_v)) after $(time_print(t_new-t_old)) and $iter_cycle iterations ")
+			print_save(Dates.format(now(), "HH:MM"))
 			# plot_hh_policies(h, remote = remote)
 		end
 
@@ -407,19 +407,19 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 			t1 = time()
 			extend_state_space!(h, qʰ_mat, qᵍ_mat, T_mat)
-			print_save(": done in $(time_print(time()-t1))", remote=remote)
+			print_save(": done in $(time_print(time()-t1))")
 			t1 = time()
 
 			plot_labor_demand(h, remote = remote)
 
-			print_save("\nUpdating functions of the state", remote=remote)
+			print_save("\nUpdating functions of the state")
 
 			exc_dem_prop, exc_sup_prop, mean_excS, dists = update_state_functions!(h, upd_η)
 
 			dist_statefuncs[iter, :] = dists
 
 			plot_state_funcs(h, remote = remote)
-			print_save(": done in $(time_print(time()-t1))", remote=remote)
+			print_save(": done in $(time_print(time()-t1))")
 			t1 = time()
 
 			print_save("\nStates with exc supply, demand = $(@sprintf("%0.3g",exc_dem_prop)), $(@sprintf("%0.3g",exc_sup_prop))", remote=remote)
@@ -428,9 +428,9 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			new_wgrid = update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
 			update_grids!(h, new_wgrid=new_wgrid)
 
-			print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(h.pngrid))), $(@sprintf("%0.3g",maximum(h.pngrid)))]", remote=remote)
+			print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(h.pngrid))), $(@sprintf("%0.3g",maximum(h.pngrid)))]")
 
-			print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))", remote=remote)
+			print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
 			dist_s = maximum(dists)
 
 			dist_exp, new_μgrid, new_σgrid = update_expectations!(h, 0.5 * upd_η)
@@ -438,14 +438,14 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			dist_LoMs[iter, :] = dist_exp
 
 			update_grids!(h, new_μgrid = new_μgrid)#, new_σgrid = new_σgrid)
-			print_save("\nDistance in expectations: (dμ,dσ) = ($(@sprintf("%0.3g",mean(dist_exp[1]))),$(@sprintf("%0.3g",mean(dist_exp[2]))))", remote=remote)
-			print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(h.μgrid))), $(@sprintf("%0.3g",maximum(h.μgrid)))]", remote=remote)
-			print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(h.σgrid))), $(@sprintf("%0.3g",maximum(h.σgrid)))]", remote=remote)
+			print_save("\nDistance in expectations: (dμ,dσ) = ($(@sprintf("%0.3g",mean(dist_exp[1]))),$(@sprintf("%0.3g",mean(dist_exp[2]))))")
+			print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(h.μgrid))), $(@sprintf("%0.3g",maximum(h.μgrid)))]")
+			print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(h.σgrid))), $(@sprintf("%0.3g",maximum(h.σgrid)))]")
 
 			plot_LoM(h, remote = remote)
 
 			dist_s = max(dist_s, maximum(dist_exp))
-			print_save("\nGrids and expectations updated in $(time_print(time()-t1))", remote=remote)
+			print_save("\nGrids and expectations updated in $(time_print(time()-t1))")
 
 			plot_convergence(dist_statefuncs, dist_LoMs, iter, remote = remote)
 
@@ -453,12 +453,13 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 			iter += 1
 			iter_cycle = 0
-			print_save("\n\nIteration $iter", remote=remote)
-			var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))", remote=remote)
-			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))", remote=remote)
+			print_save("\n\nIteration $iter")
+			var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
+			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 
 			h.upd_tol = max(exp(0.85*log(1+h.upd_tol))-1, 1e-6)
-			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))", remote=remote)
+			iter > 10? iter > 20? iter > 30? h.tol_θ = 1e-16: h.tol_θ = 1e-8: h.tol_θ = 1e-4: Void
+			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))")
 			t_old = time()
 		end
 
@@ -475,12 +476,12 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	end
 
 	if dist <= tol
-		print_save("\nConverged in $iter iterations. ", remote=remote)
+		print_save("\nConverged in $iter iterations. ")
 	else
-		print_save("\nStopping at distance $(@sprintf("%0.3g",dist)). ", remote=remote)
+		print_save("\nStopping at distance $(@sprintf("%0.3g",dist)). ")
 	end
 
-	print_save("\nTotal time: $(time_print(time()-time_init))\n", remote=remote)
+	print_save("\nTotal time: $(time_print(time()-time_init))\n")
 
 	Void
 end

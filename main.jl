@@ -59,7 +59,7 @@ print_save("\nω: $(h.ωgrid)\n")
 # Run
 if remote || local_run 
 	vfi!(h, verbose = true, remote = remote)
-	save(pwd() * "/hank.jld", "h", h)
+	save(pwd() * "/../../hank.jld", "h", h)
 end
 
 p, jz_series, ols = simul(h; simul_length=4*(250+25), only_def_end=true)
