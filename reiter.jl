@@ -2,9 +2,9 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 
 include("hh_pb.jl")
 
-function Hank(;	β = (1.0/1.08)^0.25,
-				IES = 1.5,
-				RRA = 15.,
+function Hank(;	β = (1.0/1.10)^0.25,
+				IES = 2.0,
+				RRA = 5.,
 				γw = 0.99^0.25,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
@@ -23,8 +23,8 @@ function Hank(;	β = (1.0/1.08)^0.25,
 				Nz = 7,
 				ρz = 0.9,
 				σz = 0.025,
-				ℏ = 0.5,
-				Δ = 0.075,
+				ℏ = 0.25,
+				Δ = 0.05,
 				θ = .1,
 				Np = 5,
 				tol_θ = 1e-2
@@ -82,7 +82,7 @@ function Hank(;	β = (1.0/1.08)^0.25,
 	ϖ = 0.33 # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	# Grids for endogenous aggregate states
-	Bbar  = 3.75
+	Bbar  = 4.5
 	bgrid = linspace(0.0, 5.0, Nb)
 	μgrid = linspace(-1.0, 2.5, Nμ)
 	σgrid = linspace(0.001, 0.25, Nσ)
@@ -414,7 +414,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 			print_save("\nUpdating functions of the state")
 
-			up_prop, down_prop, mean_excS, dists = update_state_functions!(h, upd_η)
+			exc_dem_prop, exc_sup_prop, mean_excS, dists = update_state_functions!(h, upd_η)
 
 			dist_statefuncs[iter, :] = dists
 
@@ -422,10 +422,10 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save(": done in $(time_print(time()-t1))")
 			t1 = time()
 
-			print_save("\nStates with exc supply, demand = $(@sprintf("%0.3g",up_prop)), $(@sprintf("%0.3g",down_prop))")
-			print_save("\nAverage exc supply = $(@sprintf("%0.3g",mean_excS))")
+			print_save("\nStates with exc supply, demand = $(@sprintf("%0.3g",exc_dem_prop)), $(@sprintf("%0.3g",exc_sup_prop))", remote=remote)
+			print_save("\nAverage exc supply = $(@sprintf("%0.3g",mean_excS))", remote=remote)
 
-			new_wgrid = update_grids_pw!(h, up_prop, down_prop)
+			new_wgrid = update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
 			update_grids!(h, new_wgrid=new_wgrid)
 
 			print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(h.pngrid))), $(@sprintf("%0.3g",maximum(h.pngrid)))]")

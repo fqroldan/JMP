@@ -22,7 +22,7 @@ include("plotting_routines.jl")
 
 print_save("\nAggregate Demand around Debt Crises\n")
 
-print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(), "HH:MM"))
+print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(),"HH:MM"))
 
 # Set options
 local_run = false
@@ -62,7 +62,10 @@ if remote || local_run
 	save(pwd() * "/../../hank.jld", "h", h)
 end
 
-p, jz_series = simul(h; simul_length=4*25, burn_in=4*50, only_def_end=true)
-plot_simul(p; remote=remote)
+p, jz_series, ols = simul(h; simul_length=4*(250+25), only_def_end=true)
+save(pwd()*"/ols.jld", "ols", ols)
+
+plot_simul(p; trim = 4*250, remote=remote)
+plot_simul(p; trim = 0, remote=remote)
 
 Void

@@ -97,7 +97,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 	Ls = 1.0
 	w_max = maximum(h.wgrid)
 	if w_max < w_constraint
-		print_save("\nSomething wrong with wages")
+		# print_save("\nSomething wrong with wages", remote=remote)
 		w_max = w_constraint
 	end
 
@@ -106,7 +106,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 	if Ld - Ls > 1e-4
 		res = Optim.optimize(
 			w -> (labor_demand(h, w, zv, ζv, pNv) - Ls)^2,
-				w_constraint, w_max, GoldenSection()
+				w_constraint, 1.25*w_max, GoldenSection()
 			)
 		w_new = res.minimizer
 		minf = Ls - labor_demand(h, w_new, zv, ζv, pNv)
@@ -169,25 +169,35 @@ end
 
 function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
 
-	function wrap_mktclear!(pN::Vector, fvec=similar(x))
+	res = Optim.optimize(
+		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)^2,
+		0.75*pNmin, 1.25*pNmax, GoldenSection()
+		)
+	pN = res.minimizer
+	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
 
-		out = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = false)
+	pN > pNmax? exc_dem = 1: exc_dem = 0
+	pN < pNmin? exc_sup = 1: exc_sup = 0
+#	function wrap_mktclear!(pN::Vector, fvec=similar(x))
 
-		fvec[:] = out
-	end
+#		out = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = false)
+
+
+#		fvec[:] = out
+#	end
 	
-	res = fsolve(wrap_mktclear!, [pNg])
-	if res.:converged == false
-		res2 = fsolve(wrap_mktclear!, [pNg], method=:lmdif)
+#	res = fsolve(wrap_mktclear!, [pNg])
+#	if res.:converged == false
+#		res2 = fsolve(wrap_mktclear!, [pNg], method=:lmdif)
 
-		if res2.:converged || sum(res2.:f.^2) < sum(res.:f.^2)
-			res = res2
-		end
-	end
+#		if res2.:converged || sum(res2.:f.^2) < sum(res.:f.^2)
+#			res = res2
+#		end
+#	end
 
-	minf = res.:f[1]
+#	minf = res.:f[1]
 
-	pN = transform_vars(res.:x[1], pNmin, pNmax)
+#	pN = transform_vars(res.:x[1], pNmin, pNmax)
 
 	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; get_others=true)
 
@@ -197,7 +207,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
 	end
 
-	return results, minf
+  return results, minf, exc_dem, exc_sup
 end
 
 function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
@@ -206,6 +216,8 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 
 	results = SharedArray{Float64}(N, 4)
 	minf	= SharedArray{Float64}(N, 1)
+	exc_dem = SharedArray{Float64}(N)
+	exc_sup = SharedArray{Float64}(N)
 
 	pN_guess = h.pN
 
@@ -221,6 +233,8 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		jζ = h.Jgrid[js, 5]
 		jz = h.Jgrid[js, 6]
 
+		make_plot = (jb == floor(h.Nb/2)+1 && jμ == floor(h.Nμ/2)+1 && jσ == floor(h.Nσ/2)+1 && jw == floor(h.Nw/2)+1 && jζ == floor(h.Nζ/2)+1 && jz == floor(h.Nz/2)+1)
+
 		bv = h.bgrid[jb]
 		μv = h.μgrid[jμ]
 		σv = h.σgrid[jσ]
@@ -232,11 +246,17 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 
 		pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
-		results[js, :], minf[js, :] = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
+		results[js, :], minf[js, :], exc_dem[js], exc_sup[js] = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
+		if make_plot
+			exc_dem_N = Vector{Float64}(length(h.pngrid))
+			for (jpn, pnv) in enumerate(h.pngrid)
+				F = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
+				exc_dem_N[jpn] = F
+			end
+		end
 	end
-		
 	
-	return results, minf
+	return results, minf, exc_dem, exc_sup
 end
 
 function update_state_functions!(h::Hank, upd_η::Float64)
@@ -245,7 +265,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	# itp_ϕc  = interpolate(all_knots, h.ϕc_ext, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp(), Gridded(Linear())))
 	itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
 
-	results, minf = find_all_prices(h, itp_ϕc, h.issuance, h.spending)
+	results, minf, exc_dem, exc_sup = find_all_prices(h, itp_ϕc, h.issuance, h.spending)
 
 	dist = Array{Float64,1}(3)
 	dist[1] = sqrt.(sum( (results[:, 1] - h.wage).^2 )) / sqrt.(sum(h.wage.^2))
@@ -282,23 +302,27 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	h.w′ = h.wage
 	mean_f = mean(minf)
 
-	up_prop   = sum(minf .>  1e-4) / length(minf)
-	down_prop = sum(minf .< -1e-4) / length(minf)
-	return up_prop, down_prop, mean_f, dist
+	# up_prop   = sum(minf .>  1e-4) / length(minf)
+	# down_prop = sum(minf .< -1e-4) / length(minf)
+
+	exc_dem_prop = sum(exc_dem) / length(exc_dem)
+	exc_sup_prop = sum(exc_sup) / length(exc_sup)
+
+	return exc_dem_prop, exc_sup_prop, mean_f, dist
 end
 
-function update_grids_pw!(h::Hank, up_prop, down_prop)
+function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 	
 	pN_down = minimum(h.pngrid)
-	if up_prop > 0.025
+	if exc_sup_prop > 0.025
 		pN_down = pN_down * 0.95
-	elseif up_prop == 0.
+	elseif exc_sup_prop == 0.
 		pN_down = pN_down * 1.01
 	end
 	pN_up = maximum(h.pngrid)
-	if down_prop > 0.025
+	if exc_dem_prop > 0.025
 		pN_up = pN_up * 1.05
-	elseif down_prop == 0.
+	elseif exc_dem_prop == 0.
 		pN_up = pN_up * 0.99
 	end
 
@@ -441,8 +465,8 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 
 			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
 
-			ϕa = itp_ϕa[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
-			ϕb = itp_ϕb[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
+			ϕa = max(itp_ϕa[ωmv, jϵ, bv, μv, σv, wv, jζ, jz], h.ωmin)
+			ϕb = max(itp_ϕb[ωmv, jϵ, bv, μv, σv, wv, jζ, jz], 0.)
 
 			val_a  += prob * ϕa
 			val_a2 += prob * ϕa^2
