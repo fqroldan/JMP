@@ -4,13 +4,13 @@ include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.10)^0.25,
 				IES = 2.0,
-				RRA = 5.,
+				RRA = 2.,
 				γw = 0.99^0.25,
 				τ = 0.35,
 				r_star = 1.02^0.25 - 1.0,
 				ωmax = 10.,
 				curv = .4,
-				income_process = "Mendoza-D'Erasmo",
+				income_process = "Floden-Lindé",
 				EpsteinZin = true,
 				order = 3,
 				Nω_fine = 1000,
@@ -27,7 +27,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 				Δ = 0.05,
 				θ = .1,
 				Np = 5,
-				tol_θ = 1e-2
+				upd_tol = 5e-3
 				)
 	ψ = IES
 	γ = 0.
@@ -55,7 +55,6 @@ function Hank(;	β = (1.0/1.10)^0.25,
 		ρϵ = 0.85		# Mendoza-D'Erasmo for Spain
 		σϵ = 0.2498		# Mendoza-D'Erasmo for Spain
 	else
-		print_save("ERROR: Must specify an income process")
 		throw(error("Must specify an income process"))
 	end
 	ρϵ, σϵ = quarterlize_AR1(ρϵ, σϵ)
@@ -75,17 +74,23 @@ function Hank(;	β = (1.0/1.10)^0.25,
 	Ξ = dot(exp.(ϵgrid).^(1.0/χ), λϵ)^χ
 	θL = (1.0-τ) * Ξ
 
-	α_T = 0.6
-	α_N = 0.6
+	# α_T = 0.6
+	# α_N = 0.6
 
-	η = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
-	ϖ = 0.33 # Taken from Anzoategui, targets SS output share of nontradables at 88%
+	α_T = 0.75
+	α_N = 0.75
+
+	μ_anzo = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
+	ω_anzo = 0.8  # Taken from Anzoategui, targets SS output share of nontradables at 88%
+
+	η = μ_anzo
+	ϖ = ω_anzo^(1.0/μ_anzo)
 
 	# Grids for endogenous aggregate states
 	Bbar  = 4.5
 	bgrid = linspace(0.0, 5.0, Nb)
 	μgrid = linspace(-1.0, 2.5, Nμ)
-	σgrid = linspace(0.001, 0.25, Nσ)
+	σgrid = linspace(0.005, 0.5, Nσ)
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.5
@@ -201,7 +206,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv - 0.9 * zv + 0.05 * (Bbar-bv)
+			issuance[jb,:,:,:,1,jz] = bv - 0.75 * zv + 0.05 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
@@ -222,10 +227,8 @@ function Hank(;	β = (1.0/1.10)^0.25,
 	def_thres 	= reshape(def_thres, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 	output 		= reshape(output, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 
-	upd_tol = 5e-3
-
 	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕc, ϕa_ext, ϕb_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
-		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, output, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol, tol_θ)
+		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, output, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol)
 end
 
 function iterate_qᵍ!(h::Hank; verbose::Bool=false)
@@ -358,7 +361,7 @@ function _unpackstatefs(h::Hank)
 end
 
 
-function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=75, bellman_iter::Int64=maxiter)
+function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=50, bellman_iter::Int64=maxiter)
 
 	print_save("\nSolving household problem: ")
 	time_init = time()
@@ -422,8 +425,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save(": done in $(time_print(time()-t1))")
 			t1 = time()
 
-			print_save("\nStates with exc supply, demand = $(@sprintf("%0.3g",exc_dem_prop)), $(@sprintf("%0.3g",exc_sup_prop))", remote=remote)
-			print_save("\nAverage exc supply = $(@sprintf("%0.3g",mean_excS))", remote=remote)
+			print_save("\nStates with exc supply, demand = $(@sprintf("%0.3g",exc_dem_prop)), $(@sprintf("%0.3g",exc_sup_prop))")
+			print_save("\nAverage exc supply = $(@sprintf("%0.3g",mean_excS))")
 
 			new_wgrid = update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
 			update_grids!(h, new_wgrid=new_wgrid)
@@ -458,7 +461,6 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 
 			h.upd_tol = max(exp(0.85*log(1+h.upd_tol))-1, 1e-6)
-			iter > 10? iter > 20? iter > 30? h.tol_θ = 1e-16: h.tol_θ = 1e-8: h.tol_θ = 1e-4: Void
 			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))")
 			t_old = time()
 		end

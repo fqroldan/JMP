@@ -10,6 +10,7 @@ type Hank
 	θL::Float64
 	χ::Float64
 	Ξ::Float64
+	# prop_transf::Bool
 
 	# Debt parameters
 	ρ::Float64
@@ -122,7 +123,6 @@ type Hank
 
 	# Options
 	upd_tol::Float64
-	tol_θ::Float64
 end
 
 type Path

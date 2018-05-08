@@ -142,7 +142,7 @@ function value(h::Hank, sp::Float64, θp::Float64, itp_vf_s::Array{Interpolation
 			vf = (1.0 - h.β) * ut + h.β * Tv^(EZ_exp)
 			vf = vf^(1.0/EZ_exp)
 		else
-			vf = max(C, 1e-10)^(1.0-h.β) * Tv^(h.β) # This is the same as saying that vf = exp( (1.0-h.β)*log(c) + h.β * log(Tv) )
+			vf = C^(1.0-h.β) * Tv^(h.β) # This is the same as saying that vf = exp( (1.0-h.β)*log(c) + h.β * log(Tv) )
 		end
 		return vf
 	else

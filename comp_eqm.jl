@@ -1,4 +1,4 @@
-TFP_N(z, Δ, ζ) = 1.0    * (1.0 - Δ*(ζ==2))
+TFP_N(z, Δ, ζ) = 1.0#    * (1.0 - Δ*(ζ==2))
 TFP_T(z, Δ, ζ) = exp(z) * (1.0 - Δ*(ζ==2))
 
 function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
@@ -97,7 +97,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 	Ls = 1.0
 	w_max = maximum(h.wgrid)
 	if w_max < w_constraint
-		# print_save("\nSomething wrong with wages", remote=remote)
+		# print_save("\nSomething wrong with wages")
 		w_max = w_constraint
 	end
 
@@ -110,7 +110,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 			)
 		w_new = res.minimizer
 		minf = Ls - labor_demand(h, w_new, zv, ζv, pNv)
-		abs(minf) > 1e-4? print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, γw₀) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max)))"): Void
+		abs(minf) > 1e-4? print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, w_max) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max))) at (z,ζ,pN) = $([zv, ζv, pNv])"): Void
 		Ld_N, Ld_T = labor_demand(h, w_new, zv, ζv, pNv; get_both=true)
 		Ld = Ld_N + Ld_T
 	end
@@ -128,13 +128,14 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 		pN = transform_vars(pN, pNmin, pNmax)
 	end
 
+	isnan(pN)? print_save("\nWARNING: pNv, pN = $(pNv[1]), $(pN)"): Void
+
 	ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
 
 	Ld, w_new, profits, output = labor_market(h, ζv, zv, wv, pN)
 
 	# Step 3: Get the household's policies at these prices
 
-	val_A, val_B, val_C, sum_prob = 0., 0., 0., 0.
 	val_int_C = 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 
@@ -145,18 +146,33 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 
 		val_int_C += val
 	end
+	# val_C, sum_prob = 0., 0.
+	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
+	# 	for jω = 1:length(h.ωgrid_fine)-1
+	# 		ωv  = h.ωgrid_fine[jω]
+	# 		ω1v = h.ωgrid_fine[jω+1]
+	# 		ωmv = 0.5*(ωv+ω1v)
+
+	# 		prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
+
+	# 		ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+
+	# 		val_C  += prob * ϕc
+	# 		sum_prob += prob
+	# 	end
+	# end
+	# val_int_C = val_C / sum_prob
 
 	# Step 4: Check market clearing for nontradables
-	# TFP = ifelse(jdefault, (1.0 - h.Δ) * exp(zv), exp(zv))
 	Ld_N, _  = labor_demand(h, w_new, zv, ζv, pN; get_both=true)
 	supply_N = TFP_N(zv, h.Δ, ζv) * Ld_N^(h.α_N)
 
-	demand = val_int_C
-	demand_N_govt = G / pN
-
  	# Recover nontraded demand from total consumption
 	pC = price_index(h, pN)
-	demand_N = demand * h.ϖ * (pN/pC)^(-h.η) + demand_N_govt
+	demand_N_cons = val_int_C * h.ϖ * (pN/pC)^(-h.η)
+	demand_N_govt = G / pN
+
+	demand_N = demand_N_cons + demand_N_govt
 
 	F = supply_N - demand_N
 
@@ -178,26 +194,26 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 
 	pN > pNmax? exc_dem = 1: exc_dem = 0
 	pN < pNmin? exc_sup = 1: exc_sup = 0
-#	function wrap_mktclear!(pN::Vector, fvec=similar(x))
 
-#		out = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = false)
+	# function wrap_mktclear!(pN::Vector, fvec=similar(x))
 
+	# 	out = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = false)
 
-#		fvec[:] = out
-#	end
+	# 	fvec[:] = out
+	# end
 	
-#	res = fsolve(wrap_mktclear!, [pNg])
-#	if res.:converged == false
-#		res2 = fsolve(wrap_mktclear!, [pNg], method=:lmdif)
+	# res = fsolve(wrap_mktclear!, [pNg])
+	# if res.:converged == false
+	# 	res2 = fsolve(wrap_mktclear!, [pNg], method=:lmdif)
 
-#		if res2.:converged || sum(res2.:f.^2) < sum(res.:f.^2)
-#			res = res2
-#		end
-#	end
+	# 	if res2.:converged || sum(res2.:f.^2) < sum(res.:f.^2)
+	# 		res = res2
+	# 	end
+	# end
 
-#	minf = res.:f[1]
+	# minf = res.:f[1]
 
-#	pN = transform_vars(res.:x[1], pNmin, pNmax)
+	# pN = transform_vars(res.:x[1], pNmin, pNmax)
 
 	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; get_others=true)
 
@@ -207,7 +223,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
 	end
 
-  return results, minf, exc_dem, exc_sup
+	return results, minf, exc_dem, exc_sup
 end
 
 function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
@@ -327,16 +343,24 @@ function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 	end
 
 	Ls = 1.0
-	res = Optim.optimize(
+	res1 = Optim.optimize(
 			w -> (labor_demand(h, w, exp(h.zgrid[end]), pN_up) - Ls).^2,
 			h.wgrid[1], h.wgrid[end] * 2.0, GoldenSection()
 			)
-	w_up = res.minimizer
-	res = Optim.optimize(
+	res2 = Optim.optimize(
+			w -> (labor_demand(h, w, exp(h.zgrid[end]), pN_down) - Ls).^2,
+			h.wgrid[1], h.wgrid[end] * 2.0, GoldenSection()
+			)
+	w_up = max(res1.minimizer, res2.minimizer) * 1.05
+	res1 = Optim.optimize(
+			w -> (labor_demand(h, w, (1.0-h.Δ) * exp(h.zgrid[1]), pN_up) - Ls).^2,
+			0.5 * h.wgrid[1], h.wgrid[end], GoldenSection()
+			)
+	res2 = Optim.optimize(
 			w -> (labor_demand(h, w, (1.0-h.Δ) * exp(h.zgrid[1]), pN_down) - Ls).^2,
 			0.5 * h.wgrid[1], h.wgrid[end], GoldenSection()
 			)
-	w_down = res.minimizer
+	w_down = min(res1.minimizer, res2.minimizer) * 0.95
 
 	h.pngrid = collect(linspace(pN_down, pN_up, length(h.pngrid)))
 	new_wgrid = collect(linspace(w_down, w_up, h.Nw))
@@ -477,6 +501,9 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 			sum_prob += prob
 		end
 	end
+
+	!isnan(val_a+val_a2+val_b+val_b2+val_ab) || print_save("\na,a2,b,b2,ab = $([val_a,val_a2,val_b,val_b2,val_ab])")
+	!isapprox(sum_prob, 0.) || print_save("\nsum_prob = $(sum_prob)")
 
 	a  = val_a  / sum_prob
 	a2 = val_a2 / sum_prob
