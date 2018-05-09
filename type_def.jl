@@ -26,10 +26,12 @@ type Hank
 	# Policy functions
 	ϕa::Array{Float64, 8}
 	ϕb::Array{Float64, 8}
+	ϕe::Array{Float64, 8}
 	ϕc::Array{Float64, 8}
 
 	ϕa_ext::Array{Float64, 9}
 	ϕb_ext::Array{Float64, 9}
+	ϕe_ext::Array{Float64, 9}
 	ϕc_ext::Array{Float64, 9}
 
 	vf::Array{Float64, 8}

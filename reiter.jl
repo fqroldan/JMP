@@ -3,7 +3,7 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.10)^0.25,
-				IES = 2.0,
+				IES = 1.0,
 				RRA = 2.,
 				γw = 0.99^0.25,
 				τ = 0.35,
@@ -74,11 +74,11 @@ function Hank(;	β = (1.0/1.10)^0.25,
 	Ξ = dot(exp.(ϵgrid).^(1.0/χ), λϵ)^χ
 	θL = (1.0-τ) * Ξ
 
-	# α_T = 0.6
-	# α_N = 0.6
+	α_T = 0.6
+	α_N = 0.6
 
-	α_T = 0.75
-	α_N = 0.75
+	# α_T = 0.75
+	# α_N = 0.75
 
 	μ_anzo = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
 	ω_anzo = 0.8  # Taken from Anzoategui, targets SS output share of nontradables at 88%
@@ -125,6 +125,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 
 	ϕa = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	ϕb = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	ϕe = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	ϕc = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
 
 	vf = Array{Float64}(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
@@ -160,6 +161,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 
 	ϕa_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Np)
 	ϕb_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Np)
+	ϕe_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Np)
 	ϕc_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Np)
 
 	μ = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
@@ -227,7 +229,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 	def_thres 	= reshape(def_thres, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 	output 		= reshape(output, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 
-	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕc, ϕa_ext, ϕb_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
+	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕe, ϕc, ϕa_ext, ϕb_ext, ϕe_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
 		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, output, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol)
 end
 
