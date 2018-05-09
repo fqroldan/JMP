@@ -65,6 +65,7 @@ end
 function get_abec(RHS::Float64, ωmin::Float64, qʰ::Float64, qᵍ::Float64, pC::Float64, sp::Float64, θa::Float64)
 
 	θe = 0.0
+	qᵉ = 1.0
 
 	""" Recovers private and public debt purchases and consumption from savings decisions """
 	ap = ωmin + θa * (sp - qʰ*ωmin) / qʰ
