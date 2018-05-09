@@ -70,7 +70,7 @@ function get_abec(RHS::Float64, ωmin::Float64, qʰ::Float64, qᵍ::Float64, pC:
 	""" Recovers private and public debt purchases and consumption from savings decisions """
 	ap = ωmin + θa * (sp - qʰ*ωmin) / qʰ
 	bp = (1.0-θa) * (1.0-θe) * (sp - qʰ*ωmin) / qᵍ
-	ep = (1.0-θa) * θe       * (sp - qʰ*ωmin) / qᵉ
+	ep = (1.0-θa) *    θe    * (sp - qʰ*ωmin) / qᵉ
 	C  = (RHS - sp) / pC
 
 	return ap, bp, ep, C
@@ -249,7 +249,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 	vf = SharedArray{Float64}(size(h.vf))
 	ϕa = SharedArray{Float64}(size(h.ϕa))
 	ϕb = SharedArray{Float64}(size(h.ϕb))
-	ϕe = SharedArray{Float64}(size(h.ϕb))
+	ϕe = SharedArray{Float64}(size(h.ϕe))
 	ϕc = SharedArray{Float64}(size(h.ϕc))
 	@sync @parallel for js in 1:size(h.Jgrid,1)
 		jb = h.Jgrid[js, 1]
@@ -387,6 +387,7 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; r
 	# Store results in the type
 	h.ϕa = ϕa
 	h.ϕb = ϕb
+	h.ϕe = ϕe
 	h.ϕc = ϕc
 	h.vf = vf
 
