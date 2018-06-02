@@ -478,7 +478,7 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 	# 	val_b += val
 	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]^2
 	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
-	# 	val_b2 += valdsa
+	# 	val_b2 += val
 	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]
 	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
 	# 	val_ab += val
