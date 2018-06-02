@@ -76,7 +76,7 @@ function get_abec(RHS::Float64, ωmin::Float64, qʰ::Float64, qᵍ::Float64, pC:
 	return ap, bp, ep, C
 end
 
-function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolations.ScaledInterpolation{Float64,2,Interpolations.BSplineInterpolation{Float64,2,Array{Float64,2},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,(1, 0)},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,Tuple{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},UnitRange{Int64}}},2}, jϵ, jz, thres, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
+function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolations.ScaledInterpolation{Float64,2,Interpolations.BSplineInterpolation{Float64,2,Array{Float64,2},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,(1, 0)},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,Tuple{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},UnitRange{Int64}}},2}, jϵ, jz, thres, exp_rep, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
 
 	ap, bp, ep, C = get_abec(RHS, h.ωmin, qʰ, qᵍ, pC, sp, θa)
 
@@ -116,7 +116,8 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolation
 				prob =  h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
 				check += prob
 
-				if zpv > thres
+				# if zpv > thres
+				if exp_rep[jzp] >= 0.5
 					ζpv = 1
 					Rb = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 1]
 					Re = profits[jzp, 1]
@@ -151,7 +152,8 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolation
 			vf = (1.0 - h.β) * ut + h.β * Tv^(EZ_exp)
 			vf = vf^(1.0/EZ_exp)
 		else
-			vf = C^(1.0-h.β) * Tv^(h.β) # This is the same as saying that vf = exp( (1.0-h.β)*log(c) + h.β * log(Tv) )
+			C > 1e-10? ut = C^(1.0-h.β): ut = 1e-10
+			vf = ut * Tv^(h.β) # This is the same as saying that vf = exp( (1.0-h.β)*log(c) + h.β * log(Tv) )
 		end
 		return vf
 	else
@@ -163,7 +165,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolation
 	Void
 end
 
-function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
+function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
 
 
 	optim_type = "multivariate"
@@ -183,7 +185,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, q
 			# maxθ = 1.
 
 			res = Optim.optimize(
-				θ -> -value(h, sp, θ, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
+				θ -> -value(h, sp, θ, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
 				minθ, maxθ, GoldenSection(), rel_tol=h.tol_θ
 				)
 
@@ -211,11 +213,11 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, q
 
 		try
 			res = Optim.optimize(
-				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
+				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 				, guess, [minω, minθ], [maxω, maxθ], Fminbox{LBFGS}())
 		catch
 			res = Optim.optimize(
-				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
+				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 				, guess, [minω, minθ], [maxω, maxθ], Fminbox{NelderMead}())
 		end
 
@@ -228,7 +230,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, RHS, q
 		θa_grid = linspace(0,1,8)
 		for θa in θa_grid
 			res = Optim.optimize(
-				sp -> -value(h, sp, θa, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
+				sp -> -value(h, sp, θa, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
 					qʰv*h.ωmin, ωmax, GoldenSection()
 				)
 			if res.minimum < curr_min
@@ -270,6 +272,9 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 		σpv = h.σ′[js,:,:]
 		wpv = h.w′[js]
 		thres = h.def_thres[js]
+
+		rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
+		exp_rep = rep_mat[jb, jμ, jσ, jw, jζ, jz, :]
 
 		if verbose
 			minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid)? print_save("\nμ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
@@ -328,7 +333,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 				# θg = 1.0
 				guess = [ωg, θg]
 
-				ap, bp, ep, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
+				ap, bp, ep, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
 			else
 				if ωmax < qʰv * h.ωmin
 					if verbose
@@ -340,7 +345,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
-				fmax = value(h, ωg, θg, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
+				fmax = value(h, ωg, θg, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 			end
 			cmax < 0? warn("c = $cmax"): Void
 			

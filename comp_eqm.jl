@@ -37,7 +37,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 		pC = price_index(h, pnv)
 		pC_mat = ones(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * pC
 
-		T_mat = govt_bc(h, wage_pn.*labor_pn) - reshape(profits_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+		T_mat = govt_bc(h, wage_pn.*labor_pn) - reshape(profits_pn - h.profits, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 		wL_mat  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * (1.0 - h.τ)
 
@@ -315,6 +315,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 		h.output = upd_η * results[:, 4] + (1.0-upd_η) * h.output
 	end
 
+	h.profits = h.output - h.wage .* h.Ld
 	h.w′ = h.wage
 	mean_f = mean(minf)
 
@@ -369,7 +370,7 @@ function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 end
 
 
-function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry; get_μσ::Bool=false)
+function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry; get_μσ::Bool=false)
 
 	zpv = h.zgrid[jzp]
 
@@ -379,7 +380,8 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jd
 		ζpv = 2
 		haircut = 0.0
 	end
-	if jdef == false && zpv <= thres
+	# if jdef == false && zpv <= thres
+	if jdef == false && exp_rep[jzp] < 0.5
 		ζpv = 2
 		haircut = h.ℏ
 	end
@@ -411,7 +413,7 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jd
 end
 
 
-function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, thres)
+function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, exp_rep)
 
 	ζv = h.ζgrid[h.Jgrid[js, 5]]
 	jdef = (ζv != 1.0)
@@ -423,24 +425,24 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 		qmin, qmax = minimum(h.qᵍ), maximum(h.qᵍ)
 
 		res = Optim.optimize(
-			q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry) - q)^2,
+			q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry) - q)^2,
 			qmin, qmax, GoldenSection()
 			)
 		q[jzp, 1] = res.minimizer
 		res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ"): Void
 
-		μ[jzp, 1], σ[jzp, 1] = find_q(h, q[jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
+		μ[jzp, 1], σ[jzp, 1] = find_q(h, q[jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 
 		if jdef
 			reentry = false
 			res = Optim.optimize(
-				q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry) - q)^2,
+				q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry) - q)^2,
 				qmin, qmax, GoldenSection()
 				)
 			q[jzp, 2] = res.minimizer
 			res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ"): Void
 
-			μ[jzp, 2], σ[jzp, 2] = find_q(h, q[jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, wpv, thres, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
+			μ[jzp, 2], σ[jzp, 2] = find_q(h, q[jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 		else
 			μ[jzp, 2], σ[jzp, 2], q[jzp, 2] = μ[jzp, 1], σ[jzp, 1], q[jzp, 1]
 		end
@@ -448,7 +450,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 	return μ, σ, q
 end
 
-function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, js, jdef)
+function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep, js, jdef)
 
 	jb = h.Jgrid[js, 1]
 	jμ = h.Jgrid[js, 2]
@@ -517,7 +519,7 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, 
 
 	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab at $([jb, jμ, jσ, jw, jζ, jz])")
 
-	μ′, σ′, _ = compute_stats_logN(h, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, thres)
+	μ′, σ′, _ = compute_stats_logN(h, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, exp_rep)
 
 	return μ′, σ′
 end
@@ -534,10 +536,21 @@ function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec, w�
 		wpv = w′_vec[js]
 		thres = thres_vec[js]
 
+		jb = h.Jgrid[js, 1]
+		jμ = h.Jgrid[js, 2]
+		jσ = h.Jgrid[js, 3]
+		jw = h.Jgrid[js, 4]
+		jζ = h.Jgrid[js, 5]
+		jz = h.Jgrid[js, 6]
+
+		rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
+		exp_rep = rep_mat[jb, jμ, jσ, jw, jζ, jz, :]
+
+
 		jζ = h.Jgrid[js, 5]
 		jdefault = (jζ != 1.0)
 
-		μ′[js, :, :], σ′[js, :, :] = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, thres, js, jdefault)
+		μ′[js, :, :], σ′[js, :, :] = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep, js, jdefault)
 	end
 		
 	
@@ -644,12 +657,17 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 
 	h.Ld 		= reinterp(h, h.Ld, agg=true)
 	h.wage 		= reinterp(h, h.wage, agg=true)
-	h.repay 	= reinterp(h, h.repay, agg=true)
 	h.issuance 	= reinterp(h, h.issuance, agg=true)
 	h.issuance 	= min.(max.(h.issuance, minimum(h.bgrid)), maximum(h.bgrid))
 	h.spending 	= reinterp(h, h.spending, agg=true)
 	h.pN 		= reinterp(h, h.pN, agg=true)
 	h.w′ 		= reinterp(h, h.w′, agg=true)
+
+	knots 		= (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid, h.zgrid)
+	repay_mat 	= reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
+	itp_repay 	= interpolate(knots, repay_mat, Gridded(Linear()))
+	rep_new 	= itp_repay[h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid, h.zgrid]
+	h.repay 	= reshape(rep_new, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz*h.Nz)
 
 	for jzp in 1:h.Nz
 		for jreent in 1:2

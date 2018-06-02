@@ -1,6 +1,6 @@
 include("type_def.jl")
 	
-function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λt, Qϵ; phase::String="")
+function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, λt, Qϵ; phase::String="")
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal get(p, t, :z)
 	# B, ζ, and z are decided at the end of the last period
@@ -23,6 +23,11 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	pNg 	= itp_pN[Bt, μt, σt, w0, ζt, jz]
 	thres 	= itp_Zthres[Bt, μt, σt, w0, ζt, jz]
 
+	exp_rep = zeros(h.Nz)
+	for jzp in 1:h.Nz
+		exp_rep[jzp] = itp_repay[Bt, μt, σt, w0, ζt, jz, jzp]
+	end
+
 	# Find pN at the current state. Deduce w, L, Π, T.
 	pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 	jdef = (ζt != 1)
@@ -34,7 +39,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	def_prob = 0.
 	if ζt == 1
 		for (jzp, zvp) in enumerate(h.zgrid)
-			if zvp <= thres
+			# if zvp <= thres
+			if exp_rep[jzp] < 0.5
 				def_prob += h.Pz[jz, jzp]
 			end
 		end
@@ -68,7 +74,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	# print_save("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab])")
 
-	μ′, σ′, q′ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, wt, thres)
+	μ′, σ′, q′ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, wt, exp_rep)
 	# μ′, σ′, q′ = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bprime, wt, thres, Bt, μt, σt, w0, ζt, zt, jdef) # This would assume that λₜ is lognormal
 	# print_save("\n$(q′)")
 
@@ -101,7 +107,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 			R = h.κ + (1.0-h.ρ) * qprime
 		end
 	else
-		if zprime <= thres
+		# if zprime <= thres
+		if exp_rep[jzp] < 0.5
 			ζprime = 2.0
 			Bprime = (1.0 - h.ℏ) * Bprime
 			R = (1.0-h.ℏ)*(1.0-h.ρ) * qprime
@@ -152,6 +159,10 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	itp_qᵍ 		= make_itp(h, h.qᵍ; agg=true)
 	itp_Zthres	= make_itp(h, h.def_thres; agg=true)
 
+	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
+	knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz, 1:h.Nz)
+	itp_repay = interpolate(knots, rep_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp(), NoInterp()))
+
 	jz_series = Vector{Int64}(T)
 	jz_series[1] = jz
 
@@ -186,17 +197,14 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 			end
 		end
 
-		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, λ, Qϵ; phase = phase)
+		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, λ, Qϵ; phase = phase)
 		# print_save("\nt = $t")
 	end
-
-	# Compute regs
-	ols = simul_regs(p)
 
 	jz_series = jz_series[burn_in+1:end]
 
 	# Return stuff
-	return p, jz_series, ols
+	return p, jz_series
 end
 
 using DataFrames, GLM

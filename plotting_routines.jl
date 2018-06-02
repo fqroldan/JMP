@@ -146,36 +146,49 @@ function plot_state_funcs(h::Hank; remote::Bool=false)
 	w_mat  = reshape(h.wage,   h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	Ld_mat = reshape(h.Ld,     h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	Y_mat  = reshape(h.output, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	Π_mat  = reshape(h.profits,h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+
+	T_mat  = govt_bc(h, h.wage.*h.Ld)
 
 	ppN1 = lines(h, pN_mat, 1, "Price of nontradables")
 	pw1  = lines(h, w_mat, 1, "Wage")
 	pLd1 = lines(h, Ld_mat, 1, "Labor supply")
 	pY1  = lines(h, Y_mat, 1, "Output")
+	pΠ1  = lines(h, Π_mat, 1, "Profits")
+	pT1  = lines(h, T_mat, 1, "Taxes")
 
 	ppN2 = lines(h, pN_mat, 2)
 	pw2  = lines(h, w_mat, 2)
 	pLd2 = lines(h, Ld_mat, 2)
 	pY2  = lines(h, Y_mat, 2)
+	pΠ2  = lines(h, Π_mat, 2)
+	pT2  = lines(h, T_mat, 2)
 
 	ppN3 = lines(h, pN_mat, 3)
 	pw3  = lines(h, w_mat, 3)
 	pLd3 = lines(h, Ld_mat, 3)
 	pY3  = lines(h, Y_mat, 3)
+	pΠ3  = lines(h, Π_mat, 3)
+	pT3  = lines(h, T_mat, 3)
 
 	ppN4 = lines(h, pN_mat, 4)
 	pw4  = lines(h, w_mat, 4)
 	pLd4 = lines(h, Ld_mat, 4)
 	pY4  = lines(h, Y_mat, 4)
+	pΠ4  = lines(h, Π_mat, 4)
+	pT4  = lines(h, T_mat, 4)
 
 	ppN6 = lines(h, pN_mat, 6)
 	pw6  = lines(h, w_mat, 6)
 	pLd6 = lines(h, Ld_mat, 6)
 	pY6  = lines(h, Y_mat, 6)
+	pΠ6  = lines(h, Π_mat, 6)
+	pT6  = lines(h, T_mat, 6)
 
 	# p = [ppN1 pw1 pLd1; ppN2 pw2 pLd2; ppN3 pw3 pLd3; ppN4 pw4 pLd4; ppN6 pw6 pLd6]
-	p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6; pY1 pY2 pY3 pY4 pY6]
+	p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6; pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6; pT1 pT2 pT3 pT4 pT6]
 	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 640
+	p.plot.layout["height"] = 640/4*6
 	p.plot.layout["font_family"] = "Fira Sans Light"
 	if remote
 		path = pwd() * "/../../Graphs/"
@@ -373,7 +386,7 @@ function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 				scatter(; x=times, y=ones(times)*minimum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; title="σ", xaxis=attr(title="t")));
 	pw = plot([ scatter(; x=times, y=w_vec, marker_color=col[1], showlegend=false),
-				# scatter(; x=times, y=ones(times)*minimum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
+				scatter(; x=times, y=ones(times)*minimum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*maximum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; title="Wage", xaxis=attr(title="t")));
 	pζ = plot(scatter(; x=times, y=ζ_vec, marker_color=col[1], showlegend=false), Layout(; title="Default", xaxis=attr(title="t")));
@@ -383,9 +396,9 @@ function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 			Layout(; title="Output", xaxis=attr(title="t")));
 	pπ = plot(scatter(; x=times, y=π_vec, marker_color=col[1], showlegend=false), Layout(; title="Default prob", xaxis=attr(title="t")));
 	pP = plot([ scatter(; x=times, y=P_vec, marker_color=col[1], showlegend=false),
-				scatter(; x=times, y=Pe_vec,marker_color=col[4], showlegend=false, line_dash="dashdot"),
-				scatter(; x=times, y=ones(times)*maximum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
-				scatter(; x=times, y=ones(times)*minimum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
+				# scatter(; x=times, y=ones(times)*maximum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
+				# scatter(; x=times, y=ones(times)*minimum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
+				scatter(; x=times, y=Pe_vec,marker_color=col[4], showlegend=false, line_dash="dashdot")],
 						Layout(; title="Price of nontradables", xaxis=attr(title="t")));
 	pψ = plot(scatter(; x=times, y=ψ_vec, marker_color=col[1],  showlegend=false), Layout(; title="Fraction domestic", xaxis=attr(title="t")));
 	pA = plot(scatter(; x=times, y=A_vec, marker_color=col[1],  showlegend=false), Layout(; title="Domestic risk-free debt", xaxis_title="t"));

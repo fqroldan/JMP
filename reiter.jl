@@ -2,29 +2,29 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 
 include("hh_pb.jl")
 
-function Hank(;	β = (1.0/1.10)^0.25,
+function Hank(;	β = (1.0/1.3)^0.25,
 				IES = 1.0,
-				RRA = 2.,
+				RRA = 5.,
 				γw = 0.99^0.25,
-				τ = 0.35,
+				τ = 0.2,
 				r_star = 1.02^0.25 - 1.0,
-				ωmax = 10.,
+				ωmax = 17.5,
 				curv = .4,
 				income_process = "Floden-Lindé",
 				EpsteinZin = true,
 				order = 3,
 				Nω_fine = 1000,
 				Nω = 8,
-				Nϵ = 4,
+				Nϵ = 8,
 				Nμ = 4,
-				Nσ = 3,
+				Nσ = 4,
 				Nb = 4,
 				Nw = 5,
-				Nz = 7,
+				Nz = 15,
 				ρz = 0.9,
 				σz = 0.025,
-				ℏ = 0.25,
-				Δ = 0.05,
+				ℏ = 0.5,
+				Δ = 0.10,
 				θ = .1,
 				Np = 5,
 				upd_tol = 5e-3
@@ -64,7 +64,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 	ϵgrid = ϵ_chain.state_values
 
 	wgrid = linspace(0.75, 1.0, Nw)
-	pngrid = linspace(0.9, 1.1, Np)
+	pngrid = linspace(0.5, 1.1, Np)
 	ζgrid = 1:2
 	Nζ = length(ζgrid)
 
@@ -87,7 +87,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 	ϖ = ω_anzo^(1.0/μ_anzo)
 
 	# Grids for endogenous aggregate states
-	Bbar  = 4.5
+	Bbar  = 4.0
 	bgrid = linspace(0.0, 5.0, Nb)
 	μgrid = linspace(-1.0, 2.5, Nμ)
 	σgrid = linspace(0.005, 0.5, Nσ)
@@ -197,7 +197,7 @@ function Hank(;	β = (1.0/1.10)^0.25,
 	qᵍ = zeros(Nb*Nμ*Nσ*Nw*Nζ*Nz)
 
 	pN 		  = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	repay 	  = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	repay 	  = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz, Nz)
 	wage 	  = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	spending  =	Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	issuance  =	Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
@@ -206,31 +206,32 @@ function Hank(;	β = (1.0/1.10)^0.25,
 	for (jz, zv) in enumerate(zgrid)
 		pN[:,:,:,:,:,jz] = mean(pngrid) - 0.1 * zv
 		output[:,:,:,:,:,jz] = exp(zv)
-		spending[:,:,:,:,:,jz] = 0.15 - 0.05 * zv
+		spending[:,:,:,:,:,jz] = 0.1 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv - 0.75 * zv + 0.05 * (Bbar-bv)
+			issuance[jb,:,:,:,1,jz] = bv - 2.0 * zv + 0.05 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
 			def = (ζv != 1.0)
-			repay[:,:,:,:,jζ,jz] = 1.0 - ℏ * (ζv == 2.0)
 			for (jw, wv) in enumerate(wgrid)
 				wage[:,:,:,:,jζ,jz] = max(exp(zv) * (1.0 - Δ * def), γw*wv)
 			end
 		end
+		repay[:,:,:,:,:,:,jz] = 1.0 - (zv <= zgrid[1])
 		def_thres[:,:,:,:,:,jz] = zgrid[1]
 		# def_thres[:,:,:,:,:,jz] = -Inf
 	end
 	pN	 		= reshape(pN, 	 	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
-	repay	 	= reshape(repay, 	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
+	repay	 	= reshape(repay, 	 Nb*Nμ*Nσ*Nw*Nζ*Nz*Nz)
 	wage	 	= reshape(wage, 	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
 	spending 	= reshape(spending,	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
 	issuance 	= min.(max.(reshape(issuance,  Nb*Nμ*Nσ*Nw*Nζ*Nz), minimum(bgrid)), maximum(bgrid))
 	def_thres 	= reshape(def_thres, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 	output 		= reshape(output, Nb*Nμ*Nσ*Nw*Nζ*Nz)
+	profits 	= output - wage .* Ld
 
 	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕe, ϕc, ϕa_ext, ϕb_ext, ϕe_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
-		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, output, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol)
+		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, output, profits, spending, wage, Ld, qʰ, qᵍ, pN, upd_tol)
 end
 
 function iterate_qᵍ!(h::Hank; verbose::Bool=false)
@@ -242,6 +243,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 	coupon = h.κ #* (1.0 - 1e-8)
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 
 	qᵍ = ones(qᵍ_mat)
 	while dist > tol && iter < maxiter
@@ -259,6 +261,8 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 			ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
 
+			exp_rep = rep_mat[jb, jμ, jσ, jw, jζ, jz, :]
+
 			jdefault = (ζv != 1.0)
 
 			bpv = h.issuance[js]
@@ -268,7 +272,8 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 			E_rep, check = 0.0, 0.0
 			if jdefault == false
 				for (jzp, zpv) in enumerate(h.zgrid)
-					if zpv <= thres
+					if exp_rep[jzp] < 0.5
+					# if zpv <= thres
 						ζpv = 2.0
 						μpv = h.μ′[js, jzp, 1]
 						σpv = h.σ′[js, jzp, 1]
@@ -352,7 +357,7 @@ function _unpackstatefs(h::Hank)
 
 	profits_mat = reshape( h.output - h.wage .* h.Ld, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	T_mat = taxes_mat - profits_mat
+	T_mat = taxes_mat# - profits_mat
 
 	qʰ_mat = reshape(h.qʰ, 	h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	qᵍ_mat = reshape(h.qᵍ, 	h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
