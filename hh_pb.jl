@@ -98,7 +98,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolation
 				ωpv = min(h.ωmax, ωpv)
 				v = itp_vf_s[jzp, 1][ωpv, jϵp]::Float64
 				Ev += EZ_G(h, v) * prob * h.θ
-				
+
 				# Continue in default
 				ζpv = 2
 				Rb = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 2]
@@ -169,7 +169,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 
 
 	optim_type = "multivariate"
-	
+
 	minθ = min(max(0.0, guess[2]-0.2), 0.8)
 	maxθ = max(min(1.0, guess[2]+0.2), 0.2)
 
@@ -241,7 +241,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 			end
 		end
 	end
-		
+
 	return ap, bp, ep, cmax, fmax
 end
 
@@ -328,7 +328,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 				ωg = max(ωmax - 1e-2, 0)
 			end
 			isapprox(θg, 1) && θg > 1? θg = 1.0: Void
-			
+
 			if resolve && ωmax > qʰv * h.ωmin
 				# θg = 1.0
 				guess = [ωg, θg]
@@ -348,7 +348,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 				fmax = value(h, ωg, θg, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 			end
 			cmax < 0? warn("c = $cmax"): Void
-			
+
 			ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ap
 			ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = bp
 			ϕe[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ep
