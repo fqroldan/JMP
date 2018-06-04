@@ -25,7 +25,7 @@ function Hank(;	β = (1.0/1.3)^0.25,
 				σz = 0.025,
 				ℏ = 0.5,
 				Δ = 0.10,
-				θ = .1,
+				θ = .033,
 				Np = 5,
 				upd_tol = 5e-3
 				)
@@ -208,7 +208,7 @@ function Hank(;	β = (1.0/1.3)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.1 - 0.05 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv - 2.0 * zv + 0.05 * (Bbar-bv)
+			issuance[jb,:,:,:,1,jz] = bv - 2.0 * zv + 0.1 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
@@ -380,7 +380,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	iterate_qᵍ!(h, verbose = true)
 
 	upd_η = 0.5
-	
+
 	dist_statefuncs = Matrix{Float64}(maxiter, 3)
 	dist_LoMs = Matrix{Float64}(maxiter, 2)
 
