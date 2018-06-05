@@ -94,8 +94,8 @@ function Hank(;	β = (1.0/1.3)^0.25,
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.5
-	# ωgrid0	= linspace(0.0, (ωmax-ωmin)^curv, Nω).^(1/curv)
-	ωgrid0	= linspace(0., (ωmax-ωmin), Nω)
+	ωgrid0	= linspace(0.0, (ωmax-ωmin)^curv, Nω).^(1/curv)
+	# ωgrid0	= linspace(0.0, (ωmax-ωmin), Nω)
 	ωgrid0	= ωgrid0 + ωmin
 	ωgrid 	= ωgrid0
 
