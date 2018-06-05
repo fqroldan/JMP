@@ -76,7 +76,14 @@ function get_abec(RHS::Float64, ωmin::Float64, qʰ::Float64, qᵍ::Float64, pC:
 	return ap, bp, ep, C
 end
 
-function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolations.ScaledInterpolation{Float64,2,Interpolations.BSplineInterpolation{Float64,2,Array{Float64,2},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,(1, 0)},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,Tuple{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},UnitRange{Int64}}},2}, jϵ, jz, thres, exp_rep, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
+function eval_itp_vf(itp_vf_s::Arr_itp_VF, ωpv::Float64, jϵp::Int64, jzp::Int64, jj::Int64)
+	itp_obj = itp_vf_s[jzp, jj]
+	v = itp_obj[ωpv, jϵp]
+	return v
+end
+
+function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz, thres, exp_rep, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
+# function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolations.GriddedInterpolation{Float64,2,Float64,Tuple{Interpolations.Gridded{Interpolations.Linear},Interpolations.NoInterp},Tuple{Array{Float64,1},Array{Int64,1}},0}}, jϵ, jz, thres, exp_rep, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
 
 	ap, bp, ep, C = get_abec(RHS, h.ωmin, qʰ, qᵍ, pC, sp, θa)
 
@@ -96,7 +103,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolation
 				Re = profits[jzp, 1]
 				ωpv = ap + bp * Rb + ep * Re
 				ωpv = min(h.ωmax, ωpv)
-				v = itp_vf_s[jzp, 1][ωpv, jϵp]::Float64
+				v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 1)
 				Ev += EZ_G(h, v) * prob * h.θ
 
 				# Continue in default
@@ -105,7 +112,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolation
 				Re = profits[jzp, 2]
 				ωpv = ap + bp * Rb + ep * Re
 				ωpv = min(h.ωmax, ωpv)
-				v = itp_vf_s[jzp, 2][ωpv, jϵp]::Float64
+				v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 2)
 				Ev += EZ_G(h, v) * prob * (1.0 - h.θ)
 				check += prob
 			end
@@ -123,7 +130,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolation
 					Re = profits[jzp, 1]
 					ωpv = ap + bp * Rb + ep * Re
 					ωpv = min(h.ωmax, ωpv)
-					v = itp_vf_s[jzp, 1][ωpv, jϵp]::Float64
+					v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 1)
 					Ev += EZ_G(h, v) * prob
 				else
 					ζpv = 2
@@ -131,7 +138,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolation
 					Re = profits[jzp, 3]
 					ωpv = ap + bp * Rb + ep * Re
 					ωpv = min(h.ωmax, ωpv)
-					v = itp_vf_s[jzp, 3][ωpv, jϵp]::Float64
+					v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 3)
 					Ev += EZ_G(h, v) * prob
 				end
 			end
@@ -286,8 +293,10 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 
 		jdef = (h.ζgrid[jζ] != 1.0)
 
-		qᵍp = Array{Float64}(h.Nz, h.Nϵ, 3)
-		itp_vf_s = Array{Interpolations.ScaledInterpolation{Float64,2,Interpolations.BSplineInterpolation{Float64,2,Array{Float64,2},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,(1, 0)},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,Tuple{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},UnitRange{Int64}}}, 2}(h.Nz, 3)
+		qᵍp = Array{Float64}(h.Nz, 3)
+		itp_vf_s = Arr_itp_VF(h.Nz, 3)
+		# itp_vf_s =  Array{Interpolations.ScaledInterpolation{Float64,2,Interpolations.BSplineInterpolation{Float64,2,Array{Float64,2},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,(1, 0)},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,Tuple{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},UnitRange{Int64}}}, 2}(h.Nz, 3)
+		# itp_vf_s = Array{Interpolations.GriddedInterpolation{Float64,2,Float64,Tuple{Interpolations.Gridded{Interpolations.Linear},Interpolations.NoInterp},Tuple{Array{Float64,1},Array{Int64,1}},0}}(h.Nz, 3)
 		for (jzp, zpv) in enumerate(h.zgrid)
 			qᵍp[jzp, 1] = itp_qᵍ[bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]
 			qᵍp[jzp, 2] = itp_qᵍ[bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
@@ -300,17 +309,17 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 					vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
 					vf_mat[jωp, jϵp, 3] = itp_vf[ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, jzp]
 				end
-				unscaled = interpolate(vf_mat[:,:,1], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
-				itp_vf_s[jzp, 1] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
 
-				unscaled = interpolate(vf_mat[:,:,2], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
-				itp_vf_s[jzp, 2] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
-
-				unscaled = interpolate(vf_mat[:,:,3], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
-				itp_vf_s[jzp, 3] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
+				knots = (h.ωgrid, 1:h.Nϵ)
+				for jj in 1:3
+					# itp_vf_s[jzp, jj] = interpolate(knots, vf_mat[:,:,jj], (Gridded(Linear()), NoInterp()))
+					unscaled = interpolate(vf_mat[:,:,jj], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
+					itp_vf_s[jzp, jj] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
+				end
 			end
 		end
 
+		# @code_warntype v = eval_itp_vf(itp_vf_s, 10.3, 2, 2, 1)
 		profits = zeros(qᵍp)
 
 		for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)

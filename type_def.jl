@@ -154,9 +154,9 @@ function Path(; T::Int64 = 1)
 	return Path(data, n)
 end
 
-get(p::Path, t::Int64, sym::Symbol) = p.data[t, p.n[sym]]
-get(p::Path, t::AbstractArray, sym::Symbol) = p.data[t, p.n[sym]]
-get(p::Path, sym::Symbol) = p.data[:, p.n[sym]]
+getfrompath(p::Path, t::Int64, sym::Symbol) = p.data[t, p.n[sym]]
+getfrompath(p::Path, t::AbstractArray, sym::Symbol) = p.data[t, p.n[sym]]
+getfrompath(p::Path, sym::Symbol) = p.data[:, p.n[sym]]
 
 function fill_path!(p::Path, t::Int64, d::Dict{Symbol, Float64}=Dict(:VOID=>-Inf);
 					B::Float64=-Inf,
@@ -207,7 +207,7 @@ function series(p::Path, sym::Symbol)
 
 	y = zeros(T)
 	for jt in 1:T
-		y[jt] = get(p, jt, sym)
+		y[jt] = getfrompath(p, jt, sym)
 	end
 
 	return y

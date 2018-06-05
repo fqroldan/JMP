@@ -1,17 +1,17 @@
 include("type_def.jl")
-	
+
 function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, λt, Qϵ; phase::String="")
 	# Enter with a state B, μ, σ, w0, ζ, z.
-	# h.zgrid[jz] must equal get(p, t, :z)
+	# h.zgrid[jz] must equal getfrompath(p, t, :z)
 	# B, ζ, and z are decided at the end of the last period
 	jz = jz_series[t]
 
-	Bt = get(p, t, :B)
-	μt = get(p, t, :μ)
-	σt = get(p, t, :σ)
-	w0 = get(p, t, :w)
-	ζt = Int(get(p, t, :ζ))
-	zt = get(p, t, :z)
+	Bt = getfrompath(p, t, :B)
+	μt = getfrompath(p, t, :μ)
+	σt = getfrompath(p, t, :σ)
+	w0 = getfrompath(p, t, :w)
+	ζt = Int(getfrompath(p, t, :ζ))
+	zt = getfrompath(p, t, :z)
 
 	zt == h.zgrid[jz] || print_save("something wrong with the simulator")
 	abs(zt - h.zgrid[jz]) < 1e-8 || throw(error("something wrong with the simulator"))
@@ -221,7 +221,7 @@ function simul_regs(path::Path)
 	π_vec = series(path,:π)
 
 	print("\nT = $T")
-	
+
 	y = log.(Y_vec)
 	lz = log.(z_vec)
 	lw = log.(w_vec)

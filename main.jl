@@ -25,7 +25,7 @@ print_save("\nAggregate Demand around Debt Crises\n")
 print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(),"HH:MM"))
 
 # Set options
-local_run = false
+local_run = true
 
 # Initialize type
 if remote || local_run
@@ -57,7 +57,7 @@ print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")
 
 # Run
-if remote || local_run 
+if remote || local_run
 	vfi!(h, verbose = true, remote = remote)
 	save(pwd() * "/../../hank.jld", "h", h)
 end
