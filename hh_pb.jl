@@ -312,9 +312,9 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 
 				knots = (h.ωgrid, 1:h.Nϵ)
 				for jj in 1:3
-					# itp_vf_s[jzp, jj] = interpolate(knots, vf_mat[:,:,jj], (Gridded(Linear()), NoInterp()))
-					unscaled = interpolate(vf_mat[:,:,jj], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
-					itp_vf_s[jzp, jj] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
+					itp_vf_s[jzp, jj] = interpolate(knots, vf_mat[:,:,jj], (Gridded(Linear()), NoInterp()))
+					# unscaled = interpolate(vf_mat[:,:,jj], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
+					# itp_vf_s[jzp, jj] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
 				end
 			end
 		end
