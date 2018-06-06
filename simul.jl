@@ -1,6 +1,6 @@
 include("type_def.jl")
 
-function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, λt, Qϵ; phase::String="")
+function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, λt, Qϵ; phase::String="")
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal getfrompath(p, t, :z)
 	# B, ζ, and z are decided at the end of the last period
@@ -106,6 +106,9 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 			qprime = q′[jzp, 2]
 			R = h.κ + (1.0-h.ρ) * qprime
 		end
+		# Compute welfare in case of default and no default
+		Wr = welfare(h, Bprime, μprime, σprime, wt, 1, jzp, itp_vf)
+		Wd = welfare(h, Bprime, μprime, σprime, wt, 2, jzp, itp_vf)
 	else
 		# if zprime <= thres
 		if exp_rep[jzp] < 0.5
@@ -116,6 +119,9 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 			ζprime = 1.0
 			R = h.κ + (1.0-h.ρ) * qprime
 		end
+		# Compute welfare in case remain and reenter
+		Wr = welfare(h, Bprime, μprime, σprime, wt, 1, jzp, itp_vf)
+		Wd = welfare(h, Bprime, μprime, σprime, wt, 2, jzp, itp_vf)
 	end
 
 	savings = ϕa + R*ϕb
@@ -130,7 +136,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	# Fill the path for next period
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
-		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :w => wt, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bprime-b))
+		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :w => wt, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bprime-b, :Wr => Wr, :Wd => Wd))
 	end
 
 	return λprime
@@ -152,6 +158,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	itp_ϕa = make_itp(h, h.ϕa; agg=false)
 	itp_ϕb = make_itp(h, h.ϕb; agg=false)
 	itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
+	itp_vf = make_itp(h, h.vf; agg=false)
 
 	itp_B′		= make_itp(h, h.issuance; agg=true)
 	itp_G		= make_itp(h, h.spending; agg=true)
@@ -197,7 +204,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 			end
 		end
 
-		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, λ, Qϵ; phase = phase)
+		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, λ, Qϵ; phase = phase)
 		# print_save("\nt = $t")
 	end
 

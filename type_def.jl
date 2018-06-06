@@ -148,13 +148,15 @@ function Path(; T::Int64 = 1)
 		:A => 12,
 		:Bh => 13,
 		:Bf => 14,
-		:Pe => 15
+		:Pe => 15,
+		:Wr => 16,
+		:Wd => 17
 		)
 	data = Matrix{Float64}(T, length(n))
 	return Path(data, n)
 end
 
-getfrompath(p::Path, t::Int64, sym::Symbol) = p.data[t, p.n[sym]]
+getfrompath(p::Path, t::Int64, sym::Symbol) = p.data[t, p.n[sym]]>
 getfrompath(p::Path, t::AbstractArray, sym::Symbol) = p.data[t, p.n[sym]]
 getfrompath(p::Path, sym::Symbol) = p.data[:, p.n[sym]]
 
@@ -172,7 +174,9 @@ function fill_path!(p::Path, t::Int64, d::Dict{Symbol, Float64}=Dict(:VOID=>-Inf
 					P::Float64=-Inf,
 					A::Float64=-Inf,
 					Bh::Float64=-Inf,
-					Bf::Float64=-Inf)
+					Bf::Float64=-Inf,
+					Wr::Float64=-Inf,
+					Wd::Float64=-Inf)
 	0 < t <= size(p.data, 1) || throw("t out of bounds")
 	if d != Dict(:VOID=>-Inf)
 		for (jd, dv) in enumerate(d)
