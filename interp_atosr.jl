@@ -33,7 +33,7 @@ function make_itp(h::Hank, Y; agg::Bool=true)
 		end
 	elseif ext
 		if interp_gridded
-			knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz, h.pngrid)
+			knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz, h.pngrid)
 			itp_obj = interpolate(knots, Y, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp(), Gridded(Linear())))
 		else
 			pnrange = linspace(h.pngrid[1], h.pngrid[end], length(h.pngrid))
