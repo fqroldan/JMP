@@ -17,6 +17,7 @@ write(pwd()*"/../../output.txt", "")
 @everywhere include("interp_atosr.jl")
 @everywhere include("reiter.jl")
 @everywhere include("comp_eqm.jl")
+include("gov_pol.jl")
 include("simul.jl")
 include("plotting_routines.jl")
 

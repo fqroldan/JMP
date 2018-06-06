@@ -471,6 +471,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			t_old = time()
 		end
 
+		plot_gov_welf(h; remote = remote)
+
 		dist = max(dist, dist_s)
 
 		if iter % 10 == 0

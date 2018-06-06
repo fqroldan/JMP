@@ -140,6 +140,42 @@ function lines(h::Hank, y, x_dim, name="")
 	return p
 end
 
+function plot_gov_welf(h::Hank; remote::Bool=false)
+    itp_vf = make_itp(h, h.vf; agg=false)
+
+    W_vec = zeros(size(h.Jgrid, 1))
+    for js in 1:length(W_mat)
+        bv = h.bgrid[h.Jgrid[js, 1]]
+        μv = h.μgrid[h.Jgrid[js, 2]]
+        σv = h.σgrid[h.Jgrid[js, 3]]
+        wv = h.wgrid[h.Jgrid[js, 4]]
+        jζ = h.Jgrid[js, 5]
+        jz = h.Jgrid[js, 6]
+
+        W_vec[js] = welfare(h, bv, μv, σv, wv, jζ, jz, itp_vf)
+    end
+
+    W_mat = reshape(W_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+
+    pW1 = lines(h, W_mat, 1, "Welfare function")
+    pW2 = lines(h, W_mat, 2)
+    pW3 = lines(h, W_mat, 3)
+    pW4 = lines(h, W_mat, 4)
+    pW6 = lines(h, W_mat, 6)
+
+    p = [pW1 pW2 pW3 pW4 pW6]
+    p.plot.layout["width"] = 800
+    p.plot.layout["height"] = 640/4*6
+    p.plot.layout["font_family"] = "Fira Sans Light"
+    if remote
+        path = pwd() * "/../../Graphs/"
+        save(path * "p_objfunc.jld", "p", p)
+    else
+        savefig(p, pwd() * "/../Graphs/objfunc.pdf")
+    end
+    Void
+end
+
 function plot_state_funcs(h::Hank; remote::Bool=false)
 
 	pN_mat = reshape(h.pN,     h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
