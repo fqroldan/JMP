@@ -26,13 +26,13 @@ print_save("\nAggregate Demand around Debt Crises\n")
 print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(),"HH:MM"))
 
 # Set options
-local_run = true
+local_run = false
 
 # Initialize type
 if remote || local_run
 	h = Hank();
 	try
-		h2 = load("hank.jld", "h")
+		remote? h2 = load("../../hank.jld", "h"): h2 = load("hank.jld", "h")
 		if h.ψ == h2.ψ && h.γ == h2.γ && h.Ns == h2.Ns
 			print_save("Starting from loaded guess")
 			h.ϕa = h2.ϕa
