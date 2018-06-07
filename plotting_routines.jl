@@ -143,29 +143,36 @@ end
 function plot_gov_welf(h::Hank; remote::Bool=false)
     itp_vf = make_itp(h, h.vf; agg=false)
 
-    W_vec = zeros(size(h.Jgrid, 1))
+    Wr_vec = zeros(size(h.Jgrid, 1))
+    Wd_vec = zeros(size(h.Jgrid, 1))
     for js in 1:length(W_vec)
         bv = h.bgrid[h.Jgrid[js, 1]]
         μv = h.μgrid[h.Jgrid[js, 2]]
         σv = h.σgrid[h.Jgrid[js, 3]]
         wv = h.wgrid[h.Jgrid[js, 4]]
-        jζ = h.Jgrid[js, 5]
         jz = h.Jgrid[js, 6]
 
-        W_vec[js] = welfare(h, bv, μv, σv, wv, jζ, jz, itp_vf)
+        Wr_vec[js] = welfare(h, bv, μv, σv, wv, 1, jz, itp_vf)
+        Wd_vec[js] = welfare(h, bv, μv, σv, wv, 2, jz, itp_vf)
     end
 
-    W_mat = reshape(W_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+    Wr_mat = reshape(Wr_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+    Wd_mat = reshape(Wd_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-    pW1 = lines(h, W_mat, 1, "Welfare function")
-    pW2 = lines(h, W_mat, 2)
-    pW3 = lines(h, W_mat, 3)
-    pW4 = lines(h, W_mat, 4)
-    pW6 = lines(h, W_mat, 6)
+    pWr1 = lines(h, Wr_mat, 1, "Welfare in repayment")
+    pWr2 = lines(h, Wr_mat, 2)
+    pWr3 = lines(h, Wr_mat, 3)
+    pWr4 = lines(h, Wr_mat, 4)
+    pWr6 = lines(h, Wr_mat, 6)
+    pWd1 = lines(h, Wd_mat, 1, "Welfare in default")
+    pWd2 = lines(h, Wd_mat, 2)
+    pWd3 = lines(h, Wd_mat, 3)
+    pWd4 = lines(h, Wd_mat, 4)
+    pWd6 = lines(h, Wd_mat, 6)
 
-    p = [pW1 pW2 pW3 pW4 pW6]
+    p = [pWr1 pWr2 pWr3 pWr4 pWr6; pWd1 pWd2 pWd3 pWd4 pWd6]
     p.plot.layout["width"] = 800
-    p.plot.layout["height"] = 640/4*6
+    p.plot.layout["height"] = 800/2.5
     p.plot.layout["font_family"] = "Fira Sans Light"
     if remote
         path = pwd() * "/../../Graphs/"
