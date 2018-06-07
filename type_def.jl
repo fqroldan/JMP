@@ -156,7 +156,7 @@ function Path(; T::Int64 = 1)
 	return Path(data, n)
 end
 
-getfrompath(p::Path, t::Int64, sym::Symbol) = p.data[t, p.n[sym]]>
+getfrompath(p::Path, t::Int64, sym::Symbol) = p.data[t, p.n[sym]]
 getfrompath(p::Path, t::AbstractArray, sym::Symbol) = p.data[t, p.n[sym]]
 getfrompath(p::Path, sym::Symbol) = p.data[:, p.n[sym]]
 

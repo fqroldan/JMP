@@ -26,7 +26,7 @@ print_save("\nAggregate Demand around Debt Crises\n")
 print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(),"HH:MM"))
 
 # Set options
-local_run = false
+local_run = true
 
 # Initialize type
 if remote || local_run
