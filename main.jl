@@ -39,7 +39,8 @@ if remote || local_run
 			h.ϕb = h2.ϕb
 			h.ϕc = h2.ϕc
 			h.vf = h2.vf
-			p.pngrid = h2.pngrid
+			h.pngrid = h2.pngrid
+			h.wgrid = h2.wgrid
 			h.pN = h2.pN
 			h.μ′ = h2.μ′
 			h.σ′ = h2.σ′
