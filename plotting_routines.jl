@@ -158,6 +158,7 @@ function plot_gov_welf(h::Hank; remote::Bool=false)
 
     Wr_mat = reshape(Wr_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
     Wd_mat = reshape(Wd_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+    tempt  = Wd_mat - Wr_mat
 
     pWr1 = lines(h, Wr_mat, 1, "Welfare in repayment")
     pWr2 = lines(h, Wr_mat, 2)
@@ -169,16 +170,67 @@ function plot_gov_welf(h::Hank; remote::Bool=false)
     pWd3 = lines(h, Wd_mat, 3)
     pWd4 = lines(h, Wd_mat, 4)
     pWd6 = lines(h, Wd_mat, 6)
+    ptp1 = lines(h, tempt,  1, "Default incentives")
+    ptp2 = lines(h, tempt,  2)
+    ptp3 = lines(h, tempt,  3)
+    ptp4 = lines(h, tempt,  4)
+    ptp6 = lines(h, tempt,  6)
 
-    p = [pWr1 pWr2 pWr3 pWr4 pWr6; pWd1 pWd2 pWd3 pWd4 pWd6]
+    p = [pWr1 pWr2 pWr3 pWr4 pWr6; pWd1 pWd2 pWd3 pWd4 pWd6; ptp1 ptp2 ptp3 ptp4 ptp6]
     p.plot.layout["width"] = 800
-    p.plot.layout["height"] = 800/2.5
+    p.plot.layout["height"] = 800/1.5
     p.plot.layout["font_family"] = "Fira Sans Light"
     if remote
         path = pwd() * "/../../Graphs/"
         save(path * "p_objfunc.jld", "p", p)
     else
         savefig(p, pwd() * "/../Graphs/objfunc.pdf")
+    end
+    Void
+end
+
+function plot_govt_reaction(h::Hank; remote::Bool=false)
+    jμ, jσ, jw = ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2)
+    μv, σv, wv = h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw]
+    jζ = 1
+
+    itp_vf = make_itp(h, h.vf; agg=false)
+
+    B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+    μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+    σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+    w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+
+    states = gridmake([1; h.Nb], [1; h.Nz])
+    p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+    for js in 1:size(states,1)
+        Wr = zeros(h.Nz)
+        Wd = zeros(h.Nz)
+        jb, jz = states[js, :]
+        bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
+        wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
+        for jzp in 1:h.Nz
+            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+            Wr[jz] = welfare(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
+            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+            Wd[jz] = welfare(h, bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
+        end
+        p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false),
+                        scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot")],
+                        Layout(;title="B=$jb, z=$jz"))
+    end
+
+    p = [p_vec[1] p_vec[2]; p_vec[3] p_vec[4]]
+    p.plot.layout["width"] = 800
+    p.plot.layout["height"] = 800
+    p.plot.layout["font_family"] = "Fira Sans Light"
+    if remote
+        path = pwd() * "/../../Graphs/"
+        save(path * "p_reactions.jld", "p", p)
+    else
+        savefig(p, pwd() * "/../Graphs/reactions.pdf")
     end
     Void
 end
