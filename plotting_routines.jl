@@ -145,7 +145,7 @@ function plot_gov_welf(h::Hank; remote::Bool=false)
 
     Wr_vec = zeros(size(h.Jgrid, 1))
     Wd_vec = zeros(size(h.Jgrid, 1))
-    for js in 1:length(W_vec)
+    for js in 1:length(Wr_vec)
         bv = h.bgrid[h.Jgrid[js, 1]]
         μv = h.μgrid[h.Jgrid[js, 2]]
         σv = h.σgrid[h.Jgrid[js, 3]]
