@@ -11,7 +11,7 @@ using PlotlyJS, JLD, LaTeXStrings, Rsvg, Interpolations
 # plot_labor_demand(h, remote=false)
 # plot_hh_policies(h, remote=false)
 
-p_names = ["conv" "hh" "hh_def" "statefuncs" "LoMs" "labordemand" "simul" "objfunc"]
+p_names = ["conv" "hh" "hh_def" "statefuncs" "LoMs" "labordemand" "simul" "objfunc" "reactions"]
 
 for name in p_names
 	print("$name")

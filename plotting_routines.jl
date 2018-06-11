@@ -153,7 +153,7 @@ function plot_gov_welf(h::Hank; remote::Bool=false)
         jz = h.Jgrid[js, 6]
 
         Wr_vec[js] = welfare(h, bv, μv, σv, wv, 1, jz, itp_vf)
-        Wd_vec[js] = welfare(h, bv, μv, σv, wv, 2, jz, itp_vf)
+        Wd_vec[js] = welfare(h, (1.-h.ℏ)*bv, μv, σv, wv, 2, jz, itp_vf)
     end
 
     Wr_mat = reshape(Wr_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
@@ -215,7 +215,7 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
             Wr[jz] = welfare(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
             μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
             σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-            Wd[jz] = welfare(h, bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
+            Wd[jz] = welfare(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
         end
         p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false),
                         scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot")],

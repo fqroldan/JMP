@@ -33,7 +33,7 @@ if remote || local_run
 	h = Hank();
 	try
 		remote? h2 = load("../../hank.jld", "h"): h2 = load("hank.jld", "h")
-		if h.ψ == h2.ψ && h.γ == h2.γ && h.Ns == h2.Ns
+		if h.Ns == h2.Ns && h.ωgrid == h2.ωgrid && h.ϵgrid && h2.ϵgrid
 			print_save("Starting from loaded guess")
 			h.ϕa = h2.ϕa
 			h.ϕb = h2.ϕb
@@ -44,6 +44,8 @@ if remote || local_run
 			h.pN = h2.pN
 			h.μ′ = h2.μ′
 			h.σ′ = h2.σ′
+			h.w′ = h2.w′
+			h.output = h2.output
 			h.wage = h2.wage
 			h.Ld = h2.Ld
 		end
@@ -53,7 +55,6 @@ else
 	h = load("../HPC_Output/hank.jld", "h")
 end
 
-
 print_save("\nβ, RRA, IES: $(round(h.β,2)), $(h.γ), $(h.ψ)")
 print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")
@@ -61,7 +62,8 @@ print_save("\nω: $(h.ωgrid)\n")
 
 # Run
 if remote || local_run
-	vfi!(h, verbose = true, remote = remote)
+	# vfi!(h, verbose = true, remote = remote)
+	mpe_iter!(h; remote = remote)
 	save(pwd() * "/../../hank.jld", "h", h)
 end
 
