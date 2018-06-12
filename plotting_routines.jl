@@ -143,34 +143,53 @@ end
 function plot_gov_welf(h::Hank; remote::Bool=false)
     itp_vf = make_itp(h, h.vf; agg=false)
 
+    B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+    μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+    σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+    w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+
     Wr_vec = zeros(size(h.Jgrid, 1))
     Wd_vec = zeros(size(h.Jgrid, 1))
     for js in 1:length(Wr_vec)
-        bv = h.bgrid[h.Jgrid[js, 1]]
-        μv = h.μgrid[h.Jgrid[js, 2]]
-        σv = h.σgrid[h.Jgrid[js, 3]]
-        wv = h.wgrid[h.Jgrid[js, 4]]
+        jb = h.Jgrid[js, 1]
+        jμ = h.Jgrid[js, 2]
+        jσ = h.Jgrid[js, 3]
+        jw = h.Jgrid[js, 4]
+        jζ = 1
         jz = h.Jgrid[js, 6]
 
-        Wr_vec[js] = welfare(h, bv, μv, σv, wv, 1, jz, itp_vf)
-        Wd_vec[js] = welfare(h, (1.-h.ℏ)*bv, μv, σv, wv, 2, jz, itp_vf)
+        EWr, EWd = 0., 0.
+
+        bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
+        wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
+        for jzp in 1:h.Nz
+            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+            EWr += h.Pz[jz, jzp] * welfare(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
+            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+            EWd += h.Pz[jz, jzp] * welfare(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
+        end
+
+        Wr_vec[js] = EWr
+        Wd_vec[js] = EWd
     end
 
     Wr_mat = reshape(Wr_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
     Wd_mat = reshape(Wd_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
     tempt  = Wd_mat - Wr_mat
 
-    pWr1 = lines(h, Wr_mat, 1, "Welfare in repayment")
+    pWr1 = lines(h, Wr_mat, 1, "Expected welfare in repayment")
     pWr2 = lines(h, Wr_mat, 2)
     pWr3 = lines(h, Wr_mat, 3)
     pWr4 = lines(h, Wr_mat, 4)
     pWr6 = lines(h, Wr_mat, 6)
-    pWd1 = lines(h, Wd_mat, 1, "Welfare in default")
+    pWd1 = lines(h, Wd_mat, 1, "Expected welfare in default")
     pWd2 = lines(h, Wd_mat, 2)
     pWd3 = lines(h, Wd_mat, 3)
     pWd4 = lines(h, Wd_mat, 4)
     pWd6 = lines(h, Wd_mat, 6)
-    ptp1 = lines(h, tempt,  1, "Default incentives")
+    ptp1 = lines(h, tempt,  1, "Expected default incentives")
     ptp2 = lines(h, tempt,  2)
     ptp3 = lines(h, tempt,  3)
     ptp4 = lines(h, tempt,  4)
@@ -212,10 +231,10 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
         for jzp in 1:h.Nz
             μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
             σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-            Wr[jz] = welfare(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
+            Wr[jzp] = welfare(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
             μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
             σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-            Wd[jz] = welfare(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
+            Wd[jzp] = welfare(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
         end
         p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false),
                         scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot")],
