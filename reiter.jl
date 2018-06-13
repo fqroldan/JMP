@@ -4,9 +4,9 @@ include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.3)^0.25,
 				IES = 1.0,
-				RRA = 5.,
-				γw = 0.99,
-				τ = 0.2,
+				RRA = 2.,
+				γw = 0.98,
+				τ = 0.25,
 				r_star = 1.02^0.25 - 1.0,
 				ωmax = 17.5,
 				curv = .4,
@@ -14,18 +14,18 @@ function Hank(;	β = (1.0/1.3)^0.25,
 				EpsteinZin = true,
 				order = 3,
 				Nω_fine = 1000,
-				Nω = 6,
-				Nϵ = 8,
+				Nω = 5,
+				Nϵ = 7,
 				Nμ = 4,
 				Nσ = 4,
-				Nb = 4,
+				Nb = 8,
 				Nw = 5,
-				Nz = 10,
+				Nz = 12,
 				ρz = 0.9,
 				σz = 0.025,
 				ℏ = 0.5,
-				Δ = 0.10,
-				θ = .1,
+				Δ = 0.15,
+				θ = .15,
 				Np = 5,
 				upd_tol = 5e-3
 				)
@@ -206,7 +206,7 @@ function Hank(;	β = (1.0/1.3)^0.25,
 	for (jz, zv) in enumerate(zgrid)
 		pN[:,:,:,:,:,jz] = mean(pngrid) - 0.1 * zv
 		output[:,:,:,:,:,jz] = exp(zv)
-		spending[:,:,:,:,:,jz] = 0.1 - 0.05 * zv
+		spending[:,:,:,:,:,jz] = 0.1 - 0.1 * zv
 		for (jb, bv) in enumerate(bgrid)
 			issuance[jb,:,:,:,1,jz] = bv - 2.0 * zv + 0.1 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
@@ -395,7 +395,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat = _unpackstatefs(h)
 
 		v_old = copy(h.vf)
-		if iter_cycle <= 5 || iter_cycle % 2 == 0 || iter_cycle == 1
+		if iter_cycle <= 5 || iter_cycle % 3 == 0 || iter_cycle == 1
 			bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve=true)
 		else
 			bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve=false)
@@ -471,8 +471,6 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			t_old = time()
 		end
 
-		plot_gov_welf(h; remote = remote)
-		plot_govt_reaction(h; remote = remote)
 		dist = max(dist, dist_s)
 
 		if iter % 10 == 0
@@ -484,6 +482,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		end
 
 	end
+	plot_gov_welf(h; remote = remote)
+	plot_govt_reaction(h; remote = remote)
 
 	if dist <= tol
 		print_save("\nConverged in $iter iterations. ")

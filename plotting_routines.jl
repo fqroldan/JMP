@@ -458,6 +458,7 @@ function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 	name = ""
 	if trim > 0
 		trim_path!(path, trim)
+    else
 		name = "_full"
 	end
 

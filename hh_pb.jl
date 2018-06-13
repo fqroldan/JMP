@@ -385,14 +385,19 @@ function make_itps(h::Hank, vf, qᵍ_mat)
 end
 
 function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve::Bool=true, verbose::Bool=true)
+	t1 = time()
 	# Interpolate the value function
 	itp_vf = make_itp(h, h.vf; agg=false)
 	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
 	# itp_vf, itp_qᵍ = make_itps(h, h.vf, qᵍ_mat)
+	# print_save("\ninterp in $(time()-t1)")
 
 	# Compute values
+	t1 = time()
 	vf, ϕa, ϕb, ϕe, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf, resolve = resolve, verbose = verbose)
+	# print_save("\nopt in $(time()-t1)")
 
+	t1 = time()
 	sum(isnan.(vf)) > 0? print_save("\n$(sum(isnan.(vf))) found in vf"): Void
 	sum(isnan.(ϕa)) > 0? print_save("$(sum(isnan.(ϕa))) found in ϕa"): Void
 	sum(isnan.(ϕb)) > 0? print_save("$(sum(isnan.(ϕb))) found in ϕb"): Void
@@ -404,6 +409,7 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; r
 	h.ϕe = ϕe
 	h.ϕc = ϕc
 	h.vf = vf
+	# print_save("\nsave in $(time()-t1)")
 
 	Void
 end

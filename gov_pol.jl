@@ -65,9 +65,10 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
 
     upd_η = 0.5
 
-    print_save("\nOuter Iteration $iter")
 	while dist > tol && iter < maxiter
+        print_save("\n\nOuter Iteration $iter\n")
         vfi!(h, verbose = true, remote = remote)
+        h.upd_tol = 1e-3
 
         old_rep = copy(h.repay)
         new_rep = update_govpol(h)
