@@ -238,7 +238,7 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
         end
         p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false),
                         scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot")],
-                        Layout(;title="B=$jb, z=$jz"))
+                        Layout(;title="B=$(h.bgrid[jb]), z=$(exp(h.zgrid[jz]))"))
     end
 
     p = [p_vec[1] p_vec[2]; p_vec[3] p_vec[4]]

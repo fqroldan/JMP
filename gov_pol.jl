@@ -63,11 +63,12 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
     iter = 1
     dist = 10.
 
-    upd_η = 0.5
+    upd_η = 0.33
+    tol_vfi = 5e-3
 
 	while dist > tol && iter < maxiter
         print_save("\n\nOuter Iteration $iter\n")
-        vfi!(h, verbose = true, remote = remote)
+        vfi!(h, verbose = true, remote = remote, tol = tol_vfi)
         h.upd_tol = 1e-3
 
         old_rep = copy(h.repay)
@@ -79,6 +80,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
         t_new = time()
         print_save("\nDistance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations ")
         print_save(Dates.format(now(), "HH:MM"))
+        tol_vfi = max(exp(0.9*log(1+tol_vfi))-1, 1e-6)
 
         iter += 1
         time_old = time()

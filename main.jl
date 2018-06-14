@@ -64,7 +64,6 @@ print_save("\nω: $(h.ωgrid)\n")
 if remote || local_run
 	# vfi!(h, verbose = true, remote = remote)
 	mpe_iter!(h; remote = remote)
-	save(pwd() * "/../../hank.jld", "h", h)
 end
 
 p, jz_series = simul(h; simul_length=4*(250+25), only_def_end=true)

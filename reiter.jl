@@ -472,7 +472,6 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		end
 
 		dist = max(dist, dist_s)
-
 		if iter % 10 == 0
 			save(pwd() * "/hank.jld", "h", h)
 		end
@@ -484,6 +483,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	end
 	plot_gov_welf(h; remote = remote)
 	plot_govt_reaction(h; remote = remote)
+	save(pwd() * "/../../hank.jld", "h", h)
 
 	if dist <= tol
 		print_save("\nConverged in $iter iterations. ")
