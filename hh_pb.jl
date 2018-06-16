@@ -279,6 +279,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 		σpv = h.σ′[js,:,:]
 		wpv = h.w′[js]
 		thres = h.def_thres[js]
+		profits = h.profits[js]
 
 		rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 		exp_rep = rep_mat[jb, jμ, jσ, jw, jζ, jz, :]
@@ -324,7 +325,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 
 		for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
 
-			RHS = ωv + wv * exp(ϵv) - Tv
+			RHS = ωv + wv * exp(ϵv) - Tv #+ profits * exp(ϵv)
 
 			ap, bp, ep, cmax, fmax = 0., 0., 0., 0., 0.
 			ag, bg = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz], h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]

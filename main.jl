@@ -33,6 +33,7 @@ if remote || local_run
 	h = Hank();
 	try
 		remote? h2 = load("../../hank.jld", "h"): h2 = load("hank.jld", "h")
+		print_save("Guess loaded ")
 		if h.Ns == h2.Ns && h.ωgrid == h2.ωgrid && h.ϵgrid && h2.ϵgrid
 			print_save("Starting from loaded guess")
 			h.ϕa = h2.ϕa
@@ -48,6 +49,7 @@ if remote || local_run
 			h.output = h2.output
 			h.wage = h2.wage
 			h.Ld = h2.Ld
+			h.repay = h2.repay
 		end
 	end
 else

@@ -64,11 +64,11 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
     dist = 10.
 
     upd_η = 0.33
-    tol_vfi = 5e-3
+    tol_vfi = 1e-2
 
 	while dist > tol && iter < maxiter
         print_save("\n\nOuter Iteration $iter\n")
-        vfi!(h, verbose = true, remote = remote, tol = tol_vfi)
+        vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 40)
         h.upd_tol = 1e-3
 
         old_rep = copy(h.repay)
