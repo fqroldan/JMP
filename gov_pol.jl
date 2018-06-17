@@ -77,10 +77,9 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
         dist = sqrt.(sum( (new_rep - old_rep).^2 )) / sqrt.(sum(old_rep.^2))
         h.repay = upd_η * new_rep + (1.-upd_η) * old_rep
 
-        t_new = time()
-        print_save("\nDistance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations ")
-        print_save(Dates.format(now(), "HH:MM"))
         tol_vfi = max(exp(0.9*log(1+tol_vfi))-1, 1e-6)
+        t_new = time()
+        print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations. New tol = $(tol_vfi)")
 
         iter += 1
         time_old = time()
