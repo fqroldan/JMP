@@ -473,7 +473,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 		dist = max(dist, dist_s)
 		if iter % 10 == 0
-			save(pwd() * "/hank.jld", "h", h)
+			save(pwd() * "/../../hank.jld", "h", h)
 		end
 
 		if isnan.(dist) && iter > 1

@@ -32,7 +32,7 @@ local_run = true
 if remote || local_run
 	h = Hank();
 	try
-		remote? h2 = load("../../hank.jld", "h"): h2 = load("hank.jld", "h")
+		remote? h2 = load(pwd() * "/../../hank.jld", "h"): h2 = load("hank.jld", "h")
 		print_save("Guess loaded ")
 		if h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ && h2.Nϵ
 			print_save("Starting from loaded guess")
