@@ -33,9 +33,9 @@ if remote || local_run
 	h = Hank();
 	try
 		remote? h2 = load(pwd() * "/../../hank.jld", "h"): h2 = load("hank.jld", "h")
-		print_save("Guess loaded ")
-		if h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ && h2.Nϵ
-			print_save("Starting from loaded guess")
+		print_save("\nFound JLD file")
+		if h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
+			print_save(": loading previous results")
 			h.ϕa = h2.ϕa
 			h.ϕb = h2.ϕb
 			h.ϕc = h2.ϕc
@@ -50,6 +50,7 @@ if remote || local_run
 			h.wage = h2.wage
 			h.Ld = h2.Ld
 			h.repay = h2.repay
+			print_save(" ✓")
 		end
 	end
 else
