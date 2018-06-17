@@ -34,7 +34,7 @@ if remote || local_run
 	try
 		remote? h2 = load("../../hank.jld", "h"): h2 = load("hank.jld", "h")
 		print_save("Guess loaded ")
-		if h.Ns == h2.Ns && h.ωgrid == h2.ωgrid && h.ϵgrid && h2.ϵgrid
+		if h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ && h2.Nϵ
 			print_save("Starting from loaded guess")
 			h.ϕa = h2.ϕa
 			h.ϕb = h2.ϕb
