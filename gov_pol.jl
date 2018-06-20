@@ -60,14 +60,14 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
     print_save("\nIterating on the government's policy: ")
     time_init = time()
     t_old = time_init
-    iter = 1
+    out_iter = 1
     dist = 10.
 
     upd_η = 0.33
     tol_vfi = 1e-2
 
-	while dist > tol && iter < maxiter
-        print_save("\n\nOuter Iteration $iter\n")
+	while dist > tol && out_iter < maxiter
+        print_save("\n\nOuter Iteration $out_iter\n")
         vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 40)
         h.upd_tol = 1e-3
 
@@ -79,13 +79,13 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
 
         tol_vfi = max(exp(0.9*log(1+tol_vfi))-1, 1e-6)
         t_new = time()
-        print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations. New tol = $(tol_vfi)")
+        print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $out_iter iterations. New tol = $(tol_vfi)")
 
-        iter += 1
+        out_iter += 1
         time_old = time()
     end
     if dist <= tol
-		print_save("\nConverged in $iter iterations. ")
+		print_save("\nConverged in $out_iter iterations. ")
 	else
 		print_save("\nStopping at distance $(@sprintf("%0.3g",dist)). ")
 	end
