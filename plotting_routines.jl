@@ -453,6 +453,21 @@ function plot_convergence(dist_statefuncs, dist_LoMs, T::Int64; remote::Bool=fal
 	Void
 end
 
+function plot_outerdists(h; remote::Bool=false)
+    T = length(h.outer_dists)
+
+    p = plot(scatter(; x=1:T, y = h.outer_dists, showlegend=false),
+        Layout(; xaxis_title="𝑡", yaxis_type="log", font_size=16, font_family="Fira Sans Light", width=800, height=500))
+
+    if remote
+        path = pwd() * "/../../Graphs/"
+        save(path * "p_outconv.jld", "p", p)
+    else
+        path = pwd() * "/../Graphs/"
+        savefig(p, path * "outconv.pdf")
+    end
+    Void
+end
 
 function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 	name = ""

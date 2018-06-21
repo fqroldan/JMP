@@ -123,6 +123,7 @@ type Hank
 	qᵍ::Vector{Float64}
 	pN::Vector{Float64}
 
+	outer_dists::Vector{Float64}
 
 	# Options
 	upd_tol::Float64
