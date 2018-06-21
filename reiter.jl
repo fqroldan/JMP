@@ -206,9 +206,9 @@ function Hank(;	β = (1.0/1.3)^0.25,
 	for (jz, zv) in enumerate(zgrid)
 		pN[:,:,:,:,:,jz] = mean(pngrid) - 0.1 * zv
 		output[:,:,:,:,:,jz] = exp(zv)
-		spending[:,:,:,:,:,jz] = 0.1 - 0.1 * zv
+		spending[:,:,:,:,:,jz] = 0.1 - 0.25 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv - 2.0 * zv + 0.1 * (Bbar-bv)
+			issuance[jb,:,:,:,1,jz] = bv - 0.5 * zv + 0.1 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)

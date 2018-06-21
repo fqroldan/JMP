@@ -72,8 +72,8 @@ if remote || local_run
 end
 
 p, jz_series = simul(h; simul_length=4*(250+25), only_def_end=true)
-plot_simul(p; trim = 4*250, remote=remote)
 plot_simul(p; trim = 0, remote=remote)
+plot_simul(p; trim = 4*250, remote=remote)
 
 ols = simul_regs(p)
 save(pwd()*"/ols.jld", "ols", ols)
