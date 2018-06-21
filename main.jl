@@ -27,7 +27,7 @@ print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(no
 
 # Set options
 local_run = true
-
+h = load(pwd() * "/../../hank.jld", "h")
 # Initialize type
 if remote || local_run
 	h = Hank();
@@ -52,6 +52,8 @@ if remote || local_run
 			h.repay = h2.repay
 			print_save(" ✓")
 		end
+	catch
+		print_save("JLD file incompatible")
 	end
 else
 	print_save("\nLoading solved model file\n")
@@ -66,7 +68,7 @@ print_save("\nω: $(h.ωgrid)\n")
 # Run
 if remote || local_run
 	# vfi!(h, verbose = true, remote = remote)
-	mpe_iter!(h; remote = remote)
+	# mpe_iter!(h; remote = remote)
 end
 
 p, jz_series = simul(h; simul_length=4*(250+25), only_def_end=true)
