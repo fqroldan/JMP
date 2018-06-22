@@ -79,7 +79,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
 
         tol_vfi = max(exp(0.9*log(1+tol_vfi))-1, 1e-6)
         t_new = time()
-        print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $out_iter iterations. New tol = $(tol_vfi)")
+        print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $out_iter iterations. New tol = $(@sprintf("%0.3g",tol_vfi))")
 
         push!(h.outer_dists, dist)
         plot_outerdists(h; remote = remote)
