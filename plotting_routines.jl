@@ -525,8 +525,8 @@ function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 	pY = plot([ scatter(; x=times, y=Y_vec, marker_color=col[1], showlegend=false),
 				scatter(; x=times, y=L_vec, marker_color=col[4], showlegend=false, line_dash="dashdot")],
 			Layout(; title="Output", xaxis=attr(title="t")));
-	pπ = plot([scatter(; x=times, y=π_vec, marker_color=col[1], showlegend=false),
-                scatter(; x=times, y=ζ_vec, marker_color=col[4], showlegend=false, line_dash="dashdot")],
+	pπ = plot([scatter(; x=times, y=ζ_vec, marker_color=col[1], showlegend=false),
+                scatter(; x=times, y=π_vec, marker_color=col[4], showlegend=false, line_dash="dashdot")],
             Layout(; title="Default prob", xaxis=attr(title="t")));
 	pP = plot([ scatter(; x=times, y=P_vec, marker_color=col[1], showlegend=false),
 				# scatter(; x=times, y=ones(times)*maximum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
