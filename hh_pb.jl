@@ -296,8 +296,6 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 
 		qᵍp = Array{Float64}(h.Nz, 3)
 		itp_vf_s = Arr_itp_VF(h.Nz, 3)
-		# itp_vf_s =  Array{Interpolations.ScaledInterpolation{Float64,2,Interpolations.BSplineInterpolation{Float64,2,Array{Float64,2},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,(1, 0)},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,Tuple{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},UnitRange{Int64}}}, 2}(h.Nz, 3)
-		# itp_vf_s = Array{Interpolations.GriddedInterpolation{Float64,2,Float64,Tuple{Interpolations.Gridded{Interpolations.Linear},Interpolations.NoInterp},Tuple{Array{Float64,1},Array{Int64,1}},0}}(h.Nz, 3)
 		for (jzp, zpv) in enumerate(h.zgrid)
 			qᵍp[jzp, 1] = itp_qᵍ[bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]
 			qᵍp[jzp, 2] = itp_qᵍ[bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
@@ -350,7 +348,6 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 						print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
 					end
 					ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-10
-					# fmax = value(h, qʰv*ap, 0., itp_vf, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 				end
 				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
@@ -368,21 +365,6 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 	end
 
 	return vf, ϕa, ϕb, ϕe, ϕc
-end
-
-function make_itps(h::Hank, vf, qᵍ_mat)
-	ωrange = linspace(h.ωgrid[1], h.ωgrid[end], h.Nω)
-	brange = linspace(h.bgrid[1], h.bgrid[end], h.Nb)
-	μrange = linspace(h.μgrid[1], h.μgrid[end], h.Nμ)
-	σrange = linspace(h.σgrid[1], h.σgrid[end], h.Nσ)
-	wrange = linspace(h.wgrid[1], h.wgrid[end], h.Nw)
-
-	unscaled_itp_vf = interpolate(h.vf, (BSpline(Quadratic(Line())), NoInterp(), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), NoInterp(), NoInterp()), OnGrid())
-	unscaled_itp_qᵍ  = interpolate(qᵍ_mat, (BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), BSpline(Linear()), NoInterp(), NoInterp()), OnGrid())
-	itp_vf = Interpolations.scale(unscaled_itp_vf, ωrange, 1:h.Nϵ, brange, μrange, σrange, wrange, 1:h.Nζ, 1:h.Nz)
-	itp_qᵍ = Interpolations.scale(unscaled_itp_qᵍ, brange, μrange, σrange, wrange, 1:h.Nζ, 1:h.Nz)
-
-	return itp_vf, itp_qᵍ
 end
 
 function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve::Bool=true, verbose::Bool=true)
