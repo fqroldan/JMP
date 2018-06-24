@@ -253,7 +253,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 end
 
 
-function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf; resolve::Bool = true, verbose::Bool=true)
+function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve::Bool = true, verbose::Bool=true)
 
 	vf = SharedArray{Float64}(size(h.vf))
 	ϕa = SharedArray{Float64}(size(h.ϕa))
@@ -273,13 +273,13 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 		wv  = wL_mat[jb, jμ, jσ, jw, jζ, jz]
 		Tv  = T_mat[jb, jμ, jσ, jw, jζ, jz]
 		pCv = pC_mat[jb, jμ, jσ, jw, jζ, jz]
+		profits = Π_mat[jb, jμ, jσ, jw, jζ, jz]
 
 		bpv = h.issuance[js]
 		μpv = h.μ′[js,:,:]
 		σpv = h.σ′[js,:,:]
 		wpv = h.w′[js]
 		thres = h.def_thres[js]
-		profits = h.profits[js]
 
 		rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 		exp_rep = rep_mat[jb, jμ, jσ, jw, jζ, jz, :]
@@ -323,7 +323,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 
 		for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
 
-			RHS = ωv + wv * exp(ϵv) - Tv #+ profits * exp(ϵv)
+			RHS = ωv + wv * exp(ϵv) - Tv + profits * exp(ϵv)
 
 			ap, bp, ep, cmax, fmax = 0., 0., 0., 0., 0.
 			ag, bg = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz], h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
@@ -367,7 +367,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, 
 	return vf, ϕa, ϕb, ϕe, ϕc
 end
 
-function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; resolve::Bool=true, verbose::Bool=true)
+function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve::Bool=true, verbose::Bool=true)
 	t1 = time()
 	# Interpolate the value function
 	itp_vf = make_itp(h, h.vf; agg=false)
@@ -377,7 +377,7 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat; r
 
 	# Compute values
 	t1 = time()
-	vf, ϕa, ϕb, ϕe, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf, resolve = resolve, verbose = verbose)
+	vf, ϕa, ϕb, ϕe, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, resolve = resolve, verbose = verbose)
 	# print_save("\nopt in $(time()-t1)")
 
 	t1 = time()

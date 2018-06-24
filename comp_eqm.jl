@@ -18,7 +18,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 	for jpn in 1:Npn
 
 		pnv = h.pngrid[jpn]
-		
+
 		N = size(h.Jgrid, 1)
 
 		wage_pn, labor_pn, profits_pn = Array{Float64, 1}(N), Array{Float64, 1}(N), Array{Float64, 1}(N)
@@ -37,13 +37,14 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 		pC = price_index(h, pnv)
 		pC_mat = ones(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * pC
 
-		T_mat = govt_bc(h, wage_pn.*labor_pn) - reshape(profits_pn - h.profits, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+		T_mat = govt_bc(h, wage_pn.*labor_pn)# - reshape(profits_pn - h.profits, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+		Π_mat = reshape(profits_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 		wL_mat  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * (1.0 - h.τ)
 
 		# Re-solve for these values of wn and pn
-		_, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, itp_qᵍ, itp_vf; resolve = true, verbose = false)
-			
+		_, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = false)
+
 		ϕa_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕa, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 		ϕb_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕb, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 		ϕc_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕc, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
@@ -201,7 +202,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 
 	# 	fvec[:] = out
 	# end
-	
+
 	# res = fsolve(wrap_mktclear!, [pNg])
 	# if res.:converged == false
 	# 	res2 = fsolve(wrap_mktclear!, [pNg], method=:lmdif)
@@ -271,7 +272,7 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 			end
 		end
 	end
-	
+
 	return results, minf, exc_dem, exc_sup
 end
 
@@ -296,7 +297,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 		for js in 1:size(h.Jgrid, 1)
 			Bpv = h.issuance[js]
 			G = h.spending[js]
-			
+
 			pN = h.pN[js]
 			pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
@@ -329,7 +330,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 end
 
 function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
-	
+
 	pN_down = minimum(h.pngrid)
 	if exc_sup_prop > 0.025
 		pN_down = pN_down * 0.95
@@ -365,7 +366,7 @@ function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 
 	h.pngrid = collect(linspace(pN_down, pN_up, length(h.pngrid)))
 	new_wgrid = collect(linspace(w_down, w_up, h.Nw))
-	
+
 	return new_wgrid
 end
 
@@ -385,7 +386,7 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, 
 		ζpv = 2
 		haircut = h.ℏ
 	end
-	
+
 	R = (ζpv==1) * h.κ + (1.0 - haircut) .* ((1.0-h.ρ)*q)
 
 	Eω   = a + R*b
@@ -395,7 +396,7 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, 
 
 	# print_save("\nEω, varω = $Eω, $varω")
 	Eσ2 = 1.0 + varω / ( (Eω - h.ωmin)^2 )
-	
+
 	Eσ2 > 1. || print_save("\n1 + vω / (Eω-ωmin)² = $(Eσ2)")
 
 	σ2 = log( Eσ2 )
@@ -463,7 +464,7 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 	μv = h.μgrid[jμ]
 	σv = h.σgrid[jσ]
 	wv = h.wgrid[jw]
-	
+
 	val_a, val_b, val_a2, val_b2, val_ab, sum_prob = 0., 0., 0., 0., 0., 0.
 
 	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
@@ -499,7 +500,7 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 			val_b  += prob * ϕb
 			val_b2 += prob * ϕb^2
 			val_ab += prob * ϕa * ϕb
-			
+
 			sum_prob += prob
 		end
 	end
@@ -552,13 +553,13 @@ function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec, w�
 
 		μ′[js, :, :], σ′[js, :, :] = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep, js, jdefault)
 	end
-		
-	
+
+
 	return μ′, σ′
 end
 
 function update_expectations!(h::Hank, upd_η::Float64)
-	""" 
+	"""
 	Computes mean and variance of tomorrow's distribution and deduces parameters for logN
 	"""
 
@@ -608,7 +609,7 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	σ′_new = max.(min.(σ′_new, maximum(h.σgrid)), minimum(h.σgrid))
 
 	dist_exp[1] = sqrt.(sum( (μ′_new - μ′_old).^2 )) / sqrt.(sum(μ′_old.^2))
-	dist_exp[2] = sqrt.(sum( (σ′_new - σ′_old).^2 )) / sqrt.(sum(σ′_old.^2))	
+	dist_exp[2] = sqrt.(sum( (σ′_new - σ′_old).^2 )) / sqrt.(sum(σ′_old.^2))
 
 	μ′_new = upd_η * μ′_new + (1.0 - upd_η) * μ′_old
 	σ′_new = upd_η * σ′_new + (1.0 - upd_η) * σ′_old
