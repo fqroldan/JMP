@@ -319,7 +319,6 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 		end
 
 		# @code_warntype v = eval_itp_vf(itp_vf_s, 10.3, 2, 2, 1)
-		profits = zeros(qᵍp)
 
 		for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
 

@@ -366,7 +366,7 @@ function _unpackstatefs(h::Hank)
 	wL_mat = reshape(wL, 	h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	pC_mat = reshape(pC, 	h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	return qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat
+	return qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, profits_mat
 end
 
 
