@@ -165,10 +165,10 @@ function plot_gov_welf(h::Hank; remote::Bool=false)
         for jzp in 1:h.Nz
             μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
             σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-            EWr += h.Pz[jz, jzp] * welfare(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
+            EWr += h.Pz[jz, jzp] * integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
             μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
             σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-            EWd += h.Pz[jz, jzp] * welfare(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
+            EWd += h.Pz[jz, jzp] * integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
         end
 
         Wr_vec[js] = EWr
@@ -231,10 +231,10 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
         for jzp in 1:h.Nz
             μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
             σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-            Wr[jzp] = welfare(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
+            Wr[jzp] = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
             μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
             σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-            Wd[jzp] = welfare(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
+            Wd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
         end
         p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false),
                         scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot")],
@@ -250,6 +250,52 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
         save(path * "p_reactions.jld", "p", p)
     else
         savefig(p, pwd() * "/../Graphs/reactions.pdf")
+    end
+    Void
+end
+
+function plot_aggcons(h::Hank; remote::Bool=false)
+    jμ, jσ, jw = ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2)
+    μv, σv, wv = h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw]
+    jζ = 1
+
+    itp_ϕc = make_itp(h, h.ϕc; agg=false)
+
+    B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+    μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+    σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+    w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+
+    states = gridmake([1; h.Nb], [1; h.Nz])
+    p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+    for js in 1:size(states,1)
+        C_r = zeros(h.Nz)
+        C_d = zeros(h.Nz)
+        jb, jz = states[js, :]
+        bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
+        wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
+        for jzp in 1:h.Nz
+            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+            C_r[jzp] = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_ϕc)
+            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+            C_d[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_ϕc)
+        end
+        p_vec[js] = plot(  [scatter(;x=h.zgrid, y=C_r, marker_color=col[1], showlegend=false),
+                        scatter(;x=h.zgrid, y=C_d, marker_color=col[4], showlegend=false, line_dash="dashdot")],
+                        Layout(;title="B=$(h.bgrid[jb]), z=$(exp(h.zgrid[jz]))"))
+    end
+
+    p = [p_vec[1] p_vec[2]; p_vec[3] p_vec[4]]
+    p.plot.layout["width"] = 800
+    p.plot.layout["height"] = 800
+    p.plot.layout["font_family"] = "Fira Sans Light"
+    if remote
+        path = pwd() * "/../../Graphs/"
+        save(path * "p_aggcons.jld", "p", p)
+    else
+        savefig(p, pwd() * "/../Graphs/aggcons.pdf")
     end
     Void
 end

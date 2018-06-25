@@ -1,13 +1,9 @@
-function welfare(h::Hank, bv, μv, σv, wv, jζ, jz, itp_vf)
+function integrate_itp(h::Hank, bv, μv, σv, wv, jζ, jz, itp_vf)
 
     W = 0.
     for (jϵ, ϵv) in enumerate(h.ϵgrid)
-
         f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_vf[ω, jϵ, bv, μv, σv, wv, jζ, jz]
-
-        (val, err) = hquadrature(f, h.ωmin, h.ωmax,
-                                    reltol=1e-8, abstol=0, maxevals=0)
-
+        (val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
         W += val
     end
     return W
@@ -39,10 +35,10 @@ function update_govpol(h::Hank)
             if jζ == 1
                 μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
                 σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-                Wr = welfare(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
+                Wr = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
                 μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
                 σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-                Wd = welfare(h, bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
+                Wd = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
                 if Wr > Wd
                     rep_new[jsz] = 1.
                 else
