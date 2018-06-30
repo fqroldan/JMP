@@ -430,6 +430,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			dist_statefuncs[iter, :] = dists
 
 			plot_state_funcs(h, remote = remote)
+			plot_nontradables(h, remote = remote)
 			print_save(": done in $(time_print(time()-t1))")
 			t1 = time()
 
