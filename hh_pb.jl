@@ -319,10 +319,10 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 		end
 
 		# @code_warntype v = eval_itp_vf(itp_vf_s, 10.3, 2, 2, 1)
-
+		adjustment = sum(h.λϵ.*exp.(h.ϵgrid))
 		for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
 
-			RHS = ωv + wv * exp(ϵv) - Tv + profits * exp(ϵv)
+			RHS = ωv + wv * exp(ϵv) - Tv + profits * exp(ϵv) / adjustment
 
 			ap, bp, ep, cmax, fmax = 0., 0., 0., 0., 0.
 			ag, bg = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz], h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]

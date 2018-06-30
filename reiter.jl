@@ -5,7 +5,7 @@ include("hh_pb.jl")
 function Hank(;	β = (1.0/1.3)^0.25,
 				IES = 1.0,
 				RRA = 2.,
-				γw = 0.98,
+				γw = 0.9,
 				τ = 0.25,
 				r_star = 1.02^0.25 - 1.0,
 				ωmax = 17.5,
@@ -13,7 +13,7 @@ function Hank(;	β = (1.0/1.3)^0.25,
 				income_process = "Floden-Lindé",
 				EpsteinZin = true,
 				order = 3,
-				Nω_fine = 1000,
+				Nω_fine = 10000,
 				Nω = 5,
 				Nϵ = 7,
 				Nμ = 4,
@@ -22,10 +22,10 @@ function Hank(;	β = (1.0/1.3)^0.25,
 				Nw = 5,
 				Nz = 12,
 				ρz = 0.95,
-				σz = 0.025,
+				σz = 0.01,
 				ℏ = 0.5,
-				Δ = 0.15,
-				θ = .15,
+				Δ = 0.1,
+				θ = .125,
 				Np = 5,
 				upd_tol = 5e-3
 				)
@@ -217,7 +217,7 @@ function Hank(;	β = (1.0/1.3)^0.25,
 				wage[:,:,:,:,jζ,jz] = max(exp(zv) * (1.0 - Δ * def), γw*wv)
 			end
 		end
-		repay[:,:,:,:,:,:,jz] = 1.0 - (zv <= zgrid[1])
+		repay[:,:,:,:,:,:,jz] = 1.0# - (zv <= zgrid[1])
 		def_thres[:,:,:,:,:,jz] = zgrid[1]
 		# def_thres[:,:,:,:,:,jz] = -Inf
 	end
@@ -484,6 +484,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 	end
 	plot_gov_welf(h; remote = remote)
+	plot_aggcons(h; remote = remote)
 	plot_govt_reaction(h; remote = remote)
 	save(pwd() * "/../../hank.jld", "h", h)
 

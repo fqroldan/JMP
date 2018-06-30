@@ -1,11 +1,28 @@
-function integrate_itp(h::Hank, bv, μv, σv, wv, jζ, jz, itp_vf)
+function integrate_itp(h::Hank, bv, μv, σv, wv, jζ, jz, itp_obj)
 
-    W = 0.
+    # ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0001; .9999]) + h.ωmin
+    # W = 0.
+    # for (jϵ, ϵv) in enumerate(h.ϵgrid)
+    #     f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_obj[ω, jϵ, bv, μv, σv, wv, jζ, jz]
+    #     (val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-10, abstol=0, maxevals=0)
+    #     W += val
+    # end
+    val, sum_prob = 0., 0.
     for (jϵ, ϵv) in enumerate(h.ϵgrid)
-        f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_vf[ω, jϵ, bv, μv, σv, wv, jζ, jz]
-        (val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
-        W += val
-    end
+		for jω = 1:length(h.ωgrid_fine)-1
+			ωv  = h.ωgrid_fine[jω]
+			ω1v = h.ωgrid_fine[jω+1]
+			ωmv = 0.5*(ωv+ω1v)
+
+			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
+
+			Y = itp_obj[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
+
+			val  += prob * ϕa
+			sum_prob += prob
+		end
+	end
+    W = val / sum_prob
     return W
 end
 
@@ -60,7 +77,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
     dist = 10.
 
     upd_η = 0.33
-    tol_vfi = 1e-2
+    tol_vfi = 2e-2
 
 	while dist > tol && out_iter < maxiter
         print_save("\n\nOuter Iteration $out_iter\n")

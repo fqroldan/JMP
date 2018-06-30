@@ -260,6 +260,7 @@ function plot_aggcons(h::Hank; remote::Bool=false)
     jζ = 1
 
     itp_ϕc = make_itp(h, h.ϕc; agg=false)
+    itp_ϕc2 = make_itp(h, h.ϕc.^2; agg=false)
 
     B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
     μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
@@ -268,9 +269,12 @@ function plot_aggcons(h::Hank; remote::Bool=false)
 
     states = gridmake([1; h.Nb], [1; h.Nz])
     p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+    p2_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
     for js in 1:size(states,1)
         C_r = zeros(h.Nz)
+        VarCr = zeros(h.Nz)
         C_d = zeros(h.Nz)
+        VarCd = zeros(h.Nz)
         jb, jz = states[js, :]
         bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
         wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
@@ -278,12 +282,17 @@ function plot_aggcons(h::Hank; remote::Bool=false)
             μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
             σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
             C_r[jzp] = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_ϕc)
+            VarCr[jzp] = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_ϕc2) - C_r[jzp]^2
             μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
             σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
             C_d[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_ϕc)
+            VarCd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_ϕc2) - C_d[jzp]^2
         end
         p_vec[js] = plot(  [scatter(;x=h.zgrid, y=C_r, marker_color=col[1], showlegend=false),
                         scatter(;x=h.zgrid, y=C_d, marker_color=col[4], showlegend=false, line_dash="dashdot")],
+                        Layout(;title="B=$(h.bgrid[jb]), z=$(exp(h.zgrid[jz]))"))
+        p2_vec[js] = plot(  [scatter(;x=h.zgrid, y=VarCr, marker_color=col[1], showlegend=false),
+                        scatter(;x=h.zgrid, y=VarCd, marker_color=col[4], showlegend=false, line_dash="dashdot")],
                         Layout(;title="B=$(h.bgrid[jb]), z=$(exp(h.zgrid[jz]))"))
     end
 
@@ -296,6 +305,16 @@ function plot_aggcons(h::Hank; remote::Bool=false)
         save(path * "p_aggcons.jld", "p", p)
     else
         savefig(p, pwd() * "/../Graphs/aggcons.pdf")
+    end
+    p2 = [p2_vec[1] p2_vec[2]; p2_vec[3] p2_vec[4]]
+    p2.plot.layout["width"] = 800
+    p2.plot.layout["height"] = 800
+    p2.plot.layout["font_family"] = "Fira Sans Light"
+    if remote
+        path = pwd() * "/../../Graphs/"
+        save(path * "p_varcons.jld", "p2", p2)
+    else
+        savefig(p2, pwd() * "/../Graphs/varcons.pdf")
     end
     Void
 end
@@ -452,7 +471,7 @@ function plot_labor_demand(h::Hank; remote::Bool=false)
 	Void
 end
 
-function plot_nontradables_demand(h::Hank; remote::Bool=false)
+function plot_nontradables(h::Hank; remote::Bool=false)
 	jb = ceil(Int, h.Nb/2)
 	jμ = ceil(Int, h.Nμ/2)
 	jσ = ceil(Int, h.Nσ/2)
@@ -462,12 +481,24 @@ function plot_nontradables_demand(h::Hank; remote::Bool=false)
 
 	bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw], h.ζgrid[jζ], h.zgrid[jz]
 
-	if remote
-		path = pwd() * "/../../Graphs/"
-	else
-		path = pwd() * "/../Graphs/"
-	end
-	savefig(path * "N_demand.pdf")
+    itp_ϕc = make_itp(h, h.ϕc; agg = false)
+
+    pNmin, pNmax = min(h.pngrid), max(h.pngrid)
+
+    exc_sup = zeros(h.pngrid)
+    for (jpn, pnv) in enumerate(h.pngrid)
+        exc_sup[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1))
+    end
+
+    p = plot(scatter(; x=exc_sup, y=h.pngrid), Layout(; yaxis_title="pₙ", xaxis_title="excess supply"))
+
+    if remote
+        path = pwd() * "/../../Graphs/"
+        save(path * "p_nontradables.jld", "p", p)
+    else
+        path = pwd() * "/../Graphs/"
+        savefig(p, path * "nontradables.pdf")
+    end
 	Void
 end
 

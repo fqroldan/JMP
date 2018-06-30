@@ -136,33 +136,32 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	Ld, w_new, profits, output = labor_market(h, ζv, zv, wv, pN)
 
 	# Step 3: Get the household's policies at these prices
-
-	val_int_C = 0.
-	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
-
-		(val, err) = hquadrature(f, h.ωmin, h.ωmax,
-									reltol=1e-8, abstol=0, maxevals=0)
-
-		val_int_C += val
-	end
-	# val_C, sum_prob = 0., 0.
+	# ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0001; .9999]) + h.ωmin
+	# val_int_C = 0.
 	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
-	# 	for jω = 1:length(h.ωgrid_fine)-1
-	# 		ωv  = h.ωgrid_fine[jω]
-	# 		ω1v = h.ωgrid_fine[jω+1]
-	# 		ωmv = 0.5*(ωv+ω1v)
-
-	# 		prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
-
-	# 		ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
-
-	# 		val_C  += prob * ϕc
-	# 		sum_prob += prob
-	# 	end
+	#
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+	#
+	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
+	#
+	# 	val_int_C += val
 	# end
-	# val_int_C = val_C / sum_prob
+	val_C, sum_prob = 0., 0.
+	for (jϵ, ϵv) in enumerate(h.ϵgrid)
+		for jω = 1:length(h.ωgrid_fine)-1
+			ωv  = h.ωgrid_fine[jω]
+			ω1v = h.ωgrid_fine[jω+1]
+			ωmv = 0.5*(ωv+ω1v)
+
+			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
+
+			ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+
+			val_C  += prob * ϕc
+			sum_prob += prob
+		end
+	end
+	val_int_C = val_C / sum_prob
 
 	# Step 4: Check market clearing for nontradables
 	Ld_N, _  = labor_demand(h, w_new, zv, ζv, pN; get_both=true)
@@ -185,6 +184,26 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 end
 
 function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
+
+	# First find eq'm assuming the constraint does not bind
+	w_slack = 0.5 * h.wgrid[1]
+	res = Optim.optimize(
+		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars = true)^2,
+		0.75*pNmin, 1.25*pNmax, GoldenSection()
+		)
+	pN = res.minimizer
+	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; get_others=true)
+
+	if w >= h.γw * wv && res.minimum < 1e-4
+		pN > pNmax? exc_dem = 1: exc_dem = 0
+		pN < pNmin? exc_sup = 1: exc_sup = 0
+
+		minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
+
+		results = [w; pN; Ld; output]
+
+		return results, minf, exc_dem, exc_sup
+	end
 
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)^2,
@@ -467,23 +486,25 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 
 	val_a, val_b, val_a2, val_b2, val_ab, sum_prob = 0., 0., 0., 0., 0., 0.
 
+	# ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0001; .9999]) + h.ωmin
 	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
-	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]
-	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])
+	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
 	# 	val_a += val
-	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]^2
-	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
+	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
 	# 	val_a2 += val
-	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]
-	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
+	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
 	# 	val_b += val
-	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]^2
-	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
+	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
 	# 	val_b2 += val
-	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz] * itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz]
-	# 	(val, err) = hquadrature(f, h.ωmin, h.ωmax, reltol=1e-8, abstol=0, maxevals=0)
+	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
+	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
 	# 	val_ab += val
 	# end
+	# sum_prob = 1.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		for jω = 1:length(h.ωgrid_fine)-1
 			ωv  = h.ωgrid_fine[jω]
