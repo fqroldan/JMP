@@ -136,7 +136,7 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	Ld, w_new, profits, output = labor_market(h, ζv, zv, wv, pN)
 
 	# Step 3: Get the household's policies at these prices
-	# ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0001; .9999]) + h.ωmin
+	# ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
 	# val_int_C = 0.
 	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
 	#
@@ -189,7 +189,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	w_slack = 0.5 * h.wgrid[1]
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars = true)^2,
-		0.75*pNmin, 1.25*pNmax, GoldenSection()
+		0.65*pNmin, 1.35*pNmax, GoldenSection()
 		)
 	pN = res.minimizer
 	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; get_others=true)

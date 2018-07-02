@@ -481,9 +481,12 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 
 	bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw], h.ζgrid[jζ], h.zgrid[jz]
 
+    G   = reshape(h.spending, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)[jb, jμ, jσ, jw, jζ, jz]
+    Bpv = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)[jb, jμ, jσ, jw, jζ, jz]
+
     itp_ϕc = make_itp(h, h.ϕc; agg = false)
 
-    pNmin, pNmax = min(h.pngrid), max(h.pngrid)
+    pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
     exc_sup = zeros(h.pngrid)
     for (jpn, pnv) in enumerate(h.pngrid)
