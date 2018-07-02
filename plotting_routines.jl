@@ -481,19 +481,25 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 
 	bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw], h.ζgrid[jζ], h.zgrid[jz]
 
-    G   = reshape(h.spending, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)[jb, jμ, jσ, jw, jζ, jz]
-    Bpv = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)[jb, jμ, jσ, jw, jζ, jz]
+    G_mat = reshape(h.spending, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+    B_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
     itp_ϕc = make_itp(h, h.ϕc; agg = false)
 
     pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
+    l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.bgrid)
     exc_sup = zeros(h.pngrid)
-    for (jpn, pnv) in enumerate(h.pngrid)
-        exc_sup[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1))
+    for (jb, bv) in enumerate(h.bgrid)
+        G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
+        Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
+        for (jpn, pnv) in enumerate(h.pngrid)
+            exc_sup[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1))
+        end
+        l[jb] = scatter(;x x=exc_sup, y=h.pngrid, name="B = $(round(bv, 2))")
     end
 
-    p = plot(scatter(; x=exc_sup, y=h.pngrid), Layout(; yaxis_title="pₙ", xaxis_title="excess supply"))
+    p = plot([l[jb] for jb in 1:h.Nb], Layout(; yaxis_title="pₙ", xaxis_title="excess supply"))
 
     if remote
         path = pwd() * "/../../Graphs/"
