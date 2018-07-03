@@ -496,7 +496,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
         for (jpn, pnv) in enumerate(h.pngrid)
             exc_sup[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1))
         end
-        l[jb] = scatter(;x x=exc_sup, y=h.pngrid, name="B = $(round(bv, 2))")
+        l[jb] = scatter(; x=exc_sup, y=h.pngrid, name="B = $(round(bv, 2))")
     end
 
     p = plot([l[jb] for jb in 1:h.Nb], Layout(; yaxis_title="pₙ", xaxis_title="excess supply"))

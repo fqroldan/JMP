@@ -1,4 +1,4 @@
-TFP_N(z, Δ, ζ) = 1.0#    * (1.0 - Δ*(ζ==2))
+TFP_N(z, Δ, ζ) = 1.0    * (1.0 - Δ*(ζ==2))
 TFP_T(z, Δ, ζ) = exp(z) * (1.0 - Δ*(ζ==2))
 
 function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
@@ -189,7 +189,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	w_slack = 0.5 * h.wgrid[1]
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars = true)^2,
-		0.65*pNmin, 1.35*pNmax, GoldenSection()
+		0.5*pNmin, 1.5*pNmax, GoldenSection()
 		)
 	pN = res.minimizer
 	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; get_others=true)
@@ -207,7 +207,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)^2,
-		0.75*pNmin, 1.25*pNmax, GoldenSection()
+		0.5*pNmin, 1.5*pNmax, GoldenSection()
 		)
 	pN = res.minimizer
 	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
@@ -240,7 +240,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	results = [w; pN; Ld; output]
 
 	if abs(minf) > 1e-4
-		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
+		print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
 	end
 
 	return results, minf, exc_dem, exc_sup
