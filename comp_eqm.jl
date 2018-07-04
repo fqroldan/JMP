@@ -214,6 +214,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 
 	pN > pNmax? exc_dem = 1: exc_dem = 0
 	pN < pNmin? exc_sup = 1: exc_sup = 0
+	res.minimum > 1e-4? exc_dem, exc_sup = 1, 1
 
 	# function wrap_mktclear!(pN::Vector, fvec=similar(x))
 
