@@ -103,6 +103,84 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 	return Void
 end
 
+function plot_hh_policies_z(h::Hank; remote::Bool=false)
+    show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ = mean(h.ϵgrid), mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1]
+
+    itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
+    itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
+
+    l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nz, 2)
+    for (jz, zv) in enumerate(h.zgrid)
+        ϕc_vec = zeros(h.Nω)
+        vf_vec = zeros(h.Nω)
+        for (jω, ωv) in enumerate(h.ωgrid)
+            ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ, zv]
+            vf_vec[jω] = itp_vf[ωv, show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ, zv]
+        end
+        l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
+        l[jz,1] = l_new
+        l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
+        l[jz,2] = l_new
+    end
+    pc = plot([l[jz, 1] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
+    pv = plot([l[jz, 2] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Value function"))
+
+    p = [pc pv]
+    p.plot.layout["xlabel"] = "ω"
+    p.plot.layout["width"] = 800
+    p.plot.layout["height"] = 400
+    p.plot.layout["font_family"] = "Fira Sans Light"
+
+    if remote
+        path = pwd() * "/../../Graphs/"
+        save(path * "p_hh_z.jld", "p", p)
+    else
+        path = pwd() * "/../Graphs/"
+        savefig(p, path * "hh_z.pdf")
+    end
+    Void
+end
+
+function plot_hh_policies_b(h::Hank; remote::Bool=false)
+    show_ϵ, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.ϵgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], mean(h.zgrid)
+
+    itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
+    itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
+
+    l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nz, 2)
+    for (jb, bv) in enumerate(h.bgrid)
+        ϕc_vec = zeros(h.Nω)
+        vf_vec = zeros(h.Nω)
+        for (jω, ωv) in enumerate(h.ωgrid)
+            ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
+            vf_vec[jω] = itp_vf[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
+        end
+        l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
+        l[jb,1] = l_new
+        l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
+        l[jb,2] = l_new
+    end
+    pc = plot([l[jb, 1] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
+    pv = plot([l[jb, 2] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Value function"))
+
+    p = [pc pv]
+    p.plot.layout["xlabel"] = "ω"
+    p.plot.layout["width"] = 800
+    p.plot.layout["height"] = 400
+    p.plot.layout["font_family"] = "Fira Sans Light"
+
+    if remote
+        path = pwd() * "/../../Graphs/"
+        save(path * "p_hh_b.jld", "p", p)
+    else
+        path = pwd() * "/../Graphs/"
+        savefig(p, path * "hh_b.pdf")
+    end
+    Void
+end
+
+
+
 function lines(h::Hank, y, x_dim, name="")
 	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
 
@@ -521,8 +599,8 @@ function plot_nontradables(h::Hank; remote::Bool=false)
         for (jpn, pnv) in enumerate(h.pngrid)
             sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
         end
-        l[jz] = scatter(; x=sup, y=h.pngrid, marker_color=col[jz], name="z = $(round(exp(zv), 2))")
-        l[h.Nz+jz] = scatter(; x=dem, y=h.pngrid, marker_color=col[jz], name="")
+        l[jz] = scatter(; x=sup, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
+        l[h.Nz+jz] = scatter(; x=dem, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="")
     end
 
     p = plot([l[jb] for jb in 1:length(l)], Layout(; yaxis_title="pₙ", xaxis_title="Q"))

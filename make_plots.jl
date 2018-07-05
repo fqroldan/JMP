@@ -1,6 +1,6 @@
 using PlotlyJS, JLD, LaTeXStrings, Rsvg, Interpolations
 
-p_names = ["conv" "hh" "hh_def" "statefuncs" "LoMs" "nontradables_B" "nontradables_z" "labordemand" "simul" "simul_full" "objfunc" "reactions" "aggcons" "varcons" "outconv"]
+p_names = ["conv" "hh" "hh_z" "hh_b" "hh_def" "statefuncs" "LoMs" "nontradables_B" "nontradables_z" "labordemand" "simul" "simul_full" "objfunc" "reactions" "aggcons" "varcons" "outconv"]
 
 for name in p_names
 	print("$name")

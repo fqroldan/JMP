@@ -414,6 +414,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 		if dist < h.upd_tol
 			plot_hh_policies(h, remote = remote)
+			plot_hh_policies_b(h, remote = remote)
+			plot_hh_policies_z(h, remote = remote)
 
 			t1 = time()
 			extend_state_space!(h, qʰ_mat, qᵍ_mat, T_mat)
