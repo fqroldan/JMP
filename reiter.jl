@@ -410,7 +410,6 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			t_new = time()
 			print_save("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v‖ = $(@sprintf("%0.3g",norm_v)) after $(time_print(t_new-t_old)) and $iter_cycle iterations ")
 			print_save(Dates.format(now(), "HH:MM"))
-			# plot_hh_policies(h, remote = remote)
 		end
 
 		if dist < h.upd_tol

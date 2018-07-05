@@ -11,12 +11,16 @@ using PlotlyJS, JLD, LaTeXStrings, Rsvg, Interpolations
 # plot_labor_demand(h, remote=false)
 # plot_hh_policies(h, remote=false)
 
-p_names = ["conv" "hh" "hh_def" "statefuncs" "LoMs" "labordemand" "simul" "simul_full" "objfunc" "reactions" "aggcons" "nontradables" "varcons" "outconv"]
+p_names = ["conv" "hh" "hh_def" "statefuncs" "LoMs" "nontradables_B" "nontradables_z" "labordemand" "simul" "simul_full" "objfunc" "reactions" "aggcons" "varcons" "outconv"]
 
 for name in p_names
 	print("$name")
 	try
-		p = load(pwd() * "/../HPC_Output/p_" * name * ".jld", "p")
+		if name == "varcons" || name == "nontradables_z"
+			p = load(pwd() * "/../HPC_Output/p_" * name * ".jld", "p2")
+		else
+			p = load(pwd() * "/../HPC_Output/p_" * name * ".jld", "p")
+		end
 		savefig(p, pwd() * "/../Graphs/" * name * ".png")
 		print(": ✓\n")
 	catch

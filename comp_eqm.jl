@@ -123,7 +123,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 end
 
 
-function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars::Bool = true, get_others::Bool = false)
+function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars::Bool = true, get_others::Bool = false, get_both::Bool=false)
 	pN = pNv[1]
 	if orig_vars == false
 		pN = transform_vars(pN, pNmin, pNmax)
@@ -178,6 +178,8 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 
 	if get_others
 		return w_new, Ld, output
+	elseif get_both
+		return supply_N, demand_N
 	else
 		return F
 	end
@@ -214,7 +216,9 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 
 	pN > pNmax? exc_dem = 1: exc_dem = 0
 	pN < pNmin? exc_sup = 1: exc_sup = 0
-	res.minimum > 1e-4? exc_dem, exc_sup = 1, 1
+	if res.minimum > 1e-4
+		exc_dem, exc_sup = 1, 1
+	end
 
 	# function wrap_mktclear!(pN::Vector, fvec=similar(x))
 

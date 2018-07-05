@@ -488,25 +488,51 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 
     pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
-    l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nb)
-    exc_sup = zeros(h.pngrid)
+    l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nb)
+    sup = zeros(h.pngrid)
+    dem = zeros(h.pngrid)
     for (jb, bv) in enumerate(h.bgrid)
         G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
         Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
         for (jpn, pnv) in enumerate(h.pngrid)
-            exc_sup[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1))
+            sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
         end
-        l[jb] = scatter(; x=exc_sup, y=h.pngrid, name="B = $(round(bv, 2))")
+        l[jb] = scatter(; x=sup, y=h.pngrid, marker_color=col[jb], name="B = $(round(bv, 2))")
+        l[h.Nb+jb] = scatter(; x=dem, y=h.pngrid, marker_color=col[jb], name="")
     end
 
-    p = plot([l[jb] for jb in 1:h.Nb], Layout(; yaxis_title="pₙ", xaxis_title="excess supply"))
+    p = plot([l[jb] for jb in 1:length(l)], Layout(; yaxis_title="pₙ", xaxis_title="Q"))
 
     if remote
         path = pwd() * "/../../Graphs/"
-        save(path * "p_nontradables.jld", "p", p)
+        save(path * "p_nontradables_B.jld", "p", p)
     else
         path = pwd() * "/../Graphs/"
-        savefig(p, path * "nontradables.pdf")
+        savefig(p, path * "nontradables_B.pdf")
+    end
+
+    jb = ceil(Int, h.Nb/2)
+    l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nz)
+    sup = zeros(h.pngrid)
+    dem = zeros(h.pngrid)
+    for (jz, zv) in enumerate(h.zgrid)
+        G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
+        Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
+        for (jpn, pnv) in enumerate(h.pngrid)
+            sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
+        end
+        l[jz] = scatter(; x=sup, y=h.pngrid, marker_color=col[jz], name="z = $(round(exp(zv), 2))")
+        l[h.Nz+jz] = scatter(; x=dem, y=h.pngrid, marker_color=col[jz], name="")
+    end
+
+    p = plot([l[jb] for jb in 1:length(l)], Layout(; yaxis_title="pₙ", xaxis_title="Q"))
+
+    if remote
+        path = pwd() * "/../../Graphs/"
+        save(path * "p_nontradables_z.jld", "p", p)
+    else
+        path = pwd() * "/../Graphs/"
+        savefig(p, path * "nontradables_z.pdf")
     end
 	Void
 end
