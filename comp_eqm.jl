@@ -191,14 +191,14 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	w_slack = 0.5 * h.wgrid[1]
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars = true)^2,
-		0.5*pNmin, 1.5*pNmax, GoldenSection()
+		pNmin, pNmax, GoldenSection()
 		)
 	pN = res.minimizer
 	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; get_others=true)
 
 	if w >= h.γw * wv && res.minimum < 1e-6
-		pN > pNmax? exc_dem = 1: exc_dem = 0
-		pN < pNmin? exc_sup = 1: exc_sup = 0
+		pN > pNmax - 0.1*(pNmax-pNmin)? exc_dem = 1: exc_dem = 0
+		pN < pNmin + 0.1*(pNmax-pNmin)? exc_sup = 1: exc_sup = 0
 
 		minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
 
@@ -209,13 +209,13 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)^2,
-		0.5*pNmin, 1.5*pNmax, GoldenSection()
+		pNmin, pNmax, GoldenSection()
 		)
 	pN = res.minimizer
 	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
 
-	pN > pNmax? exc_dem = 1: exc_dem = 0
-	pN < pNmin? exc_sup = 1: exc_sup = 0
+	pN > pNmax - 0.1*(pNmax-pNmin)? exc_dem = 1: exc_dem = 0
+	pN < pNmin + 0.1*(pNmax-pNmin)? exc_sup = 1: exc_sup = 0
 	if res.minimum > 1e-6
 		exc_dem, exc_sup = 1, 1
 	end
@@ -245,7 +245,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	results = [w; pN; Ld; output]
 
 	if abs(minf) > 1e-4
-		print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
+		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
 	end
 
 	return results, minf, exc_dem, exc_sup
@@ -343,6 +343,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	h.profits = h.output - h.wage .* h.Ld
 	h.w′ = h.wage
 	mean_f = mean(minf)
+	max_f = maximum(minf)
 
 	# up_prop   = sum(minf .>  1e-4) / length(minf)
 	# down_prop = sum(minf .< -1e-4) / length(minf)
@@ -350,19 +351,19 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	exc_dem_prop = sum(exc_dem) / length(exc_dem)
 	exc_sup_prop = sum(exc_sup) / length(exc_sup)
 
-	return exc_dem_prop, exc_sup_prop, mean_f, dist
+	return exc_dem_prop, exc_sup_prop, mean_f, max_f, dist
 end
 
 function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 
 	pN_down = minimum(h.pngrid)
-	if exc_sup_prop > 0.025
+	if exc_sup_prop > 0.01
 		pN_down = pN_down * 0.95
 	elseif exc_sup_prop == 0.
 		pN_down = pN_down * 1.01
 	end
 	pN_up = maximum(h.pngrid)
-	if exc_dem_prop > 0.025
+	if exc_dem_prop > 0.01
 		pN_up = pN_up * 1.05
 	elseif exc_dem_prop == 0.
 		pN_up = pN_up * 0.99
@@ -377,7 +378,7 @@ function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 			w -> (labor_demand(h, w, exp(h.zgrid[end]), pN_down) - Ls).^2,
 			h.wgrid[1], h.wgrid[end] * 2.0, GoldenSection()
 			)
-	w_up = max(res1.minimizer, res2.minimizer) * 1.05
+	w_up = max(res1.minimizer, res2.minimizer) * 1.25
 	res1 = Optim.optimize(
 			w -> (labor_demand(h, w, (1.0-h.Δ) * exp(h.zgrid[1]), pN_up) - Ls).^2,
 			0.5 * h.wgrid[1], h.wgrid[end], GoldenSection()
@@ -386,7 +387,7 @@ function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 			w -> (labor_demand(h, w, (1.0-h.Δ) * exp(h.zgrid[1]), pN_down) - Ls).^2,
 			0.5 * h.wgrid[1], h.wgrid[end], GoldenSection()
 			)
-	w_down = min(res1.minimizer, res2.minimizer) * 0.95
+	w_down = min(res1.minimizer, res2.minimizer) * 0.75
 
 	h.pngrid = collect(linspace(pN_down, pN_up, length(h.pngrid)))
 	new_wgrid = collect(linspace(w_down, w_up, h.Nw))

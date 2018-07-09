@@ -6,3 +6,9 @@
 /test.jl
 
 /sync_plots.jl
+
+/.ipynb_checkpoints/
+
+/make_plots.ipynb
+
+/.gitignore

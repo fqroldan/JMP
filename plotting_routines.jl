@@ -106,6 +106,7 @@ end
 function plot_hh_policies_z(h::Hank; remote::Bool=false)
     show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ = mean(h.ϵgrid), mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1]
 
+    knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
     itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
     itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
 
@@ -119,7 +120,7 @@ function plot_hh_policies_z(h::Hank; remote::Bool=false)
         end
         l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
         l[jz,1] = l_new
-        l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
+        l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="z = $(round(exp(zv),2)))", marker_color=col[ceil(Int,10*jz/h.Nz)])
         l[jz,2] = l_new
     end
     pc = plot([l[jz, 1] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
@@ -144,6 +145,7 @@ end
 function plot_hh_policies_b(h::Hank; remote::Bool=false)
     show_ϵ, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.ϵgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], mean(h.zgrid)
 
+    knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
     itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
     itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
 
@@ -157,7 +159,7 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
         end
         l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
         l[jb,1] = l_new
-        l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
+        l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
         l[jb,2] = l_new
     end
     pc = plot([l[jb, 1] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
@@ -562,7 +564,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
     G_mat = reshape(h.spending, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
     B_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-    itp_ϕc = make_itp(h, h.ϕc; agg = false)
+    itp_ϕc = make_itp(h, h.ϕc_ext; agg = false)
 
     pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
@@ -576,7 +578,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
             sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
         end
         l[jb] = scatter(; x=sup, y=h.pngrid, marker_color=col[jb], name="B = $(round(bv, 2))")
-        l[h.Nb+jb] = scatter(; x=dem, y=h.pngrid, marker_color=col[jb], name="")
+        l[h.Nb+jb] = scatter(; x=dem, y=h.pngrid, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
     end
 
     p = plot([l[jb] for jb in 1:length(l)], Layout(; yaxis_title="pₙ", xaxis_title="Q"))
@@ -590,6 +592,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
     end
 
     jb = ceil(Int, h.Nb/2)
+    bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw], h.ζgrid[jζ], h.zgrid[jz]
     l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nz)
     sup = zeros(h.pngrid)
     dem = zeros(h.pngrid)
@@ -600,10 +603,10 @@ function plot_nontradables(h::Hank; remote::Bool=false)
             sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
         end
         l[jz] = scatter(; x=sup, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
-        l[h.Nz+jz] = scatter(; x=dem, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="")
+        l[h.Nz+jz] = scatter(; x=dem, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))", showlegend=false)
     end
 
-    p = plot([l[jb] for jb in 1:length(l)], Layout(; yaxis_title="pₙ", xaxis_title="Q"))
+    p = plot([l[jz] for jz in 1:length(l)], Layout(; yaxis_title="pₙ", xaxis_title="Q"))
 
     if remote
         path = pwd() * "/../../Graphs/"
