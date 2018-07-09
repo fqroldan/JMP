@@ -555,7 +555,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 	jb = ceil(Int, h.Nb/2)
 	jμ = ceil(Int, h.Nμ/2)
 	jσ = ceil(Int, h.Nσ/2)
-	jw = ceil(Int, h.Nw/2)
+	jw = h.Nw #ceil(Int, h.Nw/2)
 	jζ = ceil(Int, h.Nζ/2)
 	jz = ceil(Int, h.Nz/2)
 
