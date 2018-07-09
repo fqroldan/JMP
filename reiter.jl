@@ -14,7 +14,7 @@ function Hank(;	β = (1.0/1.3)^0.25,
 				EpsteinZin = true,
 				order = 3,
 				Nω_fine = 2500,
-				Nω = 5,
+				Nω = 8,
 				Nϵ = 7,
 				Nμ = 4,
 				Nσ = 4,
@@ -397,7 +397,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat = _unpackstatefs(h)
 
 		v_old = copy(h.vf)
-		if iter_cycle <= 5 || iter_cycle % 3 == 0 || iter_cycle == 1
+		if iter_cycle <= 5 || iter_cycle % 3 == 0
 			bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=true)
 		else
 			bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=false)
