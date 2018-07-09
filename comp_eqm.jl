@@ -45,9 +45,9 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 		# Re-solve for these values of wn and pn
 		_, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = true)
 
-		ϕa_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕa, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-		ϕb_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕb, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-		ϕc_ext[:,:,:,:,:,:,:,:,jpn] = reshape(ϕc, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+		ϕa_ext[:,:,:,:,:,:,:,:,jpn] = ϕa
+		ϕb_ext[:,:,:,:,:,:,:,:,jpn] = ϕb
+		ϕc_ext[:,:,:,:,:,:,:,:,jpn] = ϕc
 	end
 
 	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext")
@@ -75,7 +75,7 @@ function labor_demand(h::Hank, w, z, ζ, pN; get_both::Bool = false)
 	Δ = h.Δ
 
 	Ld_nontradables = (h.α_N * pN * TFP_N(z,Δ,ζ) / w).^(1.0/(1.0-h.α_N))
-	Ld_tradables    = (h.α_T * 1.0* TFP_T(z,Δ,ζ) / w).^(1.0/(1.0-h.α_T))
+	Ld_tradables    = (h.α_T * 1. * TFP_T(z,Δ,ζ) / w).^(1.0/(1.0-h.α_T))
 
 	if get_both
 		return Ld_nontradables, Ld_tradables
@@ -87,10 +87,9 @@ end
 function labor_market(h::Hank, ζv, zv, wv, pNv)
 	""" Finds w and Lᵈ at the current state given a guess of pNv """
 	jdef = (ζv != 1)
-	# TFP = ifelse(jdef, (1.0 - h.Δ) * exp(zv), exp(zv))
 	w_constraint = h.γw * wv
 
-	# Step 1: Assume w_t is at the constraint, find labor demand, and check whether the eq'm wage is above or below
+	# Step 1: Assume wₜ is at the constraint, find labor demand, and check whether the eq'm wage is above or below
 	Ld_N, Ld_T = labor_demand(h, w_constraint, zv, ζv, pNv; get_both=true)
 	Ld = Ld_N + Ld_T
 
@@ -135,7 +134,11 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 
 	Ld, w_new, profits, output = labor_market(h, ζv, zv, wv, pN)
 
-	# Step 3: Get the household's policies at these prices
+	# Check market clearing for nontradables
+	Ld_N, _  = labor_demand(h, w_new, zv, ζv, pN; get_both=true)
+	supply_N = TFP_N(zv, h.Δ, ζv) * Ld_N^(h.α_N)
+
+	# # Get the household's policies at these prices
 	# ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
 	# val_int_C = 0.
 	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
@@ -162,10 +165,7 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 		end
 	end
 	val_int_C = val_C / sum_prob
-
-	# Step 4: Check market clearing for nontradables
-	Ld_N, _  = labor_demand(h, w_new, zv, ζv, pN; get_both=true)
-	supply_N = TFP_N(zv, h.Δ, ζv) * Ld_N^(h.α_N)
+	isapprox(sum_prob, 1) || print_save("\nWARNING: Something wrong computing aggregate consumption")
 
  	# Recover nontraded demand from total consumption
 	pC = price_index(h, pN)
