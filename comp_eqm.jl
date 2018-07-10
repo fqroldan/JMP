@@ -138,34 +138,33 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	Ld_N, _  = labor_demand(h, w_new, zv, ζv, pN; get_both=true)
 	supply_N = TFP_N(zv, h.Δ, ζv) * Ld_N^(h.α_N)
 
-	# # Get the household's policies at these prices
-	# ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
-	# val_int_C = 0.
-	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
-	#
-	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
-	#
-	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
-	#
-	# 	val_int_C += val
-	# end
-	val_C, sum_prob = 0., 0.
+	# Get the household's policies at these prices
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
+	val_int_C = 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		for jω = 1:length(h.ωgrid_fine)-1
-			ωv  = h.ωgrid_fine[jω]
-			ω1v = h.ωgrid_fine[jω+1]
-			ωmv = 0.5*(ωv+ω1v)
-
-			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
-
-			ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
-
-			val_C  += prob * ϕc
-			sum_prob += prob
-		end
+		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+	
+		(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
+	
+		val_int_C += val
 	end
-	val_int_C = val_C / sum_prob
-	isapprox(sum_prob, 1) || print_save("\nWARNING: Something wrong computing aggregate consumption")
+	# val_C, sum_prob = 0., 0.
+	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
+	# 	for jω = 1:length(h.ωgrid_fine)-1
+	# 		ωv  = h.ωgrid_fine[jω]
+	# 		ω1v = h.ωgrid_fine[jω+1]
+	# 		ωmv = 0.5*(ωv+ω1v)
+
+	# 		prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
+
+	# 		ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
+
+	# 		val_C  += prob * ϕc
+	# 		sum_prob += prob
+	# 	end
+	# end
+	# val_int_C = val_C / sum_prob
+	# isapprox(sum_prob, 1) || print_save("\nWARNING: Something wrong computing aggregate consumption")
 
  	# Recover nontraded demand from total consumption
 	pC = price_index(h, pN)
