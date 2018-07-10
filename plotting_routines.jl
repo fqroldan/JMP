@@ -54,15 +54,15 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 		θg_mat[isapprox.(ωg_mat, h.ωmin)] = 1.0
 
 		l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
-		for jϵ in 1:h.Nϵ
-			l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
+		for (jϵ, ϵv) in enumerate(h.ϵgrid)
+			l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", name = "ϵ = $(round(exp(ϵv),4))", showlegend=false, marker_color=col[jϵ])
 			l[jϵ,1] = l_new
-			l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", showlegend=false, marker_color=col[jϵ])
+			l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", name = "ϵ = $(round(exp(ϵv),4))", showlegend=false, marker_color=col[jϵ])
 			l[jϵ,2] = l_new
-			l_new = scatter(;x=h.ωgrid, y=ωg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
+			l_new = scatter(;x=h.ωgrid, y=ωg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, name = "ϵ = $(round(exp(ϵv),4))", marker_color=col[jϵ])
 			l[jϵ,3] = l_new
 			# l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
-			l_new = scatter(;x=h.ωgrid, y=θg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
+			l_new = scatter(;x=h.ωgrid, y=θg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, name = "ϵ = $(round(exp(ϵv),4))", marker_color=col[jϵ])
 			l[jϵ,4] = l_new
 		end
 		pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
@@ -118,7 +118,7 @@ function plot_hh_policies_z(h::Hank; remote::Bool=false)
             ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ, zv]
             vf_vec[jω] = itp_vf[ωv, show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ, zv]
         end
-        l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
+        l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="z = $(round(exp(zv),2)))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
         l[jz,1] = l_new
         l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="z = $(round(exp(zv),2)))", marker_color=col[ceil(Int,10*jz/h.Nz)])
         l[jz,2] = l_new
@@ -157,7 +157,7 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
             ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
             vf_vec[jω] = itp_vf[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
         end
-        l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
+        l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
         l[jb,1] = l_new
         l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
         l[jb,2] = l_new
