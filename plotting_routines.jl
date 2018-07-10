@@ -185,6 +185,7 @@ end
 
 function lines(h::Hank, y, x_dim, name="")
 	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+    jshow_w = 1
 
 	x = h.bgrid
 	xlabel = "B"
@@ -555,7 +556,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 	jb = ceil(Int, h.Nb/2)
 	jμ = ceil(Int, h.Nμ/2)
 	jσ = ceil(Int, h.Nσ/2)
-	jw = h.Nw #ceil(Int, h.Nw/2)
+	jw = ceil(Int, h.Nw/2)
 	jζ = ceil(Int, h.Nζ/2)
 	jz = ceil(Int, h.Nz/2)
 
@@ -577,11 +578,11 @@ function plot_nontradables(h::Hank; remote::Bool=false)
         for (jpn, pnv) in enumerate(h.pngrid)
             sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
         end
-        l[jb] = scatter(; x=sup, y=h.pngrid, marker_color=col[jb], name="B = $(round(bv, 2))")
-        l[h.Nb+jb] = scatter(; x=dem, y=h.pngrid, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
+        l[jb] = scatter(; x=h.pngrid, y=sup, marker_color=col[jb], name="B = $(round(bv, 2))")
+        l[h.Nb+jb] = scatter(; x=h.pngrid, y=dem, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
     end
 
-    p = plot([l[jb] for jb in 1:length(l)], Layout(; yaxis_title="pₙ", xaxis_title="Q"))
+    p = plot([l[jb] for jb in 1:length(l)], Layout(; xaxis_title="pₙ", yaxis_title="Q"))
 
     if remote
         path = pwd() * "/../../Graphs/"
@@ -602,11 +603,11 @@ function plot_nontradables(h::Hank; remote::Bool=false)
         for (jpn, pnv) in enumerate(h.pngrid)
             sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
         end
-        l[jz] = scatter(; x=sup, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
-        l[h.Nz+jz] = scatter(; x=dem, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))", showlegend=false)
+        l[jz] = scatter(; x=h.pngrid, y=sup, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
+        l[h.Nz+jz] = scatter(; x=h.pngrid, y=dem, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))", showlegend=false)
     end
 
-    p = plot([l[jz] for jz in 1:length(l)], Layout(; yaxis_title="pₙ", xaxis_title="Q"))
+    p = plot([l[jz] for jz in 1:length(l)], Layout(; xaxis_title="pₙ", yaxis_title="Q"))
 
     if remote
         path = pwd() * "/../../Graphs/"
