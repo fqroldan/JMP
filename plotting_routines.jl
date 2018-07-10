@@ -183,9 +183,12 @@ end
 
 
 
-function lines(h::Hank, y, x_dim, name="")
+function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)
 	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
-    jshow_w = 1
+
+    if custom_w != 0
+        jshow_w = custom_w
+    end
 
 	x = h.bgrid
 	xlabel = "B"
@@ -410,52 +413,55 @@ function plot_state_funcs(h::Hank; remote::Bool=false)
 
 	T_mat  = govt_bc(h, h.wage.*h.Ld)
 
-	ppN1 = lines(h, pN_mat, 1, "Price of nontradables")
-	pw1  = lines(h, w_mat, 1, "Wage")
-	pLd1 = lines(h, Ld_mat, 1, "Labor supply")
-	pY1  = lines(h, Y_mat, 1, "Output")
-	pΠ1  = lines(h, Π_mat, 1, "Profits")
-	pT1  = lines(h, T_mat, 1, "Taxes")
 
-	ppN2 = lines(h, pN_mat, 2)
-	pw2  = lines(h, w_mat, 2)
-	pLd2 = lines(h, Ld_mat, 2)
-	pY2  = lines(h, Y_mat, 2)
-	pΠ2  = lines(h, Π_mat, 2)
-	pT2  = lines(h, T_mat, 2)
+    for (jp, jw) in enumerate([1; h.Nw])
+    	ppN1 = lines(h, pN_mat, 1, "Price of nontradables"; custom_w = jw)
+    	pw1  = lines(h, w_mat, 1, "Wage"; custom_w = jw)
+    	pLd1 = lines(h, Ld_mat, 1, "Labor supply"; custom_w = jw)
+    	pY1  = lines(h, Y_mat, 1, "Output"; custom_w = jw)
+    	pΠ1  = lines(h, Π_mat, 1, "Profits"; custom_w = jw)
+    	pT1  = lines(h, T_mat, 1, "Taxes"; custom_w = jw)
 
-	ppN3 = lines(h, pN_mat, 3)
-	pw3  = lines(h, w_mat, 3)
-	pLd3 = lines(h, Ld_mat, 3)
-	pY3  = lines(h, Y_mat, 3)
-	pΠ3  = lines(h, Π_mat, 3)
-	pT3  = lines(h, T_mat, 3)
+    	ppN2 = lines(h, pN_mat, 2; custom_w = jw)
+    	pw2  = lines(h, w_mat, 2; custom_w = jw)
+    	pLd2 = lines(h, Ld_mat, 2; custom_w = jw)
+    	pY2  = lines(h, Y_mat, 2; custom_w = jw)
+    	pΠ2  = lines(h, Π_mat, 2; custom_w = jw)
+    	pT2  = lines(h, T_mat, 2; custom_w = jw)
 
-	ppN4 = lines(h, pN_mat, 4)
-	pw4  = lines(h, w_mat, 4)
-	pLd4 = lines(h, Ld_mat, 4)
-	pY4  = lines(h, Y_mat, 4)
-	pΠ4  = lines(h, Π_mat, 4)
-	pT4  = lines(h, T_mat, 4)
+    	ppN3 = lines(h, pN_mat, 3; custom_w = jw)
+    	pw3  = lines(h, w_mat, 3; custom_w = jw)
+    	pLd3 = lines(h, Ld_mat, 3; custom_w = jw)
+    	pY3  = lines(h, Y_mat, 3; custom_w = jw)
+    	pΠ3  = lines(h, Π_mat, 3; custom_w = jw)
+    	pT3  = lines(h, T_mat, 3; custom_w = jw)
 
-	ppN6 = lines(h, pN_mat, 6)
-	pw6  = lines(h, w_mat, 6)
-	pLd6 = lines(h, Ld_mat, 6)
-	pY6  = lines(h, Y_mat, 6)
-	pΠ6  = lines(h, Π_mat, 6)
-	pT6  = lines(h, T_mat, 6)
+    	ppN4 = lines(h, pN_mat, 4; custom_w = jw)
+    	pw4  = lines(h, w_mat, 4; custom_w = jw)
+    	pLd4 = lines(h, Ld_mat, 4; custom_w = jw)
+    	pY4  = lines(h, Y_mat, 4; custom_w = jw)
+    	pΠ4  = lines(h, Π_mat, 4; custom_w = jw)
+    	pT4  = lines(h, T_mat, 4; custom_w = jw)
 
-	# p = [ppN1 pw1 pLd1; ppN2 pw2 pLd2; ppN3 pw3 pLd3; ppN4 pw4 pLd4; ppN6 pw6 pLd6]
-	p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6; pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6; pT1 pT2 pT3 pT4 pT6]
-	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 640/4*6
-	p.plot.layout["font_family"] = "Fira Sans Light"
-	if remote
-		path = pwd() * "/../../Graphs/"
-		save(path * "p_statefuncs.jld", "p", p)
-	else
-		savefig(p, pwd() * "/../Graphs/statefuncs.pdf")
-	end
+    	ppN6 = lines(h, pN_mat, 6; custom_w = jw)
+    	pw6  = lines(h, w_mat, 6; custom_w = jw)
+    	pLd6 = lines(h, Ld_mat, 6; custom_w = jw)
+    	pY6  = lines(h, Y_mat, 6; custom_w = jw)
+    	pΠ6  = lines(h, Π_mat, 6; custom_w = jw)
+    	pT6  = lines(h, T_mat, 6; custom_w = jw)
+
+    	# p = [ppN1 pw1 pLd1; ppN2 pw2 pLd2; ppN3 pw3 pLd3; ppN4 pw4 pLd4; ppN6 pw6 pLd6]
+    	p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6; pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6; pT1 pT2 pT3 pT4 pT6]
+    	p.plot.layout["width"] = 800
+    	p.plot.layout["height"] = 640/4*6
+    	p.plot.layout["font_family"] = "Fira Sans Light"
+    	if remote
+    		path = pwd() * "/../../Graphs/"
+    		save(path * "p_statefuncs$(jp).jld", "p", p)
+    	else
+    		savefig(p, pwd() * "/../Graphs/statefuncs$(jp).pdf")
+    	end
+    end
 	Void
 end
 
