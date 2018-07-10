@@ -35,7 +35,7 @@ function update_govpol(h::Hank)
 	σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
 	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	repay = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz, Nz)
+	repay = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 
 	for js in 1:size(h.Jgrid, 1)
 		jb = h.Jgrid[js, 1]
