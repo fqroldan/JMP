@@ -88,7 +88,6 @@ end
 
 function labor_market(h::Hank, ζv, zv, wv, pNv)
 	""" Finds w and Lᵈ at the current state given a guess of pNv """
-	jdef = (ζv != 1)
 	w_constraint = h.γw * wv
 
 	# Step 1: Assume wₜ is at the constraint, find labor demand, and check whether the eq'm wage is above or below
