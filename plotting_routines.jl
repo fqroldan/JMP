@@ -1,16 +1,16 @@
 using Interpolations, PlotlyJS
 
 col = [	"#1f77b4",  # muted blue
-    	"#ff7f0e",  # safety orange
-    	"#2ca02c",  # cooked asparagus green
-    	"#d62728",  # brick red
-    	"#9467bd",  # muted purple
-    	"#8c564b",  # chestnut brown
-    	"#e377c2",  # raspberry yogurt pink
-    	"#7f7f7f",  # middle gray
-    	"#bcbd22",  # curry yellow-green
-    	"#17becf"   # blue-teal
-    	]
+		"#ff7f0e",  # safety orange
+		"#2ca02c",  # cooked asparagus green
+		"#d62728",  # brick red
+		"#9467bd",  # muted purple
+		"#8c564b",  # chestnut brown
+		"#e377c2",  # raspberry yogurt pink
+		"#7f7f7f",  # middle gray
+		"#bcbd22",  # curry yellow-green
+		"#17becf"   # blue-teal
+		]
 
 function plot_hh_policies(h::Hank; remote::Bool=false)
 	# leg = Array{LaTeXStrings.LaTeXString}(1, h.Nϵ)
@@ -104,85 +104,93 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 end
 
 function plot_hh_policies_z(h::Hank; remote::Bool=false)
-    show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ = mean(h.ϵgrid), mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1]
+	show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ = mean(h.ϵgrid), mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1]
 
-    knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
-    itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
-    itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
+	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
+	itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
+	itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
 
-    l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nz, 2)
-    for (jz, zv) in enumerate(h.zgrid)
-        ϕc_vec = zeros(h.Nω)
-        vf_vec = zeros(h.Nω)
-        for (jω, ωv) in enumerate(h.ωgrid)
-            ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ, zv]
-            vf_vec[jω] = itp_vf[ωv, show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ, zv]
-        end
-        l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="z = $(round(exp(zv),2)))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
-        l[jz,1] = l_new
-        l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="z = $(round(exp(zv),2)))", marker_color=col[ceil(Int,10*jz/h.Nz)])
-        l[jz,2] = l_new
-    end
-    pc = plot([l[jz, 1] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
-    pv = plot([l[jz, 2] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Value function"))
+	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nz, 2)
+	for (jz, zv) in enumerate(h.zgrid)
+		ϕc_vec = zeros(h.Nω)
+		vf_vec = zeros(h.Nω)
+		for (jω, ωv) in enumerate(h.ωgrid)
+			ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ, zv]
+			vf_vec[jω] = itp_vf[ωv, show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ, zv]
+		end
+		l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="z = $(round(exp(zv),2)))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
+		l[jz,1] = l_new
+		l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="z = $(round(exp(zv),2)))", marker_color=col[ceil(Int,10*jz/h.Nz)])
+		l[jz,2] = l_new
+	end
+	pc = plot([l[jz, 1] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
+	pv = plot([l[jz, 2] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Value function"))
 
-    p = [pc pv]
-    p.plot.layout["xlabel"] = "ω"
-    p.plot.layout["width"] = 800
-    p.plot.layout["height"] = 400
-    p.plot.layout["font_family"] = "Fira Sans Light"
+	p = [pc pv]
+	p.plot.layout["xlabel"] = "ω"
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 400
+	p.plot.layout["font_family"] = "Fira Sans Light"
 
-    if remote
-        path = pwd() * "/../../Graphs/"
-        save(path * "p_hh_z.jld", "p", p)
-    else
-        path = pwd() * "/../Graphs/"
-        savefig(p, path * "hh_z.pdf")
-    end
-    Void
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_hh_z.jld", "p", p)
+	else
+		path = pwd() * "/../Graphs/"
+		savefig(p, path * "hh_z.pdf")
+	end
+	Void
 end
 
 function plot_hh_policies_b(h::Hank; remote::Bool=false)
-    show_ϵ, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.ϵgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], mean(h.zgrid)
+	show_ϵ, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.ϵgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], mean(h.zgrid)
 
-    knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
-    itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
-    knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid, h.pngrid)
-    itp_ϕc_ext  = interpolate(knots, h.ϕc_ext, Gridded(Linear()))
+	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
+	itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
+	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid, h.pngrid)
+	itp_ϕc_ext  = interpolate(knots, h.ϕc_ext, Gridded(Linear()))
 
-    itp_pN = make_itp(h, h.pN, agg=true)
+	itp_pN = make_itp(h, h.pN, agg=true)
 
-    l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nz, 2)
-    for (jb, bv) in enumerate(h.bgrid)
-        ϕc_vec = zeros(h.Nω)
-        ϕce_vec = zeros(h.Nω)
-        show_pN = itp_pN[bv, show_μ, show_σ, show_w, show_ζ, show_z]
-        for (jω, ωv) in enumerate(h.ωgrid)
-            ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
-            ϕce_vec[jω] = itp_vf[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z, show_pN]
-        end
-        l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
-        l[jb,1] = l_new
-        l_new = scatter(;x=h.ωgrid, y=ϕce_vec, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
-        l[jb,2] = l_new
-    end
-    pc = plot([l[jb, 1] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
-    pv = plot([l[jb, 2] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ"))
+	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nb, 4)
+	for (jb, bv) in enumerate(h.bgrid)
+		ϕc_vec = zeros(h.Nω)
+		ϕce_vec = zeros(h.Nω)
+		show_pN = itp_pN[bv, show_μ, show_σ, show_w, show_ζ, show_z]
+		for (jω, ωv) in enumerate(h.ωgrid)
+			ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
+			ϕvf_vec[jω] = itp_vf[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
+			ϕce_vec[jω] = itp_ϕc_ext[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z, show_pN]
+			ϕce_vecfix[jω] = itp_ϕc_ext[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z, mean(h.pngrid)]
+		end
+		l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l[jb,1] = l_new
+		l_new = scatter(;x=h.ωgrid, y=ϕce_vec, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l[jb,2] = l_new
+		l_new = scatter(;x=h.ωgrid, y=ϕce_vecfix, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l[jb,3] = l_new
+		l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l[jb,4] = l_new
+	end
+	pc = plot([l[jb, 1] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
+	pce = plot([l[jb, 2] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ"))
+	pcef = plot([l[jb, 3] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ, fixed pN"))
+	pv = plot([l[jb, 4] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Value function"))
 
-    p = [pc pv]
-    p.plot.layout["xlabel"] = "ω"
-    p.plot.layout["width"] = 800
-    p.plot.layout["height"] = 400
-    p.plot.layout["font_family"] = "Fira Sans Light"
+	p = [pc pce; pv pcef]
+	p.plot.layout["xlabel"] = "ω"
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 800
+	p.plot.layout["font_family"] = "Fira Sans Light"
 
-    if remote
-        path = pwd() * "/../../Graphs/"
-        save(path * "p_hh_b.jld", "p", p)
-    else
-        path = pwd() * "/../Graphs/"
-        savefig(p, path * "hh_b.pdf")
-    end
-    Void
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_hh_b.jld", "p", p)
+	else
+		path = pwd() * "/../Graphs/"
+		savefig(p, path * "hh_b.pdf")
+	end
+	Void
 end
 
 
@@ -190,9 +198,9 @@ end
 function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)
 	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
 
-    if custom_w != 0
-        jshow_w = custom_w
-    end
+	if custom_w != 0
+		jshow_w = custom_w
+	end
 
 	x = h.bgrid
 	xlabel = "B"
@@ -216,8 +224,8 @@ function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)
 
 
 	layout = Layout(;	xaxis=attr(title=xlabel, zeroline=true),
-                 		yaxis=attr(zeroline=true),
-                 		font_size=16, font_family="Fira Sans Light")
+						yaxis=attr(zeroline=true),
+						font_size=16, font_family="Fira Sans Light")
 
 	l = scatter(;x=x, y=y, showlegend=false)
 	p = plot(l, layout)
@@ -229,182 +237,182 @@ function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)
 end
 
 function plot_gov_welf(h::Hank; remote::Bool=false)
-    itp_vf = make_itp(h, h.vf; agg=false)
+	itp_vf = make_itp(h, h.vf; agg=false)
 
-    B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-    μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
-    σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
-    w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+	σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-    Wr_vec = zeros(size(h.Jgrid, 1))
-    Wd_vec = zeros(size(h.Jgrid, 1))
-    for js in 1:length(Wr_vec)
-        jb = h.Jgrid[js, 1]
-        jμ = h.Jgrid[js, 2]
-        jσ = h.Jgrid[js, 3]
-        jw = h.Jgrid[js, 4]
-        jζ = 1
-        jz = h.Jgrid[js, 6]
+	Wr_vec = zeros(size(h.Jgrid, 1))
+	Wd_vec = zeros(size(h.Jgrid, 1))
+	for js in 1:length(Wr_vec)
+		jb = h.Jgrid[js, 1]
+		jμ = h.Jgrid[js, 2]
+		jσ = h.Jgrid[js, 3]
+		jw = h.Jgrid[js, 4]
+		jζ = 1
+		jz = h.Jgrid[js, 6]
 
-        EWr, EWd = 0., 0.
+		EWr, EWd = 0., 0.
 
-        bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
-        wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
-        for jzp in 1:h.Nz
-            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-            EWr += h.Pz[jz, jzp] * integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
-            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-            EWd += h.Pz[jz, jzp] * integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
-        end
+		bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
+		wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
+		for jzp in 1:h.Nz
+			μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+			σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+			EWr += h.Pz[jz, jzp] * integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
+			μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+			σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+			EWd += h.Pz[jz, jzp] * integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
+		end
 
-        Wr_vec[js] = EWr
-        Wd_vec[js] = EWd
-    end
+		Wr_vec[js] = EWr
+		Wd_vec[js] = EWd
+	end
 
-    Wr_mat = reshape(Wr_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-    Wd_mat = reshape(Wd_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-    tempt  = Wd_mat - Wr_mat
+	Wr_mat = reshape(Wr_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	Wd_mat = reshape(Wd_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	tempt  = Wd_mat - Wr_mat
 
-    pWr1 = lines(h, Wr_mat, 1, "Expected welfare in repayment")
-    pWr2 = lines(h, Wr_mat, 2)
-    pWr3 = lines(h, Wr_mat, 3)
-    pWr4 = lines(h, Wr_mat, 4)
-    pWr6 = lines(h, Wr_mat, 6)
-    pWd1 = lines(h, Wd_mat, 1, "Expected welfare in default")
-    pWd2 = lines(h, Wd_mat, 2)
-    pWd3 = lines(h, Wd_mat, 3)
-    pWd4 = lines(h, Wd_mat, 4)
-    pWd6 = lines(h, Wd_mat, 6)
-    ptp1 = lines(h, tempt,  1, "Expected default incentives")
-    ptp2 = lines(h, tempt,  2)
-    ptp3 = lines(h, tempt,  3)
-    ptp4 = lines(h, tempt,  4)
-    ptp6 = lines(h, tempt,  6)
+	pWr1 = lines(h, Wr_mat, 1, "Expected welfare in repayment")
+	pWr2 = lines(h, Wr_mat, 2)
+	pWr3 = lines(h, Wr_mat, 3)
+	pWr4 = lines(h, Wr_mat, 4)
+	pWr6 = lines(h, Wr_mat, 6)
+	pWd1 = lines(h, Wd_mat, 1, "Expected welfare in default")
+	pWd2 = lines(h, Wd_mat, 2)
+	pWd3 = lines(h, Wd_mat, 3)
+	pWd4 = lines(h, Wd_mat, 4)
+	pWd6 = lines(h, Wd_mat, 6)
+	ptp1 = lines(h, tempt,  1, "Expected default incentives")
+	ptp2 = lines(h, tempt,  2)
+	ptp3 = lines(h, tempt,  3)
+	ptp4 = lines(h, tempt,  4)
+	ptp6 = lines(h, tempt,  6)
 
-    p = [pWr1 pWr2 pWr3 pWr4 pWr6; pWd1 pWd2 pWd3 pWd4 pWd6; ptp1 ptp2 ptp3 ptp4 ptp6]
-    p.plot.layout["width"] = 800
-    p.plot.layout["height"] = 800/1.5
-    p.plot.layout["font_family"] = "Fira Sans Light"
-    if remote
-        path = pwd() * "/../../Graphs/"
-        save(path * "p_objfunc.jld", "p", p)
-    else
-        savefig(p, pwd() * "/../Graphs/objfunc.pdf")
-    end
-    Void
+	p = [pWr1 pWr2 pWr3 pWr4 pWr6; pWd1 pWd2 pWd3 pWd4 pWd6; ptp1 ptp2 ptp3 ptp4 ptp6]
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 800/1.5
+	p.plot.layout["font_family"] = "Fira Sans Light"
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_objfunc.jld", "p", p)
+	else
+		savefig(p, pwd() * "/../Graphs/objfunc.pdf")
+	end
+	Void
 end
 
 function plot_govt_reaction(h::Hank; remote::Bool=false)
-    jμ, jσ, jw = ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2)
-    μv, σv, wv = h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw]
-    jζ = 1
+	jμ, jσ, jw = ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2)
+	μv, σv, wv = h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw]
+	jζ = 1
 
-    itp_vf = make_itp(h, h.vf; agg=false)
+	itp_vf = make_itp(h, h.vf; agg=false)
 
-    B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-    μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
-    σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
-    w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+	σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-    states = gridmake([1; h.Nb], [1; h.Nz])
-    p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
-    for js in 1:size(states,1)
-        Wr = zeros(h.Nz)
-        Wd = zeros(h.Nz)
-        jb, jz = states[js, :]
-        bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
-        wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
-        for jzp in 1:h.Nz
-            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-            Wr[jzp] = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
-            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-            Wd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
-        end
-        p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false),
-                        scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot")],
-                        Layout(;title="B=$(h.bgrid[jb]), z=$(exp(h.zgrid[jz]))"))
-    end
+	states = gridmake([1; h.Nb], [1; h.Nz])
+	p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+	for js in 1:size(states,1)
+		Wr = zeros(h.Nz)
+		Wd = zeros(h.Nz)
+		jb, jz = states[js, :]
+		bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
+		wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
+		for jzp in 1:h.Nz
+			μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+			σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+			Wr[jzp] = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
+			μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+			σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+			Wd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
+		end
+		p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false),
+						scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot")],
+						Layout(;title="B=$(h.bgrid[jb]), z=$(exp(h.zgrid[jz]))"))
+	end
 
-    p = [p_vec[1] p_vec[2]; p_vec[3] p_vec[4]]
-    p.plot.layout["width"] = 800
-    p.plot.layout["height"] = 800
-    p.plot.layout["font_family"] = "Fira Sans Light"
-    if remote
-        path = pwd() * "/../../Graphs/"
-        save(path * "p_reactions.jld", "p", p)
-    else
-        savefig(p, pwd() * "/../Graphs/reactions.pdf")
-    end
-    Void
+	p = [p_vec[1] p_vec[2]; p_vec[3] p_vec[4]]
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 800
+	p.plot.layout["font_family"] = "Fira Sans Light"
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_reactions.jld", "p", p)
+	else
+		savefig(p, pwd() * "/../Graphs/reactions.pdf")
+	end
+	Void
 end
 
 function plot_aggcons(h::Hank; remote::Bool=false)
-    jμ, jσ, jw = ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2)
-    μv, σv, wv = h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw]
-    jζ = 1
+	jμ, jσ, jw = ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2)
+	μv, σv, wv = h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw]
+	jζ = 1
 
-    itp_ϕc = make_itp(h, h.ϕc; agg=false)
-    itp_ϕc2 = make_itp(h, h.ϕc.^2; agg=false)
+	itp_ϕc = make_itp(h, h.ϕc; agg=false)
+	itp_ϕc2 = make_itp(h, h.ϕc.^2; agg=false)
 
-    B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-    μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
-    σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
-    w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+	σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
+	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-    states = gridmake([1; h.Nb], [1; h.Nz])
-    p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
-    p2_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
-    for js in 1:size(states,1)
-        C_r = zeros(h.Nz)
-        VarCr = zeros(h.Nz)
-        C_d = zeros(h.Nz)
-        VarCd = zeros(h.Nz)
-        jb, jz = states[js, :]
-        bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
-        wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
-        for jzp in 1:h.Nz
-            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-            C_r[jzp] = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_ϕc)
-            VarCr[jzp] = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_ϕc2) - C_r[jzp]^2
-            μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-            σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-            C_d[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_ϕc)
-            VarCd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_ϕc2) - C_d[jzp]^2
-        end
-        p_vec[js] = plot(  [scatter(;x=h.zgrid, y=C_r, marker_color=col[1], showlegend=false),
-                        scatter(;x=h.zgrid, y=C_d, marker_color=col[4], showlegend=false, line_dash="dashdot")],
-                        Layout(;title="B=$(h.bgrid[jb]), z=$(exp(h.zgrid[jz]))"))
-        p2_vec[js] = plot(  [scatter(;x=h.zgrid, y=VarCr, marker_color=col[1], showlegend=false),
-                        scatter(;x=h.zgrid, y=VarCd, marker_color=col[4], showlegend=false, line_dash="dashdot")],
-                        Layout(;title="B=$(h.bgrid[jb]), z=$(exp(h.zgrid[jz]))"))
-    end
+	states = gridmake([1; h.Nb], [1; h.Nz])
+	p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+	p2_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+	for js in 1:size(states,1)
+		C_r = zeros(h.Nz)
+		VarCr = zeros(h.Nz)
+		C_d = zeros(h.Nz)
+		VarCd = zeros(h.Nz)
+		jb, jz = states[js, :]
+		bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
+		wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
+		for jzp in 1:h.Nz
+			μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+			σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
+			C_r[jzp] = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_ϕc)
+			VarCr[jzp] = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_ϕc2) - C_r[jzp]^2
+			μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+			σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
+			C_d[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_ϕc)
+			VarCd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_ϕc2) - C_d[jzp]^2
+		end
+		p_vec[js] = plot(  [scatter(;x=h.zgrid, y=C_r, marker_color=col[1], showlegend=false),
+						scatter(;x=h.zgrid, y=C_d, marker_color=col[4], showlegend=false, line_dash="dashdot")],
+						Layout(;title="B=$(h.bgrid[jb]), z=$(exp(h.zgrid[jz]))"))
+		p2_vec[js] = plot(  [scatter(;x=h.zgrid, y=VarCr, marker_color=col[1], showlegend=false),
+						scatter(;x=h.zgrid, y=VarCd, marker_color=col[4], showlegend=false, line_dash="dashdot")],
+						Layout(;title="B=$(h.bgrid[jb]), z=$(exp(h.zgrid[jz]))"))
+	end
 
-    p = [p_vec[1] p_vec[2]; p_vec[3] p_vec[4]]
-    p.plot.layout["width"] = 800
-    p.plot.layout["height"] = 800
-    p.plot.layout["font_family"] = "Fira Sans Light"
-    if remote
-        path = pwd() * "/../../Graphs/"
-        save(path * "p_aggcons.jld", "p", p)
-    else
-        savefig(p, pwd() * "/../Graphs/aggcons.pdf")
-    end
-    p2 = [p2_vec[1] p2_vec[2]; p2_vec[3] p2_vec[4]]
-    p2.plot.layout["width"] = 800
-    p2.plot.layout["height"] = 800
-    p2.plot.layout["font_family"] = "Fira Sans Light"
-    if remote
-        path = pwd() * "/../../Graphs/"
-        save(path * "p_varcons.jld", "p2", p2)
-    else
-        savefig(p2, pwd() * "/../Graphs/varcons.pdf")
-    end
-    Void
+	p = [p_vec[1] p_vec[2]; p_vec[3] p_vec[4]]
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 800
+	p.plot.layout["font_family"] = "Fira Sans Light"
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_aggcons.jld", "p", p)
+	else
+		savefig(p, pwd() * "/../Graphs/aggcons.pdf")
+	end
+	p2 = [p2_vec[1] p2_vec[2]; p2_vec[3] p2_vec[4]]
+	p2.plot.layout["width"] = 800
+	p2.plot.layout["height"] = 800
+	p2.plot.layout["font_family"] = "Fira Sans Light"
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_varcons.jld", "p2", p2)
+	else
+		savefig(p2, pwd() * "/../Graphs/varcons.pdf")
+	end
+	Void
 end
 
 function plot_state_funcs(h::Hank; remote::Bool=false)
@@ -418,54 +426,54 @@ function plot_state_funcs(h::Hank; remote::Bool=false)
 	T_mat  = govt_bc(h, h.wage.*h.Ld)
 
 
-    for (jp, jw) in enumerate([1; h.Nw])
-    	ppN1 = lines(h, pN_mat, 1, "Price of nontradables"; custom_w = jw)
-    	pw1  = lines(h, w_mat, 1, "Wage"; custom_w = jw)
-    	pLd1 = lines(h, Ld_mat, 1, "Labor supply"; custom_w = jw)
-    	pY1  = lines(h, Y_mat, 1, "Output"; custom_w = jw)
-    	pΠ1  = lines(h, Π_mat, 1, "Profits"; custom_w = jw)
-    	pT1  = lines(h, T_mat, 1, "Taxes"; custom_w = jw)
+	for (jp, jw) in enumerate([1; h.Nw])
+		ppN1 = lines(h, pN_mat, 1, "Price of nontradables"; custom_w = jw)
+		pw1  = lines(h, w_mat, 1, "Wage"; custom_w = jw)
+		pLd1 = lines(h, Ld_mat, 1, "Labor supply"; custom_w = jw)
+		pY1  = lines(h, Y_mat, 1, "Output"; custom_w = jw)
+		pΠ1  = lines(h, Π_mat, 1, "Profits"; custom_w = jw)
+		pT1  = lines(h, T_mat, 1, "Taxes"; custom_w = jw)
 
-    	ppN2 = lines(h, pN_mat, 2; custom_w = jw)
-    	pw2  = lines(h, w_mat, 2; custom_w = jw)
-    	pLd2 = lines(h, Ld_mat, 2; custom_w = jw)
-    	pY2  = lines(h, Y_mat, 2; custom_w = jw)
-    	pΠ2  = lines(h, Π_mat, 2; custom_w = jw)
-    	pT2  = lines(h, T_mat, 2; custom_w = jw)
+		ppN2 = lines(h, pN_mat, 2; custom_w = jw)
+		pw2  = lines(h, w_mat, 2; custom_w = jw)
+		pLd2 = lines(h, Ld_mat, 2; custom_w = jw)
+		pY2  = lines(h, Y_mat, 2; custom_w = jw)
+		pΠ2  = lines(h, Π_mat, 2; custom_w = jw)
+		pT2  = lines(h, T_mat, 2; custom_w = jw)
 
-    	ppN3 = lines(h, pN_mat, 3; custom_w = jw)
-    	pw3  = lines(h, w_mat, 3; custom_w = jw)
-    	pLd3 = lines(h, Ld_mat, 3; custom_w = jw)
-    	pY3  = lines(h, Y_mat, 3; custom_w = jw)
-    	pΠ3  = lines(h, Π_mat, 3; custom_w = jw)
-    	pT3  = lines(h, T_mat, 3; custom_w = jw)
+		ppN3 = lines(h, pN_mat, 3; custom_w = jw)
+		pw3  = lines(h, w_mat, 3; custom_w = jw)
+		pLd3 = lines(h, Ld_mat, 3; custom_w = jw)
+		pY3  = lines(h, Y_mat, 3; custom_w = jw)
+		pΠ3  = lines(h, Π_mat, 3; custom_w = jw)
+		pT3  = lines(h, T_mat, 3; custom_w = jw)
 
-    	ppN4 = lines(h, pN_mat, 4; custom_w = jw)
-    	pw4  = lines(h, w_mat, 4; custom_w = jw)
-    	pLd4 = lines(h, Ld_mat, 4; custom_w = jw)
-    	pY4  = lines(h, Y_mat, 4; custom_w = jw)
-    	pΠ4  = lines(h, Π_mat, 4; custom_w = jw)
-    	pT4  = lines(h, T_mat, 4; custom_w = jw)
+		ppN4 = lines(h, pN_mat, 4; custom_w = jw)
+		pw4  = lines(h, w_mat, 4; custom_w = jw)
+		pLd4 = lines(h, Ld_mat, 4; custom_w = jw)
+		pY4  = lines(h, Y_mat, 4; custom_w = jw)
+		pΠ4  = lines(h, Π_mat, 4; custom_w = jw)
+		pT4  = lines(h, T_mat, 4; custom_w = jw)
 
-    	ppN6 = lines(h, pN_mat, 6; custom_w = jw)
-    	pw6  = lines(h, w_mat, 6; custom_w = jw)
-    	pLd6 = lines(h, Ld_mat, 6; custom_w = jw)
-    	pY6  = lines(h, Y_mat, 6; custom_w = jw)
-    	pΠ6  = lines(h, Π_mat, 6; custom_w = jw)
-    	pT6  = lines(h, T_mat, 6; custom_w = jw)
+		ppN6 = lines(h, pN_mat, 6; custom_w = jw)
+		pw6  = lines(h, w_mat, 6; custom_w = jw)
+		pLd6 = lines(h, Ld_mat, 6; custom_w = jw)
+		pY6  = lines(h, Y_mat, 6; custom_w = jw)
+		pΠ6  = lines(h, Π_mat, 6; custom_w = jw)
+		pT6  = lines(h, T_mat, 6; custom_w = jw)
 
-    	# p = [ppN1 pw1 pLd1; ppN2 pw2 pLd2; ppN3 pw3 pLd3; ppN4 pw4 pLd4; ppN6 pw6 pLd6]
-    	p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6; pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6; pT1 pT2 pT3 pT4 pT6]
-    	p.plot.layout["width"] = 800
-    	p.plot.layout["height"] = 640/4*6
-    	p.plot.layout["font_family"] = "Fira Sans Light"
-    	if remote
-    		path = pwd() * "/../../Graphs/"
-    		save(path * "p_statefuncs$(jp).jld", "p", p)
-    	else
-    		savefig(p, pwd() * "/../Graphs/statefuncs$(jp).pdf")
-    	end
-    end
+		# p = [ppN1 pw1 pLd1; ppN2 pw2 pLd2; ppN3 pw3 pLd3; ppN4 pw4 pLd4; ppN6 pw6 pLd6]
+		p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6; pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6; pT1 pT2 pT3 pT4 pT6]
+		p.plot.layout["width"] = 800
+		p.plot.layout["height"] = 640/4*6
+		p.plot.layout["font_family"] = "Fira Sans Light"
+		if remote
+			path = pwd() * "/../../Graphs/"
+			save(path * "p_statefuncs$(jp).jld", "p", p)
+		else
+			savefig(p, pwd() * "/../Graphs/statefuncs$(jp).pdf")
+		end
+	end
 	Void
 end
 
@@ -542,11 +550,11 @@ function plot_labor_demand(h::Hank; remote::Bool=false)
 	end
 	shapes = [hline(minimum(h.wgrid), line_width=1)]
 	layout = Layout(;	xaxis=attr(title="L", zeroline=true),
-             			yaxis=attr(title="w", zeroline=true),
-             			title="Labor Market",
-             			annotations=[attr(x=1, y=maximum(h.wgrid),text="Lˢ", xanchor="center", yanchor="bottom", showarrow=false, font_size=18)],
-             			shapes=shapes,
-    					font_size=16, font_family="Fira Sans Light")
+						yaxis=attr(title="w", zeroline=true),
+						title="Labor Market",
+						annotations=[attr(x=1, y=maximum(h.wgrid),text="Lˢ", xanchor="center", yanchor="bottom", showarrow=false, font_size=18)],
+						shapes=shapes,
+						font_size=16, font_family="Fira Sans Light")
 
 	p = plot([l[jj] for jj in 1:length(l)], layout)
 	p.plot.layout["width"] = 800
@@ -572,60 +580,60 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 
 	bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw], h.ζgrid[jζ], h.zgrid[jz]
 
-    G_mat = reshape(h.spending, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-    B_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	G_mat = reshape(h.spending, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	B_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-    itp_ϕc = make_itp(h, h.ϕc_ext; agg = false)
+	itp_ϕc = make_itp(h, h.ϕc_ext; agg = false)
 
-    pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
+	pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
-    l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nb)
-    for (jb, bv) in enumerate(h.bgrid)
-        sup = zeros(h.pngrid)
-        dem = zeros(h.pngrid)
-        G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
-        Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
-        for (jpn, pnv) in enumerate(h.pngrid)
-            sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
-        end
-        l[jb] = scatter(; x=h.pngrid, y=sup, marker_color=col[jb], name="B = $(round(bv, 2))")
-        l[h.Nb+jb] = scatter(; x=h.pngrid, y=dem, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
-    end
+	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nb)
+	for (jb, bv) in enumerate(h.bgrid)
+		sup = zeros(h.pngrid)
+		dem = zeros(h.pngrid)
+		G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
+		Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
+		for (jpn, pnv) in enumerate(h.pngrid)
+			sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
+		end
+		l[jb] = scatter(; x=h.pngrid, y=sup, marker_color=col[jb], name="B = $(round(bv, 2))")
+		l[h.Nb+jb] = scatter(; x=h.pngrid, y=dem, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
+	end
 
-    p = plot([l[jb] for jb in 1:length(l)], Layout(; xaxis_title="pₙ", yaxis_title="Q"))
+	p = plot([l[jb] for jb in 1:length(l)], Layout(; xaxis_title="pₙ", yaxis_title="Q"))
 
-    if remote
-        path = pwd() * "/../../Graphs/"
-        save(path * "p_nontradables_B.jld", "p", p)
-    else
-        path = pwd() * "/../Graphs/"
-        savefig(p, path * "nontradables_B.pdf")
-    end
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_nontradables_B.jld", "p", p)
+	else
+		path = pwd() * "/../Graphs/"
+		savefig(p, path * "nontradables_B.pdf")
+	end
 
-    jb = ceil(Int, h.Nb/2)
-    bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw], h.ζgrid[jζ], h.zgrid[jz]
-    l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nz)
-    sup = zeros(h.pngrid)
-    dem = zeros(h.pngrid)
-    for (jz, zv) in enumerate(h.zgrid)
-        G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
-        Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
-        for (jpn, pnv) in enumerate(h.pngrid)
-            sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
-        end
-        l[jz] = scatter(; x=h.pngrid, y=sup, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
-        l[h.Nz+jz] = scatter(; x=h.pngrid, y=dem, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))", showlegend=false)
-    end
+	jb = ceil(Int, h.Nb/2)
+	bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw], h.ζgrid[jζ], h.zgrid[jz]
+	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nz)
+	sup = zeros(h.pngrid)
+	dem = zeros(h.pngrid)
+	for (jz, zv) in enumerate(h.zgrid)
+		G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
+		Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
+		for (jpn, pnv) in enumerate(h.pngrid)
+			sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
+		end
+		l[jz] = scatter(; x=h.pngrid, y=sup, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
+		l[h.Nz+jz] = scatter(; x=h.pngrid, y=dem, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))", showlegend=false)
+	end
 
-    p = plot([l[jz] for jz in 1:length(l)], Layout(; xaxis_title="pₙ", yaxis_title="Q"))
+	p = plot([l[jz] for jz in 1:length(l)], Layout(; xaxis_title="pₙ", yaxis_title="Q"))
 
-    if remote
-        path = pwd() * "/../../Graphs/"
-        save(path * "p_nontradables_z.jld", "p", p)
-    else
-        path = pwd() * "/../Graphs/"
-        savefig(p, path * "nontradables_z.pdf")
-    end
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_nontradables_z.jld", "p", p)
+	else
+		path = pwd() * "/../Graphs/"
+		savefig(p, path * "nontradables_z.pdf")
+	end
 	Void
 end
 
@@ -658,26 +666,26 @@ function plot_convergence(dist_statefuncs, dist_LoMs, T::Int64; remote::Bool=fal
 end
 
 function plot_outerdists(h; remote::Bool=false)
-    T = length(h.outer_dists)
+	T = length(h.outer_dists)
 
-    p = plot(scatter(; x=1:T, y = h.outer_dists, showlegend=false),
-        Layout(; xaxis_title="𝑡", yaxis_type="log", font_size=16, font_family="Fira Sans Light", width=800, height=500))
+	p = plot(scatter(; x=1:T, y = h.outer_dists, showlegend=false),
+		Layout(; xaxis_title="𝑡", yaxis_type="log", font_size=16, font_family="Fira Sans Light", width=800, height=500))
 
-    if remote
-        path = pwd() * "/../../Graphs/"
-        save(path * "p_outconv.jld", "p", p)
-    else
-        path = pwd() * "/../Graphs/"
-        savefig(p, path * "outconv.pdf")
-    end
-    Void
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_outconv.jld", "p", p)
+	else
+		path = pwd() * "/../Graphs/"
+		savefig(p, path * "outconv.pdf")
+	end
+	Void
 end
 
 function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 	name = ""
 	if trim > 0
 		trim_path!(path, trim)
-    else
+	else
 		name = "_full"
 	end
 
@@ -697,8 +705,8 @@ function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 	ψ_vec = series(path,:ψ)
 	A_vec = series(path,:A)
 	Bf_vec= series(path,:Bf)
-    Wr_vec= series(path,:Wr)
-    Wd_vec= series(path,:Wd)
+	Wr_vec= series(path,:Wr)
+	Wd_vec= series(path,:Wd)
 
 	shiftζ = [0; ζ_vec[1:end-1]]
 
@@ -730,8 +738,8 @@ function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 				scatter(; x=times, y=L_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")],
 			Layout(; title="Output", xaxis=attr(title="𝑡")));
 	pπ = plot([scatter(; x=times, y=ζ_vec, marker_color=col[1], showlegend=false),
-                scatter(; x=times, y=π_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")],
-            Layout(; title="Default prob", xaxis=attr(title="𝑡")));
+				scatter(; x=times, y=π_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")],
+			Layout(; title="Default prob", xaxis=attr(title="𝑡")));
 	pP = plot([ scatter(; x=times, y=P_vec, marker_color=col[1], showlegend=false),
 				# scatter(; x=times, y=ones(times)*maximum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				# scatter(; x=times, y=ones(times)*minimum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
@@ -740,8 +748,8 @@ function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 	pψ = plot(scatter(; x=times, y=ψ_vec, marker_color=col[1],  showlegend=false), Layout(; title="Fraction domestic", xaxis=attr(title="𝑡")));
 	pA = plot(scatter(; x=times, y=A_vec, marker_color=col[1],  showlegend=false), Layout(; title="Domestic risk-free debt", xaxis_title="𝑡"));
 	pBf= plot(scatter(; x=times, y=Bf_vec, marker_color=col[1], showlegend=false), Layout(; title="Foreign debt", xaxis_title="𝑡"));
-    pW = plot([ scatter(;x=times, y=Wr_vec, marker_color=col[1], showlegend=false),
-                scatter(;x=times, y=Wd_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")], Layout(;title="Welfare", xaxis_title="𝑡"));
+	pW = plot([ scatter(;x=times, y=Wr_vec, marker_color=col[1], showlegend=false),
+				scatter(;x=times, y=Wd_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")], Layout(;title="Welfare", xaxis_title="𝑡"));
 
 	p = [pB pw pz; pY pμ pσ; pA pBf pψ; pπ pW pP]
 	# p.plot.layout["shapes"] = default_shades
