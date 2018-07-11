@@ -147,23 +147,27 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 
     knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
     itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
-    itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
+    knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid, h.pngrid)
+    itp_ϕc_ext  = interpolate(knots, h.ϕc_ext, Gridded(Linear()))
+
+    itp_pN = make_itp(h, h.pN, agg=true)
 
     l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nz, 2)
     for (jb, bv) in enumerate(h.bgrid)
         ϕc_vec = zeros(h.Nω)
-        vf_vec = zeros(h.Nω)
+        ϕce_vec = zeros(h.Nω)
+        show_pN = itp_pN[bv, show_μ, show_σ, show_w, show_ζ, show_z]
         for (jω, ωv) in enumerate(h.ωgrid)
             ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
-            vf_vec[jω] = itp_vf[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
+            ϕce_vec[jω] = itp_vf[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z, show_pN]
         end
         l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
         l[jb,1] = l_new
-        l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
+        l_new = scatter(;x=h.ωgrid, y=ϕce_vec, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
         l[jb,2] = l_new
     end
     pc = plot([l[jb, 1] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
-    pv = plot([l[jb, 2] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Value function"))
+    pv = plot([l[jb, 2] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ"))
 
     p = [pc pv]
     p.plot.layout["xlabel"] = "ω"
