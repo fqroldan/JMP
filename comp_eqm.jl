@@ -1,4 +1,4 @@
-TFP_N(z, Δ, ζ) = 1.0    * (1.0 - Δ*(ζ==2))
+TFP_N(z, Δ, ζ) = 1.0   # * (1.0 - Δ*(ζ==2))
 TFP_T(z, Δ, ζ) = exp(z) * (1.0 - Δ*(ζ==2))
 
 function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
@@ -186,29 +186,29 @@ end
 
 function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
 
-	# First find eq'm assuming the constraint does not bind
-	w_slack = 0.5 * h.wgrid[1]
-	res = Optim.optimize(
-		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars = true)^2,
-		pNmin, pNmax, GoldenSection()
-		)
-	pN = res.minimizer
-	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars=true, get_others=true)
+	# # First find eq'm assuming the constraint does not bind
+	# w_slack = 0.5 * h.wgrid[1]
+	# res = Optim.optimize(
+	# 	pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars = true)^2,
+	# 	pNmin, pNmax, GoldenSection()
+	# 	)
+	# pN = res.minimizer
+	# w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars=true, get_others=true)
 
-	if w >= h.γw * wv && res.minimum < 1e-6
-		pN > pNmax - 0.1*(pNmax-pNmin)? exc_dem = 1: exc_dem = 0
-		pN < pNmin + 0.1*(pNmax-pNmin)? exc_sup = 1: exc_sup = 0
+	# if w >= h.γw * wv && res.minimum < 1e-6
+	# 	pN > pNmax - 0.1*(pNmax-pNmin)? exc_dem = 1: exc_dem = 0
+	# 	pN < pNmin + 0.1*(pNmax-pNmin)? exc_sup = 1: exc_sup = 0
 
-		minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
+	# 	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
 
-		results = [w; pN; Ld; output]
+	# 	results = [w; pN; Ld; output]
 
-		return results, minf, exc_dem, exc_sup
-	end
+	# 	return results, minf, exc_dem, exc_sup
+	# end
 
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)^2,
-		pNmin, pNmax, GoldenSection()
+		pNmin, pNmax, Brent()
 		)
 	pN = res.minimizer
 	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
@@ -273,7 +273,7 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		jζ = h.Jgrid[js, 5]
 		jz = h.Jgrid[js, 6]
 
-		make_plot = (jb == floor(h.Nb/2)+1 && jμ == floor(h.Nμ/2)+1 && jσ == floor(h.Nσ/2)+1 && jw == floor(h.Nw/2)+1 && jζ == floor(h.Nζ/2)+1 && jz == floor(h.Nz/2)+1)
+		# make_plot = (jb == floor(h.Nb/2)+1 && jμ == floor(h.Nμ/2)+1 && jσ == floor(h.Nσ/2)+1 && jw == floor(h.Nw/2)+1 && jζ == floor(h.Nζ/2)+1 && jz == floor(h.Nz/2)+1)
 
 		bv = h.bgrid[jb]
 		μv = h.μgrid[jμ]
@@ -287,13 +287,13 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
 		results[js, :], minf[js, :], exc_dem[js], exc_sup[js] = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
-		if make_plot
-			exc_dem_N = Vector{Float64}(length(h.pngrid))
-			for (jpn, pnv) in enumerate(h.pngrid)
-				F = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
-				exc_dem_N[jpn] = F
-			end
-		end
+		# if make_plot
+		# 	exc_dem_N = Vector{Float64}(length(h.pngrid))
+		# 	for (jpn, pnv) in enumerate(h.pngrid)
+		# 		F = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
+		# 		exc_dem_N[jpn] = F
+		# 	end
+		# end
 	end
 
 	return results, minf, exc_dem, exc_sup
