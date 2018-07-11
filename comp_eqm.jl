@@ -106,7 +106,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 	if Ld - Ls > 1e-4
 		res = Optim.optimize(
 			w -> (labor_demand(h, w, zv, ζv, pNv) - Ls)^2,
-				w_constraint, 1.25*w_max, GoldenSection()
+				w_constraint, 1.*w_max, GoldenSection()
 			)
 		w_new = res.minimizer
 		minf = Ls - labor_demand(h, w_new, zv, ζv, pNv)
@@ -115,7 +115,7 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 		Ld = Ld_N + Ld_T
 	end
 
-	output 	= pNv .* TFP_N(zv,h.Δ,ζv) * Ld_N.^h.α_N + TFP_T(zv,h.Δ,ζv) .* Ld_T.^h.α_T
+	output 	= pNv * TFP_N(zv,h.Δ,ζv) * Ld_N^h.α_N + TFP_T(zv,h.Δ,ζv) * Ld_T^h.α_T
 	profits = output - w_new * (Ld_N + Ld_T)
 
 	return Ld, w_new, profits, output
@@ -123,7 +123,7 @@ end
 
 
 function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars::Bool = true, get_others::Bool = false, get_both::Bool=false)
-	pN = pNv[1]
+	typeof(pNv) == Vector{Float64}?	pN = pNv[1]: pN = pNv
 	if orig_vars == false
 		pN = transform_vars(pN, pNmin, pNmax)
 	end
@@ -144,7 +144,7 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
 	
-		(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
+		(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
 	
 		val_int_C += val
 	end
@@ -193,7 +193,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 		pNmin, pNmax, GoldenSection()
 		)
 	pN = res.minimizer
-	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; get_others=true)
+	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars=true, get_others=true)
 
 	if w >= h.γw * wv && res.minimum < 1e-6
 		pN > pNmax - 0.1*(pNmax-pNmin)? exc_dem = 1: exc_dem = 0
