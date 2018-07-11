@@ -156,7 +156,7 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 	for (jb, bv) in enumerate(h.bgrid)
 		ϕc_vec = zeros(h.Nω)
 		ϕce_vec = zeros(h.Nω)
-		show_pN = itp_pN[bv, show_μ, show_σ, show_w, show_ζ, show_z]
+		show_pN = itp_pN[bv, show_μ, show_σ, show_w, 1., ceil(Int, h.Nz/2)]
 		for (jω, ωv) in enumerate(h.ωgrid)
 			ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
 			ϕvf_vec[jω] = itp_vf[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
