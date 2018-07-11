@@ -648,7 +648,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 		G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
 		Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
 		for (jpn, pnv) in enumerate(h.pngrid)
-			sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ==1); get_both=true)
+			sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ!=1); get_both=true)
 		end
 		l[jb] = scatter(; x=h.pngrid, y=sup, marker_color=col[jb], name="B = $(round(bv, 2))")
 		l[h.Nb+jb] = scatter(; x=h.pngrid, y=dem, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
