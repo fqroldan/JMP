@@ -576,9 +576,9 @@ function plot_nontradables(h::Hank; remote::Bool=false)
     pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
     l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nb)
-    sup = zeros(h.pngrid)
-    dem = zeros(h.pngrid)
     for (jb, bv) in enumerate(h.bgrid)
+        sup = zeros(h.pngrid)
+        dem = zeros(h.pngrid)
         G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
         Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
         for (jpn, pnv) in enumerate(h.pngrid)
