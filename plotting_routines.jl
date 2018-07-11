@@ -163,13 +163,13 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 			ϕce_vec[jω] = itp_ϕc_ext[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z, show_pN]
 			ϕce_vecfix[jω] = itp_ϕc_ext[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z, mean(h.pngrid)]
 		end
-		l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
 		l[jb,1] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕce_vec, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l_new = scatter(;x=h.ωgrid, y=ϕce_vec, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
 		l[jb,2] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕce_vecfix, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l_new = scatter(;x=h.ωgrid, y=ϕce_vecfix, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
 		l[jb,3] = l_new
-		l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
 		l[jb,4] = l_new
 	end
 	pc = plot([l[jb, 1] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
