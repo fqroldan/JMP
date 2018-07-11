@@ -142,9 +142,9 @@ function plot_hh_policies_z(h::Hank; remote::Bool=false)
 		ωmin_int, ωmax_int = quantile.(LogNormal(show_μ, show_σ), [.005; .995]) + h.ωmin
 		val_int_C, val_int_Cfix = 0., 0.
 		for (jϵ, ϵv) in enumerate(h.ϵgrid)
-			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, ϵv, show_b, show_μ, show_σ, show_w, show_ζ, zv, show_pN]
+			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc_ext[ω, ϵv, show_b, show_μ, show_σ, show_w, show_ζ, zv, show_pN]
 			(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, ϵv, show_b, show_μ, show_σ, show_w, show_ζ, zv, mean(h.pngrid)]
+			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc_ext[ω, ϵv, show_b, show_μ, show_σ, show_w, show_ζ, zv, mean(h.pngrid)]
 			(valfix, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
 			val_int_C += val
 			val_int_Cfix += valfix
@@ -213,9 +213,9 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 		ωmin_int, ωmax_int = quantile.(LogNormal(show_μ, show_σ), [.005; .995]) + h.ωmin
 		val_int_C, val_int_Cfix = 0., 0.
 		for (jϵ, ϵv) in enumerate(h.ϵgrid)
-			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, ϵv, bv, show_μ, show_σ, show_w, show_ζ, show_z, show_pN]
+			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc_ext[ω, ϵv, bv, show_μ, show_σ, show_w, show_ζ, show_z, show_pN]
 			(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, ϵv, bv, show_μ, show_σ, show_w, show_ζ, show_z, mean(h.pngrid)]
+			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc_ext[ω, ϵv, bv, show_μ, show_σ, show_w, show_ζ, show_z, mean(h.pngrid)]
 			(valfix, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
 			val_int_C += val
 			val_int_Cfix += valfix
