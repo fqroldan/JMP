@@ -644,7 +644,6 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nb)
 	for (jb, bv) in enumerate(h.bgrid)
 		sup = zeros(h.pngrid)
-		supN = zeros(h.pngrid)
 		dem = zeros(h.pngrid)
 		G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
 		Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
@@ -670,6 +669,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 	for (jz, zv) in enumerate(h.zgrid)
 		sup = zeros(h.pngrid)
 		dem = zeros(h.pngrid)
+		supN = zeros(h.pngrid)
 		G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
 		Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
 		for (jpn, pnv) in enumerate(h.pngrid)
@@ -682,7 +682,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 		end
 		l[jz,1] = scatter(; x=h.pngrid, y=sup, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
 		l[h.Nz+jz,1] = scatter(; x=h.pngrid, y=dem, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))", showlegend=false)
-		l[jz,2] = scatter(; x=supN, y=h.pngrid, marker_color=col[jb], name="B = $(round(bv, 2))")
+		l[jz,2] = scatter(; x=supN, y=h.pngrid, marker_color=col[jz], name="z = $(round(exp(zv), 2))")
 	end
 
 	p = plot([l[jz,1] for jz in 1:2*h.Nz], Layout(; xaxis_title="pₙ", yaxis_title="Q"))
@@ -690,7 +690,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_nontradables_z.jld", "p", p)
-		p = plot(l[jz,2] for jz in 1:h.Nz, Layout(;xaxis_title="Q", yaxis_title="pₙ"))
+		p = plot([l[jz,2] for jz in 1:h.Nz], Layout(;xaxis_title="Q", yaxis_title="pₙ"))
 		save(path * "p_nontradables_z2.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
