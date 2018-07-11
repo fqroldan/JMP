@@ -154,6 +154,8 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 	itp_pN = make_itp(h, h.pN, agg=true)
 
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nb, 4)
+	Cb = Vector{Float64}(h.Nb)
+	Cb_fix = Vector{Float64}(h.Nb)
 	for (jb, bv) in enumerate(h.bgrid)
 		ϕc_vec = zeros(h.Nω)
 		ϕce_vec = zeros(h.Nω)
@@ -174,16 +176,32 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 		l[jb,3] = l_new
 		l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
 		l[jb,4] = l_new
+
+		ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
+		val_int_C, val_int_Cfix = 0., 0.
+		for (jϵ, ϵv) in enumerate(h.ϵgrid)
+			f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z, show_pN]
+			(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+			f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z, mean(h.pngrid)]
+			(valfix, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+			val_int_C += val
+			val_int_Cfix += valfix
+		end
+
+		Cb[jb], Cb_fix[jb] = val_int_C, val_int_Cfix
 	end
 	pc = plot([l[jb, 1] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Consumption"))
 	pce = plot([l[jb, 2] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ"))
 	pcef = plot([l[jb, 3] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ, fixed pN"))
 	pv = plot([l[jb, 4] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Value function"))
 
-	p = [pc pce; pv pcef]
+	pC = plot(scatter(;x=h.bgrid, y=Cb, showlegend=false), Layout(;xaxis_title="B", font_size=16, title="Agg Consumption"))
+	pCf = plot(scatter(;x=h.bgrid, y=Cb_fix, showlegend=false), Layout(;xaxis_title="B", font_size=16, title="Agg Consumption with fixed pN"))
+
+	p = [pc pce; pv pcef; pC pCf]
 	p.plot.layout["xlabel"] = "ω"
 	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 800
+	p.plot.layout["height"] = 1200
 	p.plot.layout["font_family"] = "Fira Sans Light"
 
 	if remote
