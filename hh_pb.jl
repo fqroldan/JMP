@@ -184,6 +184,9 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 	minω = min(max(qʰv*h.ωmin, guess[1] - 0.4*ωspace), qʰv*h.ωmin + 0.2 * ωspace)
 	maxω = max(min(ωmax,       guess[1] + 0.4*ωspace), qʰv*h.ωmin + 0.8 * ωspace)
 
+	minθ, maxθ = 0., 1.
+	minω, maxω = qʰv*h.ωmin, ωmax
+
 	ap, bp, ep, cmax, fmax = 0., 0., 0., 0., 0.
 	if optim_type == "sequential"
 		function sub_value(h, sp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef; get_all::Bool=false)
