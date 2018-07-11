@@ -45,9 +45,11 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 		# Re-solve for these values of wn and pn
 		_, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = true)
 
-		ϕa_ext[:,:,:,:,:,:,:,:,jpn] = ϕa
-		ϕb_ext[:,:,:,:,:,:,:,:,jpn] = ϕb
-		ϕc_ext[:,:,:,:,:,:,:,:,jpn] = ϕc
+		for jz in 1:h.Nz, jζ in 1:h.Nζ, jw in 1:h.Nw, jσ in 1:h.Nσ, jμ in 1:h.Nμ, jb in 1:h.Nb, jϵ in 1:h.Nϵ, jω in 1:h.Nω
+			ϕa_ext[jω,jϵ,jb,jμ,jσ,jw,jζ,jz,jpn] = ϕa[jω,jϵ,jb,jμ,jσ,jw,jζ,jz]
+			ϕb_ext[jω,jϵ,jb,jμ,jσ,jw,jζ,jz,jpn] = ϕb[jω,jϵ,jb,jμ,jσ,jw,jζ,jz]
+			ϕc_ext[jω,jϵ,jb,jμ,jσ,jw,jζ,jz,jpn] = ϕc[jω,jϵ,jb,jμ,jσ,jw,jζ,jz]
+		end
 	end
 
 	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext")
