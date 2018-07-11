@@ -55,6 +55,8 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext")
 	!isnan(sum(ϕa_ext)) || throw(error("$(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext"))
 
+	isapprox(sum(abs.(ϕc_ext)), 0)? print_save("\nWARNING: ϕc ≡ 0 when extending state space"): Void
+
 	h.ϕa_ext = ϕa_ext
 	h.ϕb_ext = ϕb_ext
 	h.ϕc_ext = ϕc_ext
