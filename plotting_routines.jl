@@ -667,9 +667,9 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 	jb = ceil(Int, h.Nb/2)
 	bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw], h.ζgrid[jζ], h.zgrid[jz]
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nz)
-	sup = zeros(h.pngrid)
-	dem = zeros(h.pngrid)
 	for (jz, zv) in enumerate(h.zgrid)
+		sup = zeros(h.pngrid)
+		dem = zeros(h.pngrid)
 		G   = G_mat[jb, jμ, jσ, jw, jζ, jz]
 		Bpv = B_mat[jb, jμ, jσ, jw, jζ, jz]
 		for (jpn, pnv) in enumerate(h.pngrid)
