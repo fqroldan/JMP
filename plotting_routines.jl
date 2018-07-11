@@ -147,6 +147,7 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 
 	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
 	itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
+	itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
 	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid, h.pngrid)
 	itp_ϕc_ext  = interpolate(knots, h.ϕc_ext, Gridded(Linear()))
 
@@ -156,10 +157,12 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 	for (jb, bv) in enumerate(h.bgrid)
 		ϕc_vec = zeros(h.Nω)
 		ϕce_vec = zeros(h.Nω)
+		ϕce_vecfix = zeros(h.Nω)
+		vf_vec = zeros(h.Nω)
 		show_pN = itp_pN[bv, show_μ, show_σ, show_w, 1., ceil(Int, h.Nz/2)]
 		for (jω, ωv) in enumerate(h.ωgrid)
 			ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
-			ϕvf_vec[jω] = itp_vf[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
+			vf_vec[jω] = itp_vf[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z]
 			ϕce_vec[jω] = itp_ϕc_ext[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z, show_pN]
 			ϕce_vecfix[jω] = itp_ϕc_ext[ωv, show_ϵ, bv, show_μ, show_σ, show_w, show_ζ, show_z, mean(h.pngrid)]
 		end
