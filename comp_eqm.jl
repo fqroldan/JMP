@@ -352,7 +352,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	h.profits = h.output - h.wage .* h.Ld
 	h.w′ = h.wage
 	mean_f = mean(minf)
-	max_f = maximum(minf)
+	max_f = maximum(abs.(minf))
 
 	# up_prop   = sum(minf .>  1e-4) / length(minf)
 	# down_prop = sum(minf .< -1e-4) / length(minf)
