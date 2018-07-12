@@ -327,7 +327,9 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	consistent_others = true
 
 	if consistent_others
-		for js in 1:size(h.Jgrid, 1)
+		N = size(h.Jgrid,1)
+		wage, Ld, output = zeros(N), zeros(N), zeros(N)
+		for js in 1:N
 			Bpv = h.issuance[js]
 			G = h.spending[js]
 
@@ -341,8 +343,9 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 			jζ = h.Jgrid[js, 5]
 			jz = h.Jgrid[js, 6]
 
-			h.wage[js], h.Ld[js], h.output[js] = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ!=1); get_others=true)
+			wage[js], Ld[js], output[js] = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ!=1); get_others=true)
 		end
+		h.wage, h.Ld, h.output = wage, Ld, output
 	else
 		h.wage 	 = upd_η * results[:, 1] + (1.0-upd_η) * h.wage
 		h.Ld 	 = upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
