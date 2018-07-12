@@ -218,13 +218,13 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)^2,
-		pNmin, pNmax, Brent()
+		0.9*pNmin, 1.1*pNmax, Brent()
 		)
 	pN = res.minimizer
 	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
 
-	pN > pNmax - 0.1*(pNmax-pNmin)? exc_dem = 1: exc_dem = 0
-	pN < pNmin + 0.1*(pNmax-pNmin)? exc_sup = 1: exc_sup = 0
+	pN > pNmax? exc_dem = 1: exc_dem = 0
+	pN < pNmin? exc_sup = 1: exc_sup = 0
 	if res.minimum > 1e-6
 		exc_dem, exc_sup = 1, 1
 	end
