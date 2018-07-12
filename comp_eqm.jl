@@ -42,8 +42,15 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
 		wL_mat  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * (1.0 - h.τ)
 
+		# print_save("\nSum of pC: $(round(sum(abs.(pC_mat)),3))")
+		# print_save("\nSum of T: $(round(sum(abs.(T_mat)),3))")
+		# print_save("\nSum of Π: $(round(sum(abs.(Π_mat)),3))")
+		# print_save("\nSum of wL: $(round(sum(abs.(wL_mat)),3))")
+
 		# Re-solve for these values of wn and pn
-		_, ϕa, ϕb, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = true)
+		_, ϕa, ϕb, ϕe, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = true)
+
+		isapprox(sum(abs.(ϕc)), 0)? print_save("\nWARNING: ϕc(pN = $(round(pnv, 2))) ≡ 0 when extending state space"): Void
 
 		for jz in 1:h.Nz, jζ in 1:h.Nζ, jw in 1:h.Nw, jσ in 1:h.Nσ, jμ in 1:h.Nμ, jb in 1:h.Nb, jϵ in 1:h.Nϵ, jω in 1:h.Nω
 			ϕa_ext[jω,jϵ,jb,jμ,jσ,jw,jζ,jz,jpn] = ϕa[jω,jϵ,jb,jμ,jσ,jw,jζ,jz]
