@@ -77,7 +77,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
 	dist = 10.
 
 	upd_η = 0.33
-	tol_vfi = 2e-2
+	tol_vfi = 5e-2
 
 	while dist > tol && out_iter < maxiter
 		print_save("\n\nOuter Iteration $out_iter\n")
