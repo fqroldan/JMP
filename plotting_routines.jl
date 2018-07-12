@@ -650,11 +650,11 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 		for (jpn, pnv) in enumerate(h.pngrid)
 			sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ!=1); get_both=true)
 		end
-		l[jb] = scatter(; x=h.pngrid, y=sup, marker_color=col[jb], name="B = $(round(bv, 2))")
-		l[h.Nb+jb] = scatter(; x=h.pngrid, y=dem, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
+		l[jb] = scatter(; y=h.pngrid, x=sup, marker_color=col[jb], name="B = $(round(bv, 2))")
+		l[h.Nb+jb] = scatter(; y=h.pngrid, x=dem, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
 	end
 
-	p = plot([l[jb] for jb in 1:2*h.Nb], Layout(; xaxis_title="pₙ", yaxis_title="Q"))
+	p = plot([l[jb] for jb in 1:2*h.Nb], Layout(; yaxis_title="pₙ", xaxis_title="Q"))
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_nontradables_B.jld", "p", p)
@@ -680,12 +680,12 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 			Ld_N, _  = labor_demand(h, w_new, zv, jζ, pnv; get_both=true)
 			supN[jpn] = TFP_N(zv, h.Δ, jζ) * Ld_N^(h.α_N)
 		end
-		l[jz,1] = scatter(; x=h.pngrid, y=sup, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
-		l[h.Nz+jz,1] = scatter(; x=h.pngrid, y=dem, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))", showlegend=false)
-		l[jz,2] = scatter(; x=supN, y=h.pngrid, marker_color=col[jz], name="z = $(round(exp(zv), 2))")
+		l[jz,1] = scatter(; y=h.pngrid, x=sup, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
+		l[h.Nz+jz,1] = scatter(; y=h.pngrid, x=dem, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))", showlegend=false)
+		l[jz,2] = scatter(; x=supN, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
 	end
 
-	p = plot([l[jz,1] for jz in 1:2*h.Nz], Layout(; xaxis_title="pₙ", yaxis_title="Q"))
+	p = plot([l[jz,1] for jz in 1:2*h.Nz], Layout(; yaxis_title="pₙ", xaxis_title="Q"))
 
 	if remote
 		path = pwd() * "/../../Graphs/"
