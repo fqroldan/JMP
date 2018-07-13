@@ -218,8 +218,8 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 		ap, bp, ep, cmax, θa = sub_value(h, sp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef; get_all=true)
 	elseif optim_type == "multivariate"
 
-		guess[1] = max(min(guess[1], ωmax-1e-6), qʰv*h.ωmin+1e-6)
-		guess[2] = max(min(guess[2], 1.0-1e-6), 1e-6)
+		guess[1] = max(min(guess[1], maxω-1e-6), minω+1e-6)
+		guess[2] = max(min(guess[2], maxθ-1e-6), minθ+1e-6)
 
 		try
 			res = Optim.optimize(
