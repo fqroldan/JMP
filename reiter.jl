@@ -22,7 +22,7 @@ function Hank(;	β = (1.0/1.3)^0.25,
 				Nw = 5,
 				Nz = 8,
 				ρz = 0.95,
-				σz = 0.01,
+				σz = 0.02,
 				ℏ = 0.5,
 				Δ = 0.1,
 				θ = .125,
@@ -89,7 +89,7 @@ function Hank(;	β = (1.0/1.3)^0.25,
 	# Grids for endogenous aggregate states
 	Bbar  = 4.0
 	bgrid = linspace(0.0, 5.0, Nb)
-	μgrid = linspace(-1.0, 2.0, Nμ)
+	μgrid = linspace(-1.0, 2.5, Nμ)
 	σgrid = linspace(0.005, 0.5, Nσ)
 
 	# Prepare grid for cash in hand.
@@ -413,6 +413,9 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		end
 
 		if dist < h.upd_tol
+			var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
+			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
+
 			t1 = time()
 			extend_state_space!(h, qʰ_mat, qᵍ_mat, T_mat)
 			print_save(": done in $(time_print(time()-t1))")
@@ -466,8 +469,6 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			iter += 1
 			iter_cycle = 0
 			print_save("\n\nIteration $iter")
-			var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
-			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 
 			h.upd_tol = max(exp(0.85*log(1+h.upd_tol))-1, 1e-6)
 			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))")
