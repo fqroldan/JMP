@@ -230,9 +230,12 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 				, guess, [minω, minθ], [maxω, maxθ], Fminbox{LBFGS}())
 		catch
-			print_save("\nWARNING: MAYBE PROBLEM WITH BOUNDS")
-			print_save("\n[$(minω), $(guess[1]), $(maxω)]")
-			print_save("\n[$(minθ), $(guess[2]), $(maxθ)]")
+			if minω < guess[1] < maxω && minθ < guess[2] < maxθ
+			else
+				print_save("\nWARNING: MAYBE PROBLEM WITH BOUNDS")
+				print_save("\n[$(minω), $(guess[1]), $(maxω)]")
+				print_save("\n[$(minθ), $(guess[2]), $(maxθ)]")
+			end
 			res = Optim.optimize(
 				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 				, guess, [minω, minθ], [maxω, maxθ], Fminbox{NelderMead}())
