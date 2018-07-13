@@ -654,7 +654,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 		l[h.Nb+jb] = scatter(; y=h.pngrid, x=dem, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
 	end
 
-	p = plot([l[jb] for jb in 1:2*h.Nb], Layout(; yaxis_title="pₙ", xaxis_title="Q", xaxis_range=[0., 3.))
+	p = plot([l[jb] for jb in 1:2*h.Nb], Layout(; yaxis_title="pₙ", xaxis_title="Q", xaxis_range=[0., 3.]))
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_nontradables_B.jld", "p", p)
@@ -685,12 +685,12 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 		l[jz,2] = scatter(; x=supN, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
 	end
 
-	p = plot([l[jz,1] for jz in 1:2*h.Nz], Layout(; yaxis_title="pₙ", xaxis_title="Q"), xaxis_range=[0., 3.))
+	p = plot([l[jz,1] for jz in 1:2*h.Nz], Layout(; yaxis_title="pₙ", xaxis_title="Q", xaxis_range=[0., 3.]))
 
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_nontradables_z.jld", "p", p)
-		p = plot([l[jz,2] for jz in 1:h.Nz], Layout(;xaxis_title="Q", yaxis_title="pₙ"), xaxis_range=[0., 3.))
+		p = plot([l[jz,2] for jz in 1:h.Nz], Layout(;xaxis_title="Q", yaxis_title="pₙ", xaxis_range=[0., 3.]))
 		save(path * "p_nontradables_z2.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
