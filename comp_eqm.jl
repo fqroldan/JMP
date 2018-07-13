@@ -196,29 +196,29 @@ end
 
 function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
 
-	# # First find eq'm assuming the constraint does not bind
-	# w_slack = 0.5 * h.wgrid[1]
-	# res = Optim.optimize(
-	# 	pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars = true)^2,
-	# 	pNmin, pNmax, GoldenSection()
-	# 	)
-	# pN = res.minimizer
-	# w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars=true, get_others=true)
+	# First find eq'm assuming the constraint does not bind
+	w_slack = 0.5 * h.wgrid[1]
+	res = Optim.optimize(
+		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars = true)^2,
+		pNmin, pNmax, GoldenSection()
+		)
+	pN = res.minimizer
+	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars=true, get_others=true)
 
-	# if w >= h.γw * wv && res.minimum < 1e-6
-	# 	pN > pNmax - 0.1*(pNmax-pNmin)? exc_dem = 1: exc_dem = 0
-	# 	pN < pNmin + 0.1*(pNmax-pNmin)? exc_sup = 1: exc_sup = 0
+	if w >= h.γw * wv && res.minimum < 1e-6
+		pN > pNmax? exc_dem = 1: exc_dem = 0
+		pN < pNmin? exc_sup = 1: exc_sup = 0
 
-	# 	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
+		minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
 
-	# 	results = [w; pN; Ld; output]
+		results = [w; pN; Ld; output]
 
-	# 	return results, minf, exc_dem, exc_sup
-	# end
+		return results, minf, exc_dem, exc_sup
+	end
 
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)^2,
-		0.9*pNmin, 1.1*pNmax, Brent()
+		0.9*pNmin, 1.1*pNmax, GoldenSection()
 		)
 	pN = res.minimizer
 	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
@@ -504,45 +504,45 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 
 	val_a, val_b, val_a2, val_b2, val_ab, sum_prob = 0., 0., 0., 0., 0., 0.
 
-	# ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0001; .9999]) + h.ωmin
-	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
-	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-	# 	val_a += val
-	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
-	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-	# 	val_a2 += val
-	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-	# 	val_b += val
-	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
-	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-	# 	val_b2 += val
-	# 	f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-	# 	(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-	# 	val_ab += val
-	# end
-	# sum_prob = 1.
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		for jω = 1:length(h.ωgrid_fine)-1
-			ωv  = h.ωgrid_fine[jω]
-			ω1v = h.ωgrid_fine[jω+1]
-			ωmv = 0.5*(ωv+ω1v)
-
-			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
-
-			ϕa = max(itp_ϕa[ωmv, jϵ, bv, μv, σv, wv, jζ, jz], h.ωmin)
-			ϕb = max(itp_ϕb[ωmv, jϵ, bv, μv, σv, wv, jζ, jz], 0.)
-
-			val_a  += prob * ϕa
-			val_a2 += prob * ϕa^2
-			val_b  += prob * ϕb
-			val_b2 += prob * ϕb^2
-			val_ab += prob * ϕa * ϕb
-
-			sum_prob += prob
-		end
+		fA(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])
+		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+		val_a += valA * h.λϵ[jϵ]
+		fA2(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
+		(valA2, err) = hquadrature(fA2, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+		val_a2 += valA2 * h.λϵ[jϵ]
+		fB(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
+		(valB, err) = hquadrature(fB, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+		val_b += valB * h.λϵ[jϵ]
+		fB2(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
+		(valB2, err) = hquadrature(fB2, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+		val_b2 += valB2 * h.λϵ[jϵ]
+		fAB(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
+		(valAB, err) = hquadrature(fAB, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+		val_ab += valAB * h.λϵ[jϵ]
 	end
+	sum_prob = 1.
+	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
+	# 	for jω = 1:length(h.ωgrid_fine)-1
+	# 		ωv  = h.ωgrid_fine[jω]
+	# 		ω1v = h.ωgrid_fine[jω+1]
+	# 		ωmv = 0.5*(ωv+ω1v)
+
+	# 		prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
+
+	# 		ϕa = max(itp_ϕa[ωmv, jϵ, bv, μv, σv, wv, jζ, jz], h.ωmin)
+	# 		ϕb = max(itp_ϕb[ωmv, jϵ, bv, μv, σv, wv, jζ, jz], 0.)
+
+	# 		val_a  += prob * ϕa
+	# 		val_a2 += prob * ϕa^2
+	# 		val_b  += prob * ϕb
+	# 		val_b2 += prob * ϕb^2
+	# 		val_ab += prob * ϕa * ϕb
+
+	# 		sum_prob += prob
+	# 	end
+	# end
 
 	!isnan(val_a+val_a2+val_b+val_b2+val_ab) || print_save("\na,a2,b,b2,ab = $([val_a,val_a2,val_b,val_b2,val_ab])")
 	!isapprox(sum_prob, 0.) || print_save("\nsum_prob = $(sum_prob)")
