@@ -380,6 +380,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	dist, dist_s = 10., 10.
 
 	iterate_qᵍ!(h, verbose = true)
+	var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
+	print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 
 	upd_η = 0.5
 
@@ -413,9 +415,6 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		end
 
 		if dist < h.upd_tol
-			var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
-			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
-
 			t1 = time()
 			extend_state_space!(h, qʰ_mat, qᵍ_mat, T_mat)
 			print_save(": done in $(time_print(time()-t1))")
@@ -464,11 +463,14 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 			plot_convergence(dist_statefuncs, dist_LoMs, iter, remote = remote)
 
-			iterate_qᵍ!(h)
 
 			iter += 1
 			iter_cycle = 0
 			print_save("\n\nIteration $iter")
+			
+			iterate_qᵍ!(h)
+			var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
+			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 
 			h.upd_tol = max(exp(0.85*log(1+h.upd_tol))-1, 1e-6)
 			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))")
