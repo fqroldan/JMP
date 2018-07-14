@@ -354,18 +354,16 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 				guess = [ωg, θg]
 
 				ap, bp, ep, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
+			elseif ωmax < qʰv * h.ωmin
+				if verbose
+					print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
+				end
+				ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8
+				fmax = 1e-10
 			else
 				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
-				if ωmax < qʰv * h.ωmin
-					if verbose
-						print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
-					end
-					ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8
-					ωg = qʰv * ap + qᵍv * bp
-					θg = qʰv * (ap - h.ωmin) / (ωg - qʰv*h.ωmin)
-				end
 				fmax = value(h, ωg, θg, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 			end
 			cmax < 0? warn("c = $cmax"): Void
