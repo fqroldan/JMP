@@ -507,19 +507,19 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		fA(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
 		val_a += valA * h.λϵ[jϵ]
 		fA2(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
-		(valA2, err) = hquadrature(fA2, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+		(valA2, err) = hquadrature(fA2, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
 		val_a2 += valA2 * h.λϵ[jϵ]
 		fB(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-		(valB, err) = hquadrature(fB, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+		(valB, err) = hquadrature(fB, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
 		val_b += valB * h.λϵ[jϵ]
 		fB2(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
-		(valB2, err) = hquadrature(fB2, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+		(valB2, err) = hquadrature(fB2, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
 		val_b2 += valB2 * h.λϵ[jϵ]
 		fAB(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-		(valAB, err) = hquadrature(fAB, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+		(valAB, err) = hquadrature(fAB, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
 		val_ab += valAB * h.λϵ[jϵ]
 	end
 	sum_prob = 1.
