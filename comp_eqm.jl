@@ -14,7 +14,6 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
 	print_save("\nExtending the state space ($(Npn) iterations needed)")
 
-	# @sync @parallel for jpn in 1:Npn
 	for jpn in 1:Npn
 
 		pnv = h.pngrid[jpn]
@@ -41,11 +40,6 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 		Π_mat = reshape(profits_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 		wL_mat  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * (1.0 - h.τ)
-
-		# print_save("\nSum of pC: $(round(sum(abs.(pC_mat)),3))")
-		# print_save("\nSum of T: $(round(sum(abs.(T_mat)),3))")
-		# print_save("\nSum of Π: $(round(sum(abs.(Π_mat)),3))")
-		# print_save("\nSum of wL: $(round(sum(abs.(wL_mat)),3))")
 
 		# Re-solve for these values of wn and pn
 		_, ϕa, ϕb, ϕe, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = false)
@@ -285,8 +279,6 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		jζ = h.Jgrid[js, 5]
 		jz = h.Jgrid[js, 6]
 
-		# make_plot = (jb == floor(h.Nb/2)+1 && jμ == floor(h.Nμ/2)+1 && jσ == floor(h.Nσ/2)+1 && jw == floor(h.Nw/2)+1 && jζ == floor(h.Nζ/2)+1 && jz == floor(h.Nz/2)+1)
-
 		bv = h.bgrid[jb]
 		μv = h.μgrid[jμ]
 		σv = h.σgrid[jσ]
@@ -299,22 +291,12 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
 		results[js, :], minf[js, :], exc_dem[js], exc_sup[js] = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
-		# if make_plot
-		# 	exc_dem_N = Vector{Float64}(length(h.pngrid))
-		# 	for (jpn, pnv) in enumerate(h.pngrid)
-		# 		F = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = true)
-		# 		exc_dem_N[jpn] = F
-		# 	end
-		# end
 	end
 
 	return results, minf, exc_dem, exc_sup
 end
 
 function update_state_functions!(h::Hank, upd_η::Float64)
-	# all_knots = (h.ωgrid, 1:h.Nϵ, h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz, h.pngrid)
-
-	# itp_ϕc  = interpolate(all_knots, h.ϕc_ext, (Gridded(Linear()), NoInterp(), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp(), Gridded(Linear())))
 	itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
 
 	results, minf, exc_dem, exc_sup = find_all_prices(h, itp_ϕc, h.issuance, h.spending)
@@ -358,9 +340,6 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	h.w′ = h.wage
 	mean_f = mean(minf)
 	max_f = minf[indmax(abs.(minf))]
-
-	# up_prop   = sum(minf .>  1e-4) / length(minf)
-	# down_prop = sum(minf .< -1e-4) / length(minf)
 
 	exc_dem_prop = sum(exc_dem) / length(exc_dem)
 	exc_sup_prop = sum(exc_sup) / length(exc_sup)
@@ -420,7 +399,6 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, 
 		ζpv = 2
 		haircut = 0.0
 	end
-	# if jdef == false && zpv <= thres
 	if jdef == false && exp_rep[jzp] < 0.5
 		ζpv = 2
 		haircut = h.ℏ
@@ -433,7 +411,6 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, 
 
 	varω > 0. || print_save("\nvar_a, var_b, cov_ab = $(var_a), $(var_b), $(cov_ab)")
 
-	# print_save("\nEω, varω = $Eω, $varω")
 	Eσ2 = 1.0 + varω / ( (Eω - h.ωmin)^2 )
 
 	Eσ2 > 1. || print_save("\n1 + vω / (Eω-ωmin)² = $(Eσ2)")
@@ -608,21 +585,12 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	σ′_old = copy(h.σ′)
 
 	dist_exp = Array{Float64,1}(2)
-	# qᵍmt = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-
-	# all_knots = (h.ωgrid, 1:h.Nϵ, 1:h.Nb, 1:h.Nμ, 1:h.Nσ, 1:h.Nw, 1:h.Nζ, 1:h.Nz)
-	# agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz)
-
-	# itp_ϕa = interpolate(all_knots, h.ϕa, (Gridded(Linear()), NoInterp(), NoInterp(), NoInterp(), NoInterp(), NoInterp(), NoInterp(), NoInterp()))
-	# itp_ϕb = interpolate(all_knots, h.ϕb, (Gridded(Linear()), NoInterp(), NoInterp(), NoInterp(), NoInterp(), NoInterp(), NoInterp(), NoInterp()))
-	# itp_qᵍ = interpolate(agg_knots, qᵍmt, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
 
 	itp_ϕa = make_itp(h, h.ϕa; agg=false)
 	itp_ϕb = make_itp(h, h.ϕb; agg=false)
 	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
 
 	μ′_new, σ′_new = find_all_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, h.issuance, h.w′, h.def_thres)
-	# μ′_new, σ′_new = h.μ′, h.σ′
 
 	function new_grid(x′, xgrid)
 		xmax = maximum(x′)
@@ -641,7 +609,6 @@ function update_expectations!(h::Hank, upd_η::Float64)
 		return collect(linspace(Xmin, Xmax, Nx))
 	end
 
-	# σ′_new = max.(σ′_new, 1e-2)
 
 	new_μgrid = new_grid(μ′_new, h.μgrid)
 	new_σgrid = h.σgrid
