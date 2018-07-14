@@ -225,29 +225,31 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 
 	pN > pNmax? exc_dem = 1: exc_dem = 0
 	pN < pNmin? exc_sup = 1: exc_sup = 0
-	if res.minimum > 1e-6
-		exc_dem, exc_sup = 1, 1
+	# if res.minimum > 1e-6
+	# 	exc_dem, exc_sup = 1, 1
+	# end
+
+	if false # Deprecated fsolve-based method
+		function wrap_mktclear!(pN::Vector, fvec=similar(x))
+
+			out = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = false)
+
+			fvec[:] = out
+		end
+
+		res = fsolve(wrap_mktclear!, [pNg])
+		if res.:converged == false
+			res2 = fsolve(wrap_mktclear!, [pNg], method=:lmdif)
+
+			if res2.:converged || sum(res2.:f.^2) < sum(res.:f.^2)
+				res = res2
+			end
+		end
+
+		minf = res.:f[1]
+
+		pN = transform_vars(res.:x[1], pNmin, pNmax)
 	end
-
-	# function wrap_mktclear!(pN::Vector, fvec=similar(x))
-
-	# 	out = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; orig_vars = false)
-
-	# 	fvec[:] = out
-	# end
-
-	# res = fsolve(wrap_mktclear!, [pNg])
-	# if res.:converged == false
-	# 	res2 = fsolve(wrap_mktclear!, [pNg], method=:lmdif)
-
-	# 	if res2.:converged || sum(res2.:f.^2) < sum(res.:f.^2)
-	# 		res = res2
-	# 	end
-	# end
-
-	# minf = res.:f[1]
-
-	# pN = transform_vars(res.:x[1], pNmin, pNmax)
 
 	w, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault; get_others=true)
 
