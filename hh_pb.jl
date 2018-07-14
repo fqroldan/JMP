@@ -355,18 +355,21 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 
 				ap, bp, ep, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
 			else
+				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
+				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
+				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				if ωmax < qʰv * h.ωmin
 					if verbose
 						print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
 					end
-					ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-10
+					ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8
+					ωg = qʰv * ap + qᵍv * bp
+					θg = qʰv * (ap - h.ωmin) / (ωg - qʰv*h.ωmin)
 				end
-				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
-				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
-				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				fmax = value(h, ωg, θg, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 			end
 			cmax < 0? warn("c = $cmax"): Void
+			!isnan(fmax) || print_save("\nWARNING: NaN in value function at (ap, bp, c) = ($(round(ap, 2)), $(round(bp, 2)), $(cmax))")
 
 			ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ap
 			ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = bp
@@ -393,10 +396,10 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, �
 	# print_save("\nopt in $(time()-t1)")
 
 	t1 = time()
-	sum(isnan.(vf)) > 0? print_save("\n$(sum(isnan.(vf))) found in vf"): Void
-	sum(isnan.(ϕa)) > 0? print_save("$(sum(isnan.(ϕa))) found in ϕa"): Void
-	sum(isnan.(ϕb)) > 0? print_save("$(sum(isnan.(ϕb))) found in ϕb"): Void
-	sum(isnan.(ϕc)) > 0? print_save("$(sum(isnan.(ϕc))) found in ϕc"): Void
+	sum(isnan.(vf)) > 0? print_save("\n$(sum(isnan.(vf))) NaNs found in vf"): Void
+	sum(isnan.(ϕa)) > 0? print_save("$(sum(isnan.(ϕa))) NaNs found in ϕa"): Void
+	sum(isnan.(ϕb)) > 0? print_save("$(sum(isnan.(ϕb))) NaNs found in ϕb"): Void
+	sum(isnan.(ϕc)) > 0? print_save("$(sum(isnan.(ϕc))) NaNs found in ϕc"): Void
 
 	# Store results in the type
 	h.ϕa = ϕa
