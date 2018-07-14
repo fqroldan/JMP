@@ -18,9 +18,9 @@ function Hank(;	β = (1.0/1.3)^0.25,
 				Nϵ = 7,
 				Nμ = 4,
 				Nσ = 4,
-				Nb = 8,
+				Nb = 6,
 				Nw = 5,
-				Nz = 8,
+				Nz = 7,
 				ρz = 0.95,
 				σz = 0.02,
 				ℏ = 0.5,
@@ -478,7 +478,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		end
 
 		dist = max(dist, dist_s)
-		if iter % 10 == 0
+		if iter % 10 == 0 && !isnan(sum.(h.vf)) && !isnan(sum.(h.ϕc))
 			save(pwd() * "/../../hank.jld", "h", h)
 		end
 
