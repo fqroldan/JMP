@@ -436,7 +436,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save(": done in $(time_print(time()-t1))")
 			t1 = time()
 
-			print_save("\nStates with exc supply, demand = $(round(100*exc_dem_prop,2))%, $(round(100*exc_sup_prop,2))%")
+			print_save("\nStates with exc supply, demand = $(round(100*exc_sup_prop,2))%, $(round(100*exc_dem_prop,2))%")
 			print_save("\nAverage, max exc supply = $(@sprintf("%0.3g",mean_excS)), $(@sprintf("%0.3g",max_excS))")
 
 			new_wgrid = update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
