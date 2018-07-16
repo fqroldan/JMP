@@ -159,14 +159,14 @@ function plot_hh_policies_z(h::Hank; remote::Bool=false)
 	ωmax_show = min(h.ωmax, quantile(LogNormal(show_μ, show_σ), 0.99)+h.ωmin)
 
 	pc = plot([l[jz, 1] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Consumption"))
-	pce = plot([l[jz, 2] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Cons from ext ϕ"))
+	pce = plot([l[jz, 2] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ"))
 	pcef = plot([l[jz, 3] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Cons from ext ϕ, fixed pN"))
 	pv = plot([l[jz, 4] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Value function"))
 
 	pC = plot(scatter(;x=h.bgrid, y=Cz, showlegend=false), Layout(;xaxis_title="Z", xaxis_range=[h.ωmin, ωmax_show], font_size=16, title="Agg Consumption"))
 	pCf = plot(scatter(;x=h.bgrid, y=Cz_fix, showlegend=false), Layout(;xaxis_title="Z", xaxis_range=[h.ωmin, ωmax_show], font_size=16, title="Agg Consumption with fixed pN"))
 
-	p = [pc pce; pv pcef; pC pCf]
+	p = [pc pv; pce pcef; pC pCf]
 	p.plot.layout["xlabel"] = "ω"
 	p.plot.layout["width"] = 800
 	p.plot.layout["height"] = 1200
@@ -232,14 +232,14 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 	ωmax_show = min(h.ωmax, quantile(LogNormal(show_μ, show_σ), 0.99)+h.ωmin)
 
 	pc = plot([l[jb, 1] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Consumption"))
-	pce = plot([l[jb, 2] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Cons from ext ϕ"))
+	pce = plot([l[jb, 2] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ"))
 	pcef = plot([l[jb, 3] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Cons from ext ϕ, fixed pN"))
 	pv = plot([l[jb, 4] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Value function"))
 
 	pC = plot(scatter(;x=h.bgrid, y=Cb, showlegend=false), Layout(;xaxis_title="B", xaxis_range=[h.ωin, ωmax_show], font_size=16, title="Agg Consumption"))
 	pCf = plot(scatter(;x=h.bgrid, y=Cb_fix, showlegend=false), Layout(;xaxis_title="B", xaxis_range=[h.ωin, ωmax_show], font_size=16, title="Agg Consumption with fixed pN"))
 
-	p = [pc pce; pv pcef; pC pCf]
+	p = [pc pv; pce pcef; pC pCf]
 	p.plot.layout["xlabel"] = "ω"
 	p.plot.layout["width"] = 800
 	p.plot.layout["height"] = 1200
