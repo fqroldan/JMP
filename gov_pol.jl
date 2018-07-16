@@ -35,8 +35,7 @@ function update_govpol(h::Hank)
 	σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
 	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	repay = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
-
+	diff_W = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 	for js in 1:size(h.Jgrid, 1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
@@ -55,16 +54,23 @@ function update_govpol(h::Hank)
 				μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
 				σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
 				Wd = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
-				if Wr > Wd
-					repay[jb, jμ, jσ, jw, jζ, jz, jzp] = 1.
-				else
-					repay[jb, jμ, jσ, jw, jζ, jz, jzp] = 0.
-				end
+				diff_W[jb, jμ, jσ, jw, jζ, jz, jzp] = Wr - Wd
+				# if Wr > Wd
+				# 	repay[jb, jμ, jσ, jw, jζ, jz, jzp] = 1.
+				# else
+				# 	repay[jb, jμ, jσ, jw, jζ, jz, jzp] = 0.
+				# end
 			else
-				repay[jb, jμ, jσ, jw, jζ, jz, jzp] = 1.
+				diff_W[jb, jμ, jσ, jw, jζ, jz, jzp] = 0.
+				# repay[jb, jμ, jσ, jw, jζ, jz, jzp] = 1.
 			end
 		end
 	end
+	threshold = quantile(diff_W, 0.5)
+
+	repay = zeros(diff_W)
+	repay[diff_W .> threshold] = 1.
+	
 	rep_new = reshape(repay, length(repay))
 	return rep_new
 end
