@@ -66,10 +66,10 @@ function update_govpol(h::Hank)
 			end
 		end
 	end
-	threshold = quantile(diff_W, 0.5)
+	threshold = quantile(diff_W[diff_W.<0.], 0.5)
 
-	repay = zeros(diff_W)
-	repay[diff_W .> threshold] = 1.
+	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, h.Nz)
+	repay[diff_W .< threshold] = 0.
 	
 	rep_new = reshape(repay, length(repay))
 	return rep_new
