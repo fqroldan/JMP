@@ -27,7 +27,7 @@ function integrate_itp(h::Hank, bv, μv, σv, wv, jζ, jz, itp_obj)
 	return W
 end
 
-function update_govpol(h::Hank)
+function update_govpol(h::Hank; η_rep::Float64=0.5)
 	itp_vf = make_itp(h, h.vf; agg=false)
 
 	B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
@@ -35,7 +35,9 @@ function update_govpol(h::Hank)
 	σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
 	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
+	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 	diff_W = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
+	diff_R = zeros(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 	for js in 1:size(h.Jgrid, 1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
@@ -55,21 +57,30 @@ function update_govpol(h::Hank)
 				σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
 				Wd = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
 				diff_W[jb, jμ, jσ, jw, jζ, jz, jzp] = Wr - Wd
-				# if Wr > Wd
-				# 	repay[jb, jμ, jσ, jw, jζ, jz, jzp] = 1.
-				# else
-				# 	repay[jb, jμ, jσ, jw, jζ, jz, jzp] = 0.
-				# end
+				if Wr > Wd && repay[jb, jμ, jσ, jw, jζ, jz, jzp] < 0.5
+					diff_R[jb, jμ, jσ, jw, jζ, jz, jzp] = 1.
+				elseif Wr < Wd && repay[jb, jμ, jσ, jw, jζ, jz, jzp] > 0.5
+					diff_R[jb, jμ, jσ, jw, jζ, jz, jzp] = -1.
+				end
 			else
 				diff_W[jb, jμ, jσ, jw, jζ, jz, jzp] = 0.
-				# repay[jb, jμ, jσ, jw, jζ, jz, jzp] = 1.
 			end
 		end
 	end
-	threshold = quantile(diff_W[diff_W.<0.], 0.5)
 
-	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, h.Nz)
-	repay[diff_W .< threshold] = 0.
+	if maximum(diff_R) == 1.
+		threshold = quantile(diff_W[diff_R .== 1.], η_rep)
+		ind_change = (diff_W .> threshold) .& (diff_R .== 1.)
+		
+		repay[ind_change] = 1.
+	end
+
+	if minimum(diff_R) == -1.
+		threshold = quantile(diff_W[diff_R .== -1.], 1.-η_rep)
+		ind_change = (diff_W .< threshold) .& (diff_R .== -1.)
+		
+		repay[ind_change] = 0.
+	end
 	
 	rep_new = reshape(repay, length(repay))
 	return rep_new
@@ -82,7 +93,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
 	out_iter = 1
 	dist = 10.
 
-	upd_η = 0.33
+	upd_η = 1.
 	tol_vfi = 5e-2
 
 	while dist > tol && out_iter < maxiter
