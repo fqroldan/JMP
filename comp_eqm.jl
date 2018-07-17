@@ -435,6 +435,8 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 	ζv = h.ζgrid[h.Jgrid[js, 5]]
 	jdef = (ζv != 1.0)
 
+	alarm = 0
+
 	μ, σ, q = Array{Float64, 2}(h.Nz, 2), Array{Float64, 2}(h.Nz, 2), Array{Float64, 2}(h.Nz, 2)
 
 	for (jzp, zpv) in enumerate(h.zgrid)
@@ -446,7 +448,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 			qmin, qmax, GoldenSection()
 			)
 		q[jzp, 1] = res.minimizer
-		res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ"): Void
+		res.minimum > 1e-4? alarm = 1: Void
 
 		μ[jzp, 1], σ[jzp, 1] = find_q(h, q[jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 
@@ -457,14 +459,14 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 				qmin, qmax, GoldenSection()
 				)
 			q[jzp, 2] = res.minimizer
-			res.minimum > 1e-4? print_save("WARNING: Can't find consistent qᵍ"): Void
+			res.minimum > 1e-4? alarm = 1: Void
 
 			μ[jzp, 2], σ[jzp, 2] = find_q(h, q[jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 		else
 			μ[jzp, 2], σ[jzp, 2], q[jzp, 2] = μ[jzp, 1], σ[jzp, 1], q[jzp, 1]
 		end
 	end
-	return μ, σ, q
+	return μ, σ, q, alarm
 end
 
 function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep, js, jdef)
@@ -538,9 +540,9 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 
 	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab at $([jb, jμ, jσ, jw, jζ, jz])")
 
-	μ′, σ′, _ = compute_stats_logN(h, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, exp_rep)
+	μ′, σ′, _, alarm = compute_stats_logN(h, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, exp_rep)
 
-	return μ′, σ′
+	return μ′, σ′, alarm
 end
 
 
@@ -549,6 +551,7 @@ function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec, w�
 
 	μ′ = SharedArray{Float64}(N, h.Nz, 2)
 	σ′ = SharedArray{Float64}(N, h.Nz, 2)
+	alarm = SharedArray{Float64}(N)
 
 	@sync @parallel for js in 1:N
 		Bpv = B′_vec[js]
@@ -569,9 +572,12 @@ function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec, w�
 		jζ = h.Jgrid[js, 5]
 		jdefault = (jζ != 1.0)
 
-		μ′[js, :, :], σ′[js, :, :] = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep, js, jdefault)
+		μ′[js, :, :], σ′[js, :, :], alarm[js] = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep, js, jdefault)
 	end
 
+	if sum(alarm) >= 1
+		print_save("WARNING: Couldn't find qᵍ $(round(100*sum(alarm)/N,0))% of the time")
+	end
 
 	return μ′, σ′
 end
