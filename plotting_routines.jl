@@ -236,8 +236,8 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 	pcef = plot([l[jb, 3] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Cons from ext ϕ, fixed pN"))
 	pv = plot([l[jb, 4] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Value function"))
 
-	pC = plot(scatter(;x=h.bgrid, y=Cb, showlegend=false), Layout(;xaxis_title="B", xaxis_range=[h.ωin, ωmax_show], font_size=16, title="Agg Consumption"))
-	pCf = plot(scatter(;x=h.bgrid, y=Cb_fix, showlegend=false), Layout(;xaxis_title="B", xaxis_range=[h.ωin, ωmax_show], font_size=16, title="Agg Consumption with fixed pN"))
+	pC = plot(scatter(;x=h.bgrid, y=Cb, showlegend=false), Layout(;xaxis_title="B", xaxis_range=[h.ωmin, ωmax_show], font_size=16, title="Agg Consumption"))
+	pCf = plot(scatter(;x=h.bgrid, y=Cb_fix, showlegend=false), Layout(;xaxis_title="B", xaxis_range=[h.ωmin, ωmax_show], font_size=16, title="Agg Consumption with fixed pN"))
 
 	p = [pc pv; pce pcef; pC pCf]
 	p.plot.layout["xlabel"] = "ω"
