@@ -66,7 +66,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 			l[jϵ,4] = l_new
 		end
 
-		ωmax_show = min(h.ωmax, quantile(LogNormal(show_μ, show_σ), 0.99)+h.ωmin)
+		ωmax_show = min(h.ωmax, quantile(LogNormal(show_μ, show_σ), 0.999)+h.ωmin)
 
 		pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Consumption"))
 		pv = plot([l[jϵ, 2] for jϵ in 1:h.Nϵ], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Value function"))
@@ -156,7 +156,7 @@ function plot_hh_policies_z(h::Hank; remote::Bool=false)
 		Cz[jz], Cz_fix[jz] = val_int_C, val_int_Cfix
 	end
 
-	ωmax_show = min(h.ωmax, quantile(LogNormal(show_μ, show_σ), 0.99)+h.ωmin)
+	ωmax_show = min(h.ωmax, quantile(LogNormal(show_μ, show_σ), 0.999)+h.ωmin)
 
 	pc = plot([l[jz, 1] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Consumption"))
 	pce = plot([l[jz, 2] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ"))
@@ -229,7 +229,7 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 
 		Cb[jb], Cb_fix[jb] = val_int_C, val_int_Cfix
 	end
-	ωmax_show = min(h.ωmax, quantile(LogNormal(show_μ, show_σ), 0.99)+h.ωmin)
+	ωmax_show = min(h.ωmax, quantile(LogNormal(show_μ, show_σ), 0.999)+h.ωmin)
 
 	pc = plot([l[jb, 1] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Consumption"))
 	pce = plot([l[jb, 2] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ"))
