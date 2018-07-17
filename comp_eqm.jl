@@ -412,8 +412,11 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, 
 	varω > 0. || print_save("\nvar_a, var_b, cov_ab = $(var_a), $(var_b), $(cov_ab)")
 
 	Eσ2 = 1.0 + varω / ( (Eω - h.ωmin)^2 )
+	if isapprox(Eσ2, 1.)
+		Eσ2 = min(Eσ2, 1.)
+	end
 
-	Eσ2 > 1. || print_save("\n1 + vω / (Eω-ωmin)² = $(Eσ2)")
+	Eσ2 >= 1. || print_save("\n1 + vω / (Eω-ωmin)² = $(Eσ2)")
 
 	σ2 = log( Eσ2 )
 
@@ -435,9 +438,9 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 	ζv = h.ζgrid[h.Jgrid[js, 5]]
 	jdef = (ζv != 1.0)
 
-	alarm = 0
 
 	μ, σ, q = Array{Float64, 2}(h.Nz, 2), Array{Float64, 2}(h.Nz, 2), Array{Float64, 2}(h.Nz, 2)
+	alarm_mat = Array{Float64, 2}(h.Nz, 2)
 
 	for (jzp, zpv) in enumerate(h.zgrid)
 		reentry = true
@@ -448,7 +451,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 			qmin, qmax, GoldenSection()
 			)
 		q[jzp, 1] = res.minimizer
-		res.minimum > 1e-4? alarm = 1: Void
+		res.minimum > 1e-4? alarm_mat[jzp, 1] = 1: alarm_mat[jzp, 1] = 0
 
 		μ[jzp, 1], σ[jzp, 1] = find_q(h, q[jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 
@@ -459,14 +462,14 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 				qmin, qmax, GoldenSection()
 				)
 			q[jzp, 2] = res.minimizer
-			res.minimum > 1e-4? alarm = 1: Void
+			res.minimum > 1e-4? alarm_mat[jzp, 2] = 1: alarm_mat[jzp, 2] = 0
 
 			μ[jzp, 2], σ[jzp, 2] = find_q(h, q[jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 		else
-			μ[jzp, 2], σ[jzp, 2], q[jzp, 2] = μ[jzp, 1], σ[jzp, 1], q[jzp, 1]
+			μ[jzp, 2], σ[jzp, 2], q[jzp, 2], alarm_mat[jzp, 2] = μ[jzp, 1], σ[jzp, 1], q[jzp, 1], alarm_mat[jzp, 1]
 		end
 	end
-	return μ, σ, q, alarm
+	return μ, σ, q, alarm_mat
 end
 
 function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep, js, jdef)
@@ -486,21 +489,22 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 	val_a, val_b, val_a2, val_b2, val_ab, sum_prob = 0., 0., 0., 0., 0., 0.
 
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
+	ωmax_int = max(ωmax_int, h.ωmax)
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		fA(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
+		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-8, maxevals=0)
 		val_a += valA * h.λϵ[jϵ]
 		fA2(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
-		(valA2, err) = hquadrature(fA2, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
+		(valA2, err) = hquadrature(fA2, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-8, maxevals=0)
 		val_a2 += valA2 * h.λϵ[jϵ]
 		fB(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-		(valB, err) = hquadrature(fB, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
+		(valB, err) = hquadrature(fB, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-8, maxevals=0)
 		val_b += valB * h.λϵ[jϵ]
 		fB2(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
-		(valB2, err) = hquadrature(fB2, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
+		(valB2, err) = hquadrature(fB2, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-8, maxevals=0)
 		val_b2 += valB2 * h.λϵ[jϵ]
 		fAB(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-		(valAB, err) = hquadrature(fAB, ωmin_int, ωmax_int, reltol=1e-8, abstol=0, maxevals=0)
+		(valAB, err) = hquadrature(fAB, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-8, maxevals=0)
 		val_ab += valAB * h.λϵ[jϵ]
 	end
 	sum_prob = 1.
@@ -540,9 +544,9 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 
 	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab at $([jb, jμ, jσ, jw, jζ, jz])")
 
-	μ′, σ′, _, alarm = compute_stats_logN(h, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, exp_rep)
+	μ′, σ′, q, alarm_vec = compute_stats_logN(h, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, exp_rep)
 
-	return μ′, σ′, alarm
+	return μ′, σ′, alarm_vec
 end
 
 
@@ -551,12 +555,14 @@ function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec, w�
 
 	μ′ = SharedArray{Float64}(N, h.Nz, 2)
 	σ′ = SharedArray{Float64}(N, h.Nz, 2)
-	alarm = SharedArray{Float64}(N)
+	alarm_vec = SharedArray{Float64}(N, h.Nz, 2)
 
 	@sync @parallel for js in 1:N
 		Bpv = B′_vec[js]
 		wpv = w′_vec[js]
 		thres = thres_vec[js]
+
+		# js % 20 != 0 || print_save("\n$js")
 
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
@@ -572,12 +578,14 @@ function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec, w�
 		jζ = h.Jgrid[js, 5]
 		jdefault = (jζ != 1.0)
 
-		μ′[js, :, :], σ′[js, :, :], alarm[js] = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep, js, jdefault)
+		μ′[js, :, :], σ′[js, :, :], alarm_vec[js, :, :] = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep, js, jdefault)
 	end
 
-	if sum(alarm) >= 1
-		print_save("WARNING: Couldn't find qᵍ $(round(100*sum(alarm)/N,0))% of the time")
+	print_save("\n")
+	if sum(alarm_vec[:]) >= 1
+		print_save("WARNING: ")
 	end
+	print_save("Couldn't find qᵍ $(round(100*sum(alarm_vec[:])/N,0))% of the time")
 
 	return μ′, σ′
 end
