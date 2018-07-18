@@ -409,12 +409,12 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, 
 	Eω   = a + R*b
 	varω = var_a + R^2 * var_b + 2*R * cov_ab
 
-	varω > 0. || print_save("\nvar_a, var_b, cov_ab = $(var_a), $(var_b), $(cov_ab)")
+	if isapprox(varω, 0.)
+		varω = min(varω, 0.)
+	end
+	varω >= 0. || print_save("\nvar_a, var_b, cov_ab, R, q = $(var_a), $(var_b), $(cov_ab), $(R), $(q)")
 
 	Eσ2 = 1.0 + varω / ( (Eω - h.ωmin)^2 )
-	if isapprox(Eσ2, 1.)
-		Eσ2 = min(Eσ2, 1.)
-	end
 
 	Eσ2 >= 1. || print_save("\n1 + vω / (Eω-ωmin)² = $(Eσ2)")
 
@@ -492,19 +492,19 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 	ωmax_int = max(ωmax_int, h.ωmax)
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		fA(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-8, maxevals=0)
+		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		val_a += valA * h.λϵ[jϵ]
 		fA2(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
-		(valA2, err) = hquadrature(fA2, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-8, maxevals=0)
+		(valA2, err) = hquadrature(fA2, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		val_a2 += valA2 * h.λϵ[jϵ]
 		fB(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-		(valB, err) = hquadrature(fB, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-8, maxevals=0)
+		(valB, err) = hquadrature(fB, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		val_b += valB * h.λϵ[jϵ]
 		fB2(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
-		(valB2, err) = hquadrature(fB2, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-8, maxevals=0)
+		(valB2, err) = hquadrature(fB2, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		val_b2 += valB2 * h.λϵ[jϵ]
 		fAB(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
-		(valAB, err) = hquadrature(fAB, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-8, maxevals=0)
+		(valAB, err) = hquadrature(fAB, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		val_ab += valAB * h.λϵ[jϵ]
 	end
 	sum_prob = 1.
