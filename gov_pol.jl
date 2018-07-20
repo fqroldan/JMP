@@ -69,14 +69,14 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 	end
 
 	if maximum(diff_R) == 1.
-		threshold = quantile(diff_W[diff_R .== 1.], η_rep)
+		threshold = quantile(diff_W[diff_R .== 1.], 1.-η_rep)
 		ind_change = (diff_W .> threshold) .& (diff_R .== 1.)
 		
 		repay[ind_change] = 1.
 	end
 
 	if minimum(diff_R) == -1.
-		threshold = quantile(diff_W[diff_R .== -1.], 1.-η_rep)
+		threshold = quantile(diff_W[diff_R .== -1.], η_rep)
 		ind_change = (diff_W .< threshold) .& (diff_R .== -1.)
 		
 		repay[ind_change] = 0.
@@ -98,11 +98,11 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
 
 	while dist > tol && out_iter < maxiter
 		print_save("\n\nOuter Iteration $out_iter\n")
-		vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 40)
+		vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 20)
 		h.upd_tol = 1e-3
 
 		old_rep = copy(h.repay)
-		new_rep = update_govpol(h)
+		new_rep = update_govpol(h; η_rep = 0.25)
 
 		dist = sqrt.(sum( (new_rep - old_rep).^2 )) / sqrt.(sum(old_rep.^2))
 		h.repay = upd_η * new_rep + (1.-upd_η) * old_rep
