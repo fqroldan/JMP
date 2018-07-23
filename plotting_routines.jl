@@ -650,6 +650,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 	pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nb)
+	maxq = 0.
 	for (jb, bv) in enumerate(h.bgrid)
 		sup = zeros(h.pngrid)
 		dem = zeros(h.pngrid)
@@ -660,9 +661,11 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 		end
 		l[jb] = scatter(; y=h.pngrid, x=sup, marker_color=col[jb], name="B = $(round(bv, 2))")
 		l[h.Nb+jb] = scatter(; y=h.pngrid, x=dem, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
+		maxq = max(max(maximum(dem), maximum(sup)), maxq)
 	end
+	maxq = min(maxq * 1.10, 3.)
 
-	p = plot([l[jb] for jb in 1:2*h.Nb], Layout(; yaxis_title="pₙ", xaxis_title="Q", xaxis_range=[0., 3.]))
+	p = plot([l[jb] for jb in 1:2*h.Nb], Layout(; yaxis_title="pₙ", xaxis_title="Q", xaxis_range=[0., maxq]))
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_nontradables_B.jld", "p", p)
@@ -674,6 +677,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 	jb = ceil(Int, h.Nb/2)
 	bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw], h.ζgrid[jζ], h.zgrid[jz]
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nz,2)
+	maxq = 0.
 	for (jz, zv) in enumerate(h.zgrid)
 		sup = zeros(h.pngrid)
 		dem = zeros(h.pngrid)
@@ -691,14 +695,17 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 		l[jz,1] = scatter(; y=h.pngrid, x=sup, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
 		l[h.Nz+jz,1] = scatter(; y=h.pngrid, x=dem, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))", showlegend=false)
 		l[jz,2] = scatter(; x=supN, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
+		maxq = max(max(maximum(dem), maximum(sup)), maxq)
 	end
 
-	p = plot([l[jz,1] for jz in 1:2*h.Nz], Layout(; yaxis_title="pₙ", xaxis_title="Q", xaxis_range=[0., 3.]))
+	maxq = min(maxq * 1.10, 3.)
+
+	p = plot([l[jz,1] for jz in 1:2*h.Nz], Layout(; yaxis_title="pₙ", xaxis_title="Q", xaxis_range=[0., maxq]))
 
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_nontradables_z.jld", "p", p)
-		p = plot([l[jz,2] for jz in 1:h.Nz], Layout(;xaxis_title="Q", yaxis_title="pₙ", xaxis_range=[0., 3.]))
+		p = plot([l[jz,2] for jz in 1:h.Nz], Layout(;xaxis_title="Q", yaxis_title="pₙ", xaxis_range=[0., maxq]))
 		save(path * "p_nontradables_z2.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
