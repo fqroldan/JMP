@@ -30,6 +30,7 @@ local_run = true
 # Initialize type
 if remote || local_run
 	h = Hank();
+	# h = load(pwd() * "/../../hank.jld", "h")
 	try
 		h2 = load(pwd() * "/../../hank.jld", "h")
 		remote? h2 = load(pwd() * "/../../hank.jld", "h"): h2 = load("hank.jld", "h")
