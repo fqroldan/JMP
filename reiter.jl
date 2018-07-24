@@ -230,12 +230,16 @@ function Hank(;	β = (1.0/1.3)^0.25,
 	issuance 	= min.(max.(reshape(issuance,  Nb*Nμ*Nσ*Nw*Nζ*Nz), minimum(bgrid)), maximum(bgrid))
 	def_thres 	= reshape(def_thres, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 	output 		= reshape(output, Nb*Nμ*Nσ*Nw*Nζ*Nz)
+	
+	welfare   	= zeros(Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	welfare   	= reshape(welfare, Nb*Nμ*Nσ*Nw*Nζ*Nz)
+	
 	profits 	= output - wage .* Ld
 
 	outer_dists = [1.]
 
 	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕe, ϕc, ϕa_ext, ϕb_ext, ϕe_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
-		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, τ, T, issuance, def_thres, output, profits, spending, wage, Ld, qʰ, qᵍ, pN, outer_dists, upd_tol)
+		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, welfare, τ, T, issuance, def_thres, output, profits, spending, wage, Ld, qʰ, qᵍ, pN, outer_dists, upd_tol)
 end
 
 function iterate_qᵍ!(h::Hank; verbose::Bool=false)

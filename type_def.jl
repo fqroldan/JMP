@@ -109,6 +109,7 @@ type Hank
 	# A⁺::Vector{Float64}
 	# A⁻::Vector{Float64}
 	repay::Vector{Float64}
+	welfare::Vector{Float64}
 	τ::Float64
 	T::Vector{Float64}
 	issuance::Vector{Float64}
