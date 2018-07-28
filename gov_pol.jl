@@ -95,7 +95,7 @@ end
 function update_W(h::Hank)
 	itp_vf = make_itp(h, h.vf; agg=false)
 
-	W = zeros(h.Jgrid, 1)
+	W = zeros(size(h.Jgrid, 1))
 	for js in 1:size(h.Jgrid, 1)
 		bv = h.bgrid[h.Jgrid[js, 1]]
 		μv = h.μgrid[h.Jgrid[js, 2]]
