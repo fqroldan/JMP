@@ -123,24 +123,22 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz
 				prob =  h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
 				check += prob
 
-				# if zpv > thres
-				if exp_rep[jzp] >= 0.5
-					ζpv = 1
-					Rb = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 1]
-					# Re = profits[jzp, 1]
-					ωpv = ap + bp * Rb# + ep * Re
-					ωpv = min(h.ωmax, ωpv)
-					v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 1)
-					Ev += EZ_G(h, v) * prob
-				else
-					ζpv = 2
-					Rb = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 3]
-					# Re = profits[jzp, 3]
-					ωpv = ap + bp * Rb# + ep * Re
-					ωpv = min(h.ωmax, ωpv)
-					v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 3)
-					Ev += EZ_G(h, v) * prob
-				end
+				# Repayment
+				ζpv = 1
+				Rb = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 1]
+				# Re = profits[jzp, 1]
+				ωpv = ap + bp * Rb# + ep * Re
+				ωpv = min(h.ωmax, ωpv)
+				v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 1)
+				Ev += EZ_G(h, v) * prob * exp_rep[jzp]
+				# Default
+				ζpv = 2
+				Rb = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 3]
+				# Re = profits[jzp, 3]
+				ωpv = ap + bp * Rb# + ep * Re
+				ωpv = min(h.ωmax, ωpv)
+				v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 3)
+				Ev += EZ_G(h, v) * prob * (1.- exp_rep[jzp])
 			end
 		end
 	end
