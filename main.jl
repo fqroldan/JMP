@@ -51,6 +51,7 @@ if remote || local_run
 			h.wage = h2.wage
 			h.Ld = h2.Ld
 			h.repay = h2.repay
+			h.welfare = h2.welfare
 			print_save(" ✓")
 		end
 	catch

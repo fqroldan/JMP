@@ -692,6 +692,8 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 	rep_new 	= itp_repay[h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid, h.zgrid]
 	h.repay 	= reshape(rep_new, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz*h.Nz)
 
+	h.welfare   = reinterp(h, h.welfare, agg=true)
+
 	for jzp in 1:h.Nz
 		for jreent in 1:2
 			h.μ′[:,jzp,jreent] = reinterp(h, h.μ′[:,jzp,jreent], agg=true)
