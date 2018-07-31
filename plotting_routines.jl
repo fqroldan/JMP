@@ -443,16 +443,23 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	pq4 = lines(h, q_mat,  4)
 	pq6 = lines(h, q_mat,  6)
 
-	pc1 = lines(h, APC,  1, "Average propensity to consume")
-	pc2 = lines(h, APC,  2)
-	pc3 = lines(h, APC,  3)
-	pc4 = lines(h, APC,  4)
-	pc6 = lines(h, APC,  6)
+	jω1, jω2 = 1, ceil(Int, h.Nω / 2)
+	pc1p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  1, "Average propensity to consume at ω = $(h.ωgrid[jω1])")
+	pc2p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  2)
+	pc3p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  3)
+	pc4p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  4)
+	pc6p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  6)
+
+	pc1r = lines(h, APC[jω2, jϵ_show,:,:,:,:,:,:],  1, "Average propensity to consume at ω = $(h.ωgrid[jω2])")
+	pc2r = lines(h, APC[jω2, jϵ_show,:,:,:,:,:,:],  2)
+	pc3r = lines(h, APC[jω2, jϵ_show,:,:,:,:,:,:],  3)
+	pc4r = lines(h, APC[jω2, jϵ_show,:,:,:,:,:,:],  4)
+	pc6r = lines(h, APC[jω2, jϵ_show,:,:,:,:,:,:],  6)
 
 
-	p = [pq1 pq2 pq3 pq4 pq6]
+	p = [pq1 pq2 pq3 pq4 pq6; pcp1 pcp2 pcp3 pcp4 pcp6; pcp1 pcp2 pcp3 pcp4 pcp6]
 	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 800/3
+	p.plot.layout["height"] = 800/1.5
 	p.plot.layout["font_family"] = "Fira Sans Light"
 	if remote
 		path = pwd() * "/../../Graphs/"
