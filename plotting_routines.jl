@@ -415,14 +415,15 @@ end
 function plot_debtprice(h::Hank; remote::Bool=false)
 
 	_, q_mat, wL_mat, T_mat, pC_mat, Π_mat = _unpackstatefs(h)
-	T_vec = reshape(T_mat, length(T_mat))
-	Π_vec = reshape(Π_mat, length(Π_mat))
+	T_vec  = reshape(T_mat, length(T_mat))
+	Π_vec  = reshape(Π_mat, length(Π_mat))
+	wL_vec = reshape(wL_mat, length(wL_mat))
 
 	ϕc_mat = h.ϕc
 	yd_mat = zeros(h.ϕc)
 
 	adj = sum(h.λϵ.*exp.(h.ϵgrid))
-	agg_income = wL_mat + Π_vec / adj
+	agg_income = wL_vec + Π_vec / adj
 
 	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
 		for js in 1:size(h.Jgrid, 1)
