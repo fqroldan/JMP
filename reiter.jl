@@ -4,7 +4,7 @@ include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.3)^0.25,
 				IES = 1.0,
-				RRA = 2.,
+				RRA = 5.,
 				γw = 0.9,
 				τ = 0.25,
 				r_star = 1.02^0.25 - 1.0,
