@@ -446,6 +446,7 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	pq6 = lines(h, q_mat,  6)
 
 	jω1, jω2 = 1, ceil(Int, h.Nω / 2)
+	jϵ_show = ceil(Int, h.Nϵ/2)
 	pc1p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  1, "Average propensity to consume at ω = $(h.ωgrid[jω1])")
 	pc2p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  2)
 	pc3p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  3)
