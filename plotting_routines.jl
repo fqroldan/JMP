@@ -712,6 +712,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nb)
 	maxq = 0.
+	minq = 10.
 	for (jb, bv) in enumerate(h.bgrid)
 		sup = zeros(h.pngrid)
 		dem = zeros(h.pngrid)
@@ -723,8 +724,10 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 		l[jb] = scatter(; y=h.pngrid, x=sup, marker_color=col[jb], name="B = $(round(bv, 2))")
 		l[h.Nb+jb] = scatter(; y=h.pngrid, x=dem, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
 		maxq = max(max(maximum(dem), maximum(sup)), maxq)
+		minq = min(min(minimum(dem), minimum(sup)), minq)
 	end
 	maxq = min(maxq * 1.10, 3.)
+	minq = minq * 0.9
 
 	p = plot([l[jb] for jb in 1:2*h.Nb], Layout(; yaxis_title="pₙ", xaxis_title="Q", xaxis_range=[0., maxq]))
 	if remote
@@ -739,6 +742,7 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 	bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw], h.ζgrid[jζ], h.zgrid[jz]
 	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nz,2)
 	maxq = 0.
+	minq = 10.
 	for (jz, zv) in enumerate(h.zgrid)
 		sup = zeros(h.pngrid)
 		dem = zeros(h.pngrid)
@@ -757,9 +761,10 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 		l[h.Nz+jz,1] = scatter(; y=h.pngrid, x=dem, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))", showlegend=false)
 		l[jz,2] = scatter(; x=supN, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
 		maxq = max(max(maximum(dem), maximum(sup)), maxq)
+		minq = min(min(minimum(dem), minimum(sup)), minq)
 	end
-
 	maxq = min(maxq * 1.10, 3.)
+	minq = minq * 0.9
 
 	p = plot([l[jz,1] for jz in 1:2*h.Nz], Layout(; yaxis_title="pₙ", xaxis_title="Q", xaxis_range=[0., maxq]))
 
