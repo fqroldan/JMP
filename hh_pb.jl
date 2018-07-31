@@ -226,9 +226,9 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 		try
 			res = Optim.optimize(
 				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
-				, guess, [minω, minθ], [maxω, maxθ], Fminbox{ConjugateGradient}())
+				, guess, [minω, minθ], [maxω, maxθ], Fminbox{NelderMead}())
 		catch
-			warn("Conjugate Gradient failed")
+			warn("Main algorithm failed")
 			if minω < guess[1] < maxω && minθ < guess[2] < maxθ
 			else
 				print_save("\nWARNING: MAYBE PROBLEM WITH BOUNDS")
