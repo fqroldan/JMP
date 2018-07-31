@@ -412,6 +412,57 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
 	Void
 end
 
+function plot_debtprice(h::Hank; remote::Bool=false)
+
+	_, q_mat, wL_mat, T_mat, pC_mat, Π_mat = _unpackstatefs(h)
+	T_vec = reshape(T_mat, length(T_mat))
+
+	ϕc_mat = h.ϕc
+	yd_mat = zeros(h.ϕc)
+
+	adj = sum(h.λϵ.*exp.(h.ϵgrid))
+	agg_income = wL_mat + h.profits / adj
+
+	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
+		for js in 1:size(h.Jgrid, 1)
+			jb = h.Jgrid[js, 1]
+			jμ = h.Jgrid[js, 2]
+			jσ = h.Jgrid[js, 3]
+			jw = h.Jgrid[js, 4]
+			jζ = h.Jgrid[js, 5]
+			jz = h.Jgrid[js, 6]
+			yd_mat[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ωv + agg_income * exp(ϵv) - T_vec[js]
+		end
+	end
+
+	APC = ϕc_mat ./ yd_mat
+
+	pq1 = lines(h, q_mat,  1, "Price of government debt")
+	pq2 = lines(h, q_mat,  2)
+	pq3 = lines(h, q_mat,  3)
+	pq4 = lines(h, q_mat,  4)
+	pq6 = lines(h, q_mat,  6)
+
+	pc1 = lines(h, APC,  1, "Average propensity to consume")
+	pc2 = lines(h, APC,  2)
+	pc3 = lines(h, APC,  3)
+	pc4 = lines(h, APC,  4)
+	pc6 = lines(h, APC,  6)
+
+
+	p = [pq1 pq2 pq3 pq4 pq6]
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 800/3
+	p.plot.layout["font_family"] = "Fira Sans Light"
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_debtprice.jld", "p", p)
+	else
+		savefig(p, pwd() * "/../Graphs/debtprice.pdf")
+	end
+	Void
+end
+
 function plot_aggcons(h::Hank; remote::Bool=false)
 	jμ, jσ, jw = ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2)
 	μv, σv, wv = h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw]
