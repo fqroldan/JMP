@@ -414,7 +414,7 @@ end
 
 function plot_debtprice(h::Hank; remote::Bool=false)
 
-	_, q_mat, wL_mat, T_mat, pC_mat, Π_mat = _unpackstatefs(h)
+	qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat = _unpackstatefs(h)
 	T_vec  = reshape(T_mat, length(T_mat))
 	Π_vec  = reshape(Π_mat, length(Π_mat))
 	wL_vec = reshape(wL_mat, length(wL_mat))
@@ -441,11 +441,11 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 
 	Srate = 1. - pC_big .* ϕc_mat ./ yd_mat
 
-	pq1 = lines(h, q_mat,  1, "Price of government debt")
-	pq2 = lines(h, q_mat,  2)
-	pq3 = lines(h, q_mat,  3)
-	pq4 = lines(h, q_mat,  4)
-	pq6 = lines(h, q_mat,  6)
+	pq1 = lines(h, qᵍ_mat,  1, "Price of government debt")
+	pq2 = lines(h, qᵍ_mat,  2)
+	pq3 = lines(h, qᵍ_mat,  3)
+	pq4 = lines(h, qᵍ_mat,  4)
+	pq6 = lines(h, qᵍ_mat,  6)
 
 	jω1, jω2 = 1, ceil(Int, h.Nω / 2)
 	jϵ_show = ceil(Int, h.Nϵ/2)
