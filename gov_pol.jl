@@ -93,6 +93,7 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 	end
 	
 	rep_new = reshape(repay, length(repay))
+	rep_new = reshape(rep_prob, length(rep_prob))
 	return rep_new
 end
 
@@ -139,7 +140,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
 		new_rep = update_govpol(h; η_rep = 0.25)
 
 		dist = sqrt.(sum( (new_rep - old_rep).^2 )) / sqrt.(sum(old_rep.^2))
-		# h.repay = upd_η * new_rep + (1.-upd_η) * old_rep
+		h.repay = upd_η * new_rep + (1.-upd_η) * old_rep
 		h.repay = new_rep
 
 		tol_vfi = max(exp(0.9*log(1+tol_vfi))-1, 1e-6)
