@@ -421,6 +421,7 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 
 	ϕc_mat = h.ϕc
 	yd_mat = zeros(h.ϕc)
+	pC_big = zeros(h.ϕc)
 
 	adj = sum(h.λϵ.*exp.(h.ϵgrid))
 	agg_income = wL_vec + Π_vec / adj
@@ -434,10 +435,11 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 			jζ = h.Jgrid[js, 5]
 			jz = h.Jgrid[js, 6]
 			yd_mat[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ωv + agg_income[js] * exp(ϵv) - T_vec[js]
+			pC_big[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = pC_mat[js]
 		end
 	end
 
-	Srate = 1. - pC_mat .* ϕc_mat ./ yd_mat
+	Srate = 1. - pC_big .* ϕc_mat ./ yd_mat
 
 	pq1 = lines(h, q_mat,  1, "Price of government debt")
 	pq2 = lines(h, q_mat,  2)
