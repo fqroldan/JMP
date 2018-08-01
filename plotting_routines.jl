@@ -437,7 +437,7 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 		end
 	end
 
-	APC = ϕc_mat ./ yd_mat
+	Srate = 1. - pC_mat .* ϕc_mat ./ yd_mat
 
 	pq1 = lines(h, q_mat,  1, "Price of government debt")
 	pq2 = lines(h, q_mat,  2)
@@ -447,20 +447,20 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 
 	jω1, jω2 = 1, ceil(Int, h.Nω / 2)
 	jϵ_show = ceil(Int, h.Nϵ/2)
-	pc1p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  1, "Average propensity to consume at ω = $(h.ωgrid[jω1])")
-	pc2p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  2)
-	pc3p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  3)
-	pc4p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  4)
-	pc6p = lines(h, APC[jω1, jϵ_show,:,:,:,:,:,:],  6)
+	pc1p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω1],2))")
+	pc2p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  2)
+	pc3p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  3)
+	pc4p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  4)
+	pc6p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  6)
 
-	pc1r = lines(h, APC[jω2, jϵ_show,:,:,:,:,:,:],  1, "Average propensity to consume at ω = $(h.ωgrid[jω2])")
-	pc2r = lines(h, APC[jω2, jϵ_show,:,:,:,:,:,:],  2)
-	pc3r = lines(h, APC[jω2, jϵ_show,:,:,:,:,:,:],  3)
-	pc4r = lines(h, APC[jω2, jϵ_show,:,:,:,:,:,:],  4)
-	pc6r = lines(h, APC[jω2, jϵ_show,:,:,:,:,:,:],  6)
+	pc1r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω2],2))")
+	pc2r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  2)
+	pc3r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  3)
+	pc4r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  4)
+	pc6r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  6)
 
 
-	p = [pq1 pq2 pq3 pq4 pq6; pcp1 pcp2 pcp3 pcp4 pcp6; pcp1 pcp2 pcp3 pcp4 pcp6]
+	p = [pq1 pq2 pq3 pq4 pq6; pc1p pc2p pc3p pc4p pc6p; pc1r pc2r pc3r pc4r pc6r]
 	p.plot.layout["width"] = 800
 	p.plot.layout["height"] = 800/1.5
 	p.plot.layout["font_family"] = "Fira Sans Light"
