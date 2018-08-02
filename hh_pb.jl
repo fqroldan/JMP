@@ -99,7 +99,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz
 
 				# Reentry
 				ζpv = 1
-				Rb = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 1]
+				Rb = h.κ + (1. - h.ρ) * qᵍp[jzp, 1]
 				# Re = profits[jzp, 1]
 				ωpv = ap + bp * Rb# + ep * Re
 				ωpv = min(h.ωmax, ωpv)
@@ -108,12 +108,12 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz
 
 				# Continue in default
 				ζpv = 2
-				Rb = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 2]
+				Rb = (1. - h.ρ) * qᵍp[jzp, 2]
 				# Re = profits[jzp, 2]
 				ωpv = ap + bp * Rb# + ep * Re
 				ωpv = min(h.ωmax, ωpv)
 				v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 2)
-				Ev += EZ_G(h, v) * prob * (1.0 - h.θ)
+				Ev += EZ_G(h, v) * prob * (1. - h.θ)
 				check += prob
 			end
 		end
@@ -125,7 +125,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz
 
 				# Repayment
 				ζpv = 1
-				Rb = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 1]
+				Rb = h.κ + (1. - h.ρ) * qᵍp[jzp, 1]
 				# Re = profits[jzp, 1]
 				ωpv = ap + bp * Rb# + ep * Re
 				ωpv = min(h.ωmax, ωpv)
@@ -133,7 +133,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz
 				Ev += EZ_G(h, v) * prob * exp_rep[jzp]
 				# Default
 				ζpv = 2
-				Rb = h.κ + (1.0 - h.ρ) * qᵍp[jzp, 3]
+				Rb = (1. - h.ρ) * (1.- h.ℏ) * qᵍp[jzp, 3]
 				# Re = profits[jzp, 3]
 				ωpv = ap + bp * Rb# + ep * Re
 				ωpv = min(h.ωmax, ωpv)
