@@ -144,14 +144,18 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 
 	# Get the household's policies at these prices
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
-	val_int_C = 0.
+	val_int_C, sum_prob = 0., 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
-	
+		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
+		(val_pdf, err) += hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		sum_prob += val_pdf * h.λϵ[jϵ]
+
+		f(ω) = f_pdf(ω) * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
 		(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
 	
-		val_int_C += val
+		val_int_C += val * h.λϵ[jϵ]
 	end
+
 	# val_C, sum_prob = 0., 0.
 	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
 	# 	for jω = 1:length(h.ωgrid_fine)-1
@@ -167,9 +171,10 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	# 		sum_prob += prob
 	# 	end
 	# end
-	# val_int_C = val_C / sum_prob
 	# isapprox(sum_prob, 1) || print_save("\nWARNING: Something wrong computing aggregate consumption")
 
+	val_int_C = val_C / sum_prob
+ 	
  	# Recover nontraded demand from total consumption
 	pC = price_index(h, pN)
 	demand_N_cons = val_int_C * h.ϖ * (pN/pC)^(-h.η)
@@ -491,23 +496,26 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
 	ωmax_int = max(ωmax_int, h.ωmax)
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		fA(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])
+		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
+		(val_pdf, err) += hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		sum_prob += val_pdf * h.λϵ[jϵ]
+		fA(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])
 		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		val_a += valA * h.λϵ[jϵ]
-		fA2(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
+		fA2(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
 		(valA2, err) = hquadrature(fA2, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		val_a2 += valA2 * h.λϵ[jϵ]
-		fB(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
+		fB(ω) = f_pdf(ω) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
 		(valB, err) = hquadrature(fB, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		val_b += valB * h.λϵ[jϵ]
-		fB2(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
+		fB2(ω) = f_pdf(ω) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])^2
 		(valB2, err) = hquadrature(fB2, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		val_b2 += valB2 * h.λϵ[jϵ]
-		fAB(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
+		fAB(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz]) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, wv, jζ, jz])
 		(valAB, err) = hquadrature(fAB, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		val_ab += valAB * h.λϵ[jϵ]
 	end
-	sum_prob = 1.
+
 	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
 	# 	for jω = 1:length(h.ωgrid_fine)-1
 	# 		ωv  = h.ωgrid_fine[jω]

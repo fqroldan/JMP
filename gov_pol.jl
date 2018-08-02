@@ -1,29 +1,34 @@
 function integrate_itp(h::Hank, bv, μv, σv, wv, jζ, jz, itp_obj)
 
-	# ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
-	# W = 0.
-	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
-	#     f(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin) * h.λϵ[jϵ] * itp_obj[ω, jϵ, bv, μv, σv, wv, jζ, jz]
-	#     (val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-	#     W += val
-	# end
-	# W
-	val, sum_prob = 0., 0.
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
+	W, sum_prob = 0., 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		for jω = 1:length(h.ωgrid_fine)-1
-			ωv  = h.ωgrid_fine[jω]
-			ω1v = h.ωgrid_fine[jω+1]
-			ωmv = 0.5*(ωv+ω1v)
+		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
+		(val_pdf, err) += hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		sum_prob += val_pdf * h.λϵ[jϵ]
 
-			prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
-
-			Y = itp_obj[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
-
-			val  += prob * Y
-			sum_prob += prob
-		end
+	    f(ω) = f_pdf(ω) * itp_obj[ω, jϵ, bv, μv, σv, wv, jζ, jz]
+	    (val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+	    W += val * h.λϵ[jϵ]
 	end
-	W = val / sum_prob
+	W = W / sum_prob
+
+	# val, sum_prob = 0., 0.
+	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
+	# 	for jω = 1:length(h.ωgrid_fine)-1
+	# 		ωv  = h.ωgrid_fine[jω]
+	# 		ω1v = h.ωgrid_fine[jω+1]
+	# 		ωmv = 0.5*(ωv+ω1v)
+
+	# 		prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
+
+	# 		Y = itp_obj[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
+
+	# 		val  += prob * Y
+	# 		sum_prob += prob
+	# 	end
+	# end
+	# W = val / sum_prob
 	return W
 end
 
