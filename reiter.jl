@@ -41,7 +41,8 @@ function Hank(;	β = (1.0/1.3)^0.25,
 		return ρ4, σ4
 	end
 	# Aggregate risk
-	z_chain = tauchen(Nz, ρz, σz, 0, 1)
+	# z_chain = tauchen(Nz, ρz, σz, 0, 1)
+	z_chain = rouwenhorst(Nz, ρz, σz, 0)
 	Pz = z_chain.p
 	# zgrid = linspace(minimum(z_chain.state_values), maximum(z_chain.state_values), Nz)
 	zgrid = z_chain.state_values
@@ -59,7 +60,8 @@ function Hank(;	β = (1.0/1.3)^0.25,
 	end
 	ρϵ, σϵ = quarterlize_AR1(ρϵ, σϵ)
 
-	ϵ_chain = tauchen(Nϵ, ρϵ, σϵ, 0, 1)
+	# ϵ_chain = tauchen(Nϵ, ρϵ, σϵ, 0, 1)
+	ϵ_chain = rouwenhorst(Nϵ, ρϵ, σϵ, 0)
 	Pϵ = ϵ_chain.p
 	ϵgrid = ϵ_chain.state_values
 
