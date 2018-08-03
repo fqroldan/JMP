@@ -143,17 +143,18 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	supply_N = TFP_N(zv, h.Δ, ζv) * Ld_N^(h.α_N)
 
 	# Get the household's policies at these prices
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
-	val_int_C, sum_prob = 0., 0.
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) + h.ωmin
+	ωmax_int = min(ωmax_int, h.ωmax)
+	val_C, sum_prob = 0., 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
-		(val_pdf, err) += hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		sum_prob += val_pdf * h.λϵ[jϵ]
 
 		f(ω) = f_pdf(ω) * itp_ϕc[ω, jϵ, bv, μv, σv, wv, jζ, jz, pN]
 		(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
 	
-		val_int_C += val * h.λϵ[jϵ]
+		val_C += val * h.λϵ[jϵ]
 	end
 
 	# val_C, sum_prob = 0., 0.
@@ -493,11 +494,11 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 
 	val_a, val_b, val_a2, val_b2, val_ab, sum_prob = 0., 0., 0., 0., 0., 0.
 
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
-	ωmax_int = max(ωmax_int, h.ωmax)
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) + h.ωmin
+	ωmax_int = min(ωmax_int, h.ωmax)
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
-		(val_pdf, err) += hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		sum_prob += val_pdf * h.λϵ[jϵ]
 		fA(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, wv, jζ, jz])
 		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
@@ -537,8 +538,10 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 	# 	end
 	# end
 
+	!isnan(sum_prob) || throw(error("NaN in sum_prob"))
+	!isapprox(sum_prob, 0.) || throw(error("\nsum_prob = $(sum_prob) at $([jb, jμ, jσ, jw, jζ, jz])"))
+
 	!isnan(val_a+val_a2+val_b+val_b2+val_ab) || print_save("\na,a2,b,b2,ab = $([val_a,val_a2,val_b,val_b2,val_ab])")
-	!isapprox(sum_prob, 0.) || print_save("\nsum_prob = $(sum_prob)")
 
 	a  = val_a  / sum_prob
 	a2 = val_a2 / sum_prob

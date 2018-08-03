@@ -1,6 +1,7 @@
 function integrate_itp(h::Hank, bv, μv, σv, wv, jζ, jz, itp_obj)
 
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.005; .995]) + h.ωmin
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) + h.ωmin
+	ωmax_int = min(ωmax_int, h.ωmax)
 	W, sum_prob = 0., 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
