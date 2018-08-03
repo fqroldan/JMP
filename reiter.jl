@@ -398,7 +398,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	while dist > tol && iter < maxiter
 		iter_cycle += 1
 
-		qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat = _unpackstatefs(h)
+		qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat = _unpackstatefs(h);
 
 		v_old = copy(h.vf)
 		if iter_cycle <= 5 || iter_cycle % 3 == 0
