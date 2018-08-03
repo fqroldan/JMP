@@ -226,13 +226,12 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 		try
 			res = Optim.optimize(
 				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
-				, guess, [minω, minθ], [maxω, maxθ], Fminbox{LBFGS}())
-			if Optim.x_converged(res) || Optim.f_converged(res) || Optim.g_converged(res)
+				, [minω, minθ], [maxω, maxθ], guess, Fminbox(LBFGS()))
+			if Optim.converged(res)
 			else
 				throw("Main algorithm failed")
 			end
 		catch
-			warn("Main algorithm failed")
 			if minω < guess[1] < maxω && minθ < guess[2] < maxθ
 			else
 				print_save("\nWARNING: MAYBE PROBLEM WITH BOUNDS")
@@ -241,7 +240,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 			end
 			res = Optim.optimize(
 				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
-				, guess, [minω, minθ], [maxω, maxθ], Fminbox{NelderMead}())
+				, [minω, minθ], [maxω, maxθ], guess, Fminbox(NelderMead()))
 		end
 
 		sp, θa = res.minimizer
