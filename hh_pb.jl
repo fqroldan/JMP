@@ -343,16 +343,18 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 			ag, bg = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz], h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 
 			ωg = qʰv * ag + qᵍv * bg
-			θg = qʰv * (ag - h.ωmin) / (ωg - qʰv*h.ωmin)
-			# print_save("a,b,s,θ = $([ag, bg, ωg, θg])")
 			ωmax = RHS - 1e-10
 			if ωg > ωmax
 				ωg = max(ωmax - 1e-2, 0)
 			end
+			if ωg - qʰv*h.ωmin > 1e-4
+				θg = qʰv * (ag - h.ωmin) / (ωg - qʰv*h.ωmin)
+			else
+				θg = 1.
+			end
 			isapprox(θg, 1) && θg > 1? θg = 1.0: Void
 
 			if resolve && ωmax > qʰv * h.ωmin
-				# θg = 1.0
 				guess = [ωg, θg]
 
 				ap, bp, ep, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
