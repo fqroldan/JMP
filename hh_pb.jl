@@ -224,7 +224,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 		guess[2] = max(min(guess[2], maxθ-1e-6), minθ+1e-6)
 
 		try
-			inner_opt = LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=250))
+			inner_opt = LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=100))
 			res = Optim.optimize(
 				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 				, [minω, minθ], [maxω, maxθ], guess, Fminbox(inner_opt))
