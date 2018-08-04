@@ -727,15 +727,15 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 	Void
 end
 
-function make_logN(mean, var)
+function make_logN(meanX, varX)
 	""" Takes mean and variance and returns μ and σ parameters for logNormal dist"""
-	Eσ2 = 1.0 + varω / ( Eω^2 )
+	Eσ2 = 1.0 + varX / ( meanX^2 )
 
 	Eσ2 >= 1. || print_save("\n1 + vω / Eω² = $(Eσ2)")
 
 	σ2 = log( Eσ2 )
 
-	μ = log(Eω) - 0.5 * σ2
+	μ = log(meanX) - 0.5 * σ2
 	σ = sqrt(σ2)
 	return μ, σ
 end
