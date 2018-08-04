@@ -424,10 +424,10 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save(": done in $(time_print(time()-t1))")
 			t1 = time()
 
-			plot_hh_policies(h, remote = remote)
-			plot_hh_policies_b(h, remote = remote)
-			plot_hh_policies_z(h, remote = remote)
-			plot_labor_demand(h, remote = remote)
+			# plot_hh_policies(h, remote = remote)
+			# plot_hh_policies_b(h, remote = remote)
+			# plot_hh_policies_z(h, remote = remote)
+			# plot_labor_demand(h, remote = remote)
 
 			print_save("\nUpdating functions of the state")
 
@@ -435,8 +435,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 			dist_statefuncs[iter, :] = dists
 
-			plot_state_funcs(h, remote = remote)
-			plot_nontradables(h, remote = remote)
+			# plot_state_funcs(h, remote = remote)
+			# plot_nontradables(h, remote = remote)
 			print_save(": done in $(time_print(time()-t1))")
 			t1 = time()
 
@@ -460,12 +460,12 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(h.μgrid))), $(@sprintf("%0.3g",maximum(h.μgrid)))]")
 			print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(h.σgrid))), $(@sprintf("%0.3g",maximum(h.σgrid)))]")
 
-			plot_LoM(h, remote = remote)
+			# plot_LoM(h, remote = remote)
 
 			dist_s = max(dist_s, maximum(dist_exp))
 			print_save("\nGrids and expectations updated in $(time_print(time()-t1))")
 
-			plot_convergence(dist_statefuncs, dist_LoMs, iter, remote = remote)
+			# plot_convergence(dist_statefuncs, dist_LoMs, iter, remote = remote)
 
 
 			iter += 1
@@ -491,10 +491,10 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		end
 
 	end
-	plot_gov_welf(h; remote = remote)
-	plot_aggcons(h; remote = remote)
-	plot_govt_reaction(h; remote = remote)
-	plot_debtprice(h; remote = remote)
+	# plot_gov_welf(h; remote = remote)
+	# plot_aggcons(h; remote = remote)
+	# plot_govt_reaction(h; remote = remote)
+	# plot_debtprice(h; remote = remote)
 	save(pwd() * "/../../hank.jld", "h", h)
 
 	if dist <= tol
