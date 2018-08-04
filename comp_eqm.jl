@@ -369,21 +369,23 @@ function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 	end
 
 	Ls = 1.0
+	ζ = 1
 	res1 = Optim.optimize(
-			w -> (labor_demand(h, w, exp(h.zgrid[end]), pN_up) - Ls).^2,
+			w -> (labor_demand(h, w, h.zgrid[end], ζ, pN_up) - Ls).^2,
 			h.wgrid[1], h.wgrid[end] * 2.0, GoldenSection()
 			)
 	res2 = Optim.optimize(
-			w -> (labor_demand(h, w, exp(h.zgrid[end]), pN_down) - Ls).^2,
+			w -> (labor_demand(h, w, h.zgrid[end], ζ, pN_down) - Ls).^2,
 			h.wgrid[1], h.wgrid[end] * 2.0, GoldenSection()
 			)
 	w_up = max(res1.minimizer, res2.minimizer) * 1.25
+	ζ = 2
 	res1 = Optim.optimize(
-			w -> (labor_demand(h, w, (1.0-h.Δ) * exp(h.zgrid[1]), pN_up) - Ls).^2,
+			w -> (labor_demand(h, w, h.zgrid[1], ζ, pN_up) - Ls).^2,
 			0.5 * h.wgrid[1], h.wgrid[end], GoldenSection()
 			)
 	res2 = Optim.optimize(
-			w -> (labor_demand(h, w, (1.0-h.Δ) * exp(h.zgrid[1]), pN_down) - Ls).^2,
+			w -> (labor_demand(h, w, h.zgrid[1], ζ, pN_down) - Ls).^2,
 			0.5 * h.wgrid[1], h.wgrid[end], GoldenSection()
 			)
 	w_down = min(res1.minimizer, res2.minimizer) * 0.75
