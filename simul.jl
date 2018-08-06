@@ -73,8 +73,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	μ′, σ′, q′, _ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, wt, exp_rep)
 
-	μ′ = max.(min.(μ′, 1.2*h.μgrid[end]), 0.8*h.μgrid[1])
-	σ′ = max.(min.(σ′, 1.2*h.σgrid[end]), 0.8*h.σgrid[1])
+	μ′ = max.(min.(μ′, 1.1*h.μgrid[end]), 0.9*h.μgrid[1])
+	σ′ = max.(min.(σ′, 1.1*h.σgrid[end]), 0.9*h.σgrid[1])
 
 	# μ′, σ′, q′ = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bprime, wt, thres, Bt, μt, σt, w0, ζt, zt, jdef) # This would assume that λₜ is lognormal
 	# print_save("\n$(q′)")
