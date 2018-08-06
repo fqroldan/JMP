@@ -255,8 +255,6 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 	Void
 end
 
-
-
 function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)
 	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
 
@@ -379,7 +377,8 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
 	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	states = gridmake([1; h.Nb], [1; h.Nz])
-	p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+	# p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+	p_vec = Array{PlotlyJS.SyncPlot}(size(states,1))
 	for js in 1:size(states,1)
 		Wr = zeros(h.Nz)
 		Wd = zeros(h.Nz)
@@ -489,8 +488,10 @@ function plot_aggcons(h::Hank; remote::Bool=false)
 	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	states = gridmake([1; h.Nb], [1; h.Nz])
-	p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
-	p2_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+	# p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+	p_vec = Array{PlotlyJS.SyncPlot}(size(states,1))
+	# p2_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+	p2_vec = Array{PlotlyJS.SyncPlot}(size(states,1))
 	for js in 1:size(states,1)
 		C_r = zeros(h.Nz)
 		VarCr = zeros(h.Nz)
