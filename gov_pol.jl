@@ -5,7 +5,7 @@ function integrate_itp(h::Hank, bv, μv, σv, wv, jζ, jz, itp_obj)
 	W, sum_prob = 0., 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
-		(val_pdf, err) += hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		sum_prob += val_pdf * h.λϵ[jϵ]
 
 	    f(ω) = f_pdf(ω) * itp_obj[ω, jϵ, bv, μv, σv, wv, jζ, jz]
@@ -147,7 +147,6 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
 
 		dist = sqrt.(sum( (new_rep - old_rep).^2 )) / sqrt.(sum(old_rep.^2))
 		h.repay = 0.4*upd_η * new_rep + (1.-0.4*upd_η) * old_rep
-		h.repay = new_rep
 
 		tol_vfi = max(exp(0.9*log(1+tol_vfi))-1, 1e-6)
 		t_new = time()
