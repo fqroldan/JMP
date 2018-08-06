@@ -1,6 +1,6 @@
 include("type_def.jl")
 
-function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, λt, Qϵ; phase::String="")
+function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, itp_W, λt, Qϵ; phase::String="")
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal getfrompath(p, t, :z)
 	# B, ζ, and z are decided at the end of the last period
@@ -93,6 +93,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	μprime = μ′[jzp, 1]
 	σprime = σ′[jzp, 1]
 	qprime = q′[jzp, 1]
+
 	if jdef
 		prob_reentry = h.θ
 		reentry = (rand() <= prob_reentry)
@@ -104,24 +105,24 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 			μprime = μ′[jzp, 2]
 			σprime = σ′[jzp, 2]
 			qprime = q′[jzp, 2]
-			R = h.κ + (1.0-h.ρ) * qprime
+			R = (1.0-h.ρ) * qprime
 		end
 		# Compute welfare in case of default and no default
-		Wr = welfare(h, Bprime, μprime, σprime, wt, 1, jzp, itp_vf)
-		Wd = welfare(h, Bprime, μprime, σprime, wt, 2, jzp, itp_vf)
+		Wr = itp_W[Bprime, μprime, σprime, wt, 1, jzp]
+		Wd = itp_W[Bprime, μprime, σprime, wt, 2, jzp]
 	else
-		# if zprime <= thres
-		if exp_rep[jzp] < 0.5
+		repay_prime = (rand() <= exp_rep[jzp])
+		if repay_prime
+			ζprime = 1.0
+			R = h.κ + (1.0-h.ρ) * qprime
+		else
 			ζprime = 2.0
 			Bprime = (1.0 - h.ℏ) * Bprime
 			R = (1.0-h.ℏ)*(1.0-h.ρ) * qprime
-		else
-			ζprime = 1.0
-			R = h.κ + (1.0-h.ρ) * qprime
 		end
 		# Compute welfare in case remain and reenter
-		Wr = welfare(h, Bprime, μprime, σprime, wt, 1, jzp, itp_vf)
-		Wd = welfare(h, Bprime, μprime, σprime, wt, 2, jzp, itp_vf)
+		Wr = itp_W[Bprime, μprime, σprime, wt, 1, jzp]
+		Wd = itp_W[Bprime, μprime, σprime, wt, 2, jzp]
 	end
 
 	savings = ϕa + R*ϕb
@@ -165,6 +166,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	itp_pN		= make_itp(h, h.pN; agg=true)
 	itp_qᵍ 		= make_itp(h, h.qᵍ; agg=true)
 	itp_Zthres	= make_itp(h, h.def_thres; agg=true)
+	itp_W 		= make_itp(h, h.welfare; agg=true)
 
 	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 	knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz, 1:h.Nz)
@@ -204,7 +206,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 			end
 		end
 
-		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, λ, Qϵ; phase = phase)
+		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, itp_W, λ, Qϵ; phase = phase)
 		# print_save("\nt = $t")
 	end
 

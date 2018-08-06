@@ -282,15 +282,15 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 			E_rep, check = 0.0, 0.0
 			if jdefault == false
 				for (jzp, zpv) in enumerate(h.zgrid)
+					ζpv = 1.0
+					μpv = h.μ′[js, jzp, 1]
+					σpv = h.σ′[js, jzp, 1]
+					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * exp_rep[jzp]
 					ζpv = 2.0
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
 					E_rep += h.Pz[jz, jzp] * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp] * (1.-exp_rep[jzp])
 					check += h.Pz[jz, jzp] * (1.-exp_rep[jzp])
-					ζpv = 1.0
-					μpv = h.μ′[js, jzp, 1]
-					σpv = h.σ′[js, jzp, 1]
-					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * exp_rep[jzp]
 					check += h.Pz[jz, jzp] * exp_rep[jzp]
 				end
 			else
