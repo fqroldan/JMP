@@ -39,10 +39,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	def_prob = 0.
 	if ζt == 1
 		for (jzp, zvp) in enumerate(h.zgrid)
-			# if zvp <= thres
-			if exp_rep[jzp] < 0.5
-				def_prob += h.Pz[jz, jzp]
-			end
+			def_prob += h.Pz[jz, jzp] * exp_rep[jzp]
 		end
 	end
 
@@ -75,18 +72,16 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	# print_save("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab])")
 
 	μ′, σ′, q′, _ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, wt, exp_rep)
+
+	μ′ = max.(min.(μ′, h.μgrid[end]), h.μgrid[1])
+	σ′ = max.(min.(σ′, h.σgrid[end]), h.σgrid[1])
+
 	# μ′, σ′, q′ = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bprime, wt, thres, Bt, μt, σt, w0, ζt, zt, jdef) # This would assume that λₜ is lognormal
 	# print_save("\n$(q′)")
 
 	# Draw z and the reentry shock for tomorrow, deduce ζ and correct B, μ, and σ as needed, and update the distribution
 	probs = cumsum(h.Pz[jz,:])
 	jzp = findfirst(probs .> rand())
-
-	if phase == "no_def"
-		jzp = max(jzp, 2)
-	elseif phase == "danger"
-		jzp = 2
-	end
 
 	zprime = h.zgrid[jzp]
 
@@ -108,21 +103,26 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 			R = (1.0-h.ρ) * qprime
 		end
 		# Compute welfare in case of default and no default
-		Wr = itp_W[Bprime, μprime, σprime, wt, 1, jzp]
-		Wd = itp_W[Bprime, μprime, σprime, wt, 2, jzp]
+		Wr = itp_W[Bprime, μ′[jzp,1], σ′[jzp,1], wt, 1, jzp]
+		Wd = itp_W[Bprime, μ′[jzp,2], σ′[jzp,2], wt, 2, jzp]
 	else
-		repay_prime = (rand() <= exp_rep[jzp])
+		if phase == "no def"
+			repay_prime = 1.
+		else
+			repay_prime = (rand() <= exp_rep[jzp])
+		end
 		if repay_prime
 			ζprime = 1.0
 			R = h.κ + (1.0-h.ρ) * qprime
 		else
 			ζprime = 2.0
 			Bprime = (1.0 - h.ℏ) * Bprime
+			qprime = q′[jzp, 2]
 			R = (1.0-h.ℏ)*(1.0-h.ρ) * qprime
 		end
 		# Compute welfare in case remain and reenter
-		Wr = itp_W[Bprime, μprime, σprime, wt, 1, jzp]
-		Wd = itp_W[Bprime, μprime, σprime, wt, 2, jzp]
+		Wr = itp_W[Bprime, 			μ′[jzp,1], σ′[jzp,1], wt, 1, jzp]
+		Wd = itp_W[(1.-h.ℏ)*Bprime, μ′[jzp,2], σ′[jzp,2], wt, 2, jzp]
 	end
 
 	savings = ϕa + R*ϕb
