@@ -224,7 +224,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 		jz = Jgrid[js, 6]
 
 		pNv = pN[js]
-		pC = (ϖ * pN.^(1.0-η) + (1.0-ϖ)).^(1.0/(1.0-η))
+		pC = (ϖ * pNv.^(1.0-η) + (1.0-ϖ)).^(1.0/(1.0-η))
 
 		Π = profits[js]
 
@@ -266,6 +266,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 
 	qᵍ = ones(qᵍ_mat)
+	spread = zeros(qᵍ)
 	while dist > tol && iter < maxiter
 		old_q  = copy(qᵍ)
 		knots  = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, 1:h.Nz)
@@ -312,13 +313,13 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
 					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp])
 					check += h.Pz[jz, jzp] * h.θ
 					ζ_cont = 2.0
 					μpv = h.μ′[js, jzp, 2]
 					σpv = h.σ′[js, jzp, 2]
 					E_rep += h.Pz[jz, jzp] * (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp] * (1.0 - h.θ)
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp])
 					check += h.Pz[jz, jzp] * (1.0 - h.θ)
 				end
 			end
@@ -373,7 +374,7 @@ function compute_netexports(h::Hank)
 	end
 
 	demand_G_T = h.spending * (1.-h.ϑ)
-	NX = h.supply_T - aggC_T - demand_G_T
+	NX = supply_T - aggC_T - demand_G_T
 
 	return NX
 end
@@ -390,9 +391,10 @@ function update_fiscalrules!(h::Hank)
 
 	coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
 	coef_B = [ -3.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ]
-	h.spending = [ unemp unemp2 BoY BoY2 spread spr2 NX NX2 ] * coef_g / 100
-	h.issuance = [ unemp unemp2 spread spr2 NX NX2 ] * coef_B / 100
+	g = [ ones(unemp) unemp unemp2 BoY BoY2 spread spr2 NX NX2 ] * coef_g / 100
+	b′ = [ ones(unemp) unemp unemp2 spread spr2 NX NX2 ] * coef_B / 100
 
+	h.spending = min.(g, 0.35) .* h.output
 end
 
 price_index(h::Hank, pN) = (h.ϖ * pN.^(1.0-h.η) + (1.0-h.ϖ)).^(1.0/(1.0-h.η))
