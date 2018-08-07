@@ -379,16 +379,20 @@ function compute_netexports(h::Hank)
 end
 
 function update_fiscalrules!(h::Hank)
-	NX 	  = compute_netexports(h)./h.output * 100
-	NX2   = NX.^2
 	unemp = (1.- h.Ld)*100.
 	unemp2= unemp.^2
 	BoY   = h.bgrid[h.Jgrid[:, 1]] ./ h.output * 100
 	BoY2  = BoY.^2
 	spread= h.spread * 100
 	spr2  = spread.^2
+	NX 	  = compute_netexports(h)./h.output * 100
+	NX2   = sign.(NX)
 
-	Void
+	coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
+	coef_B = [ -3.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ]
+	h.spending = [ unemp unemp2 BoY BoY2 spread spr2 NX NX2 ] * coef_g / 100
+	h.issuance = [ unemp unemp2 spread spr2 NX NX2 ] * coef_B / 100
+
 end
 
 price_index(h::Hank, pN) = (h.ϖ * pN.^(1.0-h.η) + (1.0-h.ϖ)).^(1.0/(1.0-h.η))
