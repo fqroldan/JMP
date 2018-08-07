@@ -379,11 +379,14 @@ function compute_netexports(h::Hank)
 end
 
 function update_fiscalrules!(h::Hank)
-	NX 	  = compute_netexports(h)
+	NX 	  = compute_netexports(h)./h.output * 100
+	NX2   = NX.^2
 	unemp = (1.- h.Ld)*100.
+	unemp2= unemp.^2
 	BoY   = h.bgrid[h.Jgrid[:, 1]] ./ h.output * 100
 	BoY2  = BoY.^2
-	spread= compute_spread(h)
+	spread= h.spread * 100
+	spr2  = spread.^2
 
 	Void
 end
