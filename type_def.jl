@@ -123,6 +123,7 @@ type Hank
 	# sdf_vec::Vector{Float64}
 	qʰ::Vector{Float64}
 	qᵍ::Vector{Float64}
+	spread::Vector{Float64}
 	pN::Vector{Float64}
 
 	outer_dists::Vector{Float64}

@@ -168,6 +168,7 @@ function Hank(;	β = (1.0/1.1)^0.25,
 	T  = ones(Nb*Nμ*Nσ*Nw*Nζ*Nz) * 0.05
 	qʰ = ones(Nb*Nμ*Nσ*Nw*Nζ*Nz) / (1.0+r_star)
 	qᵍ = zeros(Nb*Nμ*Nσ*Nw*Nζ*Nz)
+	spread = zeros(Nb*Nμ*Nσ*Nw*Nζ*Nz)
 
 	pN 		  = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	repay 	  = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz, Nz)
@@ -250,7 +251,7 @@ function Hank(;	β = (1.0/1.1)^0.25,
 	outer_dists = [1.]
 
 	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϑ, ϕa, ϕb, ϕe, ϕc, ϕa_ext, ϕb_ext, ϕe_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
-		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, welfare, τ, T, issuance, def_thres, output, profits, spending, wage, Ld, qʰ, qᵍ, pN, outer_dists, upd_tol)
+		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, welfare, τ, T, issuance, def_thres, output, profits, spending, wage, Ld, qʰ, qᵍ, spread, pN, outer_dists, upd_tol)
 end
 
 function iterate_qᵍ!(h::Hank; verbose::Bool=false)
@@ -289,16 +290,19 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 			thres = h.def_thres[js]
 
 			E_rep, check = 0.0, 0.0
+			E_fullrep = 0.
 			if jdefault == false
 				for (jzp, zpv) in enumerate(h.zgrid)
 					ζpv = 1.0
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
 					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * exp_rep[jzp]
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
 					ζpv = 2.0
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
 					E_rep += h.Pz[jz, jzp] * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp] * (1.-exp_rep[jzp])
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
 					check += h.Pz[jz, jzp] * (1.-exp_rep[jzp])
 					check += h.Pz[jz, jzp] * exp_rep[jzp]
 				end
@@ -308,23 +312,27 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
 					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
 					check += h.Pz[jz, jzp] * h.θ
 					ζ_cont = 2.0
 					μpv = h.μ′[js, jzp, 2]
 					σpv = h.σ′[js, jzp, 2]
 					E_rep += h.Pz[jz, jzp] * (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp] * (1.0 - h.θ)
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
 					check += h.Pz[jz, jzp] * (1.0 - h.θ)
 				end
 			end
 
 			isapprox(check, 1.0) || print_save("WARNING: wrong transitions in update_qᵍ!")
 			qᵍ[jb, jμ, jσ, jw, jζ, jz] = E_rep / (1.0 + h.r_star)
+			spread[jb, jμ, jσ, jw, jζ, jz] = E_fullrep / qᵍ[jb, jμ, jσ, jw, jζ, jz] - 1. / (1+h.r_star)
 		end
 		iter += 1
 		dist = sum( (qᵍ - old_q).^2 ) / sum(old_q.^2)
 	end
 
 	h.qᵍ = reshape(qᵍ, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
+	h.spread = reshape(spread, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
 
 	if verbose
 		end_t = time()
@@ -371,6 +379,11 @@ function compute_netexports(h::Hank)
 end
 
 function update_fiscalrules!(h::Hank)
+	NX 	  = compute_netexports(h)
+	unemp = (1.- h.Ld)*100.
+	BoY   = h.bgrid[h.Jgrid[:, 1]] ./ h.output * 100
+	BoY2  = BoY.^2
+	spread= compute_spread(h)
 
 	Void
 end
