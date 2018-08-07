@@ -22,6 +22,7 @@ type Hank
 	ϖ::Float64
 	α_T::Float64
 	α_N::Float64
+	ϑ::Float64
 
 	# Policy functions
 	ϕa::Array{Float64, 8}

@@ -2,7 +2,7 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 
 include("hh_pb.jl")
 
-function Hank(;	β = (1.0/1.2)^0.25,
+function Hank(;	β = (1.0/1.1)^0.25,
 				IES = 1.0,
 				RRA = 5.,
 				γw = 0.9,
@@ -79,6 +79,8 @@ function Hank(;	β = (1.0/1.2)^0.25,
 	α_T = 0.6
 	α_N = 0.6
 
+	ϑ = 1.
+
 	# α_T = 0.75
 	# α_N = 0.75
 
@@ -126,39 +128,6 @@ function Hank(;	β = (1.0/1.2)^0.25,
 	# Compute the basis matrix and expectations matrix
 	bs = BasisMatrix(basis, Direct(), s, [0 0 0 0 0 0 0 0])
 	Φ = convert(Expanded, bs).vals[1]
-
-	ϕa = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	ϕb = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	ϕe = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	ϕc = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
-
-	vf = Array{Float64}(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	for js in 1:size(Jgrid,1)
-		jb = Jgrid[js, 1]
-		jμ = Jgrid[js, 2]
-		jσ = Jgrid[js, 3]
-		jw = Jgrid[js, 4]
-		jζ = Jgrid[js, 5]
-		jz = Jgrid[js, 6]
-
-		wv = exp(zgrid[jz])
-		for (jϵ, ϵv) in enumerate(ϵgrid), (jω, ωv) in enumerate(ωgrid)
-
-			Y = exp(ϵv) * wv * (1.0-τ) + (ωv-ωmin)
-			c = Y * 0.5
-			ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = Y * 0.5
-			ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = Y * 0.0
-			ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = c
-			ut = log(c)
-			γ == 1? Void: ut = c^(1.0-γ) / (1.0-γ)
-			if EpsteinZin
-				vf[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = c
-			else
-				vf[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ut / (1.0 - β)
-			end
-		end
-	end
-
 
 	λ = ones(Nω_fine*Nϵ)
 	λ = λ/sum(λ)
@@ -238,9 +207,49 @@ function Hank(;	β = (1.0/1.2)^0.25,
 	
 	profits 	= output - wage .* Ld
 
+
+	ϕa = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	ϕb = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	ϕe = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	ϕc = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
+
+	vf = Array{Float64}(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	for js in 1:size(Jgrid,1)
+		jb = Jgrid[js, 1]
+		jμ = Jgrid[js, 2]
+		jσ = Jgrid[js, 3]
+		jw = Jgrid[js, 4]
+		jζ = Jgrid[js, 5]
+		jz = Jgrid[js, 6]
+
+		pNv = pN[js]
+		pC = (ϖ * pN.^(1.0-η) + (1.0-ϖ)).^(1.0/(1.0-η))
+
+		Π = profits[js]
+
+		wv = exp(zgrid[jz])
+		for (jϵ, ϵv) in enumerate(ϵgrid), (jω, ωv) in enumerate(ωgrid)
+
+			Y = exp(ϵv) * (wv * (1.0-τ) + Π) + (ωv-ωmin)
+			a = Y * 0.5 ./ (1./(1.0+r_star))
+			c = Y * 0.5 ./ pC
+			ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = a
+			ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = 0.
+			ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = c
+			ut = log(c)
+			γ == 1? Void: ut = c^(1.0-γ) / (1.0-γ)
+			if EpsteinZin
+				vf[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = c
+			else
+				vf[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ut / (1.0 - β)
+			end
+		end
+	end
+
+
 	outer_dists = [1.]
 
-	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϕa, ϕb, ϕe, ϕc, ϕa_ext, ϕb_ext, ϕe_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
+	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϑ, ϕa, ϕb, ϕe, ϕc, ϕa_ext, ϕb_ext, ϕe_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
 		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, welfare, τ, T, issuance, def_thres, output, profits, spending, wage, Ld, qʰ, qᵍ, pN, outer_dists, upd_tol)
 end
 
@@ -329,6 +338,43 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	Void
 end
 
+function compute_netexports(h::Hank)
+	itp_ϕc = make_itp(h, h.ϕc; agg=false)
+
+	aggC_T = zeros(size(h.Jgrid, 1))
+	supply_T = zeros(size(h.Jgrid, 1))
+	for js in 1:size(h.Jgrid, 1)
+		bv = h.bgrid[h.Jgrid[js, 1]]
+		μv = h.μgrid[h.Jgrid[js, 2]]
+		σv = h.σgrid[h.Jgrid[js, 3]]
+		wv = h.wgrid[h.Jgrid[js, 4]]
+		jζ = h.Jgrid[js, 5]
+		jz = h.Jgrid[js, 6]
+		ζv = h.ζgrid[jζ]
+		zv = h.zgrid[jz]
+
+		pNv = h.pN[js]
+		pC = price_index(h, pNv)
+
+		aggC = integrate_itp(h, bv, μv, σv, wv, jζ, jz, itp_ϕc)
+		aggC_T[js] = aggC  * h.ϖ * (1./pC)^(-h.η)
+
+		wt = h.wage[js]
+		Ld_N, Ld_T  = labor_demand(h, wt, zv, ζv, pNv; get_both=true)
+		supply_T[js] = TFP_T(zv, h.Δ, ζv) * Ld_T^(h.α_N)
+	end
+
+	demand_G_T = h.spending * (1.-h.ϑ)
+	NX = h.supply_T - aggC_T - demand_G_T
+
+	return NX
+end
+
+function update_fiscalrules!(h::Hank)
+
+	Void
+end
+
 price_index(h::Hank, pN) = (h.ϖ * pN.^(1.0-h.η) + (1.0-h.ϖ)).^(1.0/(1.0-h.η))
 
 function govt_bc(h::Hank, wage_bill)
@@ -384,6 +430,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	dist, dist_s = 10., 10.
 
 	iterate_qᵍ!(h, verbose = true)
+	update_fiscalrules!(h)
 	var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
 	print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 
@@ -473,6 +520,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\n\nIteration $iter")
 			
 			iterate_qᵍ!(h)
+			update_fiscalrules!(h)
 			var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
 			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 

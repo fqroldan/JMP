@@ -179,7 +179,7 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
  	# Recover nontraded demand from total consumption
 	pC = price_index(h, pN)
 	demand_N_cons = val_int_C * h.ϖ * (pN/pC)^(-h.η)
-	demand_N_govt = G / pN
+	demand_N_govt = G * h.ϑ / pN
 
 	demand_N = demand_N_cons + demand_N_govt
 
@@ -336,6 +336,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 			wage[js], Ld[js], output[js] = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ!=1); get_others=true)
 		end
 		h.wage, h.Ld, h.output = wage, Ld, output
+		update_fiscalrules!(h)
 	else
 		h.wage 	 = upd_η * results[:, 1] + (1.0-upd_η) * h.wage
 		h.Ld 	 = upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
