@@ -2,7 +2,7 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 
 include("hh_pb.jl")
 
-function Hank(;	β = (1.0/1.05)^0.25,
+function Hank(;	β = (1.0/1.035)^0.25,
 				IES = 1.0,
 				RRA = 5.,
 				γw = 0.9,
@@ -21,8 +21,8 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				Nb = 6,
 				Nw = 5,
 				Nz = 7,
-				ρz = 0.95,
-				σz = 0.02,
+				ρz = 0.9,
+				σz = 0.05,
 				ℏ = 0.5,
 				Δ = 0.1,
 				θ = .125,
@@ -392,9 +392,12 @@ function update_fiscalrules!(h::Hank)
 	coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
 	coef_B = [ -3.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ]
 	g = [ ones(unemp) unemp unemp2 BoY BoY2 spread spr2 NX NX2 ] * coef_g / 100
-	b′ = [ ones(unemp) unemp unemp2 spread spr2 NX NX2 ] * coef_B / 100
+	net_iss = [ ones(unemp) unemp unemp2 spread spr2 NX NX2 ] * coef_B / 100
 
-	h.spending = min.(g, 0.35) .* h.output
+	# h.spending = min.(g, 0.35) .* h.output
+	# h.issuance = max.(0., net_iss) .* output + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
+
+	Void
 end
 
 price_index(h::Hank, pN) = (h.ϖ * pN.^(1.0-h.η) + (1.0-h.ϖ)).^(1.0/(1.0-h.η))
