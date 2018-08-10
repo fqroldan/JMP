@@ -1,4 +1,4 @@
-TFP_N(z, Δ, ζ) = 1.0   # * (1.0 - Δ*(ζ==2))
+TFP_N(z, Δ, ζ) = 1.0    * (1.0 - Δ*(ζ==2))
 TFP_T(z, Δ, ζ) = exp(z) * (1.0 - Δ*(ζ==2))
 
 function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
