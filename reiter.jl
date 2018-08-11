@@ -23,7 +23,7 @@ function Hank(;	β = (1.0/1.035)^0.25,
 				Nz = 7,
 				ρz = 0.9,
 				σz = 0.05,
-				ℏ = 0.5,
+				ℏ = 0.4,
 				Δ = 0.1,
 				θ = .125,
 				Np = 5,
@@ -394,8 +394,8 @@ function update_fiscalrules!(h::Hank)
 	g = [ ones(unemp) unemp unemp2 BoY BoY2 spread spr2 NX NX2 ] * coef_g / 100
 	net_iss = [ ones(unemp) unemp unemp2 spread spr2 NX NX2 ] * coef_B / 100
 
-	# h.spending = min.(g, 0.35) .* h.output
-	# h.issuance = max.(0., net_iss) .* output + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
+	h.spending = min.(g, 0.35) .* h.output
+	h.issuance = max.(0., net_iss) .* h.output + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
 
 	Void
 end
