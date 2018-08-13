@@ -65,7 +65,7 @@ function Hank(;	β = (1.0/1.035)^0.25,
 	Pϵ = ϵ_chain.p
 	ϵgrid = ϵ_chain.state_values
 
-	wgrid = linspace(0.75, 1.0, Nw)
+	wgrid = linspace(0.75, 1.5, Nw)
 	pngrid = linspace(0.5, 1.1, Np)
 	ζgrid = 1:2
 	Nζ = length(ζgrid)
@@ -94,8 +94,8 @@ function Hank(;	β = (1.0/1.035)^0.25,
 
 	# Grids for endogenous aggregate states
 	Bbar  = 4.0
-	bgrid = linspace(0.0, 4.0, Nb)
-	μgrid = linspace(-1.0, 2.0, Nμ)
+	bgrid = linspace(0.0, 3.0, Nb)
+	μgrid = linspace(-1.0, 1.5, Nμ)
 	σgrid = linspace(0.05, 0.75, Nσ)
 
 	# Prepare grid for cash in hand.
@@ -232,6 +232,7 @@ function Hank(;	β = (1.0/1.035)^0.25,
 		for (jϵ, ϵv) in enumerate(ϵgrid), (jω, ωv) in enumerate(ωgrid)
 
 			Y = exp(ϵv) * (wv * (1.0-τ) + Π) + (ωv-ωmin)
+			Y = max.(Y, 1e-4)
 			a = Y * 0.5 ./ (1./(1.0+r_star))
 			c = Y * 0.5 ./ pC
 			ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = a
@@ -399,6 +400,8 @@ function update_fiscalrules!(h::Hank)
 
 	def_states = h.ζgrid[h.Jgrid[:, 5]] .!= 1.0
 	h.issuance[def_states] = (1.-h.ρ) * h.bgrid[h.Jgrid[def_states, 1]]
+
+	h.issuance = min.(h.issuance, maximum(h.bgrid))
 
 	Void
 end
