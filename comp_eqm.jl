@@ -558,6 +558,10 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wpv, exp_rep
 	var_b  = b2 - b^2
 	cov_ab = ab - a*b
 
+	if max(var_a, var_b) < 1e-8
+		var_a, var_b, cov_ab = 0., 0., 0.
+	end
+
 	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab at $([jb, jμ, jσ, jw, jζ, jz])")
 
 	μ′, σ′, q, alarm_vec = compute_stats_logN(h, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, wpv, exp_rep)
