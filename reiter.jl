@@ -96,7 +96,7 @@ function Hank(;	β = (1.0/1.035)^0.25,
 	Bbar  = 4.0
 	bgrid = linspace(0.0, 3.5, Nb)
 	μgrid = linspace(-1.0, 1.5, Nμ)
-	σgrid = linspace(0.005, 0.5, Nσ)
+	σgrid = linspace(0.01, 0.5, Nσ)
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.5
