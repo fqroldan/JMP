@@ -452,7 +452,6 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 	print_save("\nSolving household problem: ")
 	time_init = time()
-	t_old = time_init
 	iter = 1
 	iter_cycle = 0
 	dist, dist_s = 10., 10.
