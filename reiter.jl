@@ -328,7 +328,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 			isapprox(check, 1.0) || print_save("WARNING: wrong transitions in update_qᵍ!")
 			qᵍ[jb, jμ, jσ, jw, jζ, jz] = E_rep / (1.0 + h.r_star)
-			spread[jb, jμ, jσ, jw, jζ, jz] = E_fullrep / qᵍ[jb, jμ, jσ, jw, jζ, jz] - 1. / (1+h.r_star)
+			spread[jb, jμ, jσ, jw, jζ, jz] = E_fullrep / qᵍ[jb, jμ, jσ, jw, jζ, jz] - (1+h.r_star)
 		end
 		iter += 1
 		dist = sum( (qᵍ - old_q).^2 ) / sum(old_q.^2)
