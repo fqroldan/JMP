@@ -739,7 +739,7 @@ function make_logN(meanX, varX)
 	if Eσ2 > 1. 
 		σ2 = log( Eσ2 )
 	else
-		print_save("\n1 + vω / Eω² = $(Eσ2)")
+		# print_save("\n1 + vω / Eω² = $(Eσ2)")
 		σ2 = 1e-6
 	end
 
