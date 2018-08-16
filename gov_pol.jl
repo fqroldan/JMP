@@ -77,7 +77,7 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 				elseif Wr < Wd && repay[jb, jμ, jσ, jw, jζ, jz, jzp] > 0.5
 					diff_R[jb, jμ, jσ, jw, jζ, jz, jzp] = -1.
 				end
-				rep_prob[jb, jμ, jσ, jw, jζ, jz, jzp] = cdf(Normal(0.05, σ_gov), Wd-Wr)
+				rep_prob[jb, jμ, jσ, jw, jζ, jz, jzp] = cdf(Normal(0, σ_gov), Wr-Wd)
 			else
 				diff_W[jb, jμ, jσ, jw, jζ, jz, jzp] = 0.
 			end
