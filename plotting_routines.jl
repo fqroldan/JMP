@@ -145,12 +145,12 @@ function plot_hh_policies_z(h::Hank; remote::Bool=false)
 		ωmin_int, ωmax_int = quantile.(LogNormal(show_μ, show_σ), [.005; .995]) + h.ωmin
 		val_int_C, val_int_Cfix = 0., 0.
 		for (jϵ, ϵv) in enumerate(h.ϵgrid)
-			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc_ext[ω, ϵv, show_b, show_μ, show_σ, show_w, show_ζ, zv, show_pN]
+			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * itp_ϕc_ext[ω, ϵv, show_b, show_μ, show_σ, show_w, show_ζ, zv, show_pN]
+			ffix(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * itp_ϕc_ext[ω, ϵv, show_b, show_μ, show_σ, show_w, show_ζ, zv, mean(h.pngrid)]
 			(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc_ext[ω, ϵv, show_b, show_μ, show_σ, show_w, show_ζ, zv, mean(h.pngrid)]
-			(valfix, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-			val_int_C += val
-			val_int_Cfix += valfix
+			(valfix, err) = hquadrature(ffix, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+			val_int_C += val * h.λϵ[jϵ] 
+			val_int_Cfix += valfix * h.λϵ[jϵ] 
 		end
 
 		Cz[jz], Cz_fix[jz] = val_int_C, val_int_Cfix
@@ -219,12 +219,12 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 		ωmin_int, ωmax_int = quantile.(LogNormal(show_μ, show_σ), [.005; .995]) + h.ωmin
 		val_int_C, val_int_Cfix = 0., 0.
 		for (jϵ, ϵv) in enumerate(h.ϵgrid)
-			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc_ext[ω, ϵv, bv, show_μ, show_σ, show_w, show_ζ, show_z, show_pN]
+			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * itp_ϕc_ext[ω, ϵv, bv, show_μ, show_σ, show_w, show_ζ, show_z, show_pN]
+			ffix(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * itp_ϕc_ext[ω, ϵv, bv, show_μ, show_σ, show_w, show_ζ, show_z, mean(h.pngrid)]
 			(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * h.λϵ[jϵ] * itp_ϕc_ext[ω, ϵv, bv, show_μ, show_σ, show_w, show_ζ, show_z, mean(h.pngrid)]
-			(valfix, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-			val_int_C += val
-			val_int_Cfix += valfix
+			(valfix, err) = hquadrature(ffix, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+			val_int_C += val * h.λϵ[jϵ] 
+			val_int_Cfix += valfix * h.λϵ[jϵ] 
 		end
 
 		Cb[jb], Cb_fix[jb] = val_int_C, val_int_Cfix
