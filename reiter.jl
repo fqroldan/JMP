@@ -300,12 +300,12 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
 					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * exp_rep[jzp]
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * exp_rep[jzp]
 					ζpv = 2.0
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
 					E_rep += h.Pz[jz, jzp] * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp] * (1.-exp_rep[jzp])
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp])
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * (1.-exp_rep[jzp])
 					check += h.Pz[jz, jzp] * (1.-exp_rep[jzp])
 					check += h.Pz[jz, jzp] * exp_rep[jzp]
 				end
@@ -315,13 +315,13 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
 					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp])
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
 					check += h.Pz[jz, jzp] * h.θ
 					ζ_cont = 2.0
 					μpv = h.μ′[js, jzp, 2]
 					σpv = h.σ′[js, jzp, 2]
 					E_rep += h.Pz[jz, jzp] * (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp] * (1.0 - h.θ)
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp])
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp]) * (1.-h.θ)
 					check += h.Pz[jz, jzp] * (1.0 - h.θ)
 				end
 			end
