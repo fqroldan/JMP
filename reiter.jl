@@ -263,7 +263,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 	init_t = time()
 
-	coupon = h.κ * (1.0 - 0.05)
+	coupon = h.κ * (1.0 - 0.01)
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 
