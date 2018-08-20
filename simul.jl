@@ -93,6 +93,10 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	qprime = q′[jzp, 1]
 
 	if jdef
+		# Compute welfare in case of repayment and default
+		Wr = itp_W[Bprime, μ′[jzp,1], σ′[jzp,1], wt, 1, jzp]
+		Wd = itp_W[Bprime, μ′[jzp,2], σ′[jzp,2], wt, 2, jzp]
+		# Now draw reentry
 		prob_reentry = h.θ
 		reentry = (rand() <= prob_reentry)
 		if reentry
@@ -105,10 +109,11 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 			qprime = q′[jzp, 2]
 			R = (1.0-h.ρ) * qprime
 		end
-		# Compute welfare in case of repayment and default
-		Wr = itp_W[Bprime, μ′[jzp,1], σ′[jzp,1], wt, 1, jzp]
-		Wd = itp_W[Bprime, μ′[jzp,2], σ′[jzp,2], wt, 2, jzp]
 	else
+		# Compute welfare in case reenter and remain
+		Wr = itp_W[Bprime, 			μ′[jzp,1], σ′[jzp,1], wt, 1, jzp]
+		Wd = itp_W[(1.-h.ℏ)*Bprime, μ′[jzp,2], σ′[jzp,2], wt, 2, jzp]
+		# Now draw default
 		if phase == "no def"
 			repay_prime = 1.
 		else
@@ -125,9 +130,6 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 			σprime = σ′[jzp, 2]
 			R = (1.0-h.ℏ)*(1.0-h.ρ) * qprime
 		end
-		# Compute welfare in case remain and reenter
-		Wr = itp_W[Bprime, 			μ′[jzp,1], σ′[jzp,1], wt, 1, jzp]
-		Wd = itp_W[(1.-h.ℏ)*Bprime, μ′[jzp,2], σ′[jzp,2], wt, 2, jzp]
 	end
 
 	savings = ϕa + R*ϕb
