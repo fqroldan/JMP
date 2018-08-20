@@ -425,45 +425,100 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	adj = sum(h.λϵ.*exp.(h.ϵgrid))
 	agg_income = wL_vec + Π_vec / adj
 
-	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
-		for js in 1:size(h.Jgrid, 1)
-			jb = h.Jgrid[js, 1]
-			jμ = h.Jgrid[js, 2]
-			jσ = h.Jgrid[js, 3]
-			jw = h.Jgrid[js, 4]
-			jζ = h.Jgrid[js, 5]
-			jz = h.Jgrid[js, 6]
-			yd_mat[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ωv + agg_income[js] * exp(ϵv) - T_vec[js]
-			pC_big[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = pC_mat[js]
-		end
+	def_prob = zeros(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
+
+	jpn = ceil(Int, length(h.pngrid)/2)
+	pnv = h.pngrid[jpn]
+	N = size(h.Jgrid, 1)
+	wage_pn, labor_pn, profits_pn = Array{Float64, 1}(N), Array{Float64, 1}(N), Array{Float64, 1}(N)
+	for js in 1:N
+		jw = h.Jgrid[js, 4]
+		jζ = h.Jgrid[js, 5]
+		jz = h.Jgrid[js, 6]
+
+		wv = h.wgrid[jw]
+		ζv = h.ζgrid[jζ]
+		zv = h.zgrid[jz]
+
+		labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, ζv, zv, wv, pnv)
 	end
 
+	pC = price_index(h, pnv)
+	pC_fix = ones(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * pC
+
+	T_fix = govt_bc(h, wage_pn.*labor_pn)# - reshape(profits_pn - h.profits, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	Π_fix = reshape(profits_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+
+	wL_fix  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * (1.0 - h.τ)
+
+	yd_fix = zeros(h.ϕc)
+    pC_bigfix = zeros(h.ϕc)
+	for js in 1:size(h.Jgrid, 1)
+		jb = h.Jgrid[js, 1]
+		jμ = h.Jgrid[js, 2]
+		jσ = h.Jgrid[js, 3]
+		jw = h.Jgrid[js, 4]
+		jζ = h.Jgrid[js, 5]
+		jz = h.Jgrid[js, 6]
+		for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
+			yd_mat[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ωv + agg_income[js] * exp(ϵv) - T_vec[js]
+			pC_big[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = pC_mat[js]
+
+			yd_fix[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ωv + (wL_fix[jb, jμ, jσ, jw, jζ, jz] + Π_fix[jb, jμ, jσ, jw, jζ, jz]/adj) * exp(ϵv) - T_fix[jb, jμ, jσ, jw, jζ, jz]
+			pC_bigfix[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = pC_fix[jb, jμ, jσ, jw, jζ, jz]
+		end
+		for jzp in 1:h.Nz
+			def_prob[jb, jμ, jσ, jw, jζ, jz] += h.Pz[jz, jzp] * (1.-rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp])
+		end
+	end
+	ϕc_ext_mat = h.ϕc_ext[:,:,:,:,:,:,:,:,jpn]
+	
 	Srate = 1. - pC_big .* ϕc_mat ./ yd_mat
+	Sratef= 1. - pC_bigfix .* ϕc_ext_mat ./ yd_mat
 
 	pq1 = lines(h, qᵍ_mat,  1, "Price of government debt")
 	pq2 = lines(h, qᵍ_mat,  2)
 	pq3 = lines(h, qᵍ_mat,  3)
 	pq4 = lines(h, qᵍ_mat,  4)
 	pq6 = lines(h, qᵍ_mat,  6)
+	
+	pd1 = lines(h, def_prob,  1, "One-period def prob")
+	pd2 = lines(h, def_prob,  2)
+	pd3 = lines(h, def_prob,  3)
+	pd4 = lines(h, def_prob,  4)
+	pd6 = lines(h, def_prob,  6)
 
 	jω1, jω2 = 1, ceil(Int, h.Nω / 2)
 	jϵ_show = ceil(Int, h.Nϵ/2)
-	pc1p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω1],2))")
-	pc2p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  2)
-	pc3p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  3)
-	pc4p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  4)
-	pc6p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  6)
+	pc1p = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω1],2))")
+	pc2p = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  2)
+	pc3p = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  3)
+	pc4p = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  4)
+	pc6p = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  6)
 
-	pc1r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω2],2))")
-	pc2r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  2)
-	pc3r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  3)
-	pc4r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  4)
-	pc6r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  6)
+	pc1r = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω2],2))")
+	pc2r = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  2)
+	pc3r = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  3)
+	pc4r = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  4)
+	pc6r = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  6)
+	
+#	pc1pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  1, "S/Y at ω = $(round(h.ωgrid[jω1],2)), fixed pN")
+#	pc2pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  2)
+#	pc3pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  3)
+#	pc4pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  4)
+#	pc6pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  6)
+
+#	pc1rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  1, "S/Y at ω = $(round(h.ωgrid[jω2],2)), fixed pN")
+#	pc2rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  2)
+#	pc3rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  3)
+#	pc4rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  4)
+#	pc6rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  6)
 
 
-	p = [pq1 pq2 pq3 pq4 pq6; pc1p pc2p pc3p pc4p pc6p; pc1r pc2r pc3r pc4r pc6r]
+	p = [pq1 pq2 pq3 pq4 pq6; pd1 pd2 pd3 pd4 pd6; pc1p pc2p pc3p pc4p pc6p; pc1r pc2r pc3r pc4r pc6r]#; pc1pf pc2pf pc3pf pc4pf pc6pf; pc1rf pc2rf pc3rf pc4rf pc6rf]
 	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 800/1.5
+	p.plot.layout["height"] = 800/1.15
 	p.plot.layout["font_family"] = "Fira Sans Light"
 	if remote
 		path = pwd() * "/../../Graphs/"
