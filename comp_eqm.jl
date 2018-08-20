@@ -398,7 +398,7 @@ function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 end
 
 
-function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry; get_μσ::Bool=false)
+function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, ζpv, jzp, jdef, itp_qᵍ, reentry; get_μσ::Bool=false)
 
 	zpv = h.zgrid[jzp]
 
@@ -408,7 +408,7 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, 
 		ζpv = 2
 		haircut = 0.0
 	end
-	if jdef == false && exp_rep[jzp] < 0.5
+	if jdef == false && ζpv == 2
 		ζpv = 2
 		haircut = h.ℏ
 	end
@@ -424,15 +424,6 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, 
 	varω >= 0. || print_save("\nvar_a, var_b, cov_ab, R, q = $(var_a), $(var_b), $(cov_ab), $(R), $(q)")
 
 	μpv, σpv = make_logN(Eω - h.ωmin, varω)
-
-	# Eσ2 = 1.0 + varω / ( (Eω - h.ωmin)^2 )
-
-	# Eσ2 >= 1. || print_save("\n1 + vω / (Eω-ωmin)² = $(Eσ2)")
-
-	# σ2 = log( Eσ2 )
-
-	# μpv = log(Eω - h.ωmin) - 0.5 * σ2
-	# σpv = sqrt(σ2)
 
 	new_q = itp_qᵍ[(1.0 - haircut) .* Bpv, μpv, σpv, wpv, ζpv, jzp]
 
@@ -454,30 +445,44 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 	alarm_mat = Array{Float64, 2}(h.Nz, 2)
 
 	for (jzp, zpv) in enumerate(h.zgrid)
+		# First any case where ζ′ = 1
 		reentry = true
+		ζpv = 1
 		qmin, qmax = minimum(h.qᵍ), maximum(h.qᵍ)
 
 		res = Optim.optimize(
-			q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry) - q)^2,
+			q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, ζpv, jzp, jdef, itp_qᵍ, reentry) - q)^2,
 			qmin, qmax, GoldenSection()
 			)
 		q[jzp, 1] = res.minimizer
 		res.minimum > 1e-4? alarm_mat[jzp, 1] = 1: alarm_mat[jzp, 1] = 0
 
-		μ[jzp, 1], σ[jzp, 1] = find_q(h, q[jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
+		μ[jzp, 1], σ[jzp, 1] = find_q(h, q[jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, wpv, ζpv, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 
 		if jdef
+			# If default continues
 			reentry = false
+			ζpv = 2 # Irrelevant but to stress that the default state continues
 			res = Optim.optimize(
-				q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry) - q)^2,
+				q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, ζpv, jzp, jdef, itp_qᵍ, reentry) - q)^2,
 				qmin, qmax, GoldenSection()
 				)
 			q[jzp, 2] = res.minimizer
 			res.minimum > 1e-4? alarm_mat[jzp, 2] = 1: alarm_mat[jzp, 2] = 0
 
-			μ[jzp, 2], σ[jzp, 2] = find_q(h, q[jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, wpv, exp_rep, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
+			μ[jzp, 2], σ[jzp, 2] = find_q(h, q[jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, wpv, ζpv, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 		else
-			μ[jzp, 2], σ[jzp, 2], q[jzp, 2], alarm_mat[jzp, 2] = μ[jzp, 1], σ[jzp, 1], q[jzp, 1], alarm_mat[jzp, 1]
+			# Entering default
+			reentry = true # Irrelevant
+			ζpv = 2
+			res = Optim.optimize(
+				q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, ζpv, jzp, jdef, itp_qᵍ, reentry) - q)^2,
+				qmin, qmax, GoldenSection()
+				)
+			q[jzp, 2] = res.minimizer
+			res.minimum > 1e-4? alarm_mat[jzp, 2] = 1: alarm_mat[jzp, 2] = 0
+
+			μ[jzp, 2], σ[jzp, 2] = find_q(h, q[jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, wpv, ζpv, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 		end
 	end
 	return μ, σ, q, alarm_mat

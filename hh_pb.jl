@@ -133,11 +133,11 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz
 				Ev += EZ_G(h, v) * prob * exp_rep[jzp]
 				# Default
 				ζpv = 2
-				Rb = (1. - h.ρ) * (1.- h.ℏ) * qᵍp[jzp, 3]
+				Rb = (1. - h.ρ) * (1.- h.ℏ) * qᵍp[jzp, 2]
 				# Re = profits[jzp, 3]
 				ωpv = ap + bp * Rb# + ep * Re
 				ωpv = min(h.ωmax, ωpv)
-				v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 3)
+				v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 2)
 				Ev += EZ_G(h, v) * prob * (1.- exp_rep[jzp])
 			end
 		end
@@ -310,23 +310,29 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 
 		jdef = (h.ζgrid[jζ] != 1.0)
 
-		qᵍp = Array{Float64}(h.Nz, 3)
-		itp_vf_s = Arr_itp_VF(h.Nz, 3)
+		qᵍp = Array{Float64}(h.Nz, 2)
+		itp_vf_s = Arr_itp_VF(h.Nz, 2)
 		for (jzp, zpv) in enumerate(h.zgrid)
 			qᵍp[jzp, 1] = itp_qᵍ[bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]
-			qᵍp[jzp, 2] = itp_qᵍ[bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
-			qᵍp[jzp, 3] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, jzp]
+			if jdef
+				qᵍp[jzp, 2] = itp_qᵍ[bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
+			else
+				qᵍp[jzp, 2] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
+			end
 
 			vf_mat = Array{Float64}(h.Nω, h.Nϵ, 3)
 			for (jϵp, ϵpv) in enumerate(h.ϵgrid)
 				for (jωp, ωpv) in enumerate(h.ωgrid)
 					vf_mat[jωp, jϵp, 1] = itp_vf[ωpv, jϵp, bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]
-					vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
-					vf_mat[jωp, jϵp, 3] = itp_vf[ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, jzp]
+					if jdef
+						vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
+					else
+						vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, jzp]
+					end
 				end
 
 				knots = (h.ωgrid, 1:h.Nϵ)
-				for jj in 1:3
+				for jj in 1:2
 					itp_vf_s[jzp, jj] = interpolate(knots, vf_mat[:,:,jj], (Gridded(Linear()), NoInterp()))
 					# unscaled = interpolate(vf_mat[:,:,jj], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
 					# itp_vf_s[jzp, jj] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
