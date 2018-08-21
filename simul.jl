@@ -141,6 +141,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	λprime = Q' * λt
 
+	# print("\n$(sum(λprime))")
+
 	# Fill the path for next period
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
