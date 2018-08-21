@@ -529,6 +529,102 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	Void
 end
 
+function plot_eulereq(h::Hank; remote::Bool=false)
+	ExpRealRet = zeros(h.Ns, h.Nz, 2)
+	EZ = zeros(h.Nω, h.Nϵ, 1, h.Nϵ, h.Nz, 2)
+	EIS = zeros(h.Nω, h.Nϵ, 1, h.Nϵ, h.Nz, 2)
+
+	pC_vec = price_index(h, h.pN)
+
+	itp_qᵍ = make_itp(h, h.qᵍ, agg=true)
+	itp_pC = make_itp(h, pC_vec, agg=true)
+	itp_ϕc = make_itp(h, h.ϕc, agg=false)
+	itp_vf = make_itp(h, h.vf, agg=false)
+
+	for (js, js_show) in enumerate(572)
+		jb = h.Jgrid[js_show, 1]
+		jμ = h.Jgrid[js_show, 2]
+		jσ = h.Jgrid[js_show, 3]
+		jw = h.Jgrid[js_show, 4]
+		jζ = h.Jgrid[js_show, 5]
+		jz = h.Jgrid[js_show, 6]
+
+		bp = h.issuance[js_show]
+		μp = h.μ′[js_show,:,:]
+		σp = h.σ′[js_show,:,:]
+		wpv = h.wage[js_show]
+
+		pCv = price_index(h, h.pN[js_show])
+		for jzp in 1:h.Nz
+			# In repayment
+			bpv = bp
+			μpv = μp[jzp, 1]
+			σpv = σp[jzp, 1]
+			Rb = h.κ + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, 1, jzp]
+			ExpRealRet[js, jzp, 1] = Rb * itp_pC[bpv, μpv, σpv, wpv, 1, jzp] / pCv
+
+			# In default
+			haircut = (1.-h.ℏ*(jζ==1))
+			bpv = haircut * bp
+			μpv = μp[jzp, 2]
+			σpv = σp[jzp, 2]
+			Rb = h.κ + (1.-h.ρ) * haircut * itp_qᵍ[bpv, μpv, σpv, wpv, 2, jzp]
+			ExpRealRet[js, jzp, 1] = Rb * itp_pC[bpv, μpv, σpv, wpv, 2, jzp] / pCv
+		end
+
+		rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
+		for (jω, ωv) in enumerate(h.ωgrid)
+			for jϵ in 1:h.Nϵ
+				Tvf = 0.
+				V = zeros(h.Nϵ, h.Nz, 2)
+				Cv = h.ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
+				Vf = h.vf[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
+
+				A = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
+				B = h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
+				for jzp in 1:h.Nz
+					rep_prob = rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp] * (jζ == 1) + h.θ * (jζ == 2)
+
+					# First in repayment
+					bpv = bp
+					μpv = μp[jzp, 1]
+					σpv = σp[jzp, 1]
+					R = h.κ + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, 1, jzp]
+					
+					ωpv = A + R * B
+					for jϵp in 1:h.Nϵ
+						V_t = itp_vf[ωpv, jϵp, bpv, μpv, σpv, wpv, 1, jzp]
+						V[jϵp, jzp, 1] = V_t
+						EIS[jω, jϵ, js, jϵp, jzp, 1] = (itp_ϕc[ωpv, jϵp, bpv, μpv, σpv, wpv, 1, jzp] / Cv)^(-1./h.ψ)
+						Tvf += V_t^(1.-h.γ) * h.Pϵ[jϵ, jϵp] * h.Pz[jz, jzp] * rep_prob
+					end
+					
+					# Then in default
+					haircut = (1.-h.ℏ*(jζ==1))
+					bpv = haircut * bp
+					μpv = μp[jzp, 2]
+					σpv = σp[jzp, 2]
+					R = h.κ + (1.-h.ρ) * haircut * itp_qᵍ[bpv, μpv, σpv, wpv, 2, jzp]
+					
+					ωpv = A + R * B
+					for jϵp in 1:h.Nϵ
+						V_t = itp_vf[ωpv, jϵp, bpv, μpv, σpv, wpv, 2, jzp]
+						V[jϵp, jzp, 2] = V_t
+						EIS[jω, jϵ, js, jϵp, jzp, 2] = (itp_ϕc[ωpv, jϵp, bpv, μpv, σpv, wpv, 2, jzp] / Cv)^(-1./h.ψ)
+						Tvf += V_t^(1.-h.γ) * h.Pϵ[jϵ, jϵp] * h.Pz[jz, jzp] * (1.-rep_prob)
+						
+						EZ[jω, jϵ, js, jϵp, jzp, 1] = (V[jϵp, jzp, 1] ./ Tvf).^(1./h.ψ - h.γ)
+						EZ[jω, jϵ, js, jϵp, jzp, 2] = (V[jϵp, jzp, 2] ./ Tvf).^(1./h.ψ - h.γ)
+					end
+				end
+			end
+		end
+	end
+	SDF = EZ .* EIS
+
+	Void
+end
+
 function plot_aggcons(h::Hank; remote::Bool=false)
 	jμ, jσ, jw = ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2)
 	μv, σv, wv = h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw]
