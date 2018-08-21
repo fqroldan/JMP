@@ -39,7 +39,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	def_prob = 0.
 	if ζt == 1
 		for (jzp, zvp) in enumerate(h.zgrid)
-			def_prob += h.Pz[jz, jzp] * exp_rep[jzp]
+			def_prob += h.Pz[jz, jzp] * (1.-exp_rep[jzp])
 		end
 	end
 
@@ -48,13 +48,13 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	# Integrate the household's policy functions to get μ′, σ′
 	ϕa = zeros(h.Nω_fine*h.Nϵ)
 	ϕb = zeros(h.Nω_fine*h.Nϵ)
+
 	js = 0
-	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		for (jω, ωv) in enumerate(h.ωgrid_fine)
-			js += 1
-			ϕa[js] = itp_ϕa[ωv, jϵ, Bt, μt, σt, w0, ζt, jz]
-			ϕb[js] = itp_ϕb[ωv, jϵ, Bt, μt, σt, w0, ζt, jz]
-		end
+	ωvjϵ = gridmake(h.ωgrid_fine, 1:h.Nϵ)
+	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid_fine)
+		js += 1
+		ϕa[js] = itp_ϕa[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
+		ϕb[js] = itp_ϕb[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
 	end
 
 	a  = dot(λt, ϕa)
@@ -163,8 +163,8 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	B0, μ0, σ0, w0, ζ0, z0 = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], h.zgrid[jz]
 	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w => w0, :ζ => ζ0, :z => z0))
 
-	itp_ϕa = make_itp(h, h.ϕa; agg=false)
-	itp_ϕb = make_itp(h, h.ϕb; agg=false)
+	itp_ϕa = make_itp(h, h.ϕa_ext; agg=false)
+	itp_ϕb = make_itp(h, h.ϕb_ext; agg=false)
 	itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
 	itp_vf = make_itp(h, h.vf; agg=false)
 
