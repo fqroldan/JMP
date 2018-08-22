@@ -541,8 +541,21 @@ end
 
 function plot_eulereq(h::Hank; remote::Bool=false)
 	ExpRealRet = zeros(h.Ns, h.Nz, 2)
+	ExpExpRealRet = zeros(h.Ns, h.Nz)
 	EZ = zeros(h.Nω, h.Nϵ, 1, h.Nϵ, h.Nz, 2)
 	EIS = zeros(h.Nω, h.Nϵ, 1, h.Nϵ, h.Nz, 2)
+
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.4), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+
+	jshow_ω, jshow_ϵ = ceil(Int, h.Nω*0.75), ceil(Int, h.Nϵ*0.5)
+
+	jshow_s = findfirst((h.Jgrid[:,1].==jshow_b) .*
+						(h.Jgrid[:,2].==jshow_μ) .* 
+						(h.Jgrid[:,3].==jshow_σ) .*
+						(h.Jgrid[:,4].==jshow_w) .*
+						(h.Jgrid[:,5].==jshow_ζ) .*
+						(h.Jgrid[:,6].==jshow_z)
+						)
 
 	pC_vec = price_index(h, h.pN)
 
@@ -551,7 +564,9 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 	itp_ϕc = make_itp(h, h.ϕc, agg=false)
 	itp_vf = make_itp(h, h.vf, agg=false)
 
-	for (js, js_show) in enumerate(572)
+	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
+
+	for (js, js_show) in enumerate(1:size(h.Jgrid, 1))
 		jb = h.Jgrid[js_show, 1]
 		jμ = h.Jgrid[js_show, 2]
 		jσ = h.Jgrid[js_show, 3]
@@ -571,7 +586,8 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 			μpv = μp[jzp, 1]
 			σpv = σp[jzp, 1]
 			Rb = h.κ + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, 1, jzp]
-			ExpRealRet[js, jzp, 1] = Rb * itp_pC[bpv, μpv, σpv, wpv, 1, jzp] / pCv
+			ExpRealRet[js, jzp, 1] = Rb * itp_pC[bpv, μpv, σpv, wpv, 1, jzp] / pCv * h.Pz[jz, jzp]
+			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 1] * rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp] * h.Pz[jz, jzp]
 
 			# In default
 			haircut = (1.-h.ℏ*(jζ==1))
@@ -579,10 +595,23 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 			μpv = μp[jzp, 2]
 			σpv = σp[jzp, 2]
 			Rb = h.κ + (1.-h.ρ) * haircut * itp_qᵍ[bpv, μpv, σpv, wpv, 2, jzp]
-			ExpRealRet[js, jzp, 1] = Rb * itp_pC[bpv, μpv, σpv, wpv, 2, jzp] / pCv
+			ExpRealRet[js, jzp, 2] = Rb * itp_pC[bpv, μpv, σpv, wpv, 2, jzp] / pCv * h.Pz[jz, jzp]
+			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 2] * (1.-rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp]) * h.Pz[jz, jzp]
 		end
+	end
+	for (js, js_show) in enumerate(jshow_s)
+		jb = h.Jgrid[js_show, 1]
+		jμ = h.Jgrid[js_show, 2]
+		jσ = h.Jgrid[js_show, 3]
+		jw = h.Jgrid[js_show, 4]
+		jζ = h.Jgrid[js_show, 5]
+		jz = h.Jgrid[js_show, 6]
+		
+		bp = h.issuance[js_show]
+		μp = h.μ′[js_show,:,:]
+		σp = h.σ′[js_show,:,:]
+		wpv = h.wage[js_show]
 
-		rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 		for (jω, ωv) in enumerate(h.ωgrid)
 			for jϵ in 1:h.Nϵ
 				Tvf = 0.
@@ -632,7 +661,21 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 	end
 	SDF = EZ .* EIS
 
-	Void
+	ESDF = zeros(h.Nω, h.Nϵ, h.Nz, 2)
+	for jζp in 1:2, jzp in 1:h.Nz, jϵp in 1:h.Nϵ, js in 1:1, jϵ in 1:h.Nϵ, jω in 1:h.Nω
+		jz = h.Jgrid[jshow_s, 6]
+		ESDF[jω, jϵ, jzp, jζp] += SDF[jω, jϵ, js, jϵp, jzp, jζp] * h.Pϵ[jϵ,jϵp] * h.Pz[jz, jzp]
+	end
+
+	p = plot([
+		scatter(;x=h.zgrid, y=ExpRealRet[jshow_s, :, 1], name="Ret in rep")
+		scatter(;x=h.zgrid, y=ExpRealRet[jshow_s, :, 2], name="Ret in def", line_dash = "dashdot")
+		scatter(;x=h.zgrid, y=ExpExpRealRet[jshow_s, :], name="Avg ret", line_dash = "dot", opacity = 0.75, line_width = 1)
+		scatter(;x=h.zgrid, y=ESDF[jshow_ω, jshow_ϵ, :, 1], name="SDF in rep")
+		scatter(;x=h.zgrid, y=ESDF[jshow_ω, jshow_ϵ, :, 2], name="SDF in def")
+		])
+
+	p
 end
 
 function plot_aggcons(h::Hank; remote::Bool=false)
