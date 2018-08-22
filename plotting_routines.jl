@@ -1,5 +1,5 @@
 using Interpolations, PlotlyJS
-
+include("comp_eqm.jl")
 col = [	"#1f77b4",  # muted blue
 		"#ff7f0e",  # safety orange
 		"#2ca02c",  # cooked asparagus green
@@ -539,13 +539,67 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	Void
 end
 
+function contour_debtprice(h::Hank; remote::Bool=false)
+	qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.4), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+
+	ctbz = contour(;
+		x = h.bgrid, y = exp.(h.zgrid),
+		z = qᵍ_mat[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
+		contours_coloring="heatmap",
+		colorscale = "Magma", colorbar_dtick=0.1
+		)
+	pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))
+
+#=	μσ_grid = gridmake(h.μgrid, h.σgrid)
+	m_grid, v_grid = unmake_logN(μσ_grid[:,1], μσ_grid[:,2])
+
+	ctμσ = contour(;
+		x = m_grid, y = v_grid.^0.5,
+		z = qᵍ_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z],
+		contours_coloring="heatmap",
+		colorscale = "Magma", colorbar_dtick=0.1
+		)
+
+	pμσ = plot(ctμσ, Layout(; title="Price of debt", xaxis_title="mean", yaxis_title="std"))=#
+
+	ctμσ = contour(;
+		x = h.μgrid, y = h.σgrid,
+		z = qᵍ_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z],
+		contours_coloring="heatmap",
+		colorscale = "Magma", colorbar_dtick=0.1
+		)
+
+	pμσ = plot(ctμσ, Layout(;xaxis_title="μ", yaxis_title="σ"))
+
+	p = [pbz pμσ]
+	p.plot.layout["title"] = "Price of Debt"
+	p.plot.layout["font_size"] = 14
+	p.plot.layout["width"] = 800
+	p.plot.layout["height"] = 400
+	p.plot.layout["font_family"] = "Fira Sans Light"
+	p.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+	p.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.5)"
+	if remote
+		path = pwd() * "/../../Graphs/"
+		save(path * "p_debtprice.jld", "p", p)
+	else
+		path = pwd() * "/../Graphs/"
+		# savefig(p, path * "debtprice.pdf")
+		return p
+	end
+	Void
+end
+
 function plot_eulereq(h::Hank; remote::Bool=false)
 	ExpRealRet = zeros(h.Ns, h.Nz, 2)
 	ExpExpRealRet = zeros(h.Ns, h.Nz)
+	probs = zeros(h.Ns, h.Nz)
 	EZ = zeros(h.Nω, h.Nϵ, 1, h.Nϵ, h.Nz, 2)
 	EIS = zeros(h.Nω, h.Nϵ, 1, h.Nϵ, h.Nz, 2)
 
-	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.4), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
 
 	jshow_ω, jshow_ϵ = ceil(Int, h.Nω*0.75), ceil(Int, h.Nϵ*0.5)
 
@@ -586,17 +640,18 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 			μpv = μp[jzp, 1]
 			σpv = σp[jzp, 1]
 			Rb = h.κ + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, 1, jzp]
-			ExpRealRet[js, jzp, 1] = Rb * itp_pC[bpv, μpv, σpv, wpv, 1, jzp] / pCv * h.Pz[jz, jzp]
-			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 1] * rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp] * h.Pz[jz, jzp]
+			probs[js, jzp] = h.Pz[jz, jzp]
+			ExpRealRet[js, jzp, 1] = Rb * itp_pC[bpv, μpv, σpv, wpv, 1, jzp] / pCv * h.Pz[jz, jzp] / h.qᵍ[js]
+			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 1] * rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp]
 
 			# In default
 			haircut = (1.-h.ℏ*(jζ==1))
 			bpv = haircut * bp
 			μpv = μp[jzp, 2]
 			σpv = σp[jzp, 2]
-			Rb = h.κ + (1.-h.ρ) * haircut * itp_qᵍ[bpv, μpv, σpv, wpv, 2, jzp]
-			ExpRealRet[js, jzp, 2] = Rb * itp_pC[bpv, μpv, σpv, wpv, 2, jzp] / pCv * h.Pz[jz, jzp]
-			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 2] * (1.-rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp]) * h.Pz[jz, jzp]
+			Rb = (1.-h.ρ) * haircut * itp_qᵍ[bpv, μpv, σpv, wpv, 2, jzp]
+			ExpRealRet[js, jzp, 2] = Rb * itp_pC[bpv, μpv, σpv, wpv, 2, jzp] / pCv * h.Pz[jz, jzp] / h.qᵍ[js]
+			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 2] * (1.-rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp])
 		end
 	end
 	for (js, js_show) in enumerate(jshow_s)
@@ -671,8 +726,9 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 		scatter(;x=h.zgrid, y=ExpRealRet[jshow_s, :, 1], name="Ret in rep")
 		scatter(;x=h.zgrid, y=ExpRealRet[jshow_s, :, 2], name="Ret in def", line_dash = "dashdot")
 		scatter(;x=h.zgrid, y=ExpExpRealRet[jshow_s, :], name="Avg ret", line_dash = "dot", opacity = 0.75, line_width = 1)
-		scatter(;x=h.zgrid, y=ESDF[jshow_ω, jshow_ϵ, :, 1], name="SDF in rep")
-		scatter(;x=h.zgrid, y=ESDF[jshow_ω, jshow_ϵ, :, 2], name="SDF in def")
+		scatter(;x=h.zgrid, y=probs[jshow_s, :], name="prob of z'", opacity=0.75)
+		# scatter(;x=h.zgrid, y=ESDF[jshow_ω, jshow_ϵ, :, 1], name="SDF in rep")
+		# scatter(;x=h.zgrid, y=ESDF[jshow_ω, jshow_ϵ, :, 2], name="SDF in def")
 		])
 
 	p
