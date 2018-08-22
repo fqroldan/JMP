@@ -88,19 +88,22 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_hh.jld", "p", p)
 	else
-		savefig(p, pwd() * "/../Graphs/hh.pdf")
+		path = pwd() * "/../Graphs/"
+		# savefig(p, path * "hh.pdf")
+		return p
 	end
 
 	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[2], h.zgrid[1]
 
-	p = hh_pol(h, show_b, show_μ, show_σ, show_w, show_ζ, show_z)
+	# p = hh_pol(h, show_b, show_μ, show_σ, show_w, show_ζ, show_z)
 
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_hh_def.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
-		savefig(p, path * "hh_def.pdf")
+		# savefig(p, path * "hh_def.pdf")
+		return p
 	end
 
 	return Void
@@ -176,7 +179,8 @@ function plot_hh_policies_z(h::Hank; remote::Bool=false)
 		save(path * "p_hh_z.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
-		savefig(p, path * "hh_z.pdf")
+		# savefig(p, path * "hh_z.pdf")
+		return p
 	end
 	Void
 end
@@ -250,7 +254,8 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 		save(path * "p_hh_b.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
-		savefig(p, path * "hh_b.pdf")
+		# savefig(p, path * "hh_b.pdf")
+		return p
 	end
 	Void
 end
@@ -359,7 +364,9 @@ function plot_gov_welf(h::Hank; remote::Bool=false)
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_objfunc.jld", "p", p)
 	else
-		savefig(p, pwd() * "/../Graphs/objfunc.pdf")
+		path = pwd() * "/../Graphs/"
+		# savefig(p, path * "objfunc.pdf")
+		return p
 	end
 	Void
 end
@@ -406,7 +413,9 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_reactions.jld", "p", p)
 	else
-		savefig(p, pwd() * "/../Graphs/reactions.pdf")
+		path = pwd() * "/../Graphs/"
+		# savefig(p, path * "reactions.pdf")
+		return p
 	end
 	Void
 end
@@ -451,8 +460,7 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	Π_fix = reshape(profits_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	wL_fix  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * (1.0 - h.τ)
-
-	yd_fix = zeros(h.ϕc)
+    yd_fix = zeros(h.ϕc)
     pC_bigfix = zeros(h.ϕc)
 	for js in 1:size(h.Jgrid, 1)
 		jb = h.Jgrid[js, 1]
@@ -489,42 +497,44 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	pd4 = lines(h, def_prob,  4)
 	pd6 = lines(h, def_prob,  6)
 
-	jω1, jω2 = 1, ceil(Int, h.Nω / 2)
+	jω1, jω2 = 2, 4
 	jϵ_show = ceil(Int, h.Nϵ/2)
-	pc1p = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω1],2))")
-	pc2p = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  2)
-	pc3p = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  3)
-	pc4p = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  4)
-	pc6p = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  6)
+	pc1p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω1],2))")
+	pc2p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  2)
+	pc3p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  3)
+	pc4p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  4)
+	pc6p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  6)
 
-	pc1r = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω2],2))")
-	pc2r = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  2)
-	pc3r = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  3)
-	pc4r = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  4)
-	pc6r = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  6)
+	pc1r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω2],2))")
+	pc2r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  2)
+	pc3r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  3)
+	pc4r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  4)
+	pc6r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  6)
 	
-#	pc1pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  1, "S/Y at ω = $(round(h.ωgrid[jω1],2)), fixed pN")
-#	pc2pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  2)
-#	pc3pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  3)
-#	pc4pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  4)
-#	pc6pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  6)
+	pc1pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  1, "S/Y at ω = $(round(h.ωgrid[jω1],2)), fixed pN")
+	pc2pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  2)
+	pc3pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  3)
+	pc4pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  4)
+	pc6pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  6)
 
-#	pc1rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  1, "S/Y at ω = $(round(h.ωgrid[jω2],2)), fixed pN")
-#	pc2rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  2)
-#	pc3rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  3)
-#	pc4rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  4)
-#	pc6rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  6)
+	pc1rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  1, "S/Y at ω = $(round(h.ωgrid[jω2],2)), fixed pN")
+	pc2rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  2)
+	pc3rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  3)
+	pc4rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  4)
+	pc6rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  6)
 
 
-	p = [pq1 pq2 pq3 pq4 pq6; pd1 pd2 pd3 pd4 pd6; pc1p pc2p pc3p pc4p pc6p; pc1r pc2r pc3r pc4r pc6r]#; pc1pf pc2pf pc3pf pc4pf pc6pf; pc1rf pc2rf pc3rf pc4rf pc6rf]
+	p = [pq1 pq2 pq3 pq4 pq6; pd1 pd2 pd3 pd4 pd6; pc1p pc2p pc3p pc4p pc6p; pc1r pc2r pc3r pc4r pc6r; pc1pf pc2pf pc3pf pc4pf pc6pf; pc1rf pc2rf pc3rf pc4rf pc6rf]
 	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 800/1.15
+	p.plot.layout["height"] = 800*1.15
 	p.plot.layout["font_family"] = "Fira Sans Light"
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_debtprice.jld", "p", p)
 	else
-		savefig(p, pwd() * "/../Graphs/debtprice.pdf")
+		path = pwd() * "/../Graphs/"
+		# savefig(p, path * "debtprice.pdf")
+		return p
 	end
 	Void
 end
@@ -677,7 +687,9 @@ function plot_aggcons(h::Hank; remote::Bool=false)
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_aggcons.jld", "p", p)
 	else
-		savefig(p, pwd() * "/../Graphs/aggcons.pdf")
+		path = pwd() * "/../Graphs/"
+		# savefig(p, path * "aggcons.pdf")
+		return p
 	end
 	p2 = [p2_vec[1] p2_vec[2]; p2_vec[3] p2_vec[4]]
 	p2.plot.layout["width"] = 800
@@ -748,7 +760,9 @@ function plot_state_funcs(h::Hank; remote::Bool=false)
 			path = pwd() * "/../../Graphs/"
 			save(path * "p_statefuncs$(jp).jld", "p", p)
 		else
-			savefig(p, pwd() * "/../Graphs/statefuncs$(jp).pdf")
+			path = pwd() * "/../Graphs/"
+			# savefig(p, path * "statefuncs$(jp).pdf")
+			return p
 		end
 	end
 	Void
@@ -794,7 +808,9 @@ function plot_LoM(h::Hank; remote::Bool=false)
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_LoMs.jld", "p", p)
 	else
-		savefig(p, pwd() * "/../Graphs/LoMs.pdf")
+		path = pwd() * "/../Graphs/"
+		# savefig(p, path * "LoMs.pdf")
+		return p
 	end
 	Void
 end
@@ -842,12 +858,16 @@ function plot_labor_demand(h::Hank; remote::Bool=false)
 		save(path * "p_labordemand.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
-		savefig(p, path * "labordemand.pdf")
+		# savefig(p, path * "labordemand.pdf")
+		return p
 	end
 	Void
 end
 
-function plot_nontradables(h::Hank; remote::Bool=false)
+function plot_nontradables(h::Hank; wrt::String="", remote::Bool=false)
+	if wrt != "B" && wrt != "z"
+		throw(error("Must specify B or z as wrt"))
+	end
 	jb = ceil(Int, h.Nb/2)
 	jμ = ceil(Int, h.Nμ/2)
 	jσ = ceil(Int, h.Nσ/2)
@@ -884,12 +904,15 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 	minq = minq * 0.9
 
 	p = plot([l[jb] for jb in 1:2*h.Nb], Layout(; yaxis_title="pₙ", xaxis_title="Q", xaxis_range=[0., maxq]))
-	if remote
-		path = pwd() * "/../../Graphs/"
-		save(path * "p_nontradables_B.jld", "p", p)
-	else
-		path = pwd() * "/../Graphs/"
-		savefig(p, path * "nontradables_B.pdf")
+	if wrt == "B"
+		if remote
+			path = pwd() * "/../../Graphs/"
+			save(path * "p_nontradables_B.jld", "p", p)
+		else
+			path = pwd() * "/../Graphs/"
+			# savefig(p, path * "nontradables_B.pdf")
+			return p
+		end
 	end
 
 	jb = ceil(Int, h.Nb/2)
@@ -922,14 +945,17 @@ function plot_nontradables(h::Hank; remote::Bool=false)
 
 	p = plot([l[jz,1] for jz in 1:2*h.Nz], Layout(; yaxis_title="pₙ", xaxis_title="Q", xaxis_range=[0., maxq]))
 
-	if remote
-		path = pwd() * "/../../Graphs/"
-		save(path * "p_nontradables_z.jld", "p", p)
-		p = plot([l[jz,2] for jz in 1:h.Nz], Layout(;xaxis_title="Q", yaxis_title="pₙ", xaxis_range=[0., maxq]))
-		save(path * "p_nontradables_z2.jld", "p", p)
-	else
-		path = pwd() * "/../Graphs/"
-		savefig(p, path * "nontradables_z.pdf")
+	if wrt == "z"
+		if remote
+			path = pwd() * "/../../Graphs/"
+			save(path * "p_nontradables_z.jld", "p", p)
+			p = plot([l[jz,2] for jz in 1:h.Nz], Layout(;xaxis_title="Q", yaxis_title="pₙ", xaxis_range=[0., maxq]))
+			save(path * "p_nontradables_z2.jld", "p", p)
+		else
+			path = pwd() * "/../Graphs/"
+			# savefig(p, path * "nontradables_z.pdf")
+			return p
+		end
 	end
 	Void
 end
@@ -957,7 +983,8 @@ function plot_convergence(dist_statefuncs, dist_LoMs, T::Int64; remote::Bool=fal
 		save(path * "p_conv.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
-		savefig(p, path * "conv.pdf")
+		# savefig(p, path * "conv.pdf")
+		return p
 	end
 	Void
 end
@@ -973,7 +1000,8 @@ function plot_outerdists(h; remote::Bool=false)
 		save(path * "p_outconv.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
-		savefig(p, path * "outconv.pdf")
+		# savefig(p, path * "outconv.pdf")
+		return p
 	end
 	Void
 end
@@ -1060,8 +1088,9 @@ function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 		save(path * "p_"*name*".jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
-		savefig(p, path*name*".pdf")
-		savefig(p, path*name*".png")
+		# savefig(p, path*name*".pdf")
+		# savefig(p, path*name*".png")
+		return p
 	end
 
 	Void
