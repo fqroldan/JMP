@@ -5,7 +5,7 @@ include("hh_pb.jl")
 function Hank(;	β = (1.0/1.03)^0.25,
 				IES = 1.0,
 				RRA = 10.,
-				γw = 0.99,
+				γw = 0.99^0.25,
 				τ = 0.25,
 				r_star = 1.02^0.25 - 1.0,
 				ωmax = 20.,
@@ -93,11 +93,11 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	ϖ = 0.7 * ϖ	
 
 	# Grids for endogenous aggregate states
-	Bmax  = 3.0
+	Bmax  = 4.0
 	Bbar  = Bmax * 0.75
 	bgrid = linspace(0.0, Bmax, Nb)
-	μgrid = linspace(-1.0, 1.5, Nμ)
-	σgrid = linspace(0.05, 0.75, Nσ)
+	μgrid = linspace(-1.0, 2.0, Nμ)
+	σgrid = linspace(0.05, 1.0, Nσ)
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.5
