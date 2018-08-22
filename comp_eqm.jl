@@ -753,3 +753,11 @@ function make_logN(meanX, varX)
 	return μ, σ
 end
 
+function unmake_logN(μ, σ)
+	""" Takes parameters and returns mean and variance """
+
+	m = exp.(μ + 0.5*σ.^2)
+	v = exp.(σ.^2 - 1) .* exp.(2*μ + σ.^2)
+
+	return m, v
+end
