@@ -381,6 +381,11 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 				guess = [ωg, θg]
 
 				ap, bp, ep, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
+				if cmax < 0
+					warn("c = $cmax")
+					ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8
+					fmax = 1e-10
+				end
 			elseif ωmax < qʰv * h.ωmin
 				if verbose
 					print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
@@ -393,7 +398,6 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
 				fmax = value(h, ωg, θg, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 			end
-			cmax < 0? warn("c = $cmax"): Void
 			!isnan(fmax) || print_save("\nWARNING: NaN in value function at (ap, bp, c) = ($(round(ap, 2)), $(round(bp, 2)), $(cmax))")
 
 			ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ap
