@@ -548,7 +548,7 @@ function contour_debtprice(h::Hank; remote::Bool=false)
 		x = h.bgrid, y = exp.(h.zgrid),
 		z = qᵍ_mat[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
 		contours_coloring="heatmap",
-		colorscale = "Magma", colorbar_dtick=0.1
+		colorscale = "Reds", colorbar_dtick=0.1
 		)
 	pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))
 
@@ -568,7 +568,7 @@ function contour_debtprice(h::Hank; remote::Bool=false)
 		x = h.μgrid, y = h.σgrid,
 		z = qᵍ_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z],
 		contours_coloring="heatmap",
-		colorscale = "Magma", colorbar_dtick=0.1
+		colorscale = "Reds", colorbar_dtick=0.1
 		)
 
 	pμσ = plot(ctμσ, Layout(;xaxis_title="μ", yaxis_title="σ"))
@@ -596,6 +596,8 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 	ExpRealRet = zeros(h.Ns, h.Nz, 2)
 	ExpExpRealRet = zeros(h.Ns, h.Nz)
 	probs = zeros(h.Ns, h.Nz)
+	ExpTRet = zeros(h.Ns, h.Nz, 2)
+	Exp_pC = zeros(h.Ns, h.Nz, 2)
 	EZ = zeros(h.Nω, h.Nϵ, 1, h.Nϵ, h.Nz, 2)
 	EIS = zeros(h.Nω, h.Nϵ, 1, h.Nϵ, h.Nz, 2)
 
@@ -643,6 +645,8 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 			probs[js, jzp] = h.Pz[jz, jzp]
 			ExpRealRet[js, jzp, 1] = Rb * itp_pC[bpv, μpv, σpv, wpv, 1, jzp] / pCv * h.Pz[jz, jzp] / h.qᵍ[js]
 			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 1] * rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp]
+			ExpTRet[js, jzp, 1] = Rb * h.Pz[jz, jzp]
+			Exp_pC[js, jzp, 1] = itp_pC[bpv, μpv, σpv, wpv, 1, jzp] / pCv * h.Pz[jz, jzp]
 
 			# In default
 			haircut = (1.-h.ℏ*(jζ==1))
@@ -652,6 +656,8 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 			Rb = (1.-h.ρ) * haircut * itp_qᵍ[bpv, μpv, σpv, wpv, 2, jzp]
 			ExpRealRet[js, jzp, 2] = Rb * itp_pC[bpv, μpv, σpv, wpv, 2, jzp] / pCv * h.Pz[jz, jzp] / h.qᵍ[js]
 			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 2] * (1.-rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp])
+			ExpTRet[js, jzp, 2] = Rb * h.Pz[jz, jzp]
+			Exp_pC[js, jzp, 2] = itp_pC[bpv, μpv, σpv, wpv, 2, jzp] / pCv * h.Pz[jz, jzp]
 		end
 	end
 	for (js, js_show) in enumerate(jshow_s)
@@ -731,7 +737,14 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 		# scatter(;x=h.zgrid, y=ESDF[jshow_ω, jshow_ϵ, :, 2], name="SDF in def")
 		])
 
-	p
+	p2 = plot([
+		scatter(;x=h.zgrid, y=ExpTRet[jshow_s, :, 1], name="Ret_T in rep")
+		scatter(;x=h.zgrid, y=ExpTRet[jshow_s, :, 2], name="Ret_T in def")
+		scatter(;x=h.zgrid, y=Exp_pC[jshow_s, :, 1], line_dash="dashdot", name="pC'/pC in rep")
+		scatter(;x=h.zgrid, y=Exp_pC[jshow_s, :, 2], line_dash="dashdot", name="pC'/pC in def")
+		])
+
+	p = [p; p2]
 end
 
 function plot_aggcons(h::Hank; remote::Bool=false)
