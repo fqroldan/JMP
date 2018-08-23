@@ -290,7 +290,7 @@ function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)
 
 	layout = Layout(;	xaxis=attr(title=xlabel, zeroline=true),
 						yaxis=attr(zeroline=true),
-						font_size=16, font_family="Fira Sans Light")
+						font_size=32, font_family="Fira Sans Light")
 
 	l = scatter(;x=x, y=y, showlegend=false)
 	p = plot(l, layout)
@@ -383,7 +383,8 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
 	σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
 	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	states = gridmake([1; h.Nb], [1; h.Nz])
+	midb = ceil(Int, h.Nb/2)
+	states = gridmake([1; midb; h.Nb], [1; h.Nz])
 	# p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
 	p_vec = Array{PlotlyJS.SyncPlot}(size(states,1))
 	for js in 1:size(states,1)
@@ -400,22 +401,27 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
 			σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
 			Wd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
 		end
-		p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false),
-						scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot")],
-						Layout(;title="B=$(h.bgrid[jb]), z=$(exp(h.zgrid[jz]))"))
+		p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false, line_width=3),
+						scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot", line_width=3)],
+						Layout(;title="B=$(h.bgrid[jb]), z=$(round(exp(h.zgrid[jz]),2))", titlefont_size=32))
 	end
 
-	p = [p_vec[1] p_vec[2]; p_vec[3] p_vec[4]]
-	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 800
-	p.plot.layout["font_family"] = "Fira Sans Light"
+	p_paper = [p_vec[1] p_vec[2] p_vec[3]; p_vec[4] p_vec[5] p_vec[6]]
+	p_paper.plot.layout["font_family"] = "STIX Two Text"
+	p_paper.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+	p_paper.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+	p_slides = [p_vec[1] p_vec[2]; p_vec[4] p_vec[5]]
+	p_slides.plot.layout["font_family"] = "Fira Sans Light"
+	p_slides.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+	p_slides.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_reactions.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
 		# savefig(p, path * "reactions.pdf")
-		return p
+		return p_paper, p_slides
 	end
 	Void
 end
@@ -575,12 +581,10 @@ function contour_debtprice(h::Hank; remote::Bool=false)
 
 	p = [pbz pμσ]
 	p.plot.layout["title"] = "Price of Debt"
-	p.plot.layout["font_size"] = 14
-	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 400
+	p.plot.layout["font_size"] = 16
 	p.plot.layout["font_family"] = "Fira Sans Light"
 	p.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
-	p.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.5)"
+	p.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_debtprice.jld", "p", p)
@@ -643,10 +647,10 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 			σpv = σp[jzp, 1]
 			Rb = h.κ + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, 1, jzp]
 			probs[js, jzp] = h.Pz[jz, jzp]
-			ExpRealRet[js, jzp, 1] = Rb * itp_pC[bpv, μpv, σpv, wpv, 1, jzp] / pCv * h.Pz[jz, jzp] / h.qᵍ[js]
+			ExpRealRet[js, jzp, 1] = Rb * pCv / itp_pC[bpv, μpv, σpv, wpv, 1, jzp] * h.Pz[jz, jzp] / h.qᵍ[js]
 			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 1] * rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp]
 			ExpTRet[js, jzp, 1] = Rb * h.Pz[jz, jzp]
-			Exp_pC[js, jzp, 1] = itp_pC[bpv, μpv, σpv, wpv, 1, jzp] / pCv * h.Pz[jz, jzp]
+			Exp_pC[js, jzp, 1] = pCv / itp_pC[bpv, μpv, σpv, wpv, 1, jzp] * h.Pz[jz, jzp]
 
 			# In default
 			haircut = (1.-h.ℏ*(jζ==1))
@@ -654,10 +658,10 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 			μpv = μp[jzp, 2]
 			σpv = σp[jzp, 2]
 			Rb = (1.-h.ρ) * haircut * itp_qᵍ[bpv, μpv, σpv, wpv, 2, jzp]
-			ExpRealRet[js, jzp, 2] = Rb * itp_pC[bpv, μpv, σpv, wpv, 2, jzp] / pCv * h.Pz[jz, jzp] / h.qᵍ[js]
+			ExpRealRet[js, jzp, 2] = Rb * pCv / itp_pC[bpv, μpv, σpv, wpv, 2, jzp] * h.Pz[jz, jzp] / h.qᵍ[js]
 			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 2] * (1.-rep_mat[jb, jμ, jσ, jw, jζ, jz, jzp])
 			ExpTRet[js, jzp, 2] = Rb * h.Pz[jz, jzp]
-			Exp_pC[js, jzp, 2] = itp_pC[bpv, μpv, σpv, wpv, 2, jzp] / pCv * h.Pz[jz, jzp]
+			Exp_pC[js, jzp, 2] = pCv / itp_pC[bpv, μpv, σpv, wpv, 2, jzp] * h.Pz[jz, jzp]
 		end
 	end
 	for (js, js_show) in enumerate(jshow_s)
@@ -740,8 +744,8 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 	p2 = plot([
 		scatter(;x=h.zgrid, y=ExpTRet[jshow_s, :, 1], name="Ret_T in rep")
 		scatter(;x=h.zgrid, y=ExpTRet[jshow_s, :, 2], name="Ret_T in def")
-		scatter(;x=h.zgrid, y=Exp_pC[jshow_s, :, 1], line_dash="dashdot", name="pC'/pC in rep")
-		scatter(;x=h.zgrid, y=Exp_pC[jshow_s, :, 2], line_dash="dashdot", name="pC'/pC in def")
+		scatter(;x=h.zgrid, y=Exp_pC[jshow_s, :, 1], line_dash="dashdot", name="pC/pC' in rep")
+		scatter(;x=h.zgrid, y=Exp_pC[jshow_s, :, 2], line_dash="dashdot", name="pC/pC' in def")
 		])
 
 	p = [p; p2]
@@ -820,9 +824,10 @@ function plot_state_funcs(h::Hank; remote::Bool=false)
 
 	pN_mat = reshape(h.pN,     h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	w_mat  = reshape(h.wage,   h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	Ld_mat = reshape(h.Ld,     h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	u_mat  = 100*max.(1.- reshape(h.Ld,     h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz),0)
 	Y_mat  = reshape(h.output, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	Π_mat  = reshape(h.profits,h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	g_mat  = reshape(h.spending,h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	T_mat  = govt_bc(h, h.wage.*h.Ld)
 
@@ -830,51 +835,82 @@ function plot_state_funcs(h::Hank; remote::Bool=false)
 	for (jp, jw) in enumerate([1; h.Nw])
 		ppN1 = lines(h, pN_mat, 1, "Price of nontradables"; custom_w = jw)
 		pw1  = lines(h, w_mat, 1, "Wage"; custom_w = jw)
-		pLd1 = lines(h, Ld_mat, 1, "Labor supply"; custom_w = jw)
 		pY1  = lines(h, Y_mat, 1, "Output"; custom_w = jw)
 		pΠ1  = lines(h, Π_mat, 1, "Profits"; custom_w = jw)
 		pT1  = lines(h, T_mat, 1, "Taxes"; custom_w = jw)
+		pg1	 = lines(h, g_mat, 1, "Govt spending"; custom_w = jw)
 
 		ppN2 = lines(h, pN_mat, 2; custom_w = jw)
 		pw2  = lines(h, w_mat, 2; custom_w = jw)
-		pLd2 = lines(h, Ld_mat, 2; custom_w = jw)
 		pY2  = lines(h, Y_mat, 2; custom_w = jw)
 		pΠ2  = lines(h, Π_mat, 2; custom_w = jw)
 		pT2  = lines(h, T_mat, 2; custom_w = jw)
+		pg2	 = lines(h, g_mat, 2; custom_w = jw)
+
 
 		ppN3 = lines(h, pN_mat, 3; custom_w = jw)
 		pw3  = lines(h, w_mat, 3; custom_w = jw)
-		pLd3 = lines(h, Ld_mat, 3; custom_w = jw)
 		pY3  = lines(h, Y_mat, 3; custom_w = jw)
 		pΠ3  = lines(h, Π_mat, 3; custom_w = jw)
 		pT3  = lines(h, T_mat, 3; custom_w = jw)
+		pg3	 = lines(h, g_mat, 3; custom_w = jw)
+
 
 		ppN4 = lines(h, pN_mat, 4; custom_w = jw)
 		pw4  = lines(h, w_mat, 4; custom_w = jw)
-		pLd4 = lines(h, Ld_mat, 4; custom_w = jw)
 		pY4  = lines(h, Y_mat, 4; custom_w = jw)
 		pΠ4  = lines(h, Π_mat, 4; custom_w = jw)
 		pT4  = lines(h, T_mat, 4; custom_w = jw)
+		pg4	 = lines(h, g_mat, 4; custom_w = jw)
+
 
 		ppN6 = lines(h, pN_mat, 6; custom_w = jw)
 		pw6  = lines(h, w_mat, 6; custom_w = jw)
-		pLd6 = lines(h, Ld_mat, 6; custom_w = jw)
 		pY6  = lines(h, Y_mat, 6; custom_w = jw)
 		pΠ6  = lines(h, Π_mat, 6; custom_w = jw)
 		pT6  = lines(h, T_mat, 6; custom_w = jw)
+		pg6	 = lines(h, g_mat, 6; custom_w = jw)
 
-		# p = [ppN1 pw1 pLd1; ppN2 pw2 pLd2; ppN3 pw3 pLd3; ppN4 pw4 pLd4; ppN6 pw6 pLd6]
-		p = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6; pLd1 pLd2 pLd3 pLd4 pLd6; pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6; pT1 pT2 pT3 pT4 pT6]
-		p.plot.layout["width"] = 800
-		p.plot.layout["height"] = 640/4*6
-		p.plot.layout["font_family"] = "Fira Sans Light"
+
+		p1 = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6] 
+		p2 = [pg1 pg2 pg3 pg4 pg6; pT1 pT2 pT3 pT4 pT6]
+		p3 = [pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6]
+
+		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.4), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+
+		dtick = maximum(u_mat[:,:,:,jshow_w,jshow_ζ,:]) / 10
+
+		ctbz = contour(;
+			x=h.bgrid, y=exp.(h.zgrid),
+			z = u_mat[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
+			contours_coloring="heatmap",
+			colorscale="Hot", colorbar_dtick = dtick
+			)
+		ctμσ = contour(;
+			x = h.μgrid, y = h.σgrid,
+			z = u_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z],
+			contours_coloring="heatmap",
+			colorscale = "Hot", colorbar_dtick = dtick
+			)
+		pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))	
+		pμσ = plot(ctμσ, Layout(;xaxis_title="μ", yaxis_title="σ"))
+		pu = [pbz pμσ]
+		pu.plot.layout["title"] = "Unemployment"
+		pu.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+		pu.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+	
+
+
+		# p.plot.layout["width"] = 800
+		# p.plot.layout["height"] = 640/4*6
+		# p.plot.layout["font_family"] = "Fira Sans Light"
 		if remote
 			path = pwd() * "/../../Graphs/"
 			save(path * "p_statefuncs$(jp).jld", "p", p)
 		else
 			path = pwd() * "/../Graphs/"
 			# savefig(p, path * "statefuncs$(jp).pdf")
-			return p
+			return p1, p2, p3, pu
 		end
 	end
 	Void
