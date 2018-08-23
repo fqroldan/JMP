@@ -15,7 +15,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 				order = 3,
 				Nω_fine = 2500,
 				Nω = 7,
-				Nϵ = 5,
+				Nϵ = 7,
 				Nμ = 4,
 				Nσ = 4,
 				Nb = 6,
@@ -96,8 +96,8 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	Bmax  = 3.0
 	Bbar  = Bmax * 0.75
 	bgrid = linspace(0.0, Bmax, Nb)
-	μgrid = linspace(-1.0, 2.0, Nμ)
-	σgrid = linspace(0.05, 1.0, Nσ)
+	μgrid = linspace(-1.0, 1.5, Nμ)
+	σgrid = linspace(0.05, 0.75, Nσ)
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.5
