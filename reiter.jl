@@ -15,12 +15,12 @@ function Hank(;	β = (1.0/1.03)^0.25,
 				order = 3,
 				Nω_fine = 2500,
 				Nω = 7,
-				Nϵ = 7,
+				Nϵ = 5,
 				Nμ = 4,
 				Nσ = 4,
-				Nb = 6,
-				Nw = 5,
-				Nz = 9,
+				Nb = 5,
+				Nw = 6,
+				Nz = 7,
 				ρz = 0.9,
 				σz = 0.05,
 				ℏ = 0.4,
@@ -60,8 +60,8 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	end
 	ρϵ, σϵ = quarterlize_AR1(ρϵ, σϵ)
 
-	# ϵ_chain = tauchen(Nϵ, ρϵ, σϵ, 0, 1)
-	ϵ_chain = rouwenhorst(Nϵ, ρϵ, σϵ, 0)
+	ϵ_chain = tauchen(Nϵ, ρϵ, σϵ, 0, 1)
+	# ϵ_chain = rouwenhorst(Nϵ, ρϵ, σϵ, 0)
 	Pϵ = ϵ_chain.p
 	ϵgrid = ϵ_chain.state_values
 
