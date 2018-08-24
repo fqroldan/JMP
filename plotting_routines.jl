@@ -24,8 +24,8 @@ function style_contour(p, n=2; slides::Bool=false)
     p.plot.layout["titlefont_size"] = 32    
     p.plot.layout["colorbar_xanchor"] = "right"
     if slides
-	    p.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
-		p.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+	    p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+		p.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
     else
     	p.plot.layout["title"] = ""
     end
@@ -45,8 +45,12 @@ function style_lines(p, w::Int=0, h::Int=0; slides::Bool=false)
     p.plot.layout["height"] = height
     p.plot.layout["font_family"] = font
     p.plot.layout["font_size"] = fontsize
- #    p.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
-	# p.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+	if slides
+	    p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+		p.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+    else
+    	p.plot.layout["title"] = ""
+    end
     return p
 end
     
@@ -585,13 +589,17 @@ end
 function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 	qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.5), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.65), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz*0.9)
 
+	tickmin = minimum(qᵍ_mat[:,:,:,jshow_w,1,:])
+	tickmax = maximum(qᵍ_mat[:,:,:,jshow_w,1,:])
 	ctbz = contour(;
 		x = h.bgrid, y = exp.(h.zgrid),
 		z = qᵍ_mat[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
 		contours_coloring="heatmap",
-		colorscale = "Reds", colorbar_dtick=0.1
+		contours_start=tickmin, contours_end=tickmax,
+		colorbar_tick0 = 0., colorbar_dtick=floor(Int, 1./5),
+		colorscale = "Reds", colorbar_dtick=0.1, colorbar_xpad=14
 		)
 	pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))
 
@@ -608,7 +616,9 @@ function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 		x = h.μgrid, y = h.σgrid,
 		z = qg_mat,
 		contours_coloring="heatmap",
-		colorscale = "Reds", colorbar_dtick=0.1
+		contours_start=tickmin, contours_end=tickmax,
+		colorbar_tick0 = 0., colorbar_dtick=floor(Int, 1./5),
+		colorscale = "Reds", colorbar_dtick=0.1, colorbar_xpad=14
 		)
 
 	pμσ = plot(ctμσ, Layout(;xaxis_title=xax, yaxis_title=yax))
