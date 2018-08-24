@@ -297,7 +297,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 	ϕb = SharedArray{Float64}(size(h.ϕb))
 	ϕe = SharedArray{Float64}(size(h.ϕe))
 	ϕc = SharedArray{Float64}(size(h.ϕc))
-	warnc0 = SharedArray{Float64}(size(h.qᵍ_mat))
+	warnc0 = SharedArray{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	warnc0 *= 0.
 	@sync @parallel for js in 1:size(h.Jgrid,1)
 		jb = h.Jgrid[js, 1]
