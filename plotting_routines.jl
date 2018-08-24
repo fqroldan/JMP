@@ -12,6 +12,45 @@ col = [	"#1f77b4",  # muted blue
 		"#17becf"   # blue-teal
 		]
 
+function style_contour(p; slides::Bool=false)
+    slides? height = 800: height = 500
+    slides? width = 1400: width = 1200
+    slides? font = "Fira Sans Light": font = "STIX Two Text"
+    slides? fontsize = 17: fontsize = 16
+    p.plot.layout["width"] = width
+    p.plot.layout["height"] = height
+    p.plot.layout["font_family"] = font
+    p.plot.layout["font_size"] = fontsize
+    p.plot.layout["titlefont_size"] = 32    
+    p.plot.layout["colorbar_xanchor"] = "right"
+    if slides
+	    p.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+		p.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+    else
+    	p.plot.layout["title"] = ""
+    end
+    return p
+end
+
+function style_lines(p, w::Int=0, h::Int=0; slides::Bool=false)
+	!(w==0 || h==0) || throw(error("Must specify w and h"))
+	slides? height = 250: height = 250
+    width = height
+    width *= w
+    height *= h
+    slides? font = "Fira Sans Light": font = "STIX Two Text"
+    fontsize = 16
+    p.plot.layout["line_width"] = 3
+    p.plot.layout["width"] = width
+    p.plot.layout["height"] = height
+    p.plot.layout["font_family"] = font
+    p.plot.layout["font_size"] = fontsize
+ #    p.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+	# p.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+    return p
+end
+    
+
 function plot_hh_policies(h::Hank; remote::Bool=false)
 	# leg = Array{LaTeXStrings.LaTeXString}(1, h.Nϵ)
 	leg = Array{String}(1, h.Nϵ)
@@ -408,8 +447,6 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
 
 	p_paper = [p_vec[1] p_vec[2] p_vec[3]; p_vec[4] p_vec[5] p_vec[6]]
 	p_paper.plot.layout["font_family"] = "STIX Two Text"
-	p_paper.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
-	p_paper.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
 	p_slides = [p_vec[1] p_vec[2]; p_vec[4] p_vec[5]]
 	p_slides.plot.layout["font_family"] = "Fira Sans Light"
 	p_slides.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
@@ -545,7 +582,7 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	Void
 end
 
-function contour_debtprice(h::Hank; remote::Bool=false)
+function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 	qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.4), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
@@ -558,33 +595,26 @@ function contour_debtprice(h::Hank; remote::Bool=false)
 		)
 	pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))
 
-#=	μσ_grid = gridmake(h.μgrid, h.σgrid)
-	m_grid, v_grid = unmake_logN(μσ_grid[:,1], μσ_grid[:,2])
-
-	ctμσ = contour(;
-		x = m_grid, y = v_grid.^0.5,
-		z = qᵍ_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z],
-		contours_coloring="heatmap",
-		colorscale = "Magma", colorbar_dtick=0.1
-		)
-
-	pμσ = plot(ctμσ, Layout(; title="Price of debt", xaxis_title="mean", yaxis_title="std"))=#
+	if MV 
+		itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
+		qg_mat = reeval_mat_MV(h, itp_qᵍ)
+		xax, yax = "Mean", "Variance"
+	else
+		qg_mat = qᵍ_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z]
+		xax, yax = "μ", "σ"
+	end
 
 	ctμσ = contour(;
 		x = h.μgrid, y = h.σgrid,
-		z = qᵍ_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z],
+		z = qg_mat,
 		contours_coloring="heatmap",
 		colorscale = "Reds", colorbar_dtick=0.1
 		)
 
-	pμσ = plot(ctμσ, Layout(;xaxis_title="μ", yaxis_title="σ"))
+	pμσ = plot(ctμσ, Layout(;xaxis_title=xax, yaxis_title=yax))
 
 	p = [pbz pμσ]
 	p.plot.layout["title"] = "Price of Debt"
-	p.plot.layout["font_size"] = 16
-	p.plot.layout["font_family"] = "Fira Sans Light"
-	p.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
-	p.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_debtprice.jld", "p", p)
@@ -594,6 +624,28 @@ function contour_debtprice(h::Hank; remote::Bool=false)
 		return p
 	end
 	Void
+end
+
+function reeval_mat_MV(h::Hank, itp_obj)
+	m_min, v_min = unmake_logN(h.μgrid[1], h.σgrid[1])
+	m_max, v_max = unmake_logN(h.μgrid[end], h.σgrid[end])
+
+	N = max(h.Nμ, h.Nσ)
+
+	mgrid = linspace(m_min, m_max, N)
+	vgrid = linspace(v_min, v_max, N)
+	
+	show_b, show_w, jζ, jz = mean(h.bgrid)*0.2, mean(h.wgrid), 1, floor(Int, h.Nz/2)
+
+	mat = zeros(N, N)
+	for (jm, m) in enumerate(mgrid)
+		for (jv, v) in enumerate(vgrid)
+			μv, σv = make_logN(m, v)
+			mat[jm, jv] = itp_obj[show_b, μv, σv, show_w, jζ, jz]
+		end
+	end
+	
+	return mat	
 end
 
 function plot_eulereq(h::Hank; remote::Bool=false)
@@ -820,7 +872,7 @@ function plot_aggcons(h::Hank; remote::Bool=false)
 	Void
 end
 
-function plot_state_funcs(h::Hank; remote::Bool=false)
+function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 
 	pN_mat = reshape(h.pN,     h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	w_mat  = reshape(h.wage,   h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
@@ -876,9 +928,18 @@ function plot_state_funcs(h::Hank; remote::Bool=false)
 		p2 = [pg1 pg2 pg3 pg4 pg6; pT1 pT2 pT3 pT4 pT6]
 		p3 = [pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6]
 
-		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.4), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.1), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)+1
 
 		dtick = maximum(u_mat[:,:,:,jshow_w,jshow_ζ,:]) / 10
+
+		if MV 
+			itp_u = make_itp(h, u_mat; agg=true)
+			un_mat = reeval_mat_MV(h, itp_u)
+			xax, yax = "Mean", "Variance"
+		else
+			un_mat = u_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z]
+			xax, yax = "μ", "σ"
+		end
 
 		ctbz = contour(;
 			x=h.bgrid, y=exp.(h.zgrid),
@@ -888,22 +949,15 @@ function plot_state_funcs(h::Hank; remote::Bool=false)
 			)
 		ctμσ = contour(;
 			x = h.μgrid, y = h.σgrid,
-			z = u_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z],
+			z = un_mat,
 			contours_coloring="heatmap",
 			colorscale = "Hot", colorbar_dtick = dtick
 			)
 		pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))	
-		pμσ = plot(ctμσ, Layout(;xaxis_title="μ", yaxis_title="σ"))
+		pμσ = plot(ctμσ, Layout(;xaxis_title=xax, yaxis_title=yax))
 		pu = [pbz pμσ]
 		pu.plot.layout["title"] = "Unemployment"
-		pu.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
-		pu.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
-	
-
-
-		# p.plot.layout["width"] = 800
-		# p.plot.layout["height"] = 640/4*6
-		# p.plot.layout["font_family"] = "Fira Sans Light"
+		
 		if remote
 			path = pwd() * "/../../Graphs/"
 			save(path * "p_statefuncs$(jp).jld", "p", p)
