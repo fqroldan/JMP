@@ -292,6 +292,8 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 	ϕb = SharedArray{Float64}(size(h.ϕb))
 	ϕe = SharedArray{Float64}(size(h.ϕe))
 	ϕc = SharedArray{Float64}(size(h.ϕc))
+	warnc0 = SharedArray{Float64}(size(h.qᵍ_mat))
+	warnc0 *= 0.
 	@sync @parallel for js in 1:size(h.Jgrid,1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
@@ -388,7 +390,8 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 				end
 			elseif ωmax < qʰv * h.ωmin
 				if verbose
-					print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
+					# print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
+					warnc0[jb, jμ, jσ, jw, jζ, jz] = 1.
 				end
 				ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8
 				fmax = 1e-10
@@ -408,7 +411,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 		end
 	end
 
-	return vf, ϕa, ϕb, ϕe, ϕc
+	return vf, ϕa, ϕb, ϕe, ϕc, warnc0
 end
 
 function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve::Bool=true, verbose::Bool=true)
@@ -421,7 +424,7 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, �
 
 	# Compute values
 	t1 = time()
-	vf, ϕa, ϕb, ϕe, ϕc = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, resolve = resolve, verbose = verbose)
+	vf, ϕa, ϕb, ϕe, ϕc, warnc0 = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, resolve = resolve, verbose = verbose)
 	# print_save("\nopt in $(time()-t1)")
 
 	t1 = time()
@@ -438,5 +441,5 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, �
 	h.vf = vf
 	# print_save("\nsave in $(time()-t1)")
 
-	Void
+	return warnc0
 end

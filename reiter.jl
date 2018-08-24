@@ -483,9 +483,9 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 		v_old = copy(h.vf)
 		if iter_cycle <= 5 || iter_cycle % 3 == 0
-			bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=true)
+			warnc0 = bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=true)
 		else
-			bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=false)
+			warnc0 = bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=false)
 		end
 		v_new = copy(h.vf)
 
@@ -498,6 +498,9 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		end
 
 		if dist < h.upd_tol
+
+			print_save("\nCan't affort positive consumption $(100*floor(Int,mean(warnc0)))% of the time")
+
 			t1 = time()
 			extend_state_space!(h, qʰ_mat, qᵍ_mat, T_mat)
 			print_save(": done in $(time_print(time()-t1))")
