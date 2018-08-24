@@ -164,6 +164,11 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz
 	""" CHANGE THIS FOR GHH """
 	# Compute value
 	if h.EpsteinZin
+		if Ev < -1
+			throw(error("Something wrong in the choice of ωpv"))
+		elseif Ev < 0
+			Ev = 1e-6
+		end
 		Tv = EZ_T(h, Ev)
 
 		if h.ψ != 1.0
