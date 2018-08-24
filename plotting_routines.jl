@@ -12,9 +12,9 @@ col = [	"#1f77b4",  # muted blue
 		"#17becf"   # blue-teal
 		]
 
-function style_contour(p; slides::Bool=false)
+function style_contour(p, n=2; slides::Bool=false)
     slides? height = 800: height = 500
-    slides? width = 1400: width = 1200
+    slides? width = 700*n: width = 600*n
     slides? font = "Fira Sans Light": font = "STIX Two Text"
     slides? fontsize = 17: fontsize = 16
     p.plot.layout["width"] = width
@@ -585,7 +585,7 @@ end
 function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 	qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.4), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.5), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
 
 	ctbz = contour(;
 		x = h.bgrid, y = exp.(h.zgrid),
@@ -597,7 +597,7 @@ function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 
 	if MV 
 		itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
-		qg_mat = reeval_mat_MV(h, itp_qᵍ)
+		qg_mat = reeval_mat_MV(h, itp_qᵍ, jshow_b, jshow_w, jshow_z, lb = 0)
 		xax, yax = "Mean", "Variance"
 	else
 		qg_mat = qᵍ_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z]
@@ -621,27 +621,29 @@ function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 	else
 		path = pwd() * "/../Graphs/"
 		# savefig(p, path * "debtprice.pdf")
-		return p
+		return p, pbz, pμσ
 	end
 	Void
 end
 
-function reeval_mat_MV(h::Hank, itp_obj)
+function reeval_mat_MV(h::Hank, itp_obj, jb, jw, jz; lb=-Inf, ub=Inf)
+	lb < ub || throw(error("Must specify upper bound greater than lower bound"))
 	m_min, v_min = unmake_logN(h.μgrid[1], h.σgrid[1])
 	m_max, v_max = unmake_logN(h.μgrid[end], h.σgrid[end])
 
-	N = max(h.Nμ, h.Nσ)
+	N = max(4*h.Nμ, 4*h.Nσ)
 
 	mgrid = linspace(m_min, m_max, N)
 	vgrid = linspace(v_min, v_max, N)
 	
-	show_b, show_w, jζ, jz = mean(h.bgrid)*0.2, mean(h.wgrid), 1, floor(Int, h.Nz/2)
+	show_b, show_w, jζ = h.bgrid[jb], h.wgrid[jw], 1
 
 	mat = zeros(N, N)
 	for (jm, m) in enumerate(mgrid)
 		for (jv, v) in enumerate(vgrid)
 			μv, σv = make_logN(m, v)
-			mat[jm, jv] = itp_obj[show_b, μv, σv, show_w, jζ, jz]
+			Y = itp_obj[show_b, μv, σv, show_w, jζ, jz]
+			mat[jm, jv] = max(lb, min(ub, Y))
 		end
 	end
 	
@@ -928,13 +930,13 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		p2 = [pg1 pg2 pg3 pg4 pg6; pT1 pT2 pT3 pT4 pT6]
 		p3 = [pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6]
 
-		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.1), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)+1
+		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.5), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz*0.25)
 
-		dtick = maximum(u_mat[:,:,:,jshow_w,jshow_ζ,:]) / 10
+		tickmax = maximum(u_mat[:,:,:,jshow_w,jshow_ζ,:])
 
 		if MV 
 			itp_u = make_itp(h, u_mat; agg=true)
-			un_mat = reeval_mat_MV(h, itp_u)
+			un_mat = reeval_mat_MV(h, itp_u, jshow_b, jshow_w, jshow_z, lb=0, ub=100)
 			xax, yax = "Mean", "Variance"
 		else
 			un_mat = u_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z]
@@ -945,13 +947,17 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 			x=h.bgrid, y=exp.(h.zgrid),
 			z = u_mat[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
 			contours_coloring="heatmap",
-			colorscale="Hot", colorbar_dtick = dtick
+			colorscale="Hot", contours_start=0.5, contours_end=tickmax,
+			colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
+			colorbar_ticksuffix="%", colorbar_showticksuffix="all"
 			)
 		ctμσ = contour(;
 			x = h.μgrid, y = h.σgrid,
 			z = un_mat,
 			contours_coloring="heatmap",
-			colorscale = "Hot", colorbar_dtick = dtick
+			colorscale = "Hot", contours_start=0.5, contours_end=tickmax,
+			colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
+			colorbar_ticksuffix="%", colorbar_showticksuffix="all"
 			)
 		pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))	
 		pμσ = plot(ctμσ, Layout(;xaxis_title=xax, yaxis_title=yax))
@@ -964,7 +970,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		else
 			path = pwd() * "/../Graphs/"
 			# savefig(p, path * "statefuncs$(jp).pdf")
-			return p1, p2, p3, pu
+			return p1, p2, p3, pu, pμσ
 		end
 	end
 	Void
