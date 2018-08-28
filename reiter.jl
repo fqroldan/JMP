@@ -397,7 +397,7 @@ function update_fiscalrules!(h::Hank)
 	net_iss = [ ones(unemp) unemp unemp2 spread spr2 NX NX2 ] * coef_B / 100
 
 	h.spending = max.(min.(g, 0.35), 0.) .* h.output
-	h.issuance = min.(0.15,max.(0., net_iss)) .* h.output + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
+	h.issuance = min.(0.25,max.(0., net_iss)) .* h.output + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
 
 	def_states = h.ζgrid[h.Jgrid[:, 5]] .!= 1.0
 	h.issuance[def_states] = (1.-h.ρ) * h.bgrid[h.Jgrid[def_states, 1]]
