@@ -391,10 +391,10 @@ function update_fiscalrules!(h::Hank)
 	NX 	  = compute_netexports(h)./h.output * 100
 	NX2   = sign.(NX)
 
-	coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
-	coef_B = [ -3.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ]
+	coef_g = [   18.0896;  0.644727; -0.00968558; -0.227517;  0.00137367;  0.962159; -0.0728895; -0.439678; -0.615617    ]
+	coef_B = [  11.7591;  0.980104; -0.0182232;  0.0200072;  0.241888; -0.386274;  0.00186773;  0.432353; -0.987251   ]
 	g = [ ones(unemp) unemp unemp2 BoY BoY2 spread spr2 NX NX2 ] * coef_g / 100
-	net_iss = [ ones(unemp) unemp unemp2 spread spr2 NX NX2 ] * coef_B / 100
+	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2 spread spr2 NX NX2 ] * coef_B / 100
 
 	h.spending = max.(min.(g, 0.35), 0.) .* h.output
 	h.issuance = min.(0.25,max.(0., net_iss)) .* h.output + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
