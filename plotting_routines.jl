@@ -453,16 +453,19 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
 	p_paper.plot.layout["font_family"] = "STIX Two Text"
 	p_slides = [p_vec[1] p_vec[2]; p_vec[4] p_vec[5]]
 	p_slides.plot.layout["font_family"] = "Fira Sans Light"
-	p_slides.plot.layout["plot_bgcolor"] = "rgba(245, 246, 249, 0.0)"
-	p_slides.plot.layout["paper_bgcolor"] = "rgba(245, 246, 249, 0.0)"
+	p_slides.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+	p_slides.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
 
 	if remote
 		path = pwd() * "/../../Graphs/"
 		save(path * "p_reactions.jld", "p", p)
 	else
 		path = pwd() * "/../Graphs/"
-		# savefig(p, path * "reactions.pdf")
-		return p_paper, p_slides
+		if is_linux()
+			return p_paper, p_slides
+		else
+			# savefig(p, path * "reactions.pdf")
+		end
 	end
 	Void
 end
@@ -892,6 +895,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 	Y_mat  = reshape(h.output, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	Π_mat  = reshape(h.profits,h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	g_mat  = reshape(h.spending,h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	b_mat  = reshape(h.issuance,h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	T_mat  = govt_bc(h, h.wage.*h.Ld)
 
@@ -903,6 +907,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		pΠ1  = lines(h, Π_mat, 1, "Profits"; custom_w = jw)
 		pT1  = lines(h, T_mat, 1, "Taxes"; custom_w = jw)
 		pg1	 = lines(h, g_mat, 1, "Govt spending"; custom_w = jw)
+		pb1	 = lines(h, b_mat, 1, "Issuance"; custom_w = jw)
 
 		ppN2 = lines(h, pN_mat, 2; custom_w = jw)
 		pw2  = lines(h, w_mat, 2; custom_w = jw)
@@ -910,6 +915,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		pΠ2  = lines(h, Π_mat, 2; custom_w = jw)
 		pT2  = lines(h, T_mat, 2; custom_w = jw)
 		pg2	 = lines(h, g_mat, 2; custom_w = jw)
+		pb2	 = lines(h, b_mat, 2; custom_w = jw)
 
 
 		ppN3 = lines(h, pN_mat, 3; custom_w = jw)
@@ -918,6 +924,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		pΠ3  = lines(h, Π_mat, 3; custom_w = jw)
 		pT3  = lines(h, T_mat, 3; custom_w = jw)
 		pg3	 = lines(h, g_mat, 3; custom_w = jw)
+		pb3	 = lines(h, b_mat, 3; custom_w = jw)
 
 
 		ppN4 = lines(h, pN_mat, 4; custom_w = jw)
@@ -926,6 +933,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		pΠ4  = lines(h, Π_mat, 4; custom_w = jw)
 		pT4  = lines(h, T_mat, 4; custom_w = jw)
 		pg4	 = lines(h, g_mat, 4; custom_w = jw)
+		pb4	 = lines(h, b_mat, 4; custom_w = jw)
 
 
 		ppN6 = lines(h, pN_mat, 6; custom_w = jw)
@@ -934,11 +942,13 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		pΠ6  = lines(h, Π_mat, 6; custom_w = jw)
 		pT6  = lines(h, T_mat, 6; custom_w = jw)
 		pg6	 = lines(h, g_mat, 6; custom_w = jw)
+		pb6	 = lines(h, b_mat, 6; custom_w = jw)
 
 
 		p1 = [ppN1 ppN2 ppN3 ppN4 ppN6; pw1 pw2 pw3 pw4 pw6] 
-		p2 = [pg1 pg2 pg3 pg4 pg6; pT1 pT2 pT3 pT4 pT6]
+		p2 = [pΠ1 pΠ2 pΠ3 pΠ4 pΠ6; pT1 pT2 pT3 pT4 pT6]
 		p3 = [pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6]
+		p4 = [pg1 pg2 pg3 pg4 pg6; pb1 pb2 pb3 pb4 pb6]
 
 		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.5), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz*0.25)
 
@@ -980,7 +990,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		else
 			path = pwd() * "/../Graphs/"
 			# savefig(p, path * "statefuncs$(jp).pdf")
-			return p1, p2, p3, pu, pμσ
+			return p1, p2, p3, p4, pu, pμσ
 		end
 	end
 	Void
