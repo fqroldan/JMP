@@ -498,8 +498,10 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		end
 
 		if dist < h.upd_tol
-
-			print_save("\nCan't affort consumption $(100*floor(Int,mean(warnc0)))% of the time")
+			consw = 100*floor(Int,mean(warnc0))
+			consw > 0? msg = "\nWARNING: ": msg="\n"
+			msg *= "Can't affort consumption $(consw)% of the time"
+			print_save(msg)
 
 			t1 = time()
 			extend_state_space!(h, qʰ_mat, qᵍ_mat, T_mat)
