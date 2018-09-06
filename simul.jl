@@ -53,8 +53,10 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	ωvjϵ = gridmake(h.ωgrid_fine, 1:h.Nϵ)
 	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid_fine)
 		js += 1
-		ϕa[js] = itp_ϕa[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
-		ϕb[js] = itp_ϕb[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
+		ap = itp_ϕa[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
+		ϕa[js] = max(h.ωmin, ap)
+		bp = itp_ϕb[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
+		ϕb[js] = max(0.0, bp)
 	end
 
 	a  = dot(λt, ϕa)
