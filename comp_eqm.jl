@@ -292,6 +292,8 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		ζv = h.ζgrid[jζ]
 		zv = h.zgrid[jz]
 
+		wv = 0.9
+
 		jdefault = (ζv != 1.0)
 
 		pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
