@@ -414,7 +414,7 @@ function plot_gov_welf(h::Hank; remote::Bool=false)
 	Void
 end
 
-function plot_govt_reaction(h::Hank; remote::Bool=false)
+function plot_govt_reaction(h::Hank; Wdiff::Bool=false, remote::Bool=false)
 	jμ, jσ, jw = ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2)
 	μv, σv, wv = h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw]
 	jζ = 1
@@ -444,9 +444,14 @@ function plot_govt_reaction(h::Hank; remote::Bool=false)
 			σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
 			Wd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
 		end
-		p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false, line_width=3),
+		if Wdiff 
+			p_vec[js] = plot(scatter(;x=h.zgrid, y=Wd-Wr, marker_color=col[1], showlegend=false, line_width=3), Layout(;title="B=$(h.bgrid[jb]), z=$(round(exp(h.zgrid[jz]),2))", titlefont_size=32))
+		else
+
+			p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false, line_width=3),
 						scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot", line_width=3)],
 						Layout(;title="B=$(h.bgrid[jb]), z=$(round(exp(h.zgrid[jz]),2))", titlefont_size=32))
+		end
 	end
 
 	p_paper = [p_vec[1] p_vec[2] p_vec[3]; p_vec[4] p_vec[5] p_vec[6]]
@@ -592,7 +597,14 @@ end
 function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 	qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.65), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz*0.9)
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.85), ceil(Int, h.Nμ*0.1), ceil(Int, h.Nσ*1), floor(Int, h.Nw/2)+1, 1, ceil(Int, h.Nz*0.9)
+
+	debtcolors = [ ["0.0", "rgb(165,0,38)"],
+					   ["0.2", "rgb(215,48,39)"],
+					   ["0.4", "rgb(244,109,67)"],
+					   ["0.6", "rgb(253,174,97)"],
+					   ["0.8", "rgb(254,224,144)"],
+					   ["1.0", "rgb(254,254,254)"]]
 
 	tickmin = minimum(qᵍ_mat[:,:,:,jshow_w,1,:])
 	tickmax = maximum(qᵍ_mat[:,:,:,jshow_w,1,:])
@@ -602,7 +614,9 @@ function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 		contours_coloring="heatmap",
 		contours_start=tickmin, contours_end=tickmax,
 		colorbar_tick0 = 0., colorbar_dtick=floor(Int, 1./5),
-		colorscale = "Reds", colorbar_dtick=0.1, colorbar_xpad=14
+		# colorscale = debtcolors, 
+		colorscale = "Reds", reversescale = true,
+		colorbar_dtick=0.1, colorbar_xpad=14
 		)
 	pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))
 
@@ -621,7 +635,9 @@ function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 		contours_coloring="heatmap",
 		contours_start=tickmin, contours_end=tickmax,
 		colorbar_tick0 = 0., colorbar_dtick=floor(Int, 1./5),
-		colorscale = "Reds", colorbar_dtick=0.1, colorbar_xpad=14
+		# colorscale = debtcolors, 
+		colorscale = "Reds", reversescale = true,
+		colorbar_dtick=0.1, colorbar_xpad=14
 		)
 
 	pμσ = plot(ctμσ, Layout(;xaxis_title=xax, yaxis_title=yax))
@@ -895,7 +911,13 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 	Y_mat  = reshape(h.output, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	Π_mat  = reshape(h.profits,h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	g_mat  = reshape(h.spending,h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	b_mat  = reshape(h.issuance,h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+
+	b_mat = copy(h.issuance)
+	for js in 1:size(h.Jgrid, 1)
+		bv = h.bgrid[h.Jgrid[js,1]]
+		b_mat[js] = b_mat[js] - (1.0-h.ρ)*bv
+	end
+	b_mat  = reshape(b_mat, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	T_mat  = govt_bc(h, h.wage.*h.Ld)
 
@@ -967,7 +989,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 			x=h.bgrid, y=exp.(h.zgrid),
 			z = u_mat[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
 			contours_coloring="heatmap",
-			colorscale="Hot", contours_start=0.5, contours_end=tickmax,
+			colorscale="Reds", contours_start=0.5, contours_end=tickmax,
 			colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
 			colorbar_ticksuffix="%", colorbar_showticksuffix="all"
 			)
@@ -975,7 +997,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 			x = h.μgrid, y = h.σgrid,
 			z = un_mat,
 			contours_coloring="heatmap",
-			colorscale = "Hot", contours_start=0.5, contours_end=tickmax,
+			colorscale = "Reds", contours_start=0.5, contours_end=tickmax,
 			colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
 			colorbar_ticksuffix="%", colorbar_showticksuffix="all"
 			)

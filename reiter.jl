@@ -5,7 +5,7 @@ include("hh_pb.jl")
 function Hank(;	β = (1.0/1.03)^0.25,
 				IES = 1.0,
 				RRA = 10.,
-				γw = 0.99^0.25,
+				γw = 0.975,#^0.25,
 				τ = 0.25,
 				r_star = 1.02^0.25 - 1.0,
 				ωmax = 20.,
@@ -22,7 +22,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 				Nw = 6,
 				Nz = 7,
 				ρz = 0.9,
-				σz = 0.05,
+				σz = 0.025,
 				ℏ = 0.4,
 				Δ = 0.1,
 				θ = .125,
@@ -94,7 +94,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 
 	# Grids for endogenous aggregate states
 	Bmax  = 3.0
-	Bbar  = Bmax * 0.75
+	Bbar  = Bmax * 0.5
 	bgrid = linspace(0.0, Bmax, Nb)
 	μgrid = linspace(-1.0, 1.5, Nμ)
 	σgrid = linspace(0.05, 0.75, Nσ)
@@ -183,7 +183,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 		output[:,:,:,:,:,jz] = exp(zv)
 		spending[:,:,:,:,:,jz] = 0.1 - 0.25 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv - 0.5 * zv + 0.1 * (Bbar-bv)
+			issuance[jb,:,:,:,1,jz] = bv - 0.25 * zv + 0.1 * (Bbar-bv)
 			issuance[jb,:,:,:,2,jz] = bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
@@ -192,7 +192,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 				wage[:,:,:,:,jζ,jz] = max(exp(zv) * (1.0 - Δ * def), γw*wv)
 			end
 		end
-		repay[:,:,:,:,:,:,jz] = 1.0# - (zv <= zgrid[1])
+		repay[:,:,:,:,:,:,jz] = 1.0 - (zv <= zgrid[1])
 		def_thres[:,:,:,:,:,jz] = zgrid[1]
 		# def_thres[:,:,:,:,:,jz] = -Inf
 	end
@@ -391,10 +391,10 @@ function update_fiscalrules!(h::Hank)
 	NX 	  = compute_netexports(h)./h.output * 100
 	NX2   = sign.(NX)
 
-	coef_g = [   18.0896;  0.644727; -0.00968558; -0.227517;  0.00137367;  0.962159; -0.0728895; -0.439678; -0.615617    ]
-	coef_B = [  11.7591;  0.980104; -0.0182232;  -0.386274;  0.00186773;  0.0200072;  0.241888; 0.432353; -0.987251   ]
-	g = [ ones(unemp) unemp unemp2 BoY BoY2 spread spr2 NX NX2 ] * coef_g / 100
-	net_iss = [ ones(unemp)*0 unemp unemp2 BoY BoY2 spread*0 spr2*0 NX NX2 ] * coef_B / 100
+	coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
+	coef_B = [ 2.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ] #-3.36865
+	g = [ ones(unemp) unemp unemp2 BoY BoY2 spread*0 spr2*0 NX NX2 ] * coef_g / 100
+	net_iss = [ ones(unemp) unemp unemp2 spread*0 spr2*0 NX NX2 ] * coef_B / 100
 
 	h.spending = max.(min.(g, 0.35), 0.) .* h.output
 	h.issuance = min.(0.10,max.(0., net_iss)) .* h.output + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]

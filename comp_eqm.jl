@@ -1,5 +1,5 @@
-TFP_N(z, Δ, ζ) = 1.0    * max(0, min(1, (1.0 - Δ*0.*(ζ==2) - Δ*1.*1.0^2   )))
-TFP_T(z, Δ, ζ) = exp(z) * max(0, min(1, (1.0 - Δ*0.*(ζ==2) - Δ*1.*exp(z)^3)))
+TFP_N(z, Δ, ζ) = 1.0    * max(0, (1.0 - Δ*1.*(ζ==2) - Δ*0.*exp(.25*z)^3 ))
+TFP_T(z, Δ, ζ) = exp(z) * max(0, (1.0 - Δ*1.*(ζ==2) - Δ*0.*exp(z)^3))
 
 function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
@@ -334,6 +334,8 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 			jz = h.Jgrid[js, 6]
 
 			wage[js], Ld[js], output[js] = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ!=1); get_others=true)
+			jzmean = h.Nz # ceil(Int, h.Nz/2)
+			h.w′[js] = wage[min(jz, jzmean)]
 		end
 		h.wage, h.Ld, h.output = wage, Ld, output
 		update_fiscalrules!(h)
@@ -341,10 +343,11 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 		h.wage 	 = upd_η * results[:, 1] + (1.0-upd_η) * h.wage
 		h.Ld 	 = upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
 		h.output = upd_η * results[:, 4] + (1.0-upd_η) * h.output
+		h.w′ 	 = h.wage
 	end
 
 	h.profits = h.output - h.wage .* h.Ld
-	h.w′ = h.wage
+	# h.w′ = h.wage
 	mean_f = mean(minf)
 	max_f = minf[indmax(abs.(minf))]
 
@@ -392,6 +395,12 @@ function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 	w_down = min(res1.minimizer, res2.minimizer) * 0.75
 
 	h.pngrid = collect(linspace(pN_down, pN_up, length(h.pngrid)))
+
+
+	if false
+		w_down, w_up = minimum(h.w′), maximum(h.w′)
+	end
+
 	new_wgrid = collect(linspace(w_down, w_up, h.Nw))
 
 	return new_wgrid
