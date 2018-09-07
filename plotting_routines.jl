@@ -978,10 +978,13 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 
 		if MV 
 			itp_u = make_itp(h, u_mat; agg=true)
+			itp_Y = make_itp(h, Y_mat; agg=true)
 			un_mat = reeval_mat_MV(h, itp_u, jshow_b, jshow_w, jshow_z, lb=0, ub=100)
+			Yn_mat = reeval_mat_MV(h, itp_Y, jshow_b, jshow_w, jshow_z, lb=0, ub=100)
 			xax, yax = "Mean", "Variance"
 		else
 			un_mat = u_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z]
+			Yn_mat = Y_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z]
 			xax, yax = "μ", "σ"
 		end
 
@@ -1005,6 +1008,27 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		pμσ = plot(ctμσ, Layout(;xaxis_title=xax, yaxis_title=yax))
 		pu = [pbz pμσ]
 		pu.plot.layout["title"] = "Unemployment"
+
+		ctbz = contour(;
+			x=h.bgrid, y=exp.(h.zgrid),
+			z = Y_mat[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
+			contours_coloring="heatmap",
+			colorscale="Reds", contours_start=0.5, contours_end=tickmax,
+			colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
+			colorbar_ticksuffix="%", colorbar_showticksuffix="all"
+			)
+		ctμσ = contour(;
+			x = h.μgrid, y = h.σgrid,
+			z = Yn_mat,
+			contours_coloring="heatmap",
+			colorscale = "Reds", contours_start=0.5, contours_end=tickmax,
+			colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
+			colorbar_ticksuffix="%", colorbar_showticksuffix="all"
+			)
+		pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))	
+		pμσ = plot(ctμσ, Layout(;xaxis_title=xax, yaxis_title=yax))
+		pY = [pbz pμσ]
+		pY.plot.layout["title"] = "Output"
 		
 		if remote
 			path = pwd() * "/../../Graphs/"
@@ -1012,7 +1036,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		else
 			path = pwd() * "/../Graphs/"
 			# savefig(p, path * "statefuncs$(jp).pdf")
-			return p1, p2, p3, p4, pu, pμσ
+			return p1, p2, p3, p4, pu, pY, pμσ
 		end
 	end
 	Void
