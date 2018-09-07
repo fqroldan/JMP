@@ -30,6 +30,8 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 			ζv = h.ζgrid[jζ]
 			zv = h.zgrid[jz]
 
+			# wv = 0.9
+
 			labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, ζv, zv, wv, pnv)
 		end
 
@@ -99,7 +101,10 @@ function labor_market(h::Hank, ζv, zv, wv, pNv)
 
 	# Step 2: If labor demand is lower than supply, find the wage above γw * wv that clears the labor mkt
 	Ls = 1.0
-	w_max = maximum(h.wgrid)
+	αmax = max(h.α_N, h.α_T)
+	w_max = 1.1 * αmax * ( TFP_T(zv,h.Δ,ζv)^(1.0/(1.0-αmax)) + (pNv*TFP_N(zv,h.Δ,ζv))^(1.0/(1.0-αmax)) )^(1.0-αmax) 
+	# w_max = maximum(h.wgrid)
+
 	if w_max < w_constraint
 		# print_save("\nSomething wrong with wages")
 		w_max = w_constraint
@@ -197,7 +202,7 @@ end
 function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, jdefault)
 
 	# First find eq'm assuming the constraint does not bind
-	w_slack = 0.5 * h.wgrid[1]
+	w_slack = h.wgrid[1]
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, w_slack, jζ, jz, jdefault; orig_vars = true)^2,
 		pNmin, pNmax, GoldenSection()
@@ -292,7 +297,7 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		ζv = h.ζgrid[jζ]
 		zv = h.zgrid[jz]
 
-		wv = 0.9
+		# wv = 0.9
 
 		jdefault = (ζv != 1.0)
 
@@ -335,9 +340,13 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 			jζ = h.Jgrid[js, 5]
 			jz = h.Jgrid[js, 6]
 
+			# wv = 0.9
+
 			wage[js], Ld[js], output[js] = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ!=1); get_others=true)
 			jzmean = h.Nz # ceil(Int, h.Nz/2)
-			h.w′[js] = wage[min(jz, jzmean)]
+			# h.w′[js] = wage[min(jz, jzmean)]
+
+			h.w′[js] = wv
 		end
 		h.wage, h.Ld, h.output = wage, Ld, output
 		update_fiscalrules!(h)
@@ -345,7 +354,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 		h.wage 	 = upd_η * results[:, 1] + (1.0-upd_η) * h.wage
 		h.Ld 	 = upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
 		h.output = upd_η * results[:, 4] + (1.0-upd_η) * h.output
-		h.w′ 	 = h.wage
+		h.w′ 	 = h.w′
 	end
 
 	h.profits = h.output - h.wage .* h.Ld
@@ -376,23 +385,25 @@ function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 
 	Ls = 1.0
 	ζ = 1
+	wlow, whigh = minimum(h.wage), maximum(h.wage)
+
 	res1 = Optim.optimize(
 			w -> (labor_demand(h, w, h.zgrid[end], ζ, pN_up) - Ls).^2,
-			h.wgrid[1], h.wgrid[end] * 2.0, GoldenSection()
+			wlow, whigh * 2.0, GoldenSection()
 			)
 	res2 = Optim.optimize(
 			w -> (labor_demand(h, w, h.zgrid[end], ζ, pN_down) - Ls).^2,
-			h.wgrid[1], h.wgrid[end] * 2.0, GoldenSection()
+			wlow, whigh * 2.0, GoldenSection()
 			)
 	w_up = max(res1.minimizer, res2.minimizer) * 1.25
 	ζ = 2
 	res1 = Optim.optimize(
 			w -> (labor_demand(h, w, h.zgrid[1], ζ, pN_up) - Ls).^2,
-			0.5 * h.wgrid[1], h.wgrid[end], GoldenSection()
+			0.5 * wlow, whigh, GoldenSection()
 			)
 	res2 = Optim.optimize(
 			w -> (labor_demand(h, w, h.zgrid[1], ζ, pN_down) - Ls).^2,
-			0.5 * h.wgrid[1], h.wgrid[end], GoldenSection()
+			0.5 * wlow, whigh, GoldenSection()
 			)
 	w_down = min(res1.minimizer, res2.minimizer) * 0.75
 

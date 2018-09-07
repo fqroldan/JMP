@@ -309,7 +309,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 
 		qʰv = qʰ_mat[jb, jμ, jσ, jw, jζ, jz]
 		qᵍv = qᵍ_mat[jb, jμ, jσ, jw, jζ, jz]
-		wv  = wL_mat[jb, jμ, jσ, jw, jζ, jz]
+		wL  = wL_mat[jb, jμ, jσ, jw, jζ, jz]
 		Tv  = T_mat[jb, jμ, jσ, jw, jζ, jz]
 		pCv = pC_mat[jb, jμ, jσ, jw, jζ, jz]
 		profits = Π_mat[jb, jμ, jσ, jw, jζ, jz]
@@ -367,7 +367,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 		adjustment = sum(h.λϵ.*exp.(h.ϵgrid))
 		for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
 
-			RHS = ωv + wv * exp(ϵv) - Tv + profits * exp(ϵv) / adjustment
+			RHS = ωv + wL * exp(ϵv) - Tv + profits * exp(ϵv) / adjustment
 
 			ap, bp, ep, cmax, fmax = 0., 0., 0., 0., 0.
 			ag, bg = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz], h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
@@ -395,7 +395,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 				end
 			elseif ωmax < qʰv * h.ωmin
 				if verbose
-					# print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wv,2)), T=$(round(Tv,2))")
+					# print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wL,2)), T=$(round(Tv,2))")
 					warnc0[jb, jμ, jσ, jw, jζ, jz] = 1.
 				end
 				ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8

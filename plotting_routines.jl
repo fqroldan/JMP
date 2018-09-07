@@ -63,7 +63,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 		leg[jϵ] = "ϵ = $(round(h.ϵgrid[jϵ],2))"
 	end
 
-	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], h.zgrid[end]
+	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), h.wgrid[2], h.ζgrid[1], h.zgrid[end]
 
 	function hh_pol(h::Hank, show_b, show_μ, show_σ, show_w, show_ζ, show_z)
 		knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
@@ -136,7 +136,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 		return p
 	end
 
-	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[2], h.zgrid[1]
+	show_b, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), h.wgrid[2], h.ζgrid[2], h.zgrid[1]
 
 	# p = hh_pol(h, show_b, show_μ, show_σ, show_w, show_ζ, show_z)
 
@@ -153,7 +153,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 end
 
 function plot_hh_policies_z(h::Hank; remote::Bool=false)
-	show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ = mean(h.ϵgrid), mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1]
+	show_ϵ, show_b, show_μ, show_σ, show_w, show_ζ = mean(h.ϵgrid), mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), h.wgrid[2], h.ζgrid[1]
 
 	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
 	itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
@@ -229,7 +229,7 @@ function plot_hh_policies_z(h::Hank; remote::Bool=false)
 end
 
 function plot_hh_policies_b(h::Hank; remote::Bool=false)
-	show_ϵ, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.ϵgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], mean(h.zgrid)
+	show_ϵ, show_μ, show_σ, show_w, show_ζ, show_z = mean(h.ϵgrid), mean(h.μgrid), mean(h.σgrid), h.wgrid[2], h.ζgrid[1], mean(h.zgrid)
 
 	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
 	itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
@@ -427,7 +427,7 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, remote::Bool=false)
 	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	midb = ceil(Int, h.Nb/2)
-	states = gridmake([1; midb; h.Nb], [1; h.Nz])
+	states = gridmake([1; midb; h.Nb-1], [1; h.Nz])
 	# p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
 	p_vec = Array{PlotlyJS.SyncPlot}(size(states,1))
 	for js in 1:size(states,1)
@@ -456,7 +456,7 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, remote::Bool=false)
 
 	p_paper = [p_vec[1] p_vec[2] p_vec[3]; p_vec[4] p_vec[5] p_vec[6]]
 	p_paper.plot.layout["font_family"] = "STIX Two Text"
-	p_slides = [p_vec[1] p_vec[2]; p_vec[4] p_vec[5]]
+	p_slides = [p_vec[1] p_vec[3]; p_vec[4] p_vec[6]]
 	p_slides.plot.layout["font_family"] = "Fira Sans Light"
 	p_slides.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
 	p_slides.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"

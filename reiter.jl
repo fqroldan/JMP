@@ -5,7 +5,7 @@ include("hh_pb.jl")
 function Hank(;	β = (1.0/1.03)^0.25,
 				IES = 1.0,
 				RRA = 10.,
-				γw = 0.975,#^0.25,
+				γw = 1.0,#0.99,#^0.25,
 				τ = 0.25,
 				r_star = 1.02^0.25 - 1.0,
 				ωmax = 20.,
@@ -65,7 +65,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	Pϵ = ϵ_chain.p
 	ϵgrid = ϵ_chain.state_values
 
-	wgrid = linspace(0.75, 1.5, Nw)
+	wgrid = [0.5; 0.9]# linspace(0.75, 1.5, Nw)
 	pngrid = linspace(0.5, 1.1, Np)
 	ζgrid = 1:2
 	Nζ = length(ζgrid)
@@ -156,7 +156,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	end
 	w′ = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
 	for (jw, wv) in enumerate(wgrid)
-		w′[:,:,:,jw,:,:] = max(γw * wv, wgrid[1])
+		w′[:,:,:,jw,:,:] = wv
 	end
 	w′ = reshape(w′, Nb*Nμ*Nσ*Nw*Nζ*Nz)
 
@@ -189,7 +189,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 		for (jζ, ζv) in enumerate(ζgrid)
 			def = (ζv != 1.0)
 			for (jw, wv) in enumerate(wgrid)
-				wage[:,:,:,:,jζ,jz] = max(exp(zv) * (1.0 - Δ * def), γw*wv)
+				wage[:,:,:,jw,jζ,jz] = max(exp(zv) * (1.0 - Δ * def), γw*wv)
 			end
 		end
 		repay[:,:,:,:,:,:,jz] = 1.0 - (zv <= zgrid[1])
@@ -527,8 +527,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nStates with exc supply, demand = $(round(100*exc_sup_prop,2))%, $(round(100*exc_dem_prop,2))%")
 			print_save("\nAverage, max exc supply = $(@sprintf("%0.3g",mean_excS)), $(@sprintf("%0.3g",max_excS))")
 
-			new_wgrid = update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
-			update_grids!(h, new_wgrid=new_wgrid)
+			_ = update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
+			# update_grids!(h, new_wgrid=new_wgrid)
 
 			print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(h.pngrid))), $(@sprintf("%0.3g",maximum(h.pngrid)))]")
 

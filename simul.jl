@@ -74,7 +74,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	# print_save("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab])")
 
-	μ′, σ′, q′, _ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, wt, exp_rep)
+	μ′, σ′, q′, _ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, w0, exp_rep)
 
 	lμ = h.μgrid[end] - h.μgrid[1]
 	lσ = h.σgrid[end] - h.σgrid[1]
@@ -96,8 +96,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	if jdef
 		# Compute welfare in case of repayment and default
-		Wr = itp_W[Bprime, μ′[jzp,1], σ′[jzp,1], wt, 1, jzp]
-		Wd = itp_W[Bprime, μ′[jzp,2], σ′[jzp,2], wt, 2, jzp]
+		Wr = itp_W[Bprime, μ′[jzp,1], σ′[jzp,1], w0, 1, jzp]
+		Wd = itp_W[Bprime, μ′[jzp,2], σ′[jzp,2], w0, 2, jzp]
 		# Now draw reentry
 		prob_reentry = h.θ
 		reentry = (rand() <= prob_reentry)
@@ -113,8 +113,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		end
 	else
 		# Compute welfare in case reenter and remain
-		Wr = itp_W[Bprime, 			μ′[jzp,1], σ′[jzp,1], wt, 1, jzp]
-		Wd = itp_W[(1.-h.ℏ)*Bprime, μ′[jzp,2], σ′[jzp,2], wt, 2, jzp]
+		Wr = itp_W[Bprime, 			μ′[jzp,1], σ′[jzp,1], w0, 1, jzp]
+		Wd = itp_W[(1.-h.ℏ)*Bprime, μ′[jzp,2], σ′[jzp,2], w0, 2, jzp]
 		# Now draw default
 		if phase == "no def"
 			repay_prime = 1.
@@ -148,7 +148,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	# Fill the path for next period
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
-		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :w => wt, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd))
+		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :w => w0, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd))
 	end
 
 	return λprime
@@ -164,7 +164,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 
 	jz = 4
 
-	B0, μ0, σ0, w0, ζ0, z0 = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), mean(h.wgrid), h.ζgrid[1], h.zgrid[jz]
+	B0, μ0, σ0, w0, ζ0, z0 = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), h.wgrid[2], h.ζgrid[1], h.zgrid[jz]
 	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w => w0, :ζ => ζ0, :z => z0))
 
 	itp_ϕa = make_itp(h, h.ϕa_ext; agg=false)
