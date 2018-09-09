@@ -304,7 +304,7 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 end
 
 function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)
-	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), 2, 1, ceil(Int, h.Nz/2)
 
 	if custom_w != 0
 		jshow_w = custom_w
@@ -597,7 +597,7 @@ end
 function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 	qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.85), ceil(Int, h.Nμ*0.1), ceil(Int, h.Nσ*1), floor(Int, h.Nw/2)+1, 1, ceil(Int, h.Nz*0.9)
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.85), ceil(Int, h.Nμ*0.1), ceil(Int, h.Nσ*1), 2, 1, ceil(Int, h.Nz*0.9)
 
 	debtcolors = [ ["0.0", "rgb(165,0,38)"],
 					   ["0.2", "rgb(215,48,39)"],
@@ -688,7 +688,7 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 	EZ = zeros(h.Nω, h.Nϵ, 1, h.Nϵ, h.Nz, 2)
 	EIS = zeros(h.Nω, h.Nϵ, 1, h.Nϵ, h.Nz, 2)
 
-	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz/2)
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), 2, 1, ceil(Int, h.Nz/2)
 
 	jshow_ω, jshow_ϵ = ceil(Int, h.Nω*0.75), ceil(Int, h.Nϵ*0.5)
 
@@ -972,7 +972,9 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		p3 = [pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6]
 		p4 = [pg1 pg2 pg3 pg4 pg6; pb1 pb2 pb3 pb4 pb6]
 
-		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.5), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), floor(Int, h.Nw/2), 1, ceil(Int, h.Nz*0.25)
+		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.5), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), 2, 1, ceil(Int, h.Nz*0.25)
+
+		jshow_w = 2
 
 		tickmax = maximum(u_mat[:,:,:,jshow_w,jshow_ζ,:])
 
