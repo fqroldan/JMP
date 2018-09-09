@@ -65,7 +65,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	Pϵ = ϵ_chain.p
 	ϵgrid = ϵ_chain.state_values
 
-	wgrid = [0.5; 0.9] # linspace(0.75, 1.5, Nw)
+	wgrid = [0.5; 0.8] # linspace(0.75, 1.5, Nw)
 	Nw = 2
 	pngrid = linspace(0.5, 1.1, Np)
 	ζgrid = 1:2
