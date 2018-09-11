@@ -733,12 +733,12 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 	h.issuance 	= min.(max.(h.issuance, minimum(h.bgrid)), maximum(h.bgrid))
 	h.spending 	= reinterp(h, h.spending, agg=true)
 	h.pN 		= reinterp(h, h.pN, agg=true)
-	h.w′ 		= reinterp(h, h.w′, agg=true)
+	# h.w′ 		= reinterp(h, h.w′, agg=true)
 
 	knots 		= (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid, h.zgrid)
 	repay_mat 	= reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 	itp_repay 	= interpolate(knots, repay_mat, Gridded(Linear()))
-	rep_new 	= itp_repay[h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid, h.zgrid]
+	rep_new 	= itp_repay[h.bgrid, new_μgrid, new_σgrid, new_wgrid, h.ζgrid, h.zgrid, h.zgrid]
 	h.repay 	= reshape(rep_new, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz*h.Nz)
 
 	h.welfare   = reinterp(h, h.welfare, agg=true)
@@ -756,7 +756,7 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 
 	h.μ′ = max.(min.(h.μ′, maximum(h.μgrid)), minimum(h.μgrid))
 	h.σ′ = max.(min.(h.σ′, maximum(h.σgrid)), minimum(h.σgrid))
-	h.w′ = max.(min.(h.w′, maximum(h.wgrid)), minimum(h.wgrid))
+	# h.w′ = max.(min.(h.w′, maximum(h.wgrid)), minimum(h.wgrid))
 
 	Void
 end

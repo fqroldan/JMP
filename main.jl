@@ -35,18 +35,18 @@ if remote || local_run
 		h2 = load(pwd() * "/../../hank.jld", "h")
 		remote? h2 = load(pwd() * "/../../hank.jld", "h"): h2 = load("hank.jld", "h")
 		print_save("\nFound JLD file")
-		if h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
+		if false && h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
 			print_save(": loading previous results")
 			h.ϕa = h2.ϕa
 			h.ϕb = h2.ϕb
 			h.ϕc = h2.ϕc
 			h.vf = h2.vf
 			h.pngrid = h2.pngrid
-			h.wgrid = h2.wgrid
+			# h.wgrid = h2.wgrid
 			h.pN = h2.pN
 			h.μ′ = h2.μ′
 			h.σ′ = h2.σ′
-			h.w′ = h2.w′
+			# h.w′ = h2.w′
 			h.output = h2.output
 			h.wage = h2.wage
 			h.Ld = h2.Ld

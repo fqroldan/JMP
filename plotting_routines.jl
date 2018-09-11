@@ -976,61 +976,57 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 
 		jshow_w = 2
 
-		tickmax = maximum(u_mat[:,:,:,jshow_w,jshow_ζ,:])
 
-		if MV 
-			itp_u = make_itp(h, u_mat; agg=true)
-			itp_Y = make_itp(h, Y_mat; agg=true)
-			un_mat = reeval_mat_MV(h, itp_u, jshow_b, jshow_w, jshow_z, lb=0, ub=100)
-			Yn_mat = reeval_mat_MV(h, itp_Y, jshow_b, jshow_w, jshow_z, lb=0, ub=100)
-			xax, yax = "Mean", "Variance"
-		else
-			un_mat = u_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z]
-			Yn_mat = Y_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z]
-			xax, yax = "μ", "σ"
+		function make_contour(y::Array; MV::Bool=true, cscale::String="Reds", perc::Bool=true)
+			if MV 
+				itp_y = make_itp(h, y; agg=true)
+				lb, ub = minimum(y), maximum(y)
+				yn_mat = reeval_mat_MV(h, itp_y, jshow_b, jshow_w, jshow_z, lb=lb, ub=ub)
+				xax, yax = "Mean", "Variance"
+			else
+				yn_mat = y[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z]
+				xax, yax = "μ", "σ"
+			end
+			
+			tickmax = maximum(y[:,:,:,jshow_w,jshow_ζ,:])
+			tickmin = minimum(y[:,:,:,jshow_w,jshow_ζ,:])
+
+			perc? suffix = "%": suffix = ""
+
+			ctbz = contour(;
+				x=h.bgrid, y=exp.(h.zgrid),
+				z = y[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
+				contours_coloring="heatmap",
+				colorscale=cscale, contours_start=tickmin, contours_end=tickmax,
+				colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
+				colorbar_ticksuffix=suffix, colorbar_showticksuffix="all"
+				)
+			ctμσ = contour(;
+				x = h.μgrid, y = h.σgrid,
+				z = yn_mat,
+				contours_coloring="heatmap",
+				colorscale = cscale, contours_start=tickmin, contours_end=tickmax,
+				colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
+				colorbar_ticksuffix=suffix, colorbar_showticksuffix="all"
+				)
+			pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))	
+			pμσ = plot(ctμσ, Layout(;xaxis_title=xax, yaxis_title=yax))
+			
+			p = [pbz pμσ]
 		end
 
-		ctbz = contour(;
-			x=h.bgrid, y=exp.(h.zgrid),
-			z = u_mat[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
-			contours_coloring="heatmap",
-			colorscale="Reds", contours_start=0.5, contours_end=tickmax,
-			colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
-			colorbar_ticksuffix="%", colorbar_showticksuffix="all"
-			)
-		ctμσ = contour(;
-			x = h.μgrid, y = h.σgrid,
-			z = un_mat,
-			contours_coloring="heatmap",
-			colorscale = "Reds", contours_start=0.5, contours_end=tickmax,
-			colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
-			colorbar_ticksuffix="%", colorbar_showticksuffix="all"
-			)
-		pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))	
-		pμσ = plot(ctμσ, Layout(;xaxis_title=xax, yaxis_title=yax))
-		pu = [pbz pμσ]
+		pu = make_contour(u_mat)
 		pu.plot.layout["title"] = "Unemployment"
 
-		ctbz = contour(;
-			x=h.bgrid, y=exp.(h.zgrid),
-			z = Y_mat[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
-			contours_coloring="heatmap",
-			colorscale="Reds", contours_start=0.5, contours_end=tickmax,
-			colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
-			colorbar_ticksuffix="%", colorbar_showticksuffix="all"
-			)
-		ctμσ = contour(;
-			x = h.μgrid, y = h.σgrid,
-			z = Yn_mat,
-			contours_coloring="heatmap",
-			colorscale = "Reds", contours_start=0.5, contours_end=tickmax,
-			colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
-			colorbar_ticksuffix="%", colorbar_showticksuffix="all"
-			)
-		pbz = plot(ctbz, Layout(;xaxis_title="B", yaxis_title="z"))	
-		pμσ = plot(ctμσ, Layout(;xaxis_title=xax, yaxis_title=yax))
-		pY = [pbz pμσ]
+		pY = make_contour(Y_mat; perc=false)
 		pY.plot.layout["title"] = "Output"
+
+		pT = make_contour(T_mat; perc=false)
+		pT.plot.layout["title"] = "Taxes"		
+		
+		pTY = make_contour(T_mat./Y_mat * 100; perc=true)
+		pTY.plot.layout["title"] = "Taxes to GDP"		
+		
 		
 		if remote
 			path = pwd() * "/../../Graphs/"
@@ -1038,7 +1034,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		else
 			path = pwd() * "/../Graphs/"
 			# savefig(p, path * "statefuncs$(jp).pdf")
-			return p1, p2, p3, p4, pu, pY, pμσ
+			return p1, p2, p3, p4, pu, pY, pT, pTY
 		end
 	end
 	Void
@@ -1282,10 +1278,10 @@ function plot_outerdists(h; remote::Bool=false)
 	Void
 end
 
-function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
+function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 	name = ""
+	path = trim_path(path_entry, trim)
 	if trim > 0
-		trim_path!(path, trim)
 	else
 		name = "_full"
 	end
@@ -1318,10 +1314,11 @@ function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 
 	default_shades = rect(defaults, exits, 0, 1; fillcolor="#d3d3d3", opacity=0.5, line_width=0, xref="x", yref="paper")
 
-	pB = plot([	scatter(; x=times, y=B_vec, marker_color=col[1], showlegend=false),
-				# scatter(; x=times, y=ones(times)*minimum(h.bgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
-				scatter(; x=times, y=ones(times)*maximum(h.bgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
-						Layout(; title="Bonds", xaxis=attr(title="𝑡")));
+	pB = plot([	scatter(; x=times, y=100*B_vec./Y_vec, marker_color=col[1], showlegend=false)
+				#, scatter(; x=times, y=ones(times)*minimum(h.bgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
+				#, scatter(; x=times, y=ones(times)*maximum(h.bgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
+				],
+						Layout(; title="Debt-to-GDP", xaxis=attr(title="𝑡"), yaxis_title="% of GDP"));
 	pμ = plot([ scatter(; x=times, y=μ_vec, marker_color=col[1], showlegend=false),
 				# scatter(; x=times, y=ones(times)*minimum(h.μgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*maximum(h.μgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
@@ -1330,9 +1327,10 @@ function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 				# scatter(; x=times, y=ones(times)*maximum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=ones(times)*minimum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
 						Layout(; title="σ", xaxis=attr(title="𝑡")));
-	pw = plot([ scatter(; x=times, y=w_vec, marker_color=col[1], showlegend=false),
-				scatter(; x=times, y=ones(times)*minimum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
-				scatter(; x=times, y=ones(times)*maximum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
+	pw = plot([ scatter(; x=times, y=w_vec, marker_color=col[1], showlegend=false)
+				#, scatter(; x=times, y=ones(times)*minimum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
+				#, scatter(; x=times, y=ones(times)*maximum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
+				],
 						Layout(; title="Wage", xaxis=attr(title="𝑡")));
 	pz = plot(scatter(; x=times, y=z_vec, marker_color=col[1], showlegend=false), Layout(; title="TFP", xaxis=attr(title="𝑡")));
 	pY = plot([ scatter(; x=times, y=Y_vec, marker_color=col[1], showlegend=false),
@@ -1346,9 +1344,9 @@ function plot_simul(path::Path; remote::Bool=false, trim::Int=0)
 				# scatter(; x=times, y=ones(times)*minimum(h.pngrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				scatter(; x=times, y=Pe_vec,marker_color=col[4], showlegend=false, line_dash="dashdot")],
 			Layout(; title="Price of nontradables", xaxis=attr(title="𝑡")));
-	pψ = plot(scatter(; x=times, y=ψ_vec, marker_color=col[1],  showlegend=false), Layout(; title="Fraction domestic", xaxis=attr(title="𝑡")));
+	pψ = plot(scatter(; x=times, y=100*ψ_vec, marker_color=col[1],  showlegend=false), Layout(; title="Fraction domestic", xaxis=attr(title="𝑡"), yaxis_title="% of total"));
 	pA = plot(scatter(; x=times, y=A_vec, marker_color=col[1],  showlegend=false), Layout(; title="Domestic risk-free debt", xaxis_title="𝑡"));
-	pBf= plot(scatter(; x=times, y=Bf_vec, marker_color=col[1], showlegend=false), Layout(; title="Foreign debt", xaxis_title="𝑡"));
+	pBf= plot(scatter(; x=times, y=100*Bf_vec./Y_vec, marker_color=col[1], showlegend=false), Layout(; title="Foreign debt", xaxis_title="𝑡", yaxis_title="% of GDP"));
 	pW = plot([ scatter(;x=times, y=Wr_vec, marker_color=col[1], showlegend=false),
 				scatter(;x=times, y=Wd_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")], Layout(;title="Welfare", xaxis_title="𝑡"));
 

@@ -9,7 +9,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	Bt = getfrompath(p, t, :B)
 	μt = getfrompath(p, t, :μ)
 	σt = getfrompath(p, t, :σ)
-	w0 = getfrompath(p, t, :w)
+	# w0 = getfrompath(p, t, :w)
+	w0 = h.wgrid[2]
 	ζt = Int(getfrompath(p, t, :ζ))
 	zt = getfrompath(p, t, :z)
 
@@ -43,7 +44,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		end
 	end
 
-	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob))
+	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt))
 
 	# Integrate the household's policy functions to get μ′, σ′
 	ϕa = zeros(h.Nω_fine*h.Nϵ)
@@ -148,7 +149,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	# Fill the path for next period
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
-		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :w => w0, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd))
+		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd))
 	end
 
 	return λprime

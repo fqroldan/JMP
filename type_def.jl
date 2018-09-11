@@ -210,6 +210,16 @@ function trim_path!(p::Path, T_burnin::Int64)
 	p.data = p.data[T_burnin+1:end, :]
 	Void
 end
+
+function trim_path(p::Path, t0::Int64)
+	t0 < length(p.data[:,1]) || throw(error("Trying to trim too far out"))
+
+	n = p.n
+	data = p.data[t0+1:end, :]
+
+	return Path(data, n)
+end
+
 function series(p::Path, sym::Symbol)
 	T = size(p.data, 1)
 

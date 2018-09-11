@@ -65,7 +65,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	Pϵ = ϵ_chain.p
 	ϵgrid = ϵ_chain.state_values
 
-	wgrid = [0.5; 0.8] # linspace(0.75, 1.5, Nw)
+	wgrid = [0.5; 0.85] # linspace(0.75, 1.5, Nw)
 	Nw = 2
 	pngrid = linspace(0.5, 1.1, Np)
 	ζgrid = 1:2
@@ -532,6 +532,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			# update_grids!(h, new_wgrid=new_wgrid)
 
 			print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(h.pngrid))), $(@sprintf("%0.3g",maximum(h.pngrid)))]")
+			print_save("\nw_grid = [$(@sprintf("%0.3g",minimum(h.w′))), $(@sprintf("%0.3g",maximum(h.w′)))]")
+
 
 			print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
 			dist_s = maximum(dists)
@@ -587,7 +589,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	if dist <= tol
 		print_save("\nConverged in $iter iterations. ")
 	else
-		print_save("\nStopping at distance $(@sprintf("%0.3g",dist)). ")
+		print_save("\nStopping at distance $(@sprintf("%0.3g",dist)), target was $(@sprintf("%0.3g",tol)).")
 	end
 
 	print_save("\nTotal time: $(time_print(time()-time_init))\n")
