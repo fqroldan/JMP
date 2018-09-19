@@ -27,15 +27,18 @@ print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(no
 
 # Set options
 local_run = true
+nodef     = false
+rep_agent = false
+
 # Initialize type
 if remote || local_run
-	h = Hank();
+	h = Hank(; nodef = nodef, rep_agent = rep_agent);
 	# h = load(pwd() * "/../../hank.jld", "h")
 	try
 		h2 = load(pwd() * "/../../hank.jld", "h")
 		remote? h2 = load(pwd() * "/../../hank.jld", "h"): h2 = load("hank.jld", "h")
 		print_save("\nFound JLD file")
-		if false && h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
+		if h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
 			print_save(": loading previous results")
 			h.ϕa = h2.ϕa
 			h.ϕb = h2.ϕb
@@ -70,7 +73,7 @@ print_save("\nω: $(h.ωgrid)\n")
 # Run
 if remote || local_run
 	# vfi!(h, verbose = true, remote = remote)
-	mpe_iter!(h; remote = remote)
+	mpe_iter!(h; remote = remote, nodef = nodef, rep_agent = rep_agent)
 end
 
 p, jz_series = simul(h; simul_length=4*(250+25), only_def_end=true)

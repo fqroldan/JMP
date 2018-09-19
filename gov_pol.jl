@@ -100,6 +100,7 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 	
 	rep_new = reshape(repay, length(repay))
 	rep_new = reshape(rep_prob, length(rep_prob))
+
 	return rep_new
 end
 
@@ -122,7 +123,7 @@ function update_W(h::Hank)
 end
 
 
-function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64=1e-4)
+function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64=1e-4, nodef::Bool=false, rep_agent::Bool=false)
 	print_save("\nIterating on the government's policy: ")
 	time_init = time()
 	t_old = time_init
@@ -144,10 +145,15 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
 		upd_η = 0.5
 
 		old_rep = copy(h.repay)
-		new_rep = update_govpol(h; η_rep = 0.25)
 
-		dist = sqrt.(sum( (new_rep - old_rep).^2 )) / sqrt.(sum(old_rep.^2))
-		h.repay = 0.4*upd_η * new_rep + (1.-0.4*upd_η) * old_rep
+		if nodef
+			h.repay = ones(h.repay)
+			dist = 0.
+		else
+			new_rep = update_govpol(h; η_rep = 0.25)
+			dist = sqrt.(sum( (new_rep - old_rep).^2 )) / sqrt.(sum(old_rep.^2))
+			h.repay = 0.4*upd_η * new_rep + (1.-0.4*upd_η) * old_rep
+		end
 
 		tol_vfi = max(exp(0.9*log(1+tol_vfi))-1, 1e-6)
 		t_new = time()
@@ -155,6 +161,8 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64
 
 		push!(h.outer_dists, dist)
 		# plot_outerdists(h; remote = remote)
+
+		dist = max(dist, tol_vfi)
 
 		out_iter += 1
 		time_old = time()

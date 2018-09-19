@@ -427,7 +427,8 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, remote::Bool=false)
 	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	midb = ceil(Int, h.Nb/2)
-	states = gridmake([1; midb; h.Nb-1], [1; h.Nz])
+	midb = h.Nb-1
+	states = gridmake([ceil(Int, h.Nb/2); midb; h.Nb], [1; h.Nz])
 	# p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
 	p_vec = Array{PlotlyJS.SyncPlot}(size(states,1))
 	for js in 1:size(states,1)
@@ -457,6 +458,7 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, remote::Bool=false)
 	p_paper = [p_vec[1] p_vec[2] p_vec[3]; p_vec[4] p_vec[5] p_vec[6]]
 	p_paper.plot.layout["font_family"] = "STIX Two Text"
 	p_slides = [p_vec[1] p_vec[3]; p_vec[4] p_vec[6]]
+	p_slides = [p_vec[1] p_vec[2] p_vec[3]; p_vec[4] p_vec[5] p_vec[6]]
 	p_slides.plot.layout["font_family"] = "Fira Sans Light"
 	p_slides.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
 	p_slides.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
@@ -597,7 +599,7 @@ end
 function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 	qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
-	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.85), ceil(Int, h.Nμ*0.1), ceil(Int, h.Nσ*1), 2, 1, ceil(Int, h.Nz*0.9)
+	jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.8), ceil(Int, h.Nμ*0.1), ceil(Int, h.Nσ*1), 2, 1, ceil(Int, h.Nz*0.1)
 
 	debtcolors = [ ["0.0", "rgb(165,0,38)"],
 					   ["0.2", "rgb(215,48,39)"],
@@ -622,15 +624,16 @@ function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 
 	if MV 
 		itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
-		qg_mat = reeval_mat_MV(h, itp_qᵍ, jshow_b, jshow_w, jshow_z, lb = 0)
+		qg_mat, xgrid, ygrid = reeval_mat_MV(h, itp_qᵍ, jshow_b, jshow_w, jshow_z, lb = 0)
 		xax, yax = "Mean", "Variance"
 	else
 		qg_mat = qᵍ_mat[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z]
+		xgrid, ygrid = h.μgrid, h.σgrid
 		xax, yax = "μ", "σ"
 	end
 
 	ctμσ = contour(;
-		x = h.μgrid, y = h.σgrid,
+		x = xgrid, y = ygrid,
 		z = qg_mat,
 		contours_coloring="heatmap",
 		contours_start=tickmin, contours_end=tickmax,
@@ -676,7 +679,7 @@ function reeval_mat_MV(h::Hank, itp_obj, jb, jw, jz; lb=-Inf, ub=Inf)
 		end
 	end
 	
-	return mat	
+	return mat, mgrid, vgrid
 end
 
 function plot_eulereq(h::Hank; remote::Bool=false)
@@ -972,24 +975,27 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		p3 = [pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6]
 		p4 = [pg1 pg2 pg3 pg4 pg6; pb1 pb2 pb3 pb4 pb6]
 
-		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.5), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), 2, 1, ceil(Int, h.Nz*0.25)
+		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.5), ceil(Int, h.Nμ*0.1), ceil(Int, h.Nσ*0.9), 2, 1, ceil(Int, h.Nz*0.25)
 
 		jshow_w = 2
-
+		jshow_σ = 1
 
 		function make_contour(y::Array; MV::Bool=true, cscale::String="Reds", perc::Bool=true)
 			if MV 
 				itp_y = make_itp(h, y; agg=true)
 				lb, ub = minimum(y), maximum(y)
-				yn_mat = reeval_mat_MV(h, itp_y, jshow_b, jshow_w, jshow_z, lb=lb, ub=ub)
+				yn_mat, xgrid, ygrid = reeval_mat_MV(h, itp_y, jshow_b, jshow_w, jshow_z, lb=lb, ub=ub)
 				xax, yax = "Mean", "Variance"
 			else
 				yn_mat = y[jshow_b, :, :, jshow_w, jshow_ζ, jshow_z]
+				xgrid, ygrid = h.μgrid, h.σgrid
 				xax, yax = "μ", "σ"
 			end
 			
 			tickmax = maximum(y[:,:,:,jshow_w,jshow_ζ,:])
 			tickmin = minimum(y[:,:,:,jshow_w,jshow_ζ,:])
+
+			tickmax = 13.
 
 			perc? suffix = "%": suffix = ""
 
@@ -1002,7 +1008,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 				colorbar_ticksuffix=suffix, colorbar_showticksuffix="all"
 				)
 			ctμσ = contour(;
-				x = h.μgrid, y = h.σgrid,
+				x = xgrid, y = ygrid,
 				z = yn_mat,
 				contours_coloring="heatmap",
 				colorscale = cscale, contours_start=tickmin, contours_end=tickmax,

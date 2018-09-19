@@ -27,13 +27,24 @@ function Hank(;	β = (1.0/1.03)^0.25,
 				Δ = 0.1,
 				θ = .125,
 				Np = 5,
-				upd_tol = 5e-3
+				upd_tol = 5e-3,
+				nodef::Bool = false,
+				rep_agent::Bool = false
 				)
 	ψ = IES
 	γ = 0.
 	if EpsteinZin == true
 		γ = RRA
 	end
+
+	σmin, σmax = 0.1, 1.25
+	if rep_agent
+		σϵ = 0.0001
+		Nϵ = 2
+		Nσ = 2
+		σmin, σmax = 0.01, 0.02
+	end
+
 	## Prepare discretized processes
 	function quarterlize_AR1(ρ, σ)
 		ρ4 = ρ^0.25
@@ -97,8 +108,8 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	Bmax  = 3.0
 	Bbar  = Bmax * 0.5
 	bgrid = linspace(0.0, Bmax, Nb)
-	μgrid = linspace(-1.0, 1.5, Nμ)
-	σgrid = linspace(0.05, 0.75, Nσ)
+	μgrid = linspace(-2.0, 1.0, Nμ)
+	σgrid = linspace(σmin, σmax, Nσ)
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.5
@@ -250,6 +261,9 @@ function Hank(;	β = (1.0/1.03)^0.25,
 		end
 	end
 
+	if nodef
+		repay = ones(repay)
+	end
 
 	outer_dists = [1.]
 
@@ -264,7 +278,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 	init_t = time()
 
-	coupon = h.κ * (1.0 - 0.01)
+	coupon = h.κ * (1.0 - 0.001)
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 
@@ -393,7 +407,7 @@ function update_fiscalrules!(h::Hank)
 	NX2   = sign.(NX)
 
 	coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
-	coef_B = [ 2.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ] #-3.36865
+	coef_B = [ 2.86865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ] #-3.36865
 	g = [ ones(unemp) unemp unemp2 BoY BoY2 spread*0 spr2*0 NX NX2 ] * coef_g / 100
 	net_iss = [ ones(unemp) unemp unemp2 spread*0 spr2*0 NX NX2 ] * coef_B / 100
 
