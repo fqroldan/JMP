@@ -1311,6 +1311,8 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 	Wr_vec= series(path,:Wr)
 	Wd_vec= series(path,:Wd)
 
+	m_vec, v_vec = unmake_logN(μ_vec, σ_vec)
+
 	shiftζ = [0; ζ_vec[1:end-1]]
 
 	defaults = find((ζ_vec.==1) .* (shiftζ.==0))./4
@@ -1325,14 +1327,16 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 				#, scatter(; x=times, y=ones(times)*maximum(h.bgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
 				],
 						Layout(; title="Debt-to-GDP", xaxis=attr(title="𝑡"), yaxis_title="% of GDP"));
-	pμ = plot([ scatter(; x=times, y=μ_vec, marker_color=col[1], showlegend=false),
+	pμ = plot([ scatter(; x=times, y=m_vec, marker_color=col[1], showlegend=false),
 				# scatter(; x=times, y=ones(times)*minimum(h.μgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
-				scatter(; x=times, y=ones(times)*maximum(h.μgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
-						Layout(; title="μ", xaxis=attr(title="𝑡")));
-	pσ = plot([ scatter(; x=times, y=σ_vec, marker_color=col[1], showlegend=false),
+				# scatter(; x=times, y=ones(times)*maximum(h.μgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
+				],
+						Layout(; title="Mean", xaxis=attr(title="𝑡")));
+	pσ = plot([ scatter(; x=times, y=v_vec, marker_color=col[1], showlegend=false)
 				# scatter(; x=times, y=ones(times)*maximum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
-				scatter(; x=times, y=ones(times)*minimum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)],
-						Layout(; title="σ", xaxis=attr(title="𝑡")));
+				# scatter(; x=times, y=ones(times)*minimum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
+				],
+						Layout(; title="Variance", xaxis=attr(title="𝑡")));
 	pw = plot([ scatter(; x=times, y=w_vec, marker_color=col[1], showlegend=false)
 				#, scatter(; x=times, y=ones(times)*minimum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
 				#, scatter(; x=times, y=ones(times)*maximum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
