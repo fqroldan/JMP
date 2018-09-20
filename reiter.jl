@@ -4,9 +4,9 @@ include("hh_pb.jl")
 
 function Hank(;	β = (1.0/1.03)^0.25,
 				IES = 1.0,
-				RRA = 10.,
+				RRA = 5.,
 				γw = 1.0,#0.99,#^0.25,
-				τ = 0.25,
+				τ = 0.2,
 				r_star = 1.02^0.25 - 1.0,
 				ωmax = 20.,
 				curv = .4,
@@ -108,7 +108,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	Bmax  = 3.0
 	Bbar  = Bmax * 0.5
 	bgrid = linspace(0.0, Bmax, Nb)
-	μgrid = linspace(-2.0, 1.0, Nμ)
+	μgrid = linspace(-2.5, 0.75, Nμ)
 	σgrid = linspace(σmin, σmax, Nσ)
 
 	# Prepare grid for cash in hand.
