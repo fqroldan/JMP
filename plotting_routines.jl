@@ -1300,7 +1300,7 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 	w_vec = series(path,:w)
 	ζ_vec = series(path,:ζ)-1
 	z_vec = exp.(series(path,:z))
-	Y_vec = series(path,:Y)
+	Y_vec = 4 * series(path,:Y)
 	L_vec = series(path,:L)
 	π_vec = series(path,:π)
 	P_vec = series(path,:P)
@@ -1343,9 +1343,9 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 				],
 						Layout(; title="Wage", xaxis=attr(title="𝑡")));
 	pz = plot(scatter(; x=times, y=z_vec, marker_color=col[1], showlegend=false), Layout(; title="TFP", xaxis=attr(title="𝑡")));
-	pY = plot([ scatter(; x=times, y=Y_vec, marker_color=col[1], showlegend=false),
-				scatter(; x=times, y=L_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")],
-			Layout(; title="Output", xaxis=attr(title="𝑡")));
+	pY = plot([ scatter(; x=times, y=100*(Y_vec - mean(Y_vec)) / mean(Y_vec), marker_color=col[1], showlegend=false),
+				scatter(; x=times, y=100 * (1.0 - L_vec), marker_color=col[2], showlegend=false, line_dash="dashdot")],
+			Layout(; title="Output", yaxis_title="%", xaxis=attr(title="𝑡")));
 	pπ = plot([scatter(; x=times, y=ζ_vec, marker_color=col[1], showlegend=false),
 				scatter(; x=times, y=π_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")],
 			Layout(; title="Default prob", xaxis=attr(title="𝑡")));
