@@ -18,7 +18,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 				Nϵ = 5,
 				Nμ = 4,
 				Nσ = 4,
-				Nb = 5,
+				Nb = 7,
 				Nw = 2,
 				Nz = 7,
 				ρz = 0.9,
@@ -105,7 +105,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	ϖ = 0.7 * ϖ	
 
 	# Grids for endogenous aggregate states
-	Bmax  = 3.0
+	Bmax  = 4.0
 	Bbar  = Bmax * 0.5
 	bgrid = linspace(0.0, Bmax, Nb)
 	μgrid = linspace(-2.5, 0.75, Nμ)
@@ -278,7 +278,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 	init_t = time()
 
-	coupon = h.κ * (1.0 - 0.001)
+	coupon = h.κ * (1.0 - 0.1)
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 
@@ -407,7 +407,7 @@ function update_fiscalrules!(h::Hank)
 	NX2   = sign.(NX)
 
 	coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
-	coef_B = [ 2.86865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ] #-3.36865
+	coef_B = [ 5.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ] #-3.36865
 	g = [ ones(unemp) unemp unemp2 BoY BoY2 spread*0 spr2*0 NX NX2 ] * coef_g / 100
 	net_iss = [ ones(unemp) unemp unemp2 spread*0 spr2*0 NX NX2 ] * coef_B / 100
 
