@@ -352,6 +352,8 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	h.qᵍ = reshape(qᵍ, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
 	h.spread = reshape(spread, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
 
+	h.spread = 1.0/h.qᵍ
+
 	if verbose
 		end_t = time()
 		if dist <= tol
@@ -399,20 +401,23 @@ end
 function update_fiscalrules!(h::Hank)
 	unemp = (1.- h.Ld)*100.
 	unemp2= unemp.^2
-	BoY   = h.bgrid[h.Jgrid[:, 1]] ./ h.output * 100
+	BoY   = h.bgrid[h.Jgrid[:, 1]] ./ (4 * h.output) * 100
 	BoY2  = BoY.^2
 	spread= h.spread * 100
 	spr2  = spread.^2
-	NX 	  = compute_netexports(h)./h.output * 100
-	NX2   = sign.(NX)
+	NX 	  = compute_netexports(h)./(4 * h.output) * 100
+	NX2   = NX.^2
 
-	coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
-	coef_B = [ 5.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ] #-3.36865
-	g = [ ones(unemp) unemp unemp2 BoY BoY2 spread*0 spr2*0 NX NX2 ] * coef_g / 100
-	net_iss = [ ones(unemp) unemp unemp2 spread*0 spr2*0 NX NX2 ] * coef_B / 100
+	# coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
+	coef_g = [18.81 0.1003002472  0.0003524450  0.0380713476 -0.0002802607 -0.0068643547 -0.0010786418  0.1793347145]
 
-	h.spending = max.(min.(g, 0.35), 0.) .* h.output
-	h.issuance = min.(0.10,max.(0., net_iss)) .* h.output + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
+	# coef_B = [ 5.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ] #-3.36865
+	coef_B = [4.604 1.3619082599 -0.0258528231 -0.1709017057  0.0005682376  0.0131813257 -0.0038789357 -0.1509330781]
+	g = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 spread ] * coef_g / 100
+	net_iss = [ ones(unemp) unemp unemp2 NX NX2 spread ] * coef_B / 100
+
+	h.spending = max.(min.(g, 0.35), 0.) .* (4 * h.output)
+	h.issuance = min.(0.10,max.(0., net_iss)) .* (4 * h.output) + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
 
 	def_states = h.ζgrid[h.Jgrid[:, 5]] .!= 1.0
 	h.issuance[def_states] = (1.-h.ρ) * h.bgrid[h.Jgrid[def_states, 1]]
