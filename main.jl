@@ -1,26 +1,32 @@
-using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStrings, Distributions, JLD
-Pkg.add(Sobol)
-using Sobol
+using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStrings, Distributions, JLD, Sobol
 
 function establish_run()
 	location = "remote"
 	run_number = 1
-	if pwd() == "/home/q/Dropbox/NYU/AToSR/Codes"
-		location = "local"
-		using Rsvg
-	elseif pwd()[end-4] == '/'
-		run_number = parse(Int64, pwd()[end])
-	elseif pwd()[end-5] == '/'
-		run_number = parse(Int64, pwd()[end-1:end])
-	elseif pwd()[end-6] == '/'
-		run_number = parse(Int64, pwd()[end-2:end])
-	elseif pwd()[end-7] == '/'
-		run_number = parse(Int64, pwd()[end-3:end])
+	try
+		if pwd() == "/home/q/Dropbox/NYU/AToSR/Codes"
+			location = "local"
+		else
+			for jj in 0:3
+				if pwd()[end-jj-4] == '/' && pwd()[end-jj-3:end-jj-1] == "run"
+					run_number = parse(Int64, pwd()[end-jj:end])
+					break
+				end
+			end
+		end
+	catch
+		print_save("\nWARNING: not able to assign run_number, reverting to default")
+		run_number = 1
+		location = "remote"
 	end
 
 	return location, run_number, (location=="remote")
 end
+
 location, run_number, remote = establish_run()
+if location == "local"
+	using Rsvg
+end
 
 # Initialize output file
 write(pwd()*"/../../output.txt", "")
@@ -58,9 +64,9 @@ function set_params(run_number)
 end
 β, tax, RRA, τ = set_params(run_number)
 
-function make_guess(remote, local_run, nodef, rep_agent)
+function make_guess(remote, local_run, nodef, rep_agent, β, tax, RRA, τ)
 	if remote || local_run
-		h = Hank(; nodef = nodef, rep_agent = rep_agent);
+		h = Hank(; β=β, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent);
 		# h = load(pwd() * "/../../hank.jld", "h")
 		try
 			h2 = load(pwd() * "/../../hank.jld", "h")
@@ -94,7 +100,7 @@ function make_guess(remote, local_run, nodef, rep_agent)
 	end
 	return h
 end
-h = make_guess(remote, local_run, nodef, rep_agent)
+h = make_guess(remote, local_run, nodef, rep_agent, β, tax, RRA, τ);
 
 print_save("\nβ, RRA, IES: $(round(h.β,2)), $(h.γ), $(h.ψ)")
 print_save("\nϵ: $(h.ϵgrid)")
