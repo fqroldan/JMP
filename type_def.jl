@@ -16,6 +16,7 @@ type Hank
 	ρ::Float64
 	κ::Float64
 	r_star::Float64
+	tax::Float64
 
 	# Open Economy and production parameters
 	η::Float64

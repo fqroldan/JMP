@@ -8,6 +8,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 				γw = 1.0,#0.99,#^0.25,
 				τ = 0.2,
 				r_star = 1.02^0.25 - 1.0,
+				tax = 0.1,
 				ωmax = 20.,
 				curv = .4,
 				income_process = "Floden-Lindé",
@@ -102,7 +103,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	η = μ_anzo
 	ϖ = ω_anzo^(1.0/μ_anzo)
 
-	ϖ = 0.7 * ϖ	
+	# ϖ = 0.7 * ϖ	
 
 	# Grids for endogenous aggregate states
 	Bmax  = 4.0
@@ -267,7 +268,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 
 	outer_dists = [1.]
 
-	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, η, ϖ, α_T, α_N, ϑ, ϕa, ϕb, ϕe, ϕc, ϕa_ext, ϕb_ext, ϕe_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
+	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, tax, η, ϖ, α_T, α_N, ϑ, ϕa, ϕb, ϕe, ϕc, ϕa_ext, ϕb_ext, ϕe_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
 		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, welfare, τ, T, issuance, def_thres, output, profits, spending, wage, Ld, qʰ, qᵍ, spread, pN, outer_dists, upd_tol)
 end
 
@@ -278,7 +279,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 	init_t = time()
 
-	coupon = h.κ * (1.0 - 0.1)
+	coupon = h.κ * (1.0 - h.tax)
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
 
@@ -352,7 +353,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	h.qᵍ = reshape(qᵍ, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
 	h.spread = reshape(spread, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
 
-	h.spread = 1.0/h.qᵍ
+	h.spread = 1.0./h.qᵍ
 
 	if verbose
 		end_t = time()
