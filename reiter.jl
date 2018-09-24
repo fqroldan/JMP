@@ -10,6 +10,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 				r_star = 1.02^0.25 - 1.0,
 				tax = 0.1,
 				ωmax = 20.,
+				wbar = 0.9,
 				curv = .4,
 				income_process = "Floden-Lindé",
 				EpsteinZin = true,
@@ -77,7 +78,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 	Pϵ = ϵ_chain.p
 	ϵgrid = ϵ_chain.state_values
 
-	wgrid = [0.5; 0.85] # linspace(0.75, 1.5, Nw)
+	wgrid = [0.5; wbar] # linspace(0.75, 1.5, Nw)
 	Nw = 2
 	pngrid = linspace(0.5, 1.1, Np)
 	ζgrid = 1:2
@@ -406,7 +407,7 @@ function update_fiscalrules!(h::Hank)
 	BoY2  = BoY.^2
 	spread= h.spread * 100
 	spr2  = spread.^2
-	NX 	  = compute_netexports(h)./(4 * h.output) * 100
+	NX 	  = compute_netexports(h)./(1 * h.output) * 100
 	NX2   = NX.^2
 
 	# coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
@@ -414,11 +415,11 @@ function update_fiscalrules!(h::Hank)
 
 	# coef_B = [ 5.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ] #-3.36865
 	coef_B = [4.604 1.3619082599 -0.0258528231 -0.1709017057  0.0005682376  0.0131813257 -0.0038789357 -0.1509330781]
-	g = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 spread ] * coef_g / 100
-	net_iss = [ ones(unemp) unemp unemp2 NX NX2 spread ] * coef_B / 100
+	g = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 spread ] * coef_g' / 100
+	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 spread ] * coef_B' / 100
 
-	h.spending = max.(min.(g, 0.35), 0.) .* (4 * h.output)
-	h.issuance = min.(0.10,max.(0., net_iss)) .* (4 * h.output) + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
+	h.spending = max.(min.(vec(g), 0.35), 0.) .* (1 * h.output)
+	h.issuance = min.(0.10,max.(0., vec(net_iss))) .* (4 * h.output) + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
 
 	def_states = h.ζgrid[h.Jgrid[:, 5]] .!= 1.0
 	h.issuance[def_states] = (1.-h.ρ) * h.bgrid[h.Jgrid[def_states, 1]]
@@ -501,7 +502,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		iter_cycle += 1
 
 		qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat = _unpackstatefs(h);
-
+		# println(mean(T_mat))
 		v_old = copy(h.vf)
 		if iter_cycle <= 5 || iter_cycle % 3 == 0
 			warnc0 = bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=true)
