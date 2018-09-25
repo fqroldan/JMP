@@ -485,8 +485,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	iterate_qᵍ!(h, verbose = true)
 	update_fiscalrules!(h)
 	var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
-	print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
-	print_save("\nspread between $(floor(Int,10000*minimum(h.spread))) bps and $(floor(Int,10000*maximum(h.spread))) bps")
+	print_save("\nqᵍ between $(round(minimum(h.qᵍ[h.Jgrid[:,5].==1]),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
+	print_save("\nspread between $(floor(Int,10000*minimum(h.spread[h.Jgrid[:,5].==1]))) bps and $(floor(Int,10000*maximum(h.spread[h.Jgrid[:,5].==1]))) bps")
 
 	upd_η = 0.5
 
