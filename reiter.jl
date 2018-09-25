@@ -2,15 +2,15 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Di
 
 include("hh_pb.jl")
 
-function Hank(;	β = (1.0/1.03)^0.25,
+function Hank(;	β = (1.0/1.05)^0.25,
 				IES = 1.0,
 				RRA = 5.,
 				γw = 1.0,#0.99,#^0.25,
 				τ = 0.2,
-				r_star = 1.02^0.25 - 1.0,
+				r_star = 1.04^0.25 - 1.0,
 				tax = 0.1,
 				ωmax = 20.,
-				wbar = 0.9,
+				wbar = 0.95,
 				curv = .4,
 				income_process = "Floden-Lindé",
 				EpsteinZin = true,
@@ -22,7 +22,7 @@ function Hank(;	β = (1.0/1.03)^0.25,
 				Nσ = 4,
 				Nb = 7,
 				Nw = 2,
-				Nz = 7,
+				Nz = 9,
 				ρz = 0.9,
 				σz = 0.025,
 				ℏ = 0.4,
@@ -354,7 +354,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	h.qᵍ = reshape(qᵍ, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
 	h.spread = reshape(spread, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
 
-	h.spread = 1.0./h.qᵍ
+	h.spread = 1.0./h.qᵍ - 1.0
 
 	if verbose
 		end_t = time()
@@ -405,7 +405,7 @@ function update_fiscalrules!(h::Hank)
 	unemp2= unemp.^2
 	BoY   = h.bgrid[h.Jgrid[:, 1]] ./ (4 * h.output) * 100
 	BoY2  = BoY.^2
-	spread= h.spread * 100
+	spread= h.spread * 100 # measure in percent
 	spr2  = spread.^2
 	NX 	  = compute_netexports(h)./(1 * h.output) * 100
 	NX2   = NX.^2
