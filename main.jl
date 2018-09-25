@@ -106,7 +106,6 @@ function make_guess(remote, local_run, nodef, rep_agent, β, tax, RRA, τ)
 end
 h = make_guess(remote, local_run, nodef, rep_agent, β, tax, RRA, τ);
 
-print_save("\nβ, RRA, IES: $(round(h.β,2)), $(h.γ), $(h.ψ)")
 print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")
