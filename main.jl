@@ -23,11 +23,6 @@ function establish_run()
 	return location, run_number, (location=="remote")
 end
 
-location, run_number, remote = establish_run()
-if location == "local"
-	using Rsvg
-end
-
 # Initialize output file
 write(pwd()*"/../../output.txt", "")
 
@@ -41,9 +36,16 @@ include("gov_pol.jl")
 include("simul.jl")
 # include("plotting_routines.jl")
 
+
+location, run_number, remote = establish_run()
+if location == "local"
+	using Rsvg
+end
+
 print_save("\nAggregate Demand around Debt Crises\n")
 
 print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(),"HH:MM"))
+print_save("\nrun_number: $run_number")
 
 # Set options
 local_run = true
@@ -52,8 +54,9 @@ rep_agent = false
 
 # Initialize type
 function set_params(run_number)
-	xmin = [(1.0/(1.0+0.21))^0.25; 0.01; 2.0;  0.1]
-	xmax = [(1.0/(1.0+0.35))^0.25; 0.20; 10.0; 0.2]
+	# 			β 				   tax	 RRA   τ
+	xmin = [(1.0/(1.041))^0.25; 0.01; 2.0;  0.1]
+	xmax = [(1.0/(1.050))^0.25; 0.20; 10.0; 0.2]
 	N = length(xmin)
 	s = SobolSeq(N)
 	x = zeros(N)
@@ -67,6 +70,7 @@ end
 function make_guess(remote, local_run, nodef, rep_agent, β, tax, RRA, τ)
 	if remote || local_run
 		h = Hank(; β=β, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent);
+		print_save("\nRun with β, tax, RRA, τ = $(round(β, 2)), $(round(tax, 2)), $(round(RRA, 2)), $(round(τ, 2))")
 		# h = load(pwd() * "/../../hank.jld", "h")
 		try
 			h2 = load(pwd() * "/../../hank.jld", "h")
@@ -92,7 +96,7 @@ function make_guess(remote, local_run, nodef, rep_agent, β, tax, RRA, τ)
 				print_save(" ✓")
 			end
 		catch
-			print_save("JLD file incompatible")
+			print_save(": JLD file incompatible")
 		end
 	else
 		print_save("\nLoading solved model file\n")
@@ -113,11 +117,10 @@ if remote || local_run
 	mpe_iter!(h; remote = remote, nodef = nodef, rep_agent = rep_agent)
 end
 
-p, jz_series = simul(h; simul_length=4*(250+25), only_def_end=true)
+p, jz_series = simul(h; simul_length=4*(500+25), only_def_end=true)
 # plot_simul(p; trim = 0, remote=remote)
 # plot_simul(p; trim = 4*250, remote=remote)
+v_m = simul_stats(p)
 
-ols = simul_regs(p)
-save(pwd()*"/ols.jld", "ols", ols)
 
 Void
