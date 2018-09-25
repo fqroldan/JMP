@@ -44,7 +44,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		end
 	end
 
-	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt))
+	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => G))
 
 	# Integrate the household's policy functions to get μ′, σ′
 	ϕa = zeros(h.Nω_fine*h.Nϵ)
@@ -149,7 +149,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	# Fill the path for next period
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
-		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd))
+		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qprime))
 	end
 
 	return λprime
@@ -229,7 +229,25 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 end
 
 using DataFrames, GLM
-function simul_regs(path::Path)
+function get_AR1(y::Vector)
+	y_lag = y[1:end-1]
+	y = y[2:end]
+
+	data = DataFrame(yt = y, ylag = y_lag)
+	OLS = glm(@formula(yt ~ ylag - 1), data, Normal(), IdentityLink())
+
+	ρ = coef(OLS)[1]
+
+	ϵ = y - ρ * y_lag
+
+	σ = var(ϵ)^0.5
+
+	return ρ, σ
+end
+
+get_MV(y::Vector) = mean(y), var(y)^0.5
+
+function simul_stats(path::Path)
 	T = size(path.data, 1)
 
 	B_vec = series(path,:B)
@@ -239,20 +257,20 @@ function simul_regs(path::Path)
 	ζ_vec = series(path,:ζ)-1
 	z_vec = exp.(series(path,:z))
 	Y_vec = series(path,:Y)
+	G_vec = series(path,:G)
 	π_vec = series(path,:π)
+	u_vec = 100.0 * (1.0 - series(path, :L))
+	spr_vec = 1.0./series(path, :qg) - 1.0
 
 	print("\nT = $T")
 
-	y = log.(Y_vec)
-	lz = log.(z_vec)
-	lw = log.(w_vec)
-	μ = μ_vec
-	σ = σ_vec
-	lB = log.(B_vec)
+	ρy, σy = get_AR1(log.(y_vec))
+	ρs, σs = get_AR1(spr_vec)
+	m_unemp, sd_unemp = get_MV(u_vec)
+	m_debt, sd_debt = get_MV(B_vec./(4*Y_vec))
+	m_gspend, sd_gspend = get_MV(G_vec./Y_vec)
 
-	data = DataFrame(Y = y, lz = lz, w = lw, μ = μ, σ = σ, B = lB, π = π_vec)
+	v_m = [ρy; σy; ρs; σs; m_unemp; sd_unemp; m_debt; sd_debt; m_gspend; sd_gspen]
 
-	OLS = glm(@formula(Y ~ lz + w + μ + σ + B + π), data, Normal(), IdentityLink())
-
-	OLS
+	return v_m
 end
