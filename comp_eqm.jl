@@ -653,26 +653,30 @@ function update_expectations!(h::Hank, upd_η::Float64)
 
 	μ′_new, σ′_new = find_all_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, h.issuance, h.w′, h.def_thres)
 
-	function new_grid(x′, xgrid)
+	function new_grid(x′, xgrid; ub::Float64=Inf, lb::Float64=-Inf)
 		xmax = maximum(x′)
 		xmin = minimum(x′)
 
 		Nx = length(xgrid)
+		xdist = maximum(xgrid) - minimum(xgrid)
 
 		# Expand grids if x′ goes beyond the bounds
-		xmax > maximum(xgrid)? Xmax = maximum(xgrid) + 0.25: Xmax = maximum(xgrid)# * (maximum(x′) - xmax): Void
-		xmin < minimum(xgrid)? Xmin = minimum(xgrid) - 0.25: Xmin = minimum(xgrid)# * (xmin - minimum(x′)): Void
+		xmax > maximum(xgrid)? Xmax = maximum(xgrid) + 0.05*xdist: Void
+		xmin < minimum(xgrid)? Xmin = minimum(xgrid) - 0.05*xdist: Void
 
 		# Retract grids if x′ doesn't reach the bounds
-		xmax < maximum(xgrid)? Xmax = maximum(xgrid) - 0.05: Xmax = maximum(xgrid)# * (xmax - maximum(x′)): Void
-		xmin > minimum(xgrid)? Xmin = minimum(xgrid) + 0.05: Xmin = minimum(xgrid)# * (minimum(x′) - xmin): Void
+		xmax < maximum(xgrid)? Xmax = maximum(xgrid) - 0.01*xdist: Void
+		xmin > minimum(xgrid)? Xmin = minimum(xgrid) + 0.01*xdist: Void
+
+		xmax = min(xmax, ub)
+		xmin = max(xmin, lb)
 
 		return collect(linspace(Xmin, Xmax, Nx))
 	end
 
 
 	new_μgrid = new_grid(μ′_new, h.μgrid)
-	new_σgrid = h.σgrid
+	new_σgrid = new_grid(σ′_new, h.σgrid, lb = 1e-2)
 
 	μ′_new = max.(min.(μ′_new, maximum(h.μgrid)), minimum(h.μgrid))
 	σ′_new = max.(min.(σ′_new, maximum(h.σgrid)), minimum(h.σgrid))

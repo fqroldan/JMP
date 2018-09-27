@@ -107,7 +107,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	# ϖ = 0.7 * ϖ	
 
 	# Grids for endogenous aggregate states
-	Bmax  = 4.0
+	Bmax  = 3.5
 	Bbar  = Bmax * 0.5
 	bgrid = linspace(0.0, Bmax, Nb)
 	μgrid = linspace(-2.5, 0.75, Nμ)
@@ -411,10 +411,10 @@ function update_fiscalrules!(h::Hank)
 	NX2   = NX.^2
 
 	# coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
-	coef_g = [18.81 0.1003002472  0.0003524450  0.0380713476 -0.0002802607 -0.0068643547 -0.0010786418  0.1793347145]
+	coef_g = [ 2.031486e+01  1.322062e-01  2.437653e-03 -5.487488e-03 -5.100911e-05  2.123596e-02 -4.410264e-04 -6.242461e-01 ]
 
 	# coef_B = [ 5.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ] #-3.36865
-	coef_B = [4.604 1.3619082599 -0.0258528231 -0.1709017057  0.0005682376  0.0131813257 -0.0038789357 -0.1509330781]
+	coef_B = [ 0.8491332882  0.3987900815  0.0002753053 -0.0197347789  0.0002440517  0.0536221369 -0.0016054148 -0.3886161860 ]
 	g = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 spread ] * coef_g' / 100
 	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 spread ] * coef_B' / 100
 
@@ -563,7 +563,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			# dist_exp = [0. 0.]
 			dist_LoMs[iter, :] = dist_exp
 
-			update_grids!(h)#, new_μgrid = new_μgrid)#, new_σgrid = new_σgrid)
+			update_grids!(h, new_μgrid = new_μgrid, new_σgrid = new_σgrid)
 			print_save("\nDistance in expectations: (dμ,dσ) = ($(@sprintf("%0.3g",mean(dist_exp[1]))),$(@sprintf("%0.3g",mean(dist_exp[2]))))")
 			print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(h.μgrid))), $(@sprintf("%0.3g",maximum(h.μgrid)))]")
 			print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(h.σgrid))), $(@sprintf("%0.3g",maximum(h.σgrid)))]")
