@@ -264,13 +264,13 @@ function simul_stats(path::Path)
 
 	print("\nT = $T")
 
-	ρy, σy = get_AR1(log.(y_vec))
+	ρy, σy = get_AR1(log.(Y_vec))
 	ρs, σs = get_AR1(spr_vec)
 	m_unemp, sd_unemp = get_MV(u_vec)
 	m_debt, sd_debt = get_MV(B_vec./(4*Y_vec))
 	m_gspend, sd_gspend = get_MV(G_vec./Y_vec)
 
-	v_m = [ρy; σy; ρs; σs; m_unemp; sd_unemp; m_debt; sd_debt; m_gspend; sd_gspen]
+	v_m = [ρy; σy; ρs; σs; m_unemp; sd_unemp; m_debt; sd_debt; m_gspend; sd_gspend]
 
 	return v_m
 end
