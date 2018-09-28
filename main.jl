@@ -54,9 +54,9 @@ rep_agent = false
 
 # Initialize type
 function set_params(run_number)
-	# 			β 				tax	  RRA   τ
-	xmin = [(1.0/(1.045))^0.25; 0.001; 2.0;  0.1]
-	xmax = [(1.0/(1.055))^0.25; 0.01; 10.0; 0.2]
+	# 		β 	   tax	  RRA   τ
+	xmin = [0.045; 0.001; 2.0;  0.1]
+	xmax = [0.055; 0.01; 10.0; 0.2]
 	N = length(xmin)
 	s = SobolSeq(N)
 	x = zeros(N)
@@ -65,12 +65,12 @@ function set_params(run_number)
 	end
 	return x
 end
-β, tax, RRA, τ = set_params(run_number)
+r_loc, tax, RRA, τ = set_params(run_number)
 
 function make_guess(remote, local_run, nodef, rep_agent, β, tax, RRA, τ)
 	if remote || local_run
-		h = Hank(; β=β, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent);
-		print_save("\nRun with β, tax, RRA, τ = $(round(β, 2)), $(round(tax, 2)), $(round(RRA, 2)), $(round(τ, 2))")
+		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent);
+		print_save("\nRun with r, tax, RRA, τ = $(round(r_loc, 3)), $(round(tax, 2)), $(round(RRA, 2)), $(round(τ, 2))")
 		# h = load(pwd() * "/../../hank.jld", "h")
 		try
 			h2 = load(pwd() * "/../../hank.jld", "h")
