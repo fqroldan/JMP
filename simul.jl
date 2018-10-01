@@ -274,3 +274,28 @@ function simul_stats(path::Path)
 
 	return v_m
 end
+
+
+function find_episodes(path::Path)
+	ζ_vec = series(path,:ζ)-1
+
+	N = 0
+	t_def = []
+	for jt in 20:length(ζ_vec)
+		if ζ_vec[jt-1] == 1 && ζ_vec[jt] != 1
+			N += 1
+			push!(t_def, jt)
+		end
+	end
+
+	sample = zeros(size(path.data)[2], 41, N)
+
+	for jdef in 1:N
+		jt = t_def[jj]
+		for jj in 0:40
+			sample[:, jt-20+jj, jdef] = getfrompath(p, jt-20+jj)
+		end
+	end
+	return sample
+end
+	
