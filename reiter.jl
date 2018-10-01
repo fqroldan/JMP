@@ -107,7 +107,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	# ϖ = 0.7 * ϖ	
 
 	# Grids for endogenous aggregate states
-	Bmax  = 3.5
+	Bmax  = 2.75
 	Bbar  = Bmax * 0.5
 	bgrid = linspace(0.0, Bmax, Nb)
 	μgrid = linspace(-2.5, 0.75, Nμ)
@@ -416,7 +416,7 @@ function update_fiscalrules!(h::Hank)
 	# coef_B = [ 5.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ] #-3.36865
 	coef_B = [ 0.8491332882  0.3987900815  0.0002753053 -0.0197347789  0.0002440517  0.0536221369 -0.0016054148 -0.3886161860 ]
 	g = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 spread ] * coef_g' / 100
-	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 spread ] * coef_B' / 100
+	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2 NX*0.0 NX2*0.0 spread*0.0 ] * coef_B' / 100
 
 	h.spending = max.(min.(vec(g), 0.35), 0.) .* (1 * h.output)
 	h.issuance = min.(0.10,max.(0., vec(net_iss))) .* (4 * h.output) + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]

@@ -654,19 +654,19 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	μ′_new, σ′_new = find_all_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, h.issuance, h.w′, h.def_thres)
 
 	function new_grid(x′, xgrid; ub::Float64=Inf, lb::Float64=-Inf)
-		xmax = quantile(x′[:],0.8)
-		xmin = quantile(x′[:],0.1)
-
 		Nx = length(xgrid)
 		xdist = maximum(xgrid) - minimum(xgrid)
 
+		Xmax = maximum(xgrid)
+		Xmin = minimum(xgrid)
+
 		# Expand grids if x′ goes beyond the bounds
-		xmax > maximum(xgrid)? Xmax = maximum(xgrid) + 0.05*xdist: Void
-		xmin < minimum(xgrid)? Xmin = minimum(xgrid) - 0.05*xdist: Void
+		quantile(x′[:], 0.85) > maximum(xgrid)? Xmax = maximum(xgrid) + 0.05*xdist: Void
+		quantile(x′[:], 0.15) < minimum(xgrid)? Xmin = minimum(xgrid) - 0.05*xdist: Void
 
 		# Retract grids if x′ doesn't reach the bounds
-		xmax < maximum(xgrid)? Xmax = maximum(xgrid) - 0.01*xdist: Void
-		xmin > minimum(xgrid)? Xmin = minimum(xgrid) + 0.01*xdist: Void
+		maximum(x′) < maximum(xgrid)? Xmax = maximum(xgrid) - 0.01*xdist: Void
+		minimum(x′) > minimum(xgrid)? Xmin = minimum(xgrid) + 0.01*xdist: Void
 
 		Xmax = min(Xmax, ub)
 		Xmin = max(Xmin, lb)
@@ -675,7 +675,7 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	end
 
 
-	new_μgrid = new_grid(μ′_new, h.μgrid, lb = -2.5)
+	new_μgrid = new_grid(μ′_new, h.μgrid)
 	new_σgrid = new_grid(σ′_new, h.σgrid, lb = 1e-2)
 
 	μ′_new = max.(min.(μ′_new, maximum(h.μgrid)), minimum(h.μgrid))
