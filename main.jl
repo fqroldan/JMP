@@ -67,7 +67,7 @@ function set_params(run_number)
 end
 r_loc, tax, RRA, τ = set_params(run_number)
 
-function make_guess(remote, local_run, nodef, rep_agent, β, tax, RRA, τ)
+function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ)
 	if remote || local_run
 		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent);
 		print_save("\nRun with r, tax, RRA, τ = $(round(r_loc, 3)), $(round(tax, 2)), $(round(RRA, 2)), $(round(τ, 2))")
@@ -76,8 +76,9 @@ function make_guess(remote, local_run, nodef, rep_agent, β, tax, RRA, τ)
 			h2 = load(pwd() * "/../../hank.jld", "h")
 			remote? h2 = load(pwd() * "/../../hank.jld", "h"): h2 = load("hank.jld", "h")
 			print_save("\nFound JLD file")
-			if false && h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
+			if h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
 				print_save(": loading previous results")
+				update_grids!(h2, new_μgrid = h.μgrid, new_σgrid = h.σgrid)
 				h.ϕa = h2.ϕa
 				h.ϕb = h2.ϕb
 				h.ϕc = h2.ϕc
@@ -102,7 +103,7 @@ function make_guess(remote, local_run, nodef, rep_agent, β, tax, RRA, τ)
 	end
 	return h
 end
-h = make_guess(remote, local_run, nodef, rep_agent, β, tax, RRA, τ);
+h = make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ);
 
 print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")
