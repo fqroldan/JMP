@@ -277,7 +277,7 @@ end
 
 
 function find_episodes(path::Path)
-	ζ_vec = series(path,:ζ)-1
+	ζ_vec = series(path,:ζ)
 
 	N = 0
 	t_def = []
@@ -291,9 +291,9 @@ function find_episodes(path::Path)
 	sample = zeros(size(path.data)[2], 41, N)
 
 	for jdef in 1:N
-		jt = t_def[jj]
+		jt = t_def[jdef]
 		for jj in 0:40
-			sample[:, jt-20+jj, jdef] = getfrompath(p, jt-20+jj)
+			sample[:, jj+1, jdef] = getfrompath(p, jt-20+jj)
 		end
 	end
 	return sample

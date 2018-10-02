@@ -1379,3 +1379,57 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 
 	Void
 end
+
+function stats_sample(p::Path, sample)
+
+	sample_stats = zeros(size(sample,1), size(sample,2), 4)
+	Ndef = size(sample)[3]
+	
+	for jvar in 1:size(sample,1)
+		for jtr in 1:size(sample,2)
+			sample_stats[jvar, jtr, 1] = quantile(sample[jvar, jtr, :], 0.1)
+			sample_stats[jvar, jtr, 2] = quantile(sample[jvar, jtr, :], 0.5)
+			sample_stats[jvar, jtr, 3] = quantile(sample[jvar, jtr, :], 0.9)
+			sample_stats[jvar, jtr, 4] = mean(sample[jvar, jtr, :])
+		end
+	end
+
+	return sample_stats
+end
+
+function plot_defaults(p::Path; slides::Bool=true)
+
+	sample = find_episodes(p)
+
+	sample_stats = stats_sample(p, sample)
+
+	plot_sample(sym::Symbol; f::Function=identity, title::String="", yaxis_title::String="") = plot([
+		scatter(;x = -5:0.25:5, y = f(sample_stats[p.n[sym],:, 1]), marker_color=col[1], line_dash="dot", opacity=0.5, showlegend=false, name="q=0.1")
+		scatter(;x = -5:0.25:5, y = f(sample_stats[p.n[sym],:, 2]), marker_color=col[1], line_dash="dashdot", showlegend=false, name="q=0.5")
+		scatter(;x = -5:0.25:5, y = f(sample_stats[p.n[sym],:, 3]), marker_color=col[1], line_dash="dot", opacity=0.5, showlegend=false, name="q=0.9")
+		scatter(;x = -5:0.25:5, y = f(sample_stats[p.n[sym],:, 4]), marker_color=col[4], showlegend=false, name="mean")
+		], Layout(;title=title, yaxis_title=yaxis_title, yaxis_zeroline=false))
+
+	pY = plot_sample(:Y, f=x->100*(x-mean(x))./mean(x), title="Output", yaxis_title="%")
+	pu = plot_sample(:L, f=x->100*(1-x), title="Unemployment", yaxis_title="%")
+	pB = plot_sample(:B, title="Bonds")
+	pμ = plot_sample(:μ, title="Mean")
+	pσ = plot_sample(:σ, title="Variance")
+	pz = plot_sample(:z, title="TFP")
+	pw = plot_sample(:w, title="Wage rate")
+	pψ = plot_sample(:ψ, f=x->100*x, title="Proportion Domestic", yaxis_title="%")
+	pP = plot_sample(:P, title="Price of nontradables")
+
+	p = [pB pY pz; pw pμ pσ; pu pψ pP]
+    slides? font = "Fira Sans Light": font = "STIX Two Text"
+	p.plot.layout["font_family"] = font
+    p.plot.layout["fontsize"] = 16
+	if slides
+	    p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+		p.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+		p.plot.layout["height"] = 800
+    else
+    	p.plot.layout["title"] = ""
+    end
+	p
+end
