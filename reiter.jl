@@ -20,9 +20,9 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				Nϵ = 5,
 				Nμ = 4,
 				Nσ = 4,
-				Nb = 7,
+				Nb = 9,
 				Nw = 2,
-				Nz = 9,
+				Nz = 13,
 				ρz = 0.9,
 				σz = 0.025,
 				ℏ = 0.4,
@@ -54,8 +54,8 @@ function Hank(;	β = (1.0/1.05)^0.25,
 		return ρ4, σ4
 	end
 	# Aggregate risk
-	# z_chain = tauchen(Nz, ρz, σz, 0, 1)
-	z_chain = rouwenhorst(Nz, ρz, σz, 0)
+	z_chain = tauchen(Nz, ρz, σz, 0, 2)
+	# z_chain = rouwenhorst(Nz, ρz, σz, 0)
 	Pz = z_chain.p
 	# zgrid = linspace(minimum(z_chain.state_values), maximum(z_chain.state_values), Nz)
 	zgrid = z_chain.state_values
