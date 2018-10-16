@@ -443,7 +443,7 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, wpv, ζpv, jzp, jde
 	if isapprox(varω, 0.)
 		varω = min(varω, 0.)
 	end
-	varω >= 0. || print_save("\nvar_a, var_b, cov_ab, R, q = $(var_a), $(var_b), $(cov_ab), $(R), $(q)")
+	# varω >= 0. || print_save("\nvar_a, var_b, cov_ab, R, q = $(var_a), $(var_b), $(cov_ab), $(R), $(q)")
 
 	μpv, σpv = make_logN(Eω - h.ωmin, varω)
 

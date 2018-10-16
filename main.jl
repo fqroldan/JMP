@@ -45,7 +45,7 @@ end
 print_save("\nAggregate Demand around Debt Crises\n")
 
 print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(),"HH:MM"))
-print_save("\nrun_number: $run_number")
+print_save("\nRun number: $run_number")
 
 # Set options
 local_run = true
@@ -55,8 +55,8 @@ rep_agent = false
 # Initialize type
 function set_params(run_number)
 	# 		β 	   tax	  RRA   τ
-	xmin = [0.045; 0.001; 2.0;  0.1]
-	xmax = [0.055; 0.01; 10.0; 0.2]
+	xmin = [0.050; 0.015; 5.0;  0.1]
+	xmax = [0.055; 0.023; 10.0; 0.2]
 	N = length(xmin)
 	s = SobolSeq(N)
 	x = zeros(N)
@@ -70,7 +70,7 @@ r_loc, tax, RRA, τ = set_params(run_number)
 function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ)
 	if remote || local_run
 		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent);
-		print_save("\nRun with r, tax, RRA, τ = $(round(r_loc, 3)), $(round(tax, 2)), $(round(RRA, 2)), $(round(τ, 2))")
+		print_save("\nRun with r, tax, RRA, τ = $(round(r_loc, 3)), $(round(tax, 3)), $(round(RRA, 2)), $(round(τ, 2))")
 		# h = load(pwd() * "/../../hank.jld", "h")
 		try
 			h2 = load(pwd() * "/../../hank.jld", "h")
@@ -109,16 +109,26 @@ print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")
 
+function make_simulated_path(h::Hank)
+	path, jz_series = simul(h; simul_length=4*(500+25), only_def_end=true)
+	trim_path!(path, 25)
+	save(pwd() * "/../../path.jld", "path", path)
+	v_m = 0
+	try
+		v_m = simul_stats(path)
+	catch
+		print_save("\nWARNING: Found problems computing simulation statistics")
+		v_m = 0
+	end
+	write(pwd()*"/stats.txt", "$(v_m)")
+	Void
+end
+
 # Run
 if remote || local_run
 	# vfi!(h, verbose = true, remote = remote)
 	mpe_iter!(h; remote = remote, nodef = nodef, rep_agent = rep_agent)
 end
 
-p, jz_series = simul(h; simul_length=4*(500+25), only_def_end=true)
-# plot_simul(p; trim = 0, remote=remote)
-# plot_simul(p; trim = 4*250, remote=remote)
-v_m = simul_stats(p)
-
-
+make_simulated_path(h)
 Void

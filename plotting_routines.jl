@@ -13,47 +13,47 @@ col = [	"#1f77b4",  # muted blue
 		]
 
 function style_contour(p, n=2; slides::Bool=false)
-    slides? height = 800: height = 500
-    slides? width = 700*n: width = 600*n
-    slides? font = "Fira Sans Light": font = "STIX Two Text"
-    slides? fontsize = 17: fontsize = 16
-    p.plot.layout["width"] = width
-    p.plot.layout["height"] = height
-    p.plot.layout["font_family"] = font
-    p.plot.layout["font_size"] = fontsize
-    p.plot.layout["titlefont_size"] = 32    
-    p.plot.layout["colorbar_xanchor"] = "right"
-    if slides
-	    p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+	slides? height = 600: height = 500
+	slides? width = 1000: width = 600
+	slides? font = "Fira Sans Light": font = "STIX Two Text"
+	slides? fontsize = 16: fontsize = 16
+	p.plot.layout["width"] = width
+	p.plot.layout["height"] = height
+	p.plot.layout["font_family"] = font
+	p.plot.layout["font_size"] = fontsize
+	# p.plot.layout["titlefont_size"] = 32    
+	p.plot.layout["colorbar_xanchor"] = "right"
+	if slides
+		p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
 		p.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
-    else
-    	p.plot.layout["title"] = ""
-    end
-    return p
+	else
+		p.plot.layout["title"] = ""
+	end
+	return p
 end
 
 function style_lines(p, w::Int=0, h::Int=0; slides::Bool=false)
 	!(w==0 || h==0) || throw(error("Must specify w and h"))
 	slides? height = 250: height = 250
-    width = height
-    width *= w
-    height *= h
-    slides? font = "Fira Sans Light": font = "STIX Two Text"
-    fontsize = 16
-    p.plot.layout["line_width"] = 3
-    p.plot.layout["width"] = width
-    p.plot.layout["height"] = height
-    p.plot.layout["font_family"] = font
-    p.plot.layout["font_size"] = fontsize
+	width = height
+	width *= w
+	height *= h
+	slides? font = "Fira Sans Light": font = "STIX Two Text"
+	fontsize = 16
+	p.plot.layout["line_width"] = 3
+	p.plot.layout["width"] = width
+	p.plot.layout["height"] = height
+	p.plot.layout["font_family"] = font
+	p.plot.layout["font_size"] = fontsize
 	if slides
-	    p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+		p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
 		p.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
-    else
-    	p.plot.layout["title"] = ""
-    end
-    return p
+	else
+		p.plot.layout["title"] = ""
+	end
+	return p
 end
-    
+	
 
 function plot_hh_policies(h::Hank; remote::Bool=false)
 	# leg = Array{LaTeXStrings.LaTeXString}(1, h.Nϵ)
@@ -427,9 +427,9 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, remote::Bool=false)
 	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	midb = ceil(Int, h.Nb/2)
-	midb = h.Nb-1
-	states = gridmake([ceil(Int, h.Nb/2); midb; h.Nb], [1; h.Nz])
-	# p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
+	midb = h.Nb-2
+	states = gridmake([5; midb; h.Nb], [1; h.Nz])
+	# jz = ceil(Int, h.Nz/2)
 	p_vec = Array{PlotlyJS.SyncPlot}(size(states,1))
 	for js in 1:size(states,1)
 		Wr = zeros(h.Nz)
@@ -446,11 +446,11 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, remote::Bool=false)
 			Wd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
 		end
 		if Wdiff 
-			p_vec[js] = plot(scatter(;x=h.zgrid, y=Wd-Wr, marker_color=col[1], showlegend=false, line_width=3), Layout(;title="B=$(h.bgrid[jb]), z=$(round(exp(h.zgrid[jz]),2))", titlefont_size=32))
+			p_vec[js] = plot(scatter(;x=h.zgrid, y=Wd-Wr, marker_color=col[1], showlegend=false, line_width=2), Layout(;title="B=$(h.bgrid[jb]), z=$(round(exp(h.zgrid[jz]),2))", titlefont_size=32))
 		else
 
-			p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false, line_width=3),
-						scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot", line_width=3)],
+			p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false, line_width=2),
+						scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot", line_width=2)],
 						Layout(;title="B=$(h.bgrid[jb]), z=$(round(exp(h.zgrid[jz]),2))", titlefont_size=32))
 		end
 	end
@@ -517,8 +517,8 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	Π_fix = reshape(profits_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 
 	wL_fix  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * (1.0 - h.τ)
-    yd_fix = zeros(h.ϕc)
-    pC_bigfix = zeros(h.ϕc)
+	yd_fix = zeros(h.ϕc)
+	pC_bigfix = zeros(h.ϕc)
 	for js in 1:size(h.Jgrid, 1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
@@ -613,8 +613,8 @@ function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 	ctbz = contour(;
 		x = h.bgrid, y = exp.(h.zgrid),
 		z = qᵍ_mat[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
-		contours_coloring="heatmap",
-		contours_start=tickmin, contours_end=tickmax,
+		# contours_coloring="heatmap",
+		contours_start=tickmin, contours_end=tickmax-0.1,
 		colorbar_tick0 = 0., colorbar_dtick=floor(Int, 1./5),
 		# colorscale = debtcolors, 
 		colorscale = "Reds", reversescale = true,
@@ -635,8 +635,8 @@ function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 	ctμσ = contour(;
 		x = xgrid, y = ygrid,
 		z = qg_mat,
-		contours_coloring="heatmap",
-		contours_start=tickmin, contours_end=tickmax,
+		# contours_coloring="heatmap",
+		contours_start=tickmin, contours_end=tickmax-0.1,
 		colorbar_tick0 = 0., colorbar_dtick=floor(Int, 1./5),
 		# colorscale = debtcolors, 
 		colorscale = "Reds", reversescale = true,
@@ -975,7 +975,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		p3 = [pY1 pY2 pY3 pY4 pY6; pΠ1 pΠ2 pΠ3 pΠ4 pΠ6]
 		p4 = [pg1 pg2 pg3 pg4 pg6; pb1 pb2 pb3 pb4 pb6]
 
-		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.5), ceil(Int, h.Nμ*0.1), ceil(Int, h.Nσ*0.9), 2, 1, ceil(Int, h.Nz*0.25)
+		jshow_b, jshow_μ, jshow_σ, jshow_w, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.75), ceil(Int, h.Nμ*0.5), ceil(Int, h.Nσ*0.1), 2, 1, ceil(Int, h.Nz*0.01)
 
 		jshow_w = 2
 		jshow_σ = 1
@@ -995,23 +995,23 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 			tickmax = maximum(y[:,:,:,jshow_w,jshow_ζ,:])
 			tickmin = minimum(y[:,:,:,jshow_w,jshow_ζ,:])
 
-			tickmax = 13.
+			tickmax = 14.
 
 			perc? suffix = "%": suffix = ""
 
 			ctbz = contour(;
 				x=h.bgrid, y=exp.(h.zgrid),
 				z = y[:, jshow_μ, jshow_σ, jshow_w, jshow_ζ, :],
-				contours_coloring="heatmap",
-				colorscale=cscale, contours_start=tickmin, contours_end=tickmax,
+				# contours_coloring="heatmap",
+				colorscale=cscale, contours_start=tickmin+0.01, contours_end=tickmax,
 				colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
 				colorbar_ticksuffix=suffix, colorbar_showticksuffix="all"
 				)
 			ctμσ = contour(;
 				x = xgrid, y = ygrid,
 				z = yn_mat,
-				contours_coloring="heatmap",
-				colorscale = cscale, contours_start=tickmin, contours_end=tickmax,
+				# contours_coloring="heatmap",
+				colorscale = cscale, contours_start=tickmin+0.01, contours_end=tickmax,
 				colorbar_tick0 = 0., colorbar_dtick=floor(Int, tickmax/5),
 				colorbar_ticksuffix=suffix, colorbar_showticksuffix="all"
 				)
@@ -1331,21 +1331,25 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 				# scatter(; x=times, y=ones(times)*minimum(h.μgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				# scatter(; x=times, y=ones(times)*maximum(h.μgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
 				],
-						Layout(; title="Mean", xaxis=attr(title="𝑡")));
+						Layout(; title="Mean", yaxis_zeroline=false, xaxis=attr(title="𝑡")));
 	pσ = plot([ scatter(; x=times, y=v_vec, marker_color=col[1], showlegend=false)
 				# scatter(; x=times, y=ones(times)*maximum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5),
 				# scatter(; x=times, y=ones(times)*minimum(h.σgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
 				],
-						Layout(; title="Variance", xaxis=attr(title="𝑡")));
+						Layout(; title="Variance", yaxis_zeroline=false, xaxis=attr(title="𝑡")));
 	pw = plot([ scatter(; x=times, y=w_vec, marker_color=col[1], showlegend=false)
 				#, scatter(; x=times, y=ones(times)*minimum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
 				#, scatter(; x=times, y=ones(times)*maximum(h.wgrid), showlegend=false, line_dash="dashdot", marker_color="black", line_width=0.5)
 				],
 						Layout(; title="Wage", xaxis=attr(title="𝑡")));
 	pz = plot(scatter(; x=times, y=z_vec, marker_color=col[1], showlegend=false), Layout(; title="TFP", xaxis=attr(title="𝑡")));
-	pY = plot([ scatter(; x=times, y=100*(Y_vec - mean(Y_vec)) / mean(Y_vec), marker_color=col[1], showlegend=false),
-				scatter(; x=times, y=100 * (1.0 - L_vec), marker_color=col[2], showlegend=false, line_dash="dashdot")],
+	pY = plot([ scatter(; x=times, y=Y_vec, z=100*(Y_vec - mean(Y_vec)) / mean(Y_vec), marker_color=col[1], showlegend=false)
+				#, scatter(; x=times, y=100 * (1.0 - L_vec), marker_color=col[2], showlegend=false, line_dash="dashdot")
+			],
 			Layout(; title="Output", yaxis_title="%", xaxis=attr(title="𝑡")));
+	pu = plot([
+		scatter(; x=times, y=100*(1.0 - L_vec), marker_color=col[1], showlegend=false)
+		], Layout(; title="Unemployment", yaxis_title="%", xaxis_title="𝑡"));
 	pπ = plot([scatter(; x=times, y=ζ_vec, marker_color=col[1], showlegend=false),
 				scatter(; x=times, y=π_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")],
 			Layout(; title="Default prob", xaxis=attr(title="𝑡")));
@@ -1360,10 +1364,10 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 	pW = plot([ scatter(;x=times, y=Wr_vec, marker_color=col[1], showlegend=false),
 				scatter(;x=times, y=Wd_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")], Layout(;title="Welfare", xaxis_title="𝑡"));
 
-	p = [pB pw pz; pY pμ pσ; pA pBf pψ; pπ pW pP]
+	p = [pB pw pz pY; pμ pσ pA pu; pψ pπ pW pP]
 	# p.plot.layout["shapes"] = default_shades
-	p.plot.layout["width"] = 850
-	p.plot.layout["height"] = 850
+	p.plot.layout["width"] = 900
+	p.plot.layout["height"] = 700
 	p.plot.layout["font_family"] = "Fira Sans Light"
 
 	name = "simul"*name
@@ -1380,16 +1384,26 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 	Void
 end
 
-function stats_sample(p::Path, sample)
-
+function stats_sample(p::Path, sample; relative::Bool=false)
+	println(size(sample))
 	sample_stats = zeros(size(sample,1), size(sample,2), 4)
-	Ndef = size(sample)[3]
+	Ndef = size(sample,3)
+
+	if relative
+		for jvar in 1:size(sample,1)
+			for jep in 1:size(sample,3)
+				if sample[jvar, 1, jep] > 0
+					sample[jvar, :, jep] = sample[jvar, :, jep] / sample[jvar, 1, jep]
+				end
+			end
+		end
+	end
 	
 	for jvar in 1:size(sample,1)
 		for jtr in 1:size(sample,2)
-			sample_stats[jvar, jtr, 1] = quantile(sample[jvar, jtr, :], 0.1)
-			sample_stats[jvar, jtr, 2] = quantile(sample[jvar, jtr, :], 0.5)
-			sample_stats[jvar, jtr, 3] = quantile(sample[jvar, jtr, :], 0.9)
+			sample_stats[jvar, jtr, 1] = quantile(vec(sample[jvar, jtr, :]), 0.25)
+			sample_stats[jvar, jtr, 2] = quantile(vec(sample[jvar, jtr, :]), 0.50)
+			sample_stats[jvar, jtr, 3] = quantile(vec(sample[jvar, jtr, :]), 0.75)
 			sample_stats[jvar, jtr, 4] = mean(sample[jvar, jtr, :])
 		end
 	end
@@ -1397,39 +1411,85 @@ function stats_sample(p::Path, sample)
 	return sample_stats
 end
 
-function plot_defaults(p::Path; slides::Bool=true)
+function stack_sample(p::Path, sample)
+	Nepi = size(sample,3)
+	Nt = size(sample,2)
 
-	sample = find_episodes(p)
+	stack = zeros(size(sample,1), Nt*Nepi)
+	for jepi in 1:Nepi
+		stack[:, 1+(jepi-1)*Nt:jepi*Nt] = sample[:, :, jepi]
+	end
+	return stack
+end
+
+function volYC(p::Path; episode_type::String="default")
+	sample = find_episodes(p, episode_type=episode_type)
+
+	stack = stack_sample(p, sample)
+
+	σY = _estimateAR1(stack[p.n[:Y],:])
+	σC = _estimateAR1(stack[p.n[:C],:])
+
+	return σY, σC
+end
+
+function plot_episodes(p::Path; episode_type::String="default", slides::Bool=true)
+
+	sample = find_episodes(p, episode_type=episode_type)
 
 	sample_stats = stats_sample(p, sample)
+	rel_sample_stats = stats_sample(p, sample; relative=true)
 
-	plot_sample(sym::Symbol; f::Function=identity, title::String="", yaxis_title::String="") = plot([
-		scatter(;x = -5:0.25:5, y = f(sample_stats[p.n[sym],:, 1]), marker_color=col[1], line_dash="dot", opacity=0.5, showlegend=false, name="q=0.1")
-		scatter(;x = -5:0.25:5, y = f(sample_stats[p.n[sym],:, 2]), marker_color=col[1], line_dash="dashdot", showlegend=false, name="q=0.5")
-		scatter(;x = -5:0.25:5, y = f(sample_stats[p.n[sym],:, 3]), marker_color=col[1], line_dash="dot", opacity=0.5, showlegend=false, name="q=0.9")
-		scatter(;x = -5:0.25:5, y = f(sample_stats[p.n[sym],:, 4]), marker_color=col[4], showlegend=false, name="mean")
-		], Layout(;title=title, yaxis_title=yaxis_title, yaxis_zeroline=false))
+	function plot_sample(sym::Symbol, sampstats=sample_stats; f::Function=identity, title::String="", yaxis_title::String="")
+		ylow = sampstats[p.n[sym],:, 1]
+		ymed = sampstats[p.n[sym],:, 2]
+		yhig = sampstats[p.n[sym],:, 3]
+		yavg = sampstats[p.n[sym],:, 4]
 
-	pY = plot_sample(:Y, f=x->100*(x-mean(x))./mean(x), title="Output", yaxis_title="%")
+		p1 = plot([
+			scatter(;x = -2.5:0.25:2.5, y = f(ylow), marker_color=col[1], line_dash="dot", opacity=0.25, showlegend=false, name="q=0.1")
+			scatter(;x = -2.5:0.25:2.5, y = f(yhig), marker_color=col[1], line_dash="dot", opacity=0.25, fill="tonexty", fillcolor="rgba(31,119,180,0.1)", showlegend=false, name="q=0.9")
+			scatter(;x = -2.5:0.25:2.5, y = f(ymed), marker_color=col[4], line_dash="solid", showlegend=false, name="q=0.5")
+			scatter(;x = -2.5:0.25:2.5, y = f(yavg), marker_color=col[3], line_dash="dashdot", showlegend=false, opacity=0.4, name="mean")
+			], Layout(;title=title, yaxis_title=yaxis_title, yaxis_zeroline=false, xaxis_range=[-2.5; 2.5]))
+		return p1 
+	end
+
+	meanY = mean(p.data[:,p.n[:Y]])
+	meanC = mean(p.data[:,p.n[:C]])
+	meanμ = mean(p.data[:,p.n[:μ]]) 
+	meanσ = mean(p.data[:,p.n[:σ]]) 
+	pY = plot_sample(:Y, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
+	meanY = mean(rel_sample_stats[p.n[:Y], 1, 4])
+	pY = plot_sample(:Y, rel_sample_stats, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
 	pu = plot_sample(:L, f=x->100*(1-x), title="Unemployment", yaxis_title="%")
-	pB = plot_sample(:B, title="Bonds")
-	pμ = plot_sample(:μ, title="Mean")
-	pσ = plot_sample(:σ, title="Variance")
-	pz = plot_sample(:z, title="TFP")
+	pB = plot_sample(:B, f=x->100*x/meanY, title="Bonds", yaxis_title="% of mean GDP")
+	pG = plot_sample(:G, f=x->100*x/meanY, title="Govt spending", yaxis_title="% of mean GDP")
+	pT = plot_sample(:T, f=x->100*x/meanY, title="Lump-sum taxes", yaxis_title="% of mean GDP")
+	pμ = plot_sample(:mean, title="Mean")
+	pσ = plot_sample(:var, title="Variance")
+	pz = plot_sample(:z, f=x->100*(exp.(x)-1), title="TFP")
 	pw = plot_sample(:w, title="Wage rate")
 	pψ = plot_sample(:ψ, f=x->100*x, title="Proportion Domestic", yaxis_title="%")
 	pP = plot_sample(:P, title="Price of nontradables")
+	pq = plot_sample(:qg, title="Price of new debt")
+	pCf = plot_sample(:CoYd, f=x->100*x, title="C/Y^d", yaxis_title="%")
+	pCl = plot_sample(:C, f=x->100*(x-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
+	meanC = mean(rel_sample_stats[p.n[:C], 1, 4])
+	pCs = plot_sample(:C, rel_sample_stats, f=x->100*(x-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
 
-	p = [pB pY pz; pw pμ pσ; pu pψ pP]
-    slides? font = "Fira Sans Light": font = "STIX Two Text"
+	p = [pz pY pCs pT; pB pψ pw pu; pμ pσ pP pq]
+	# p = [pz pY pCl; pT pB pG; pψ pw pu; pμ pσ pP]
+	slides? font = "Fira Sans Light": font = "STIX Two Text"
 	p.plot.layout["font_family"] = font
-    p.plot.layout["fontsize"] = 16
+	p.plot.layout["fontsize"] = 18
 	if slides
-	    p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+		p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
 		p.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
-		p.plot.layout["height"] = 800
-    else
-    	p.plot.layout["title"] = ""
-    end
+		p.plot.layout["height"] = 600
+		p.plot.layout["width"] = 1100
+	else
+		p.plot.layout["title"] = ""
+	end
 	p
 end

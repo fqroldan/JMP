@@ -164,6 +164,13 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 
 		dist = max(dist, tol_vfi)
 
+		if out_iter % 5 == 0 && out_iter > 5
+			t_sim = time()
+			print_save("\nSimulating")
+			make_simulated_path(h)
+			print_save(": done in $(time_print(time()-t_sim))")
+		end
+
 		out_iter += 1
 		time_old = time()
 	end

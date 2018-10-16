@@ -14,10 +14,13 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	ζt = Int(getfrompath(p, t, :ζ))
 	zt = getfrompath(p, t, :z)
 
-	zt == h.zgrid[jz] || print_save("something wrong with the simulator")
+	zt == h.zgrid[jz] || print("something wrong with the simulator")
 	abs(zt - h.zgrid[jz]) < 1e-8 || throw(error("something wrong with the simulator"))
 
-	print_save("\n$([Bt, μt, σt, w0, ζt, zt])")
+	
+	if t % 10 == 0
+		print("\n$([Bt, μt, σt, w0, ζt, zt])")
+	end
 
 	Bprime 	= itp_B′[Bt, μt, σt, w0, ζt, jz]
 	G 		= itp_G[Bt, μt, σt, w0, ζt, jz]
@@ -35,7 +38,27 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	results, _ = find_prices(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, w0, ζt, jz, jdef)
 
 	wt, pN, Ld, output = results
-	print_save("\npN = $pN, pN^e = $(pNg), σ = $(σt) at t = $t")
+	profits = output - wt*Ld
+
+	pC = price_index(h, pN)
+	Ld_N, Ld_T  = labor_demand(h, wt, zt, ζt, pN; get_both=true)
+	supply_T = TFP_T(zt, h.Δ, ζt) * Ld_T^(h.α_N)
+
+
+	# Govt BC
+	if ζt == 1
+		coupons = h.κ * Bt
+	else
+		coupons = 0
+	end
+	qg = getfrompath(p, t, :qg)
+
+	lumpsumT = coupons + G - h.τ*wt*Ld - qg*(Bprime - (1.0 - h.ρ) * Bt)
+
+	
+	if t % 10 == 0
+		print("\npN = $pN, pN^e = $(pNg), σ = $(σt) at t = $t")
+	end
 
 	def_prob = 0.
 	if ζt == 1
@@ -44,21 +67,36 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		end
 	end
 
-	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => G))
 
-	# Integrate the household's policy functions to get μ′, σ′
+	# Integrate the household's policy functions to get μ′, σ′ and C
 	ϕa = zeros(h.Nω_fine*h.Nϵ)
 	ϕb = zeros(h.Nω_fine*h.Nϵ)
+	ϕc = zeros(h.Nω_fine*h.Nϵ)
+	Crate = zeros(h.Nω_fine*h.Nϵ)
 
 	js = 0
 	ωvjϵ = gridmake(h.ωgrid_fine, 1:h.Nϵ)
+	adjustment = sum(h.λϵ.*exp.(h.ϵgrid))
 	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid_fine)
 		js += 1
 		ap = itp_ϕa[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
 		ϕa[js] = max(h.ωmin, ap)
 		bp = itp_ϕb[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
 		ϕb[js] = max(0.0, bp)
+		cc = itp_ϕc[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
+		ϕc[js] = max(0.0, cc)
+		yd = (wt*Ld*(1.0-h.τ) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
+		Crate[js] = ϕc[js] / yd
 	end
+
+	C = dot(λt, ϕc)
+	CoY = C / output
+	CoYd = dot(λt, Crate)
+
+	aggC_T = C  * h.ϖ * (1./pC)^(-h.η)
+	NX = supply_T - aggC_T - G * (1.-h.ϑ)
+
+	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => G, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX))
 
 	a  = dot(λt, ϕa)
 	a2 = dot(λt, ϕa.^2)
@@ -73,7 +111,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	prop_domestic = b/Bprime
 	Bf = Bprime - b
 
-	# print_save("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab])")
+	# print("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab])")
 
 	μ′, σ′, q′, _ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, w0, exp_rep)
 
@@ -83,7 +121,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	σ′ = max.(min.(σ′, h.σgrid[end]+0.0*lσ), h.σgrid[1]-0.0*lσ)
 
 	# μ′, σ′, q′ = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bprime, wt, thres, Bt, μt, σt, w0, ζt, zt, jdef) # This would assume that λₜ is lognormal
-	# print_save("\n$(q′)")
+	# print("\n$(q′)")
 
 	# Draw z and the reentry shock for tomorrow, deduce ζ and correct B, μ, and σ as needed, and update the distribution
 	probs = cumsum(h.Pz[jz,:])
@@ -144,12 +182,14 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	λprime = Q' * λt
 
+	M, V = unmake_logN(μprime, σprime)
+
 	# print("\n$(sum(λprime))")
 
 	# Fill the path for next period
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
-		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qprime))
+		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qprime, :mean => M, :var => V))
 	end
 
 	return λprime
@@ -219,7 +259,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 		end
 
 		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, itp_W, λ, Qϵ; phase = phase)
-		# print_save("\nt = $t")
+		# print("\nt = $t")
 	end
 
 	jz_series = jz_series[burn_in+1:end]
@@ -276,26 +316,68 @@ function simul_stats(path::Path)
 end
 
 
-function find_episodes(path::Path)
+function find_episodes(path::Path; episode_type::String="default")
 	ζ_vec = series(path,:ζ)
+	qg_vec = series(path,:qg)
+	qg_thres = quantile(qg_vec, 0.1)
 
 	N = 0
-	t_def = []
-	for jt in 20:length(ζ_vec)
-		if ζ_vec[jt-1] == 1 && ζ_vec[jt] != 1
-			N += 1
-			push!(t_def, jt)
+	t_epi = []
+	for jt in 10:length(ζ_vec) - 10
+		if episode_type=="default"
+			if ζ_vec[jt-1] == 1 && ζ_vec[jt] != 1
+				N += 1
+				push!(t_epi, jt)
+			end
+		elseif episode_type=="highspread"
+			if maximum(qg_vec[jt-10+1:jt]) <= qg_thres
+				N += 1
+				push!(t_epi, jt)
+			end
+		elseif episode_type=="onlyspread"
+			if maximum(qg_vec[jt-10+1:jt]) <= qg_thres && minimum(ζ_vec[jt-10+1:jt]) == 1
+				N += 1
+				push!(t_epi, jt)
+			end
+		else
+			throw(error("Please select episode_type = 'default' or 'highspread' or 'onlyspread'"))
 		end
 	end
 
-	sample = zeros(size(path.data)[2], 41, N)
+	if N == 0
+		throw(error("No episodes of $(episode_type) found"))
+	else
+		println("$N episodes found.")
+	end
 
-	for jdef in 1:N
-		jt = t_def[jdef]
-		for jj in 0:40
-			sample[:, jj+1, jdef] = getfrompath(p, jt-20+jj)
+	sample = zeros(size(path.data)[2], 21, N)
+
+	for jepi in 1:N
+		jt = t_epi[jepi]
+		for jj in 0:20
+			sample[:, jj+1, jepi] = vec(getfrompath(path, jt-10+jj))
 		end
 	end
 	return sample
 end
 	
+function _estimateAR1(y::Vector)
+	T = length(y)
+
+	yt   = [y[jt] for jt in 2:T]
+	ylag = [y[jt] for jt in 1:T-1]
+
+	V = var(yt)
+	# println(V)
+
+	ρ = dot(yt, ylag) / dot(yt, yt)
+	# println(ρ)
+
+	if isapprox(ρ, 1)
+		σ = 0.0
+	else
+		σ = sqrt( (1.0 - ρ^2) * V )
+	end
+
+	return ρ, σ
+end
