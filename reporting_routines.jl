@@ -22,7 +22,7 @@ function time_print(tfloat::Float64)
 		end
 	else
 		t_print = "$(floor(Int,t/3600)) hour"
-		floor(Int, t/3600) == 1? Void: t_print = t_print * "s"
+		floor(Int, t/3600) == 1 ? Void : t_print = t_print * "s"
 		t = t % 3600
 		t_print = t_print * " and $(floor(Int,t/60)) minute"
 		floor(Int,t/60) == 1 ? Void : t_print = t_print * "s"

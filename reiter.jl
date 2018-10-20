@@ -270,7 +270,8 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	outer_dists = [1.]
 
 	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, tax, η, ϖ, α_T, α_N, ϑ, ϕa, ϕb, ϕe, ϕc, ϕa_ext, ϕb_ext, ϕe_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
-		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, Φ, ωgrid_fine, snodes, μ′, σ′, w′, repay, welfare, τ, T, issuance, def_thres, output, profits, spending, wage, Ld, qʰ, qᵍ, spread, pN, outer_dists, upd_tol)
+		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, #Φ,
+		ωgrid_fine, snodes, μ′, σ′, w′, repay, welfare, τ, T, issuance, def_thres, output, profits, spending, wage, Ld, qʰ, qᵍ, spread, pN, outer_dists, upd_tol)
 end
 
 function iterate_qᵍ!(h::Hank; verbose::Bool=false)

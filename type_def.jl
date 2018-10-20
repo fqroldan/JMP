@@ -1,6 +1,6 @@
 using QuantEcon, BasisMatrices
 
-type Hank
+struct Hank
 	# Utility parameters
 	β::Float64
 	γ::Float64
@@ -96,7 +96,7 @@ type Hank
 	# Collocation objects
 	basis::Basis
 	bs::BasisMatrix
-	Φ::SparseMatrixCSC
+	# Φ::SparseMatrixCSC
 	# Emat::SparseMatrixCSC
 
 	ωgrid_fine::Vector{Float64}
@@ -133,7 +133,7 @@ type Hank
 	upd_tol::Float64
 end
 
-type Path
+struct Path
 	data::Matrix{Float64}
 	n::Dict{Symbol,Int64}
 end
@@ -200,20 +200,7 @@ function fill_path!(p::Path, t::Int64, d::Dict{Symbol, Float64}=Dict(:VOID=>-Inf
 			p.data[t, p.n[sym]] = val
 		end
 	else
-		B != -Inf? p.data[t, p.n[:B]] = B: Void
-		μ != -Inf? p.data[t, p.n[:μ]] = μ: Void
-		σ != -Inf? p.data[t, p.n[:σ]] = σ: Void
-		w != -Inf? p.data[t, p.n[:w]] = w: Void
-		ζ != -Inf? p.data[t, p.n[:ζ]] = ζ: Void
-		z != -Inf? p.data[t, p.n[:z]] = z: Void
-		π != -Inf? p.data[t, p.n[:π]] = π: Void
-		Y != -Inf? p.data[t, p.n[:Y]] = Y: Void
-		L != -Inf? p.data[t, p.n[:L]] = L: Void
-		ψ != -Inf? p.data[t, p.n[:ψ]] = ψ: Void
-		P != -Inf? p.data[t, p.n[:P]] = P: Void
-		A != -Inf? p.data[t, p.n[:A]] = A: Void
-		Bh != -Inf? p.data[t, p.n[:Bh]] = Bh: Void
-		Bf != -Inf? p.data[t, p.n[:Bf]] = Bf: Void
+		throw(error("badly specified dict"))
 	end
 	Void
 end
