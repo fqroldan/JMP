@@ -319,11 +319,11 @@ end
 function find_episodes(path::Path; episode_type::String="default")
 	ζ_vec = series(path,:ζ)
 	qg_vec = series(path,:qg)
-	qg_thres = quantile(qg_vec, 0.1)
+	qg_thres = quantile(qg_vec, 0.2)
 
 	N = 0
 	t_epi = []
-	for jt in 10:length(ζ_vec) - 10
+	for jt in 20:length(ζ_vec) - 10
 		if episode_type=="default"
 			if ζ_vec[jt-1] == 1 && ζ_vec[jt] != 1
 				N += 1
