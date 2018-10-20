@@ -43,6 +43,7 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 	
 	itp_W = make_itp(h, h.welfare; agg=true)
 
+	μ_gov = -0.0012
 	σ_gov = 0.0008
 
 	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
@@ -77,7 +78,7 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 				elseif Wr < Wd && repay[jb, jμ, jσ, jw, jζ, jz, jzp] > 0.5
 					diff_R[jb, jμ, jσ, jw, jζ, jz, jzp] = -1.
 				end
-				rep_prob[jb, jμ, jσ, jw, jζ, jz, jzp] = 1.0 - cdf(Normal(0.0, σ_gov), Wd-Wr)
+				rep_prob[jb, jμ, jσ, jw, jζ, jz, jzp] = 1.0 - cdf(Normal(μ_gov, σ_gov), Wd-Wr)
 			else
 				diff_W[jb, jμ, jσ, jw, jζ, jz, jzp] = 0.
 			end
