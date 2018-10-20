@@ -1,6 +1,6 @@
 using QuantEcon, BasisMatrices
 
-struct Hank
+mutable struct Hank
 	# Utility parameters
 	β::Float64
 	γ::Float64
@@ -133,7 +133,7 @@ struct Hank
 	upd_tol::Float64
 end
 
-struct Path
+mutable struct Path
 	data::Matrix{Float64}
 	n::Dict{Symbol,Int64}
 end
