@@ -319,7 +319,7 @@ end
 function find_episodes(path::Path; episode_type::String="default")
 	ζ_vec = series(path,:ζ)
 	qg_vec = series(path,:qg)
-	qg_thres = quantile(qg_vec, 0.2)
+	qg_thres = quantile(qg_vec, 0.3)
 
 	N = 0
 	t_epi = []
@@ -330,12 +330,12 @@ function find_episodes(path::Path; episode_type::String="default")
 				push!(t_epi, jt)
 			end
 		elseif episode_type=="highspread"
-			if maximum(qg_vec[jt-10+1:jt]) <= qg_thres
+			if maximum(qg_vec[jt-5+1:jt]) <= qg_thres
 				N += 1
 				push!(t_epi, jt)
 			end
 		elseif episode_type=="onlyspread"
-			if maximum(qg_vec[jt-10+1:jt]) <= qg_thres && minimum(ζ_vec[jt-10+1:jt]) == 1
+			if maximum(qg_vec[jt-5+1:jt]) <= qg_thres && minimum(ζ_vec[jt-5+1:jt]) == 1
 				N += 1
 				push!(t_epi, jt)
 			end
