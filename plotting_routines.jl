@@ -414,12 +414,17 @@ function plot_gov_welf(h::Hank; remote::Bool=false)
 	Void
 end
 
-function plot_govt_reaction(h::Hank; Wdiff::Bool=false, remote::Bool=false)
+function plot_govt_reaction(h::Hank; Wdiff::Bool=false, Ts::Bool=false, remote::Bool=false)
 	jμ, jσ, jw = ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nw/2)
 	μv, σv, wv = h.μgrid[jμ], h.σgrid[jσ], h.wgrid[jw]
 	jζ = 1
 
 	itp_vf = make_itp(h, h.vf; agg=false)
+
+	wL = h.Ld .* h.wage .* (1.0-h.τ)
+	T_mat = govt_bc(h, h.wage .* h.Ld)
+	itp_T = make_itp(h, -T_mat; agg=true)
+
 
 	B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
 	μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
@@ -434,6 +439,7 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, remote::Bool=false)
 	for js in 1:size(states,1)
 		Wr = zeros(h.Nz)
 		Wd = zeros(h.Nz)
+		Tr, Td = zeros(h.Nz), zeros(h.Nz)
 		jb, jz = states[js, :]
 		bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
 		wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
@@ -441,12 +447,20 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, remote::Bool=false)
 			μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
 			σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
 			Wr[jzp] = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
+			Tr[jzp] = itp_T[bvp, μvp, σvp, wvp, 1, jzp]
 			μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
 			σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
 			Wd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
+			Td[jzp] = itp_T[(1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp]
 		end
 		if Wdiff 
 			p_vec[js] = plot(scatter(;x=h.zgrid, y=Wd-Wr, marker_color=col[1], showlegend=false, line_width=2), Layout(;title="B=$(h.bgrid[jb]), z=$(round(exp(h.zgrid[jz]),2))", titlefont_size=32))
+		elseif Ts
+			p_vec[js] = plot([
+				scatter(;x=h.zgrid, y=Tr, marker_color=col[1], showlegend=false, line_width = 2),
+				scatter(;x=h.zgrid, y=Td, marker_color=col[4], showlegend=false, line_dash="dashdot", line_width = 2),
+				], Layout(;title="B=$(h.bgrid[jb]), z=$(round(exp(h.zgrid[jz]),2))", titlefont_size=32)
+				)
 		else
 
 			p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false, line_width=2),
@@ -1460,12 +1474,10 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	meanμ = mean(p.data[:,p.n[:μ]]) 
 	meanσ = mean(p.data[:,p.n[:σ]]) 
 	pY = plot_sample(:Y, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
-	meanY = mean(rel_sample_stats[p.n[:Y], 1, 4])
-	pY = plot_sample(:Y, rel_sample_stats, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
 	pu = plot_sample(:L, f=x->100*(1-x), title="Unemployment", yaxis_title="%")
-	pB = plot_sample(:B, f=x->100*x/meanY, title="Bonds", yaxis_title="% of mean GDP")
-	pG = plot_sample(:G, f=x->100*x/meanY, title="Govt spending", yaxis_title="% of mean GDP")
-	pT = plot_sample(:T, f=x->100*x/meanY, title="Lump-sum taxes", yaxis_title="% of mean GDP")
+	pB = plot_sample(:B, f=x->100*x/(4*meanY), title="Bonds", yaxis_title="% of mean GDP")
+	pG = plot_sample(:G, f=x->100*x/(4*meanY), title="Govt spending", yaxis_title="% of mean GDP")
+	pT = plot_sample(:T, f=x->100*x/(4*meanY), title="Lump-sum taxes", yaxis_title="% of mean GDP")
 	pμ = plot_sample(:mean, title="Mean")
 	pσ = plot_sample(:var, title="Variance")
 	pz = plot_sample(:z, f=x->100*(exp.(x)-1), title="TFP")
@@ -1477,8 +1489,10 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	pCl = plot_sample(:C, f=x->100*(x-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
 	meanC = mean(rel_sample_stats[p.n[:C], 1, 4])
 	pCs = plot_sample(:C, rel_sample_stats, f=x->100*(x-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
+	meanY = mean(rel_sample_stats[p.n[:Y], 1, 4])
+	pYs = plot_sample(:Y, rel_sample_stats, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
 
-	p = [pz pY pCs pT; pB pψ pw pu; pμ pσ pP pq]
+	p = [pz pY pCl pT; pB pψ pw pu; pμ pσ pP pq]
 	# p = [pz pY pCl; pT pB pG; pψ pw pu; pμ pσ pP]
 	slides? font = "Fira Sans Light": font = "STIX Two Text"
 	p.plot.layout["font_family"] = font
