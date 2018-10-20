@@ -1492,7 +1492,7 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	meanY = mean(rel_sample_stats[p.n[:Y], 1, 4])
 	pYs = plot_sample(:Y, rel_sample_stats, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
 
-	p = [pz pY pCl pT; pB pψ pw pu; pμ pσ pP pq]
+	p = [pz pY pCl pT; pB pψ pw pu; pμ pσ pP pG]
 	# p = [pz pY pCl; pT pB pG; pψ pw pu; pμ pσ pP]
 	slides? font = "Fira Sans Light": font = "STIX Two Text"
 	p.plot.layout["font_family"] = font
