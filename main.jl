@@ -55,8 +55,8 @@ rep_agent = false
 # Initialize type
 function set_params(run_number)
 	# 		β 	   tax	  RRA   τ
-	xmin = [0.050; 0.015; 5.0;  0.1]
-	xmax = [0.055; 0.023; 10.0; 0.2]
+	xmin = [0.041; 0.018; 5.0;  0.1]
+	xmax = [0.046; 0.025; 10.0; 0.2]
 	N = length(xmin)
 	s = SobolSeq(N)
 	x = zeros(N)
@@ -110,8 +110,8 @@ print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")
 
 function make_simulated_path(h::Hank)
-	path, jz_series = simul(h; simul_length=4*(500+25), only_def_end=true)
-	trim_path!(path, 25)
+	path, jz_series = simul(h; simul_length=4*(1000+25), only_def_end=true)
+	trim_path!(path, 4*25)
 	save(pwd() * "/../../path.jld", "path", path)
 	v_m = 0
 	try
