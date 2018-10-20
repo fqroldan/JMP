@@ -1360,7 +1360,7 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 	pY = plot([ scatter(; x=times, y=Y_vec, z=100*(Y_vec - mean(Y_vec)) / mean(Y_vec), marker_color=col[1], showlegend=false)
 				#, scatter(; x=times, y=100 * (1.0 - L_vec), marker_color=col[2], showlegend=false, line_dash="dashdot")
 			],
-			Layout(; title="Output", yaxis_title="%", xaxis=attr(title="𝑡")));
+			Layout(; title="Output", yaxis_title="", xaxis=attr(title="𝑡")));
 	pu = plot([
 		scatter(; x=times, y=100*(1.0 - L_vec), marker_color=col[1], showlegend=false)
 		], Layout(; title="Unemployment", yaxis_title="%", xaxis_title="𝑡"));
