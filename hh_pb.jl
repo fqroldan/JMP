@@ -50,7 +50,7 @@ function uprime_inv(h::Hank, c_vec::Vector)
 	u = zeros(size(c_vec))
 	for (jc, cv) in enumerate(c_vec)
 		if cv > 0
-			u[jc] = cv.^(-1./h.ψ)
+			u[jc] = cv.^(-1.0/h.ψ)
 		else
 			u[jc] = 1e-10
 		end
@@ -145,15 +145,15 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz
 				end
 				# Default
 				ζpv = 2
-				Rb = (1. - h.ρ) * (1.- h.ℏ) * qᵍp[jzp, 2]
+				Rb = (1.0 - h.ρ) * (1.0 - h.ℏ) * qᵍp[jzp, 2]
 				# Re = profits[jzp, 3]
 				ωpv = ap + bp * Rb# + ep * Re
 				if ωpv < h.ωmin
-					Ev += prob * (1.- exp_rep[jzp]) * 1e-10
+					Ev += prob * (1. - exp_rep[jzp]) * 1e-10
 				else
 					ωpv = min(h.ωmax, ωpv)
 					v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 2)
-					Ev += EZ_G(h, v) * prob * (1.- exp_rep[jzp])
+					Ev += EZ_G(h, v) * prob * (1. - exp_rep[jzp])
 				end
 			end
 		end
@@ -173,12 +173,12 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz
 
 		if h.ψ != 1.0
 			EZ_exp = (h.ψ-1.0)/h.ψ
-			C > 1e-10? ut = C^(EZ_exp): ut = 1e-10
+			C > 1e-10 ? ut = C^(EZ_exp) : ut = 1e-10
 
 			vf = (1.0 - h.β) * ut + h.β * Tv^(EZ_exp)
 			vf = vf^(1.0/EZ_exp)
 		else
-			C > 1e-10? ut = C^(1.0-h.β): ut = 1e-10
+			C > 1e-10 ? ut = C^(1.0-h.β) : ut = 1e-10
 			vf = ut * Tv^(h.β) # This is the same as saying that vf = exp( (1.0-h.β)*log(c) + h.β * log(Tv) )
 		end
 		return vf
@@ -329,10 +329,10 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 		exp_rep = rep_mat[jb, jμ, jσ, jw, jζ, jz, :]
 
 		if verbose
-			minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid)? print_save("\nμ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
-			minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid)? print_save("\nσ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
-			bpv - minimum(h.bgrid) < -1e-4 || bpv - maximum(h.bgrid) > 1e-4? print_save("\nb = $(round(bpv,6)) out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
-			wpv < minimum(h.wgrid) || wpv > maximum(h.wgrid)? print_save("\nw out of bounds at $([jb, jμ, jσ, jw, jζ, jz])"): Void
+			minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid) ? print_save("\nμ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])") : Void
+			minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid) ? print_save("\nσ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])") : Void
+			bpv - minimum(h.bgrid) < -1e-4 || bpv - maximum(h.bgrid) > 1e-4 ? print_save("\nb = $(round(bpv,6)) out of bounds at $([jb, jμ, jσ, jw, jζ, jz])") : Void
+			wpv < minimum(h.wgrid) || wpv > maximum(h.wgrid) ? print_save("\nw out of bounds at $([jb, jμ, jσ, jw, jζ, jz])") : Void
 		end
 
 
@@ -387,7 +387,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 			else
 				θg = 1.
 			end
-			isapprox(θg, 1) && θg > 1? θg = 1.0: Void
+			isapprox(θg, 1) && θg > 1 ? θg = 1.0 : Void
 
 			if resolve && ωmax > qʰv * h.ωmin
 				guess = [ωg, θg]
@@ -438,10 +438,10 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, �
 	# print_save("\nopt in $(time()-t1)")
 
 	t1 = time()
-	sum(isnan.(vf)) > 0? print_save("\n$(sum(isnan.(vf))) NaNs found in vf"): Void
-	sum(isnan.(ϕa)) > 0? print_save("$(sum(isnan.(ϕa))) NaNs found in ϕa"): Void
-	sum(isnan.(ϕb)) > 0? print_save("$(sum(isnan.(ϕb))) NaNs found in ϕb"): Void
-	sum(isnan.(ϕc)) > 0? print_save("$(sum(isnan.(ϕc))) NaNs found in ϕc"): Void
+	sum(isnan.(vf)) > 0 ? print_save("\n$(sum(isnan.(vf))) NaNs found in vf") : Void
+	sum(isnan.(ϕa)) > 0 ? print_save("$(sum(isnan.(ϕa))) NaNs found in ϕa") : Void
+	sum(isnan.(ϕb)) > 0 ? print_save("$(sum(isnan.(ϕb))) NaNs found in ϕb") : Void
+	sum(isnan.(ϕc)) > 0 ? print_save("$(sum(isnan.(ϕc))) NaNs found in ϕc") : Void
 
 	# Store results in the type
 	h.ϕa = ϕa

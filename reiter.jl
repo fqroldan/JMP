@@ -248,13 +248,13 @@ function Hank(;	β = (1.0/1.05)^0.25,
 
 			Y = exp(ϵv) * (wv * (1.0-τ) + Π) + (ωv-ωmin)
 			Y = max.(Y, 1e-4)
-			a = Y * 0.5 ./ (1./(1.0+r_star))
+			a = Y * 0.5 ./ (1.0/(1.0+r_star))
 			c = Y * 0.5 ./ pC
 			ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = a
 			ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = 0.
 			ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = c
 			ut = log(c)
-			γ == 1? Void: ut = c^(1.0-γ) / (1.0-γ)
+			γ == 1 ? Void : ut = c^(1.0-γ) / (1.0-γ)
 			if EpsteinZin
 				vf[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = c
 			else
@@ -318,13 +318,13 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
 					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * exp_rep[jzp]
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * exp_rep[jzp]
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * exp_rep[jzp]
 					ζpv = 2.0
 					μpv = h.μ′[js, jzp, 2]
 					σpv = h.σ′[js, jzp, 2]
-					E_rep += h.Pz[jz, jzp] * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp] * (1.-exp_rep[jzp])
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * (1.-exp_rep[jzp])
-					check += h.Pz[jz, jzp] * (1.-exp_rep[jzp])
+					E_rep += h.Pz[jz, jzp] * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp] * (1.0-exp_rep[jzp])
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * (1.0-exp_rep[jzp])
+					check += h.Pz[jz, jzp] * (1.0-exp_rep[jzp])
 					check += h.Pz[jz, jzp] * exp_rep[jzp]
 				end
 			else
@@ -333,13 +333,13 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 					μpv = h.μ′[js, jzp, 1]
 					σpv = h.σ′[js, jzp, 1]
 					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
 					check += h.Pz[jz, jzp] * h.θ
 					ζ_cont = 2.0
 					μpv = h.μ′[js, jzp, 2]
 					σpv = h.σ′[js, jzp, 2]
 					E_rep += h.Pz[jz, jzp] * (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp] * (1.0 - h.θ)
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp]) * (1.-h.θ)
+					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp]) * (1.0-h.θ)
 					check += h.Pz[jz, jzp] * (1.0 - h.θ)
 				end
 			end
@@ -388,21 +388,21 @@ function compute_netexports(h::Hank)
 		pC = price_index(h, pNv)
 
 		aggC = integrate_itp(h, bv, μv, σv, wv, jζ, jz, itp_ϕc)
-		aggC_T[js] = aggC  * h.ϖ * (1./pC)^(-h.η)
+		aggC_T[js] = aggC  * h.ϖ * (1.0/pC)^(-h.η)
 
 		wt = h.wage[js]
 		Ld_N, Ld_T  = labor_demand(h, wt, zv, ζv, pNv; get_both=true)
 		supply_T[js] = TFP_T(zv, h.Δ, ζv) * Ld_T^(h.α_N)
 	end
 
-	demand_G_T = h.spending * (1.-h.ϑ)
+	demand_G_T = h.spending * (1.0-h.ϑ)
 	NX = supply_T - aggC_T - demand_G_T
 
 	return NX
 end
 
 function update_fiscalrules!(h::Hank)
-	unemp = (1.- h.Ld)*100.
+	unemp = (1.0- h.Ld)*100.
 	unemp2= unemp.^2
 	BoY   = h.bgrid[h.Jgrid[:, 1]] ./ (4 * h.output) * 100
 	BoY2  = BoY.^2
@@ -418,10 +418,10 @@ function update_fiscalrules!(h::Hank)
 	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 ] * coef_B' / 100
 
 	h.spending = max.(min.(vec(g), 0.35), 0.) .* (1 * h.output)
-	h.issuance = min.(0.10,max.(0., vec(net_iss))) .* (4 * h.output) + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
+	h.issuance = min.(0.10,max.(0., vec(net_iss))) .* (4 * h.output) + (1.0-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
 
 	def_states = h.ζgrid[h.Jgrid[:, 5]] .!= 1.0
-	h.issuance[def_states] = (1.-h.ρ) * h.bgrid[h.Jgrid[def_states, 1]]
+	h.issuance[def_states] = (1.0-h.ρ) * h.bgrid[h.Jgrid[def_states, 1]]
 
 	h.issuance = min.(h.issuance, maximum(h.bgrid))
 
@@ -520,7 +520,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 		if dist < h.upd_tol
 			consw = 100*floor(Int,mean(warnc0))
-			consw > 0? msg = "\nWARNING: ": msg="\n"
+			consw > 0 ? msg = "\nWARNING: " : msg="\n"
 			msg *= "Can't affort consumption $(consw)% of the time"
 			print_save(msg)
 

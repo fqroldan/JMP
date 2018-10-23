@@ -90,8 +90,8 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ)
 				h.output = h2.output
 				h.wage = h2.wage
 				h.Ld = h2.Ld
-				h.repay = h2.repay
-				h.welfare = h2.welfare
+				# h.repay = h2.repay
+				# h.welfare = h2.welfare
 				print_save(" ✓")
 			end
 		catch
