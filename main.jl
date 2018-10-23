@@ -74,7 +74,7 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ)
 		# h = load(pwd() * "/../../hank.jld", "h")
 		try
 			h2 = load(pwd() * "/../../hank.jld", "h")
-			remote? h2 = load(pwd() * "/../../hank.jld", "h"): h2 = load("hank.jld", "h")
+			remote ? h2 = load(pwd() * "/../../hank.jld", "h") : h2 = load("hank.jld", "h")
 			print_save("\nFound JLD file")
 			if h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
 				print_save(": loading previous results")
