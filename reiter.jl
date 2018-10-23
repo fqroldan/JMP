@@ -107,7 +107,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	# ϖ = 0.7 * ϖ	
 
 	# Grids for endogenous aggregate states
-	Bmax  = 2.75
+	Bmax  = 4.0
 	Bbar  = Bmax * 0.5
 	bgrid = linspace(0.0, Bmax, Nb)
 	μgrid = linspace(-2.5, 0.75, Nμ)
@@ -411,13 +411,11 @@ function update_fiscalrules!(h::Hank)
 	NX 	  = compute_netexports(h)./(1 * h.output) * 100
 	NX2   = NX.^2
 
-	# coef_g = [  26.6121; 0.770666;-0.0127777;-0.322938; 0.00189958; 1.08616;-0.074262;-0.510484;-0.759625   ]
-	coef_g = [ 2.031486e+01  1.322062e-01  2.437653e-03 -5.487488e-03 -5.100911e-05  2.123596e-02 -4.410264e-04 -6.242461e-01 ]
+	coef_g = [20.6746151785  0.0307028678  0.0021122640  0.0095750707 -0.0002004299  0.0090837466 -0.0001310273]
 
-	# coef_B = [ 5.36865; 0.56869;-0.00694285; 0.7368; 0.0424127; 0.0326194;-0.805401 ] #-3.36865
-	coef_B = [ 0.8491332882  0.3987900815  0.0002753053 -0.0197347789  0.0002440517  0.0536221369 -0.0016054148 -0.3886161860 ]
-	g = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 spread ] * coef_g' / 100
-	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2 NX*0.0 NX2*0.0 spread*0.0 ] * coef_B' / 100
+	coef_B = [ 1.0786829981  0.3342813521  0.0001223178 -0.0102040316  0.0001494438  0.0461321365 -0.0014158229 ]
+	g = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 ] * coef_g' / 100
+	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 ] * coef_B' / 100
 
 	h.spending = max.(min.(vec(g), 0.35), 0.) .* (1 * h.output)
 	h.issuance = min.(0.10,max.(0., vec(net_iss))) .* (4 * h.output) + (1.-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
