@@ -355,7 +355,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	h.qᵍ = reshape(qᵍ, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
 	h.spread = reshape(spread, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
 
-	h.spread = 1.0./h.qᵍ - 1.0
+	h.spread = 1.0 ./ h.qᵍ - coupon / (h.r_star + h.ρ)
 
 	if verbose
 		end_t = time()
