@@ -55,8 +55,8 @@ rep_agent = false
 # Initialize type
 function set_params(run_number)
 	# 		β 	   tax	  RRA   τ
-	xmin = [0.041; 0.018; 5.0;  0.1]
-	xmax = [0.046; 0.025; 10.0; 0.2]
+	xmin = [0.041; 0.02; 5.0;  0.1]
+	xmax = [0.044; 0.03; 10.0; 0.2]
 	N = length(xmin)
 	s = SobolSeq(N)
 	x = zeros(N)

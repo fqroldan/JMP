@@ -10,7 +10,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				r_star = 1.04^0.25 - 1.0,
 				tax = 0.1,
 				ωmax = 20.,
-				wbar = 1.05,
+				wbar = 1.15,
 				curv = .4,
 				income_process = "Floden-Lindé",
 				EpsteinZin = true,
@@ -418,7 +418,7 @@ function update_fiscalrules!(h::Hank)
 	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 ] * coef_B' / 100
 
 	h.spending = max.(min.(vec(g), 0.35), 0.) .* (1 * h.output)
-	h.issuance = min.(0.10,max.(0., vec(net_iss))) .* (4 * h.output) + (1.0-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
+	h.issuance = min.(0.35,max.(0., vec(net_iss))) .* (4 * h.output) + (1.0-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
 
 	def_states = h.ζgrid[h.Jgrid[:, 5]] .!= 1.0
 	h.issuance[def_states] = (1.0-h.ρ) * h.bgrid[h.Jgrid[def_states, 1]]
