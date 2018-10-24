@@ -295,7 +295,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 end
 
 
-function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve::Bool = true, verbose::Bool=true)
+function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve::Bool = true, verbose::Bool=true, guess_a::Array{Float64}=zeros(1,1), guess_b::Array{Float64}=zeros(1,1))
 
 	vf = SharedArray{Float64}(size(h.vf))
 	ϕa = SharedArray{Float64}(size(h.ϕa))
@@ -375,7 +375,12 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 			RHS = ωv + wL * exp(ϵv) - Tv + profits * exp(ϵv) / adjustment
 
 			ap, bp, ep, cmax, fmax = 0., 0., 0., 0., 0.
+
 			ag, bg = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz], h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
+			
+			if guess_a != zeros(1,1) && guess_b != zeros(1,1)
+				ag, bg = guess_a[jω, jϵ, jb, jμ, jσ, jw, jζ, jz], guess_b[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
+			end
 
 			ωg = qʰv * ag + qᵍv * bg
 			ωmax = RHS - 1e-10

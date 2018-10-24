@@ -43,8 +43,11 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
 		wL_mat  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz) * (1.0 - h.τ)
 
+		guess_a = h.ϕa_ext[:,:,:,:,:,:,:,:,jpn]
+		guess_b = h.ϕb_ext[:,:,:,:,:,:,:,:,jpn]
+
 		# Re-solve for these values of wn and pn
-		_, ϕa, ϕb, ϕe, ϕc, _ = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = false)
+		_, ϕa, ϕb, ϕe, ϕc, _ = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = false, guess_a=guess_a, guess_b=guess_b)
 
 		isapprox(sum(abs.(ϕc)), 0)? print_save("\nWARNING: ϕc(pN = $(round(pnv, 2))) ≡ 0 when extending state space"): Void
 
