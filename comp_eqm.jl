@@ -729,6 +729,8 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 
 	h.ϕa = reinterp(h, h.ϕa, agg=false)
 	h.ϕb = reinterp(h, h.ϕb, agg=false)
+	h.ϕa_ext = reinterp(h, h.ϕa_ext, agg=false)
+	h.ϕb_ext = reinterp(h, h.ϕb_ext, agg=false)
 	h.ϕc = reinterp(h, h.ϕc, agg=false)
 	h.ϕc = max.(1e-6, h.ϕc)
 	h.vf = reinterp(h, h.vf, agg=false)
