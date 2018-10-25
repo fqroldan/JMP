@@ -678,7 +678,7 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	end
 
 
-	new_μgrid = new_grid(μ′_new, h.μgrid)
+	new_μgrid = new_grid(μ′_new, h.μgrid, lb = -2.0)
 	new_σgrid = new_grid(σ′_new, h.σgrid, lb = 1e-2)
 
 	μ′_new = max.(min.(μ′_new, maximum(h.μgrid)), minimum(h.μgrid))
@@ -724,6 +724,9 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 		if agg
 			y_new = itp_y[h.bgrid, new_μgrid, new_σgrid, new_wgrid, h.ζgrid, h.zgrid]
 			return reshape(y_new, size(h.Jgrid,1))
+		elseif ext
+			y_new = itp_y[h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, new_wgrid, h.ζgrid, h.zgrid, h.pngrid]
+			return y_new
 		else
 			y_new = itp_y[h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, new_wgrid, h.ζgrid, h.zgrid]
 			return y_new
