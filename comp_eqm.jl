@@ -708,11 +708,14 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 		new_wgrid = h.wgrid
 	end
 
-	function reinterp(h::Hank, y; agg::Bool=false)
+	function reinterp(h::Hank, y; agg::Bool=false, ext::Bool=false)
 		knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
 		if agg
 			knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid)
 			y = reshape(y, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+		end
+		if ext
+			knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, h.zgrid, h.pngrid)
 		end
 
 		itp_obj_y = interpolate(knots, y, Gridded(Linear()))
@@ -729,8 +732,8 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 
 	h.ϕa = reinterp(h, h.ϕa, agg=false)
 	h.ϕb = reinterp(h, h.ϕb, agg=false)
-	h.ϕa_ext = reinterp(h, h.ϕa_ext, agg=false)
-	h.ϕb_ext = reinterp(h, h.ϕb_ext, agg=false)
+	h.ϕa_ext = reinterp(h, h.ϕa_ext, agg=false, ext=true)
+	h.ϕb_ext = reinterp(h, h.ϕb_ext, agg=false, ext=true)
 	h.ϕc = reinterp(h, h.ϕc, agg=false)
 	h.ϕc = max.(1e-6, h.ϕc)
 	h.vf = reinterp(h, h.vf, agg=false)

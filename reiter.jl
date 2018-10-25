@@ -252,6 +252,8 @@ function Hank(;	β = (1.0/1.05)^0.25,
 			c = Y * 0.5 ./ pC
 			ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = a
 			ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = 0.
+			ϕa_ext[jω, jϵ, jb, jμ, jσ, jw, jζ, jz, :] = a
+			ϕb_ext[jω, jϵ, jb, jμ, jσ, jw, jζ, jz, :] = 0.
 			ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = c
 			ut = log(c)
 			γ == 1 ? Void : ut = c^(1.0-γ) / (1.0-γ)
