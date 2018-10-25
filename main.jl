@@ -81,6 +81,8 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ)
 				update_grids!(h2, new_μgrid = h.μgrid, new_σgrid = h.σgrid)
 				h.ϕa = h2.ϕa
 				h.ϕb = h2.ϕb
+				h.ϕa_ext = h2.ϕa_ext
+				h.ϕb_ext = h2.ϕb_ext
 				h.ϕc = h2.ϕc
 				h.vf = h2.vf
 				h.pngrid = h2.pngrid
