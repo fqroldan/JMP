@@ -1,4 +1,4 @@
-function integrate_itp(h::Hank, bv, μv, σv, wv, jζ, jz, itp_obj)
+function integrate_itp(h::Hank, bv, μv, σv, ξv, jζ, jz, itp_obj)
 
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) + h.ωmin
 	ωmax_int = min(ωmax_int, h.ωmax)
@@ -8,7 +8,7 @@ function integrate_itp(h::Hank, bv, μv, σv, wv, jζ, jz, itp_obj)
 		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
 		sum_prob += val_pdf * h.λϵ[jϵ]
 
-	    f(ω) = f_pdf(ω) * itp_obj[ω, jϵ, bv, μv, σv, wv, jζ, jz]
+	    f(ω) = f_pdf(ω) * itp_obj[ω, jϵ, bv, μv, σv, ξv, jζ, jz]
 	    (val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
 	    W += val * h.λϵ[jϵ]
 	end
@@ -36,51 +36,49 @@ end
 function update_govpol(h::Hank; η_rep::Float64=0.5)
 	itp_vf = make_itp(h, h.vf; agg=false)
 
-	B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
-	σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz, 2)
-	w′_mat = reshape(h.wage, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
+	μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz, 2)
+	σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz, 2)
 	
 	itp_W = make_itp(h, h.welfare; agg=true)
 
 	μ_gov = 0.01
 	σ_gov = 0.0008
 
-	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
-	diff_W = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
-	diff_R = zeros(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
-	rep_prob = zeros(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
+	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+	diff_W = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+	diff_R = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+	rep_prob = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	for js in 1:size(h.Jgrid, 1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
 		jσ = h.Jgrid[js, 3]
-		jw = h.Jgrid[js, 4]
+		jξ = h.Jgrid[js, 4]
 		jζ = h.Jgrid[js, 5]
 		jz = h.Jgrid[js, 6]
 
-		bvp = B′_mat[jb, jμ, jσ, jw, jζ, jz]
-		wvp = w′_mat[jb, jμ, jσ, jw, jζ, jz]
-		for jzp in 1:h.Nz
+		bvp = B′_mat[jb, jμ, jσ, jξ, jζ, jz]
+		for (jξp, ξpv) in enumerate(h.ξgrid), jzp in 1:h.Nz
 			if jζ == 1
-				μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-				σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 1]
-				# Wr = integrate_itp(h, bvp, μvp, σvp, wvp, 1, jzp, itp_vf)
-				Wr = itp_W[bvp, μvp, σvp, wvp, 1, jzp]
+				μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 1]
+				σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 1]
+				# Wr = integrate_itp(h, bvp, μvp, σvp, ξpv, 1, jzp, itp_vf)
+				Wr = itp_W[bvp, μvp, σvp, ξpv, 1, jzp]
 
-				μvp = μ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-				σvp = σ′_mat[jb, jμ, jσ, jw, jζ, jz, jzp, 2]
-				# Wd = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp, itp_vf)
-				Wd = itp_W[(1.-h.ℏ)*bvp, μvp, σvp, wvp, 2, jzp]
+				μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
+				σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
+				# Wd = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp, itp_vf)
+				Wd = itp_W[(1.-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp]
 
-				diff_W[jb, jμ, jσ, jw, jζ, jz, jzp] = Wr - Wd
-				if Wr > Wd && repay[jb, jμ, jσ, jw, jζ, jz, jzp] < 0.5
-					diff_R[jb, jμ, jσ, jw, jζ, jz, jzp] = 1.
-				elseif Wr < Wd && repay[jb, jμ, jσ, jw, jζ, jz, jzp] > 0.5
-					diff_R[jb, jμ, jσ, jw, jζ, jz, jzp] = -1.
+				diff_W[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = Wr - Wd
+				if Wr > Wd && repay[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] < 0.5
+					diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 1.
+				elseif Wr < Wd && repay[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] > 0.5
+					diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = -1.
 				end
-				rep_prob[jb, jμ, jσ, jw, jζ, jz, jzp] = 1.0 - cdf(Normal(μ_gov, σ_gov), Wd-Wr)
+				rep_prob[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 1.0 - cdf(Normal(μ_gov, σ_gov), Wd-Wr)
 			else
-				diff_W[jb, jμ, jσ, jw, jζ, jz, jzp] = 0.
+				diff_W[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
 			end
 		end
 	end
@@ -113,11 +111,11 @@ function update_W(h::Hank)
 		bv = h.bgrid[h.Jgrid[js, 1]]
 		μv = h.μgrid[h.Jgrid[js, 2]]
 		σv = h.σgrid[h.Jgrid[js, 3]]
-		wv = h.wgrid[h.Jgrid[js, 4]]
+		ξv = h.ξgrid[h.Jgrid[js, 4]]
 		jζ = h.Jgrid[js, 5]
 		jz = h.Jgrid[js, 6]
 		
-		W[js] = integrate_itp(h, bv, μv, σv, wv, jζ, jz, itp_vf)
+		W[js] = integrate_itp(h, bv, μv, σv, ξv, jζ, jz, itp_vf)
 	end
 
 	return W
@@ -152,7 +150,8 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 			dist = 0.
 		else
 			new_rep = update_govpol(h; η_rep = 0.25)
-			dist = sqrt.(sum( (new_rep - old_rep).^2 )) / sqrt.(sum(old_rep.^2))
+			old_norm = exp( max(0, log(sqrt.(sum(old_rep.^2)))) )
+			dist = sqrt.(sum( (new_rep - old_rep).^2 )) / old_norm
 			h.repay = 0.4*upd_η * new_rep + (1.-0.4*upd_η) * old_rep
 		end
 

@@ -1,6 +1,6 @@
 include("type_def.jl")
 
-function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, itp_W, λt, Qϵ; phase::String="")
+function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ; phase::String="")
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal getfrompath(p, t, :z)
 	# B, ζ, and z are decided at the end of the last period
@@ -10,7 +10,9 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	μt = getfrompath(p, t, :μ)
 	σt = getfrompath(p, t, :σ)
 	# w0 = getfrompath(p, t, :w)
-	w0 = h.wgrid[2]
+	ξt = getfrompath(p, t, :ξ)
+	jξ = findfirst(h.ξgrid .== ξt)
+	w0 = h.wbar
 	ζt = Int(getfrompath(p, t, :ζ))
 	zt = getfrompath(p, t, :z)
 
@@ -19,23 +21,22 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	
 	if t % 10 == 0
-		print("\n$([Bt, μt, σt, w0, ζt, zt])")
+		print("\n$([Bt, μt, σt, ξt, ζt, zt])")
 	end
 
-	Bprime 	= itp_B′[Bt, μt, σt, w0, ζt, jz]
-	G 		= itp_G[Bt, μt, σt, w0, ζt, jz]
-	pNg 	= itp_pN[Bt, μt, σt, w0, ζt, jz]
-	thres 	= itp_Zthres[Bt, μt, σt, w0, ζt, jz]
+	Bprime 	= itp_B′[Bt, μt, σt, ξt, ζt, jz]
+	G 		= itp_G[Bt, μt, σt, ξt, ζt, jz]
+	pNg 	= itp_pN[Bt, μt, σt, ξt, ζt, jz]
 
-	exp_rep = zeros(h.Nz)
-	for jzp in 1:h.Nz
-		exp_rep[jzp] = itp_repay[Bt, μt, σt, w0, ζt, jz, jzp]
+	exp_rep = zeros(h.Nξ, h.Nz)
+	for jξp in 1:h.Nξ, jzp in 1:h.Nz
+		exp_rep[jξp, jzp] = itp_repay[Bt, μt, σt, ξt, ζt, jz, jξp, jzp]
 	end
 
 	# Find pN at the current state. Deduce w, L, Π, T.
 	pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 	jdef = (ζt != 1)
-	results, _ = find_prices(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, w0, ζt, jz, jdef)
+	results, _ = find_prices(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, ξt, ζt, jz, jdef)
 
 	wt, pN, Ld, output = results
 	profits = output - wt*Ld
@@ -62,8 +63,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	def_prob = 0.
 	if ζt == 1
-		for (jzp, zvp) in enumerate(h.zgrid)
-			def_prob += h.Pz[jz, jzp] * (1.-exp_rep[jzp])
+		for (jξp, ξvp) in enumerate(h.ξgrid), (jzp, zvp) in enumerate(h.zgrid)
+			def_prob += h.Pξ[jξ, jξp] * h.Pz[jz, jzp] * (1.-exp_rep[jξp, jzp])
 		end
 	end
 
@@ -79,11 +80,11 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	adjustment = sum(h.λϵ.*exp.(h.ϵgrid))
 	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid_fine)
 		js += 1
-		ap = itp_ϕa[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
+		ap = itp_ϕa[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN]
 		ϕa[js] = max(h.ωmin, ap)
-		bp = itp_ϕb[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
+		bp = itp_ϕb[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN]
 		ϕb[js] = max(0.0, bp)
-		cc = itp_ϕc[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, w0, ζt, jz, pN]
+		cc = itp_ϕc[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN]
 		ϕc[js] = max(0.0, cc)
 		yd = (wt*Ld*(1.0-h.τ) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
 		Crate[js] = ϕc[js] / yd
@@ -113,7 +114,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	# print("\nvar_a, var_b, cov_ab = $([var_a, var_b, cov_ab])")
 
-	μ′, σ′, q′, _ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, w0, exp_rep)
+	μ′, σ′, q′, _ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, exp_rep)
 
 	lμ = h.μgrid[end] - h.μgrid[1]
 	lσ = h.σgrid[end] - h.σgrid[1]
@@ -127,16 +128,20 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	probs = cumsum(h.Pz[jz,:])
 	jzp = findfirst(probs .> rand())
 
-	zprime = h.zgrid[jzp]
+	probs = cumsum(h.Pξ[jξ,:])
+	jξp = findfirst(probs .> rand())
 
-	μprime = μ′[jzp, 1]
-	σprime = σ′[jzp, 1]
-	qprime = q′[jzp, 1]
+	zprime = h.zgrid[jzp]
+	ξprime = h.ξgrid[jξp]
+
+	μprime = μ′[jξp,jzp, 1]
+	σprime = σ′[jξp,jzp, 1]
+	qprime = q′[jξp,jzp, 1]
 
 	if jdef
 		# Compute welfare in case of repayment and default
-		Wr = itp_W[Bprime, μ′[jzp,1], σ′[jzp,1], w0, 1, jzp]
-		Wd = itp_W[Bprime, μ′[jzp,2], σ′[jzp,2], w0, 2, jzp]
+		Wr = itp_W[Bprime, μ′[jξp,jzp,1], σ′[jξp,jzp,1], ξt, 1, jzp]
+		Wd = itp_W[Bprime, μ′[jξp,jzp,2], σ′[jξp,jzp,2], ξt, 2, jzp]
 		# Now draw reentry
 		prob_reentry = h.θ
 		reentry = (rand() <= prob_reentry)
@@ -145,20 +150,20 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 			R = h.κ + (1.0-h.ρ) * qprime
 		else
 			ζprime = 2.0
-			μprime = μ′[jzp, 2]
-			σprime = σ′[jzp, 2]
-			qprime = q′[jzp, 2]
+			μprime = μ′[jξp,jzp, 2]
+			σprime = σ′[jξp,jzp, 2]
+			qprime = q′[jξp,jzp, 2]
 			R = (1.0-h.ρ) * qprime
 		end
 	else
 		# Compute welfare in case reenter and remain
-		Wr = itp_W[Bprime, 			μ′[jzp,1], σ′[jzp,1], w0, 1, jzp]
-		Wd = itp_W[(1.-h.ℏ)*Bprime, μ′[jzp,2], σ′[jzp,2], w0, 2, jzp]
+		Wr = itp_W[Bprime, 			μ′[jξp,jzp,1], σ′[jξp,jzp,1], ξt, 1, jzp]
+		Wd = itp_W[(1.-h.ℏ)*Bprime, μ′[jξp,jzp,2], σ′[jξp,jzp,2], ξt, 2, jzp]
 		# Now draw default
 		if phase == "no def"
 			repay_prime = 1.
 		else
-			repay_prime = (rand() <= exp_rep[jzp])
+			repay_prime = (rand() <= exp_rep[jξp,jzp])
 		end
 		if repay_prime
 			ζprime = 1.0
@@ -166,9 +171,9 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		else
 			ζprime = 2.0
 			Bprime = (1.0 - h.ℏ) * Bprime
-			qprime = q′[jzp, 2]
-			μprime = μ′[jzp, 2]
-			σprime = σ′[jzp, 2]
+			qprime = q′[jξp,jzp, 2]
+			μprime = μ′[jξp,jzp, 2]
+			σprime = σ′[jξp,jzp, 2]
 			R = (1.0-h.ℏ)*(1.0-h.ρ) * qprime
 		end
 	end
@@ -189,7 +194,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	# Fill the path for next period
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
-		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :ζ => ζprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qprime, :mean => M, :var => V))
+		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :ζ => ζprime, :ξ => ξprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qprime, :mean => M, :var => V))
 	end
 
 	return λprime
@@ -203,10 +208,10 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	T = burn_in + simul_length
 	p = Path(T = T)
 
-	jz = 4
+	jz = 1
 
-	B0, μ0, σ0, w0, ζ0, z0 = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), h.wgrid[2], h.ζgrid[1], h.zgrid[jz]
-	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w => w0, :ζ => ζ0, :z => z0))
+	B0, μ0, σ0, ξ0, ζ0, z0 = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), h.ξgrid[2], h.ζgrid[1], h.zgrid[jz]
+	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
 
 	itp_ϕa = make_itp(h, h.ϕa_ext; agg=false)
 	itp_ϕb = make_itp(h, h.ϕb_ext; agg=false)
@@ -217,12 +222,11 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	itp_G		= make_itp(h, h.spending; agg=true)
 	itp_pN		= make_itp(h, h.pN; agg=true)
 	itp_qᵍ 		= make_itp(h, h.qᵍ; agg=true)
-	itp_Zthres	= make_itp(h, h.def_thres; agg=true)
 	itp_W 		= make_itp(h, h.welfare; agg=true)
 
-	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
-	knots = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, 1:h.Nζ, 1:h.Nz, 1:h.Nz)
-	itp_repay = interpolate(knots, rep_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp(), NoInterp()))
+	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+	knots = (h.bgrid, h.μgrid, h.σgrid, h.ξgrid, 1:h.Nζ, 1:h.Nz, h.ξgrid, 1:h.Nz)
+	itp_repay = interpolate(knots, rep_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp(), Gridded(Linear()), NoInterp()))
 
 	jz_series = Vector{Int64}(T)
 	jz_series[1] = jz
@@ -258,7 +262,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 			end
 		end
 
-		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_Zthres, itp_repay, itp_W, λ, Qϵ; phase = phase)
+		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ; phase = phase)
 		# print("\nt = $t")
 	end
 

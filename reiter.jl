@@ -21,10 +21,12 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				Nμ = 4,
 				Nσ = 4,
 				Nb = 9,
-				Nw = 2,
-				Nz = 13,
+				Nξ = 2,
+				Nz = 9,
 				ρz = 0.9,
 				σz = 0.025,
+				ρξ = 0.95,
+				σξ = 0.005,
 				ℏ = 0.4,
 				Δ = 0.1,
 				θ = .125,
@@ -60,6 +62,10 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	# zgrid = linspace(minimum(z_chain.state_values), maximum(z_chain.state_values), Nz)
 	zgrid = z_chain.state_values
 
+	meanξ = tax
+	ξ_chain = tauchen(Nξ, ρξ, σξ, meanξ * (1.0-ρξ), 1)
+	Pξ, ξgrid = ξ_chain.p, ξ_chain.state_values
+
 	# Idiosyncratic risk
 	ρϵ, σϵ = 0., 0.
 	if income_process == "Floden-Lindé"
@@ -78,17 +84,11 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	Pϵ = ϵ_chain.p
 	ϵgrid = ϵ_chain.state_values
 
-	wgrid = [0.5; wbar] # linspace(0.75, 1.5, Nw)
-	Nw = 2
 	pngrid = linspace(0.5, 1.1, Np)
 	ζgrid = 1:2
 	Nζ = length(ζgrid)
 
 	λϵ = stationary_distributions(ϵ_chain)[1]
-
-	χ = 2.0
-	Ξ = dot(exp.(ϵgrid).^(1.0/χ), λϵ)^χ
-	θL = (1.0-τ) * Ξ
 
 	α_T = 0.6
 	α_N = 0.6
@@ -132,13 +132,13 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				  LinParams(bgrid, 0),
 				  LinParams(μgrid, 0),
 				  LinParams(σgrid, 0),
-				  LinParams(wgrid, 0),
+				  LinParams(ξgrid, 0),
 				  LinParams(ζgrid, 0),
 				  LinParams(zgrid, 0))
 	s, _ = nodes(basis)
 	Nω, Ns = size(ωgrid, 1), size(s, 1)
 
-	Jgrid = gridmake(1:Nb, 1:Nμ, 1:Nσ, 1:Nw, 1:Nζ, 1:Nz)
+	Jgrid = gridmake(1:Nb, 1:Nμ, 1:Nσ, 1:Nξ, 1:Nζ, 1:Nz)
 
 	# Compute the basis matrix and expectations matrix
 	bs = BasisMatrix(basis, Direct(), s, [0 0 0 0 0 0 0 0])
@@ -147,51 +147,45 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	λ = ones(Nω_fine*Nϵ)
 	λ = λ/sum(λ)
 
-	ϕa_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Np)
-	ϕb_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Np)
-	ϕe_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Np)
-	ϕc_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Np)
-
-	μ = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	μ = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
 	for (jμ, μv) in enumerate(μgrid)
 		μ[:,jμ,:,:,:,:,:] = μv + 0.5 * ( mean(μgrid) - μv )
 	end
-	μ = reshape(μ, Nb*Nμ*Nσ*Nw*Nζ*Nz)
-	σ = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	μ = reshape(μ, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	σ = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
 	for (jσ, σv) in enumerate(σgrid)
 		σ[:,:,jσ,:,:,:,:] = σv + 0.5 * ( mean(σgrid) - σv )
 	end
-	σ = reshape(σ, Nb*Nμ*Nσ*Nw*Nζ*Nz)
-	μ′ = Array{Float64, 3}(Nb*Nμ*Nσ*Nw*Nζ*Nz, Nz, 2)
-	σ′ = Array{Float64, 3}(Nb*Nμ*Nσ*Nw*Nζ*Nz, Nz, 2)
-	for j = 1:Nz, jj = 1:2
-		μ′[:, j, jj] = μ
-		σ′[:, j, jj] = σ
+	σ = reshape(σ, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	μ′ = Array{Float64}(Nb*Nμ*Nσ*Nξ*Nζ*Nz, Nξ, Nz, 2)
+	σ′ = Array{Float64}(Nb*Nμ*Nσ*Nξ*Nζ*Nz, Nξ, Nz, 2)
+	for jξ = 1:Nξ, jz = 1:Nz, jj = 1:2
+		μ′[:, jξ, jz, jj] = μ
+		σ′[:, jξ, jz, jj] = σ
 	end
-	w′ = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	for (jw, wv) in enumerate(wgrid)
+	w′ = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	for (jw, wv) in enumerate(ξgrid)
 		w′[:,:,:,jw,:,:] = wv
 	end
-	w′ = reshape(w′, Nb*Nμ*Nσ*Nw*Nζ*Nz)
+	w′ = reshape(w′, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 
 	# Debt parameters
 	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
 	κ = ρ + r_star
 
 	# State functions
-	Ld = ones(Nb*Nμ*Nσ*Nw*Nζ*Nz)
-	T  = ones(Nb*Nμ*Nσ*Nw*Nζ*Nz) * 0.05
-	qʰ = ones(Nb*Nμ*Nσ*Nw*Nζ*Nz) / (1.0+r_star)
-	qᵍ = zeros(Nb*Nμ*Nσ*Nw*Nζ*Nz)
-	spread = zeros(Nb*Nμ*Nσ*Nw*Nζ*Nz)
+	Ld = ones(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	T  = ones(Nb*Nμ*Nσ*Nξ*Nζ*Nz) * 0.05
+	qʰ = ones(Nb*Nμ*Nσ*Nξ*Nζ*Nz) / (1.0+r_star)
+	qᵍ = zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	spread = zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 
-	pN 		  = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	repay 	  = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz, Nz)
-	wage 	  = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	spending  =	Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	issuance  =	Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	def_thres =	Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	output	  = Array{Float64}(Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	pN 		  = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	repay 	  = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz, Nξ, Nz)
+	wage 	  = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	spending  =	Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	issuance  =	Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	output	  = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
 	for (jz, zv) in enumerate(zgrid)
 		pN[:,:,:,:,:,jz] = mean(pngrid) - 0.1 * zv
 		output[:,:,:,:,:,jz] = exp(zv)
@@ -202,39 +196,36 @@ function Hank(;	β = (1.0/1.05)^0.25,
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
 			def = (ζv != 1.0)
-			for (jw, wv) in enumerate(wgrid)
-				wage[:,:,:,jw,jζ,jz] = max(exp(zv) * (1.0 - Δ * def), γw*wv)
-			end
+			wage[:,:,:,:,jζ,jz] = max(exp(zv) * (1.0 - Δ * def), wbar)
 		end
-		repay[:,:,:,:,:,:,jz] = 1.0 - (zv <= zgrid[1])
-		def_thres[:,:,:,:,:,jz] = zgrid[1]
-		# def_thres[:,:,:,:,:,jz] = -Inf
+		repay[:,:,:,:,:,:,:,jz] = 1.0 - (zv <= zgrid[1])
 	end
-	pN	 		= reshape(pN, 	 	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
-	repay	 	= reshape(repay, 	 Nb*Nμ*Nσ*Nw*Nζ*Nz*Nz)
-	wage	 	= reshape(wage, 	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
-	spending 	= reshape(spending,	 Nb*Nμ*Nσ*Nw*Nζ*Nz)
-	issuance 	= min.(max.(reshape(issuance,  Nb*Nμ*Nσ*Nw*Nζ*Nz), minimum(bgrid)), maximum(bgrid))
-	def_thres 	= reshape(def_thres, Nb*Nμ*Nσ*Nw*Nζ*Nz)
-	output 		= reshape(output, Nb*Nμ*Nσ*Nw*Nζ*Nz)
-	
-	welfare   	= zeros(Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	welfare   	= reshape(welfare, Nb*Nμ*Nσ*Nw*Nζ*Nz)
-	
+	pN	 		= reshape(pN, 	 	 Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	repay	 	= reshape(repay, 	 Nb*Nμ*Nσ*Nξ*Nζ*Nz*Nz*Nξ)
+	wage	 	= reshape(wage, 	 Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	spending 	= reshape(spending,	 Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	issuance 	= min.(max.(reshape(issuance,  Nb*Nμ*Nσ*Nξ*Nζ*Nz), minimum(bgrid)), maximum(bgrid))
+	output 		= reshape(output, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 	profits 	= output - wage .* Ld
+	
+	welfare   	= zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)	
 
 
-	ϕa = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	ϕb = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	ϕe = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
-	ϕc = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	ϕa     = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	ϕb     = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	ϕe     = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	ϕc     = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	ϕa_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz, Np)
+	ϕb_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz, Np)
+	ϕe_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz, Np)
+	ϕc_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz, Np)
 
-	vf = Array{Float64}(Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz)
+	vf = Array{Float64}(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
 	for js in 1:size(Jgrid,1)
 		jb = Jgrid[js, 1]
 		jμ = Jgrid[js, 2]
 		jσ = Jgrid[js, 3]
-		jw = Jgrid[js, 4]
+		jξ = Jgrid[js, 4]
 		jζ = Jgrid[js, 5]
 		jz = Jgrid[js, 6]
 
@@ -243,24 +234,24 @@ function Hank(;	β = (1.0/1.05)^0.25,
 
 		Π = profits[js]
 
-		wv = exp(zgrid[jz])
+		wL = max(exp(zgrid[jz]) * (1.0 - Δ * (jζ!=1)), wbar)
 		for (jϵ, ϵv) in enumerate(ϵgrid), (jω, ωv) in enumerate(ωgrid)
 
-			Y = exp(ϵv) * (wv * (1.0-τ) + Π) + (ωv-ωmin)
+			Y = exp(ϵv) * (wL * (1.0-τ) + Π) + (ωv-ωmin)
 			Y = max.(Y, 1e-4)
 			a = Y * 0.5 ./ (1.0/(1.0+r_star))
 			c = Y * 0.5 ./ pC
-			ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = a
-			ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = 0.
-			ϕa_ext[jω, jϵ, jb, jμ, jσ, jw, jζ, jz, :] = a
-			ϕb_ext[jω, jϵ, jb, jμ, jσ, jw, jζ, jz, :] = 0.
-			ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = c
+			ϕa[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = a
+			ϕb[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = 0.
+			ϕa_ext[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz, :] = a
+			ϕb_ext[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz, :] = 0.
+			ϕc[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = c
 			ut = log(c)
 			γ == 1 ? Void : ut = c^(1.0-γ) / (1.0-γ)
 			if EpsteinZin
-				vf[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = c
+				vf[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = c
 			else
-				vf[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ut / (1.0 - β)
+				vf[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = ut / (1.0 - β)
 			end
 		end
 	end
@@ -271,9 +262,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 
 	outer_dists = [1.]
 
-	return Hank(β, γ, ψ, EpsteinZin, γw, θL, χ, Ξ, ρ, κ, r_star, tax, η, ϖ, α_T, α_N, ϑ, ϕa, ϕb, ϕe, ϕc, ϕa_ext, ϕb_ext, ϕe_ext, ϕc_ext, vf, ρϵ, σϵ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nw, Nζ, Nz, Ns, Nω_fine, Pϵ, Pz, λ, λϵ, ℏ, θ, Δ, #curv, order,
-		ωmin, ωmax, ωgrid0, ωgrid, ϵgrid, bgrid, μgrid, σgrid, wgrid, ζgrid, zgrid, s, Jgrid, pngrid, basis, bs, #Φ,
-		ωgrid_fine, snodes, μ′, σ′, w′, repay, welfare, τ, T, issuance, def_thres, output, profits, spending, wage, Ld, qʰ, qᵍ, spread, pN, outer_dists, upd_tol)
+	return Hank(β, γ, ψ, EpsteinZin, wbar, ρ, κ, r_star, tax, η, ϖ, α_T, α_N, ϑ, ϕa, ϕb, ϕe, ϕc, ϕa_ext, ϕb_ext, ϕe_ext, ϕc_ext, vf, ρϵ, σϵ, ρξ, σξ, ρz, σz, Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz, Ns, Nω_fine, Pϵ, Pξ, Pz, λ, λϵ, ℏ, θ, Δ, ωmin, ωmax, ωgrid, ϵgrid, bgrid, μgrid, σgrid, ξgrid, ζgrid, zgrid, s, Jgrid, pngrid, ωgrid_fine, snodes, μ′, σ′, w′, repay, welfare, τ, T, issuance, output, profits, spending, wage, Ld, qʰ, qᵍ, spread, pN, outer_dists, upd_tol)
 end
 
 function iterate_qᵍ!(h::Hank; verbose::Bool=false)
@@ -283,81 +272,84 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 	init_t = time()
 
-	coupon = h.κ * (1.0 - h.tax)
-	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
+	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
+	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 
 	qᵍ = ones(qᵍ_mat)
 	spread = zeros(qᵍ)
 	while dist > tol && iter < maxiter
 		old_q  = copy(qᵍ)
-		knots  = (h.bgrid, h.μgrid, h.σgrid, h.wgrid, h.ζgrid, 1:h.Nz)
+		knots  = (h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, 1:h.Nz)
 		itp_qᵍ = interpolate(knots, qᵍ, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
 
 		for js in 1:size(h.Jgrid,1)
 			jb = h.Jgrid[js, 1]
 			jμ = h.Jgrid[js, 2]
 			jσ = h.Jgrid[js, 3]
-			jw = h.Jgrid[js, 4]
+			jξ = h.Jgrid[js, 4]
 			jζ = h.Jgrid[js, 5]
 			jz = h.Jgrid[js, 6]
 
+			ξv = h.ξgrid[jξ]
+			coupon = h.κ * (1.0 - ξv)
 			ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
 
-			exp_rep = rep_mat[jb, jμ, jσ, jw, jζ, jz, :]
+			exp_rep = rep_mat[jb, jμ, jσ, jξ, jζ, jz, :, :]
 
 			jdefault = (ζv != 1.0)
 
+			""" HERE !!!!!!!!!!!!!!!!!!!!!!!!! """
 			bpv = h.issuance[js]
-			wpv = h.w′[js]
-			thres = h.def_thres[js]
 
 			E_rep, check = 0.0, 0.0
-			E_fullrep = 0.
 			if jdefault == false
-				for (jzp, zpv) in enumerate(h.zgrid)
-					ζpv = 1.0
-					μpv = h.μ′[js, jzp, 1]
-					σpv = h.σ′[js, jzp, 1]
-					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * exp_rep[jzp]
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * exp_rep[jzp]
-					ζpv = 2.0
-					μpv = h.μ′[js, jzp, 2]
-					σpv = h.σ′[js, jzp, 2]
-					E_rep += h.Pz[jz, jzp] * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, wpv, ζpv, jzp] * (1.0-exp_rep[jzp])
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζpv, jzp]) * (1.0-exp_rep[jzp])
-					check += h.Pz[jz, jzp] * (1.0-exp_rep[jzp])
-					check += h.Pz[jz, jzp] * exp_rep[jzp]
+				for (jξp, ξpv) in enumerate(h.ξgrid)
+					for (jzp, zpv) in enumerate(h.zgrid)
+						prob = h.Pz[jz, jzp] * h.Pξ[jξ, jξp]
+
+						ζpv = 1.0
+						μpv = h.μ′[js, jξp, jzp, 1]
+						σpv = h.σ′[js, jξp, jzp, 1]
+						E_rep += prob * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, ζpv, jzp]) * exp_rep[jξp, jzp]
+
+						ζpv = 2.0
+						μpv = h.μ′[js, jξp, jzp, 2]
+						σpv = h.σ′[js, jξp, jzp, 2]
+						E_rep += prob * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, ξpv, ζpv, jzp] * (1.0-exp_rep[jξp, jzp])
+						check += prob
+					end
 				end
 			else
-				for (jzp, zpv) in enumerate(h.zgrid)
-					ζ_reent = 1.0
-					μpv = h.μ′[js, jzp, 1]
-					σpv = h.σ′[js, jzp, 1]
-					E_rep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_reent, jzp]) * h.θ
-					check += h.Pz[jz, jzp] * h.θ
-					ζ_cont = 2.0
-					μpv = h.μ′[js, jzp, 2]
-					σpv = h.σ′[js, jzp, 2]
-					E_rep += h.Pz[jz, jzp] * (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp] * (1.0 - h.θ)
-					E_fullrep += h.Pz[jz, jzp] * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, wpv, ζ_cont, jzp]) * (1.0-h.θ)
-					check += h.Pz[jz, jzp] * (1.0 - h.θ)
+				for (jξp, ξpv) in enumerate(h.ξgrid)
+					for (jzp, zpv) in enumerate(h.zgrid)
+						prob = h.Pz[jz, jzp] * h.Pξ[jξ, jξp]
+
+						ζ_reent = 1.0
+						μpv = h.μ′[js, jξp, jzp, 1]
+						σpv = h.σ′[js, jξp, jzp, 1]
+						E_rep += prob * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, ζ_reent, jzp]) * h.θ
+						check += prob * h.θ
+
+						ζ_cont = 2.0
+						μpv = h.μ′[js, jξp, jzp, 2]
+						σpv = h.σ′[js, jξp, jzp, 2]
+						E_rep += prob * (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, ζ_cont, jzp] * (1.0 - h.θ)
+						check += prob * (1.0 - h.θ)
+					end
 				end
 			end
 
 			isapprox(check, 1.0) || print_save("WARNING: wrong transitions in update_qᵍ!")
-			qᵍ[jb, jμ, jσ, jw, jζ, jz] = E_rep / (1.0 + h.r_star)
-			spread[jb, jμ, jσ, jw, jζ, jz] = E_fullrep / qᵍ[jb, jμ, jσ, jw, jζ, jz] - (1+h.r_star)
+			qst = E_rep / (1.0 + h.r_star)
+			qᵍ[jb, jμ, jσ, jξ, jζ, jz] = qst
+			spread[jb, jμ, jσ, jξ, jζ, jz] = 1.0 / qst - coupon / (h.r_star + h.ρ)
 		end
 		iter += 1
 		dist = sum( (qᵍ - old_q).^2 ) / sum(old_q.^2)
 	end
 
-	h.qᵍ = reshape(qᵍ, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
-	h.spread = reshape(spread, h.Nb*h.Nμ*h.Nσ*h.Nw*h.Nζ*h.Nz)
-
-	h.spread = 1.0 ./ h.qᵍ - coupon / (h.r_star + h.ρ)
+	h.qᵍ = reshape(qᵍ, h.Nb*h.Nμ*h.Nσ*h.Nξ*h.Nζ*h.Nz)
+	h.spread = reshape(spread, h.Nb*h.Nμ*h.Nσ*h.Nξ*h.Nζ*h.Nz)
 
 	if verbose
 		end_t = time()
@@ -380,7 +372,7 @@ function compute_netexports(h::Hank)
 		bv = h.bgrid[h.Jgrid[js, 1]]
 		μv = h.μgrid[h.Jgrid[js, 2]]
 		σv = h.σgrid[h.Jgrid[js, 3]]
-		wv = h.wgrid[h.Jgrid[js, 4]]
+		ξv = h.ξgrid[h.Jgrid[js, 4]]
 		jζ = h.Jgrid[js, 5]
 		jz = h.Jgrid[js, 6]
 		ζv = h.ζgrid[jζ]
@@ -389,7 +381,7 @@ function compute_netexports(h::Hank)
 		pNv = h.pN[js]
 		pC = price_index(h, pNv)
 
-		aggC = integrate_itp(h, bv, μv, σv, wv, jζ, jz, itp_ϕc)
+		aggC = integrate_itp(h, bv, μv, σv, ξv, jζ, jz, itp_ϕc)
 		aggC_T[js] = aggC  * h.ϖ * (1.0/pC)^(-h.η)
 
 		wt = h.wage[js]
@@ -449,7 +441,7 @@ function govt_bc(h::Hank, wage_bill)
 	net_iss = qᵍ_vec .* (B′ - (1.0 - h.ρ) .* B)
 
 	T_vec = coupons + g - inc_tax - net_iss
-	T_mat = reshape(T_vec, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	T_mat = reshape(T_vec, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 	return T_mat
 end
 
@@ -462,14 +454,14 @@ function _unpackstatefs(h::Hank)
 
 	taxes_mat = govt_bc(h, h.wage .* h.Ld)
 
-	profits_mat = reshape( h.output - h.wage .* h.Ld, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	profits_mat = reshape( h.output - h.wage .* h.Ld, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 
 	T_mat = taxes_mat# - profits_mat
 
-	qʰ_mat = reshape(h.qʰ, 	h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	qᵍ_mat = reshape(h.qᵍ, 	h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	wL_mat = reshape(wL, 	h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
-	pC_mat = reshape(pC, 	h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	qʰ_mat = reshape(h.qʰ, 	h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
+	qᵍ_mat = reshape(h.qᵍ, 	h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
+	wL_mat = reshape(wL, 	h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
+	pC_mat = reshape(pC, 	h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 
 	return qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, profits_mat
 end
@@ -550,8 +542,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nStates with exc supply, demand = $(round(100*exc_sup_prop,2))%, $(round(100*exc_dem_prop,2))%")
 			print_save("\nAverage, max exc supply = $(@sprintf("%0.3g",mean_excS)), $(@sprintf("%0.3g",max_excS))")
 
-			_ = update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
-			# update_grids!(h, new_wgrid=new_wgrid)
+			update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
 
 			print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(h.pngrid))), $(@sprintf("%0.3g",maximum(h.pngrid)))]")
 			print_save("\nw_grid = [$(@sprintf("%0.3g",minimum(h.w′))), $(@sprintf("%0.3g",maximum(h.w′)))]")

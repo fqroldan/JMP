@@ -6,10 +6,10 @@ mutable struct Hank
 	γ::Float64
 	ψ::Float64
 	EpsteinZin::Bool
-	γw::Float64
-	θL::Float64
-	χ::Float64
-	Ξ::Float64
+	wbar::Float64
+	# θL::Float64
+	# χ::Float64
+	# Ξ::Float64
 	# prop_transf::Bool
 
 	# Debt parameters
@@ -38,9 +38,11 @@ mutable struct Hank
 
 	vf::Array{Float64, 8}
 
-	# Exogenous states
+	# Transitions of exogenous states
 	ρϵ::Float64
 	σϵ::Float64
+	ρξ::Float64
+	σξ::Float64
 	ρz::Float64
 	σz::Float64
 
@@ -50,7 +52,7 @@ mutable struct Hank
 	Nb::Int64
 	Nμ::Int64
 	Nσ::Int64
-	Nw::Int64
+	Nξ::Int64
 	Nζ::Int64
 	Nz::Int64
 	Ns::Int64
@@ -58,6 +60,7 @@ mutable struct Hank
 
 	# Transition matrices
 	Pϵ::Matrix{Float64}
+	Pξ::Matrix{Float64}
 	Pz::Matrix{Float64}
 
 	# Ps::Matrix{Float64}
@@ -77,13 +80,12 @@ mutable struct Hank
 	ωmin::Float64
 	ωmax::Float64
 
-	ωgrid0::Vector{Float64}
 	ωgrid::Vector{Float64}
 	ϵgrid::Vector{Float64}
 	bgrid::Vector{Float64}
 	μgrid::Vector{Float64}
 	σgrid::Vector{Float64}
-	wgrid::Vector{Float64}
+	ξgrid::Vector{Float64}
 	ζgrid::Vector{Float64}
 	zgrid::Vector{Float64}
 	s::Matrix{Float64}
@@ -94,8 +96,8 @@ mutable struct Hank
 	pngrid::Vector{Float64}
 
 	# Collocation objects
-	basis::Basis
-	bs::BasisMatrix
+	# basis::Basis
+	# bs::BasisMatrix
 	# Φ::SparseMatrixCSC
 	# Emat::SparseMatrixCSC
 
@@ -103,19 +105,16 @@ mutable struct Hank
 	snodes::Array{Float64, 2}
 
 	# Forecasting rules
-	μ′::Array{Float64, 3} # μ′[js, jzp, 1] if reentry (or no default today)
-	σ′::Array{Float64, 3} # σ′[js, jzp, 2] if default today and no reentry
+	μ′::Array{Float64, 4} # μ′[js, jzp, 1] if reentry (or no default today)
+	σ′::Array{Float64, 4} # σ′[js, jzp, 2] if default today and no reentry
 	w′::Vector{Float64}
 
 	# Functions of the state
-	# A⁺::Vector{Float64}
-	# A⁻::Vector{Float64}
 	repay::Vector{Float64}
 	welfare::Vector{Float64}
 	τ::Float64
 	T::Vector{Float64}
 	issuance::Vector{Float64}
-	def_thres::Vector{Float64}
 	output::Vector{Float64}
 	profits::Vector{Float64}
 	spending::Vector{Float64}
@@ -164,7 +163,8 @@ function Path(; T::Int64 = 1)
 		:C => 23,
 		:CoYd => 24,
 		:T => 25,
-		:NX => 26
+		:NX => 26,
+		:ξ => 27
 		)
 	data = Matrix{Float64}(T, length(n))
 	return Path(data, n)

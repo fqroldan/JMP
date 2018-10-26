@@ -69,7 +69,9 @@ r_loc, tax, RRA, τ = set_params(run_number)
 
 function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ)
 	if remote || local_run
-		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent);
+		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent
+			# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
+			);
 		print_save("\nRun with r, tax, RRA, τ = $(round(r_loc, 3)), $(round(tax, 3)), $(round(RRA, 2)), $(round(τ, 2))")
 		# h = load(pwd() * "/../../hank.jld", "h")
 		try

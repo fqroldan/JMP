@@ -76,14 +76,14 @@ function get_abec(RHS::Float64, ωmin::Float64, qʰ::Float64, qᵍ::Float64, pC:
 	return ap, bp, ep, C
 end
 
-function eval_itp_vf(itp_vf_s::Arr_itp_VF, ωpv::Float64, jϵp::Int64, jzp::Int64, jj::Int64)
-	itp_obj = itp_vf_s[jzp, jj]
+function eval_itp_vf(itp_vf_s::Arr_itp_VF, ωpv::Float64, jϵp::Int64, jξp::Int64, jzp::Int64, jj::Int64)
+	itp_obj = itp_vf_s[jξp, jzp, jj]
 	v = itp_obj[ωpv, jϵp]
 	return v
 end
 
-function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz, thres, exp_rep, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
-# function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolations.GriddedInterpolation{Float64,2,Float64,Tuple{Interpolations.Gridded{Interpolations.Linear},Interpolations.NoInterp},Tuple{Array{Float64,1},Array{Int64,1}},0}}, jϵ, jz, thres, exp_rep, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
+function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jξ, jz, exp_rep, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
+# function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolations.GriddedInterpolation{Float64,2,Float64,Tuple{Interpolations.Gridded{Interpolations.Linear},Interpolations.NoInterp},Tuple{Array{Float64,1},Array{Int64,1}},0}}, jϵ, jz, exp_rep, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
 
 	ap, bp, ep, C = get_abec(RHS, h.ωmin, qʰ, qᵍ, pC, sp, θa)
 
@@ -93,67 +93,71 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz
 	check, Ev, test, ut = 0., 0., 0, 0.
 
 	if jdefault
-		for (jzp, zpv) in enumerate(h.zgrid)
-			for (jϵp, ϵpv) in enumerate(h.ϵgrid)
-				prob =  h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
+		for (jξp, ξpv) in enumerate(h.ξgrid)
+			for (jzp, zpv) in enumerate(h.zgrid)
+				for (jϵp, ϵpv) in enumerate(h.ϵgrid)
+					prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
 
-				# Reentry
-				ζpv = 1
-				Rb = h.κ + (1. - h.ρ) * qᵍp[jzp, 1]
-				# Re = profits[jzp, 1]
-				ωpv = ap + bp * Rb# + ep * Re
-				if ωpv < h.ωmin
-					Ev += prob * h.θ * 1e-10
-				else
-					ωpv = min(h.ωmax, ωpv)
-					v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 1)
-					Ev += EZ_G(h, v) * prob * h.θ
-				end
+					# Reentry
+					ζpv = 1
+					Rb = h.κ + (1. - h.ρ) * qᵍp[jξp, jzp, 1]
+					# Re = profits[jzp, 1]
+					ωpv = ap + bp * Rb# + ep * Re
+					if ωpv < h.ωmin
+						Ev += prob * h.θ * 1e-10
+					else
+						ωpv = min(h.ωmax, ωpv)
+						v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 1)
+						Ev += EZ_G(h, v) * prob * h.θ
+					end
 
-				# Continue in default
-				ζpv = 2
-				Rb = (1. - h.ρ) * qᵍp[jzp, 2]
-				# Re = profits[jzp, 2]
-				ωpv = ap + bp * Rb# + ep * Re
-				if ωpv < h.ωmin
-					Ev += prob * (1. - h.θ) * 1e-10
-				else
-					ωpv = min(h.ωmax, ωpv)
-					v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 2)
-					Ev += EZ_G(h, v) * prob * (1. - h.θ)
+					# Continue in default
+					ζpv = 2
+					Rb = (1. - h.ρ) * qᵍp[jξp, jzp, 2]
+					# Re = profits[jzp, 2]
+					ωpv = ap + bp * Rb# + ep * Re
+					if ωpv < h.ωmin
+						Ev += prob * (1. - h.θ) * 1e-10
+					else
+						ωpv = min(h.ωmax, ωpv)
+						v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 2)
+						Ev += EZ_G(h, v) * prob * (1. - h.θ)
+					end
+					check += prob
 				end
-				check += prob
 			end
 		end
 	else
-		for (jzp, zpv) in enumerate(h.zgrid)
-			for (jϵp, ϵpv) in enumerate(h.ϵgrid)
-				prob =  h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
-				check += prob
+		for (jξp, ξpv) in enumerate(h.ξgrid)
+			for (jzp, zpv) in enumerate(h.zgrid)
+				for (jϵp, ϵpv) in enumerate(h.ϵgrid)
+					prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
+					check += prob
 
-				# Repayment
-				ζpv = 1
-				Rb = h.κ + (1. - h.ρ) * qᵍp[jzp, 1]
-				# Re = profits[jzp, 1]
-				ωpv = ap + bp * Rb# + ep * Re
-				if ωpv < h.ωmin
-					Ev += prob * exp_rep[jzp] * 1e-10
-				else
-					ωpv = min(h.ωmax, ωpv)
-					v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 1)
-					Ev += EZ_G(h, v) * prob * exp_rep[jzp]
-				end
-				# Default
-				ζpv = 2
-				Rb = (1.0 - h.ρ) * (1.0 - h.ℏ) * qᵍp[jzp, 2]
-				# Re = profits[jzp, 3]
-				ωpv = ap + bp * Rb# + ep * Re
-				if ωpv < h.ωmin
-					Ev += prob * (1. - exp_rep[jzp]) * 1e-10
-				else
-					ωpv = min(h.ωmax, ωpv)
-					v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jzp, 2)
-					Ev += EZ_G(h, v) * prob * (1. - exp_rep[jzp])
+					# Repayment
+					ζpv = 1
+					Rb = h.κ + (1. - h.ρ) * qᵍp[jξp, jzp, 1]
+					# Re = profits[jzp, 1]
+					ωpv = ap + bp * Rb# + ep * Re
+					if ωpv < h.ωmin
+						Ev += prob * exp_rep[jξp, jzp] * 1e-10
+					else
+						ωpv = min(h.ωmax, ωpv)
+						v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 1)
+						Ev += EZ_G(h, v) * prob * exp_rep[jξp, jzp]
+					end
+					# Default
+					ζpv = 2
+					Rb = (1.0 - h.ρ) * (1.0 - h.ℏ) * qᵍp[jξp, jzp, 2]
+					# Re = profits[jzp, 3]
+					ωpv = ap + bp * Rb# + ep * Re
+					if ωpv < h.ωmin
+						Ev += prob * (1. - exp_rep[jξp, jzp]) * 1e-10
+					else
+						ωpv = min(h.ωmax, ωpv)
+						v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 2)
+						Ev += EZ_G(h, v) * prob * (1. - exp_rep[jξp, jzp])
+					end
 				end
 			end
 		end
@@ -191,7 +195,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jz
 	Void
 end
 
-function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
+function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
 
 
 	optim_type = "multivariate"
@@ -217,13 +221,13 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 
 	ap, bp, ep, cmax, fmax = 0., 0., 0., 0., 0.
 	if optim_type == "sequential"
-		function sub_value(h, sp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef; get_all::Bool=false)
+		function sub_value(h, sp, itp_vf_s, jϵ, jξ, jz, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef; get_all::Bool=false)
 
 			# minθ = 0.
 			# maxθ = 1.
 
 			res = Optim.optimize(
-				θ -> -value(h, sp, θ, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
+				θ -> -value(h, sp, θ, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
 				minθ, maxθ, GoldenSection(), rel_tol=h.tol_θ
 				)
 
@@ -238,12 +242,12 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 		end
 
 		res = Optim.optimize(
-				sp -> -sub_value(h, sp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
+				sp -> -sub_value(h, sp, itp_vf_s, jϵ, jξ, jz, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
 					minω, maxω, GoldenSection(), rel_tol=h.tol_θ
 				)
 		sp = res.minimizer
 		fmax = -res.minimum
-		ap, bp, ep, cmax, θa = sub_value(h, sp, itp_vf_s, jϵ, jz, thres, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef; get_all=true)
+		ap, bp, ep, cmax, θa = sub_value(h, sp, itp_vf_s, jϵ, jξ, jz, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef; get_all=true)
 	elseif optim_type == "multivariate"
 
 		guess[1] = max(min(guess[1], maxω-1e-6), minω+1e-6)
@@ -252,7 +256,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 		try
 			inner_opt = LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=100))
 			res = Optim.optimize(
-				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
+				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 				, [minω, minθ], [maxω, maxθ], guess, Fminbox(inner_opt))
 			if Optim.converged(res)
 			else
@@ -266,7 +270,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 				print_save("\n[$(minθ), $(guess[2]), $(maxθ)]")
 			end
 			res = Optim.optimize(
-				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
+				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 				, [minω, minθ], [maxω, maxθ], guess, Fminbox(NelderMead()))
 		end
 
@@ -279,7 +283,7 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jz, thres, exp_re
 		θa_grid = linspace(0,1,8)
 		for θa in θa_grid
 			res = Optim.optimize(
-				sp -> -value(h, sp, θa, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
+				sp -> -value(h, sp, θa, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
 					qʰv*h.ωmin, ωmax, GoldenSection()
 				)
 			if res.minimum < curr_min
@@ -302,73 +306,71 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 	ϕb = SharedArray{Float64}(size(h.ϕb))
 	ϕe = SharedArray{Float64}(size(h.ϕe))
 	ϕc = SharedArray{Float64}(size(h.ϕc))
-	warnc0 = SharedArray{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz)
+	warnc0 = SharedArray{Float64}(size(qᵍ_mat))
 	warnc0 *= 0.
 	@sync @parallel for js in 1:size(h.Jgrid,1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
 		jσ = h.Jgrid[js, 3]
-		jw = h.Jgrid[js, 4]
+		jξ = h.Jgrid[js, 4]
 		jζ = h.Jgrid[js, 5]
 		jz = h.Jgrid[js, 6]
 
-		qʰv = qʰ_mat[jb, jμ, jσ, jw, jζ, jz]
-		qᵍv = qᵍ_mat[jb, jμ, jσ, jw, jζ, jz]
-		wL  = wL_mat[jb, jμ, jσ, jw, jζ, jz]
-		Tv  = T_mat[jb, jμ, jσ, jw, jζ, jz]
-		pCv = pC_mat[jb, jμ, jσ, jw, jζ, jz]
-		profits = Π_mat[jb, jμ, jσ, jw, jζ, jz]
+		qʰv = qʰ_mat[jb, jμ, jσ, jξ, jζ, jz]
+		qᵍv = qᵍ_mat[jb, jμ, jσ, jξ, jζ, jz]
+		wL  = wL_mat[jb, jμ, jσ, jξ, jζ, jz]
+		Tv  = T_mat[jb, jμ, jσ, jξ, jζ, jz]
+		pCv = pC_mat[jb, jμ, jσ, jξ, jζ, jz]
+		profits = Π_mat[jb, jμ, jσ, jξ, jζ, jz]
 
 		bpv = h.issuance[js]
-		μpv = h.μ′[js,:,:]
-		σpv = h.σ′[js,:,:]
-		wpv = h.w′[js]
-		thres = h.def_thres[js]
+		μpv = h.μ′[js,:,:,:]
+		σpv = h.σ′[js,:,:,:]
 
-		rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nw, h.Nζ, h.Nz, h.Nz)
-		exp_rep = rep_mat[jb, jμ, jσ, jw, jζ, jz, :]
+		rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+		exp_rep = rep_mat[jb, jμ, jσ, jξ, jζ, jz, :, :]
 
 		if verbose
-			minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid) ? print_save("\nμ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])") : Void
-			minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid) ? print_save("\nσ out of bounds at $([jb, jμ, jσ, jw, jζ, jz])") : Void
-			bpv - minimum(h.bgrid) < -1e-4 || bpv - maximum(h.bgrid) > 1e-4 ? print_save("\nb = $(round(bpv,6)) out of bounds at $([jb, jμ, jσ, jw, jζ, jz])") : Void
-			wpv < minimum(h.wgrid) || wpv > maximum(h.wgrid) ? print_save("\nw out of bounds at $([jb, jμ, jσ, jw, jζ, jz])") : Void
+			minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid) ? print_save("\nμ out of bounds at $([jb, jμ, jσ, jξ, jζ, jz])") : Void
+			minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid) ? print_save("\nσ out of bounds at $([jb, jμ, jσ, jξ, jζ, jz])") : Void
+			bpv - minimum(h.bgrid) < -1e-4 || bpv - maximum(h.bgrid) > 1e-4 ? print_save("\nb = $(round(bpv,6)) out of bounds at $([jb, jμ, jσ, jξ, jζ, jz])") : Void
 		end
 
 
 		jdef = (h.ζgrid[jζ] != 1.0)
 
-		qᵍp = Array{Float64}(h.Nz, 2)
-		itp_vf_s = Arr_itp_VF(h.Nz, 2)
-		for (jzp, zpv) in enumerate(h.zgrid)
-			qᵍp[jzp, 1] = itp_qᵍ[bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]
-			if jdef
-				qᵍp[jzp, 2] = itp_qᵍ[bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
-			else
-				qᵍp[jzp, 2] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
-			end
-
-			vf_mat = Array{Float64}(h.Nω, h.Nϵ, 3)
-			for (jϵp, ϵpv) in enumerate(h.ϵgrid)
-				for (jωp, ωpv) in enumerate(h.ωgrid)
-					vf_mat[jωp, jϵp, 1] = itp_vf[ωpv, jϵp, bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 1, jzp]
-					if jdef
-						vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, bpv, μpv[jzp, 2], σpv[jzp, 2], wpv, 2, jzp]
-					else
-						vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jzp, 1], σpv[jzp, 1], wpv, 2, jzp]
-					end
+		qᵍp = Array{Float64}(h.Nξ, h.Nz, 2)
+		itp_vf_s = Arr_itp_VF(h.Nξ, h.Nz, 2)
+		for (jξp, ξpv) in enumerate(h.ξgrid)
+			for (jzp, zpv) in enumerate(h.zgrid)
+				qᵍp[jξp, jzp, 1] = itp_qᵍ[bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 1, jzp]
+				if jdef
+					qᵍp[jξp, jzp, 2] = itp_qᵍ[bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
+				else
+					qᵍp[jξp, jzp, 2] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
 				end
 
-				knots = (h.ωgrid, 1:h.Nϵ)
-				for jj in 1:2
-					itp_vf_s[jzp, jj] = interpolate(knots, vf_mat[:,:,jj], (Gridded(Linear()), NoInterp()))
-					# unscaled = interpolate(vf_mat[:,:,jj], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
-					# itp_vf_s[jzp, jj] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
+				vf_mat = Array{Float64}(h.Nω, h.Nϵ, 3)
+				for (jϵp, ϵpv) in enumerate(h.ϵgrid)
+					for (jωp, ωpv) in enumerate(h.ωgrid)
+						vf_mat[jωp, jϵp, 1] = itp_vf[ωpv, jϵp, bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 1, jzp]
+						if jdef
+							vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
+						else
+							vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 2, jzp]
+						end
+					end
+
+					knots = (h.ωgrid, 1:h.Nϵ)
+					for jj in 1:2
+						itp_vf_s[jξp, jzp, jj] = interpolate(knots, vf_mat[:,:,jj], (Gridded(Linear()), NoInterp()))
+						# unscaled = interpolate(vf_mat[:,:,jj], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
+						# itp_vf_s[jξp, jzp, jj] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
+					end
 				end
 			end
 		end
 
-		# @code_warntype v = eval_itp_vf(itp_vf_s, 10.3, 2, 2, 1)
 		adjustment = sum(h.λϵ.*exp.(h.ϵgrid))
 		for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
 
@@ -376,10 +378,10 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 
 			ap, bp, ep, cmax, fmax = 0., 0., 0., 0., 0.
 
-			ag, bg = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz], h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
+			ag, bg = h.ϕa[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz], h.ϕb[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
 			
 			if guess_a != zeros(1,1) && guess_b != zeros(1,1)
-				ag, bg = guess_a[jω, jϵ, jb, jμ, jσ, jw, jζ, jz], guess_b[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
+				ag, bg = guess_a[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz], guess_b[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
 			end
 
 			ωg = qʰv * ag + qᵍv * bg
@@ -397,7 +399,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 			if resolve && ωmax > qʰv * h.ωmin
 				guess = [ωg, θg]
 
-				ap, bp, ep, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
+				ap, bp, ep, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
 				if cmax < 0
 					warn("c = $cmax")
 					ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8
@@ -405,24 +407,24 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 				end
 			elseif ωmax < qʰv * h.ωmin
 				if verbose
-					# print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jw, jζ, jz]) with w*Lᵈ=$(round(wL,2)), T=$(round(Tv,2))")
-					warnc0[jb, jμ, jσ, jw, jζ, jz] = 1.
+					# print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jξ, jζ, jz]) with w*Lᵈ=$(round(wL,2)), T=$(round(Tv,2))")
+					warnc0[jb, jμ, jσ, jξ, jζ, jz] = 1.
 				end
 				ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8
 				fmax = 1e-10
 			else
-				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
-				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
-				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz]
-				fmax = value(h, ωg, θg, itp_vf_s, jϵ, jz, thres, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
+				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
+				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
+				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
+				fmax = value(h, ωg, θg, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 			end
 			!isnan(fmax) || print_save("\nWARNING: NaN in value function at (ap, bp, c) = ($(round(ap, 2)), $(round(bp, 2)), $(cmax))")
 
-			ϕa[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ap
-			ϕb[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = bp
-			ϕe[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = ep
-			ϕc[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = cmax
-			vf[jω, jϵ, jb, jμ, jσ, jw, jζ, jz] = fmax
+			ϕa[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = ap
+			ϕb[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = bp
+			ϕe[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = ep
+			ϕc[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = cmax
+			vf[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = fmax
 		end
 	end
 
@@ -434,13 +436,10 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, �
 	# Interpolate the value function
 	itp_vf = make_itp(h, h.vf; agg=false)
 	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
-	# itp_vf, itp_qᵍ = make_itps(h, h.vf, qᵍ_mat)
-	# print_save("\ninterp in $(time()-t1)")
 
 	# Compute values
 	t1 = time()
 	vf, ϕa, ϕb, ϕe, ϕc, warnc0 = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, resolve = resolve, verbose = verbose)
-	# print_save("\nopt in $(time()-t1)")
 
 	t1 = time()
 	sum(isnan.(vf)) > 0 ? print_save("\n$(sum(isnan.(vf))) NaNs found in vf") : Void
