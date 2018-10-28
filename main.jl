@@ -114,7 +114,9 @@ print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")
 
 function make_simulated_path(h::Hank)
-	path, jz_series = simul(h; simul_length=4*(1000+25), only_def_end=true)
+	path, jz_series, Ndefs = simul(h; simul_length=4*(1000+25), only_def_end=true)
+	T = size(path.data, 1)
+	print_save("\n$Ndefs defaults in $T years")
 	trim_path!(path, 4*25)
 	save(pwd() * "/../../path.jld", "path", path)
 	v_m = 0

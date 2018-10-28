@@ -58,7 +58,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	
 	if t % 10 == 0
-		print("\npN = $pN, pN^e = $(pNg), σ = $(σt) at t = $t")
+		print("\npN = $pN, pN^e = $(pNg), u = $(ceil(100*(1-Ld))) at t = $t")
 	end
 
 	def_prob = 0.
@@ -185,6 +185,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	Qω = BasisMatrix(basis, Expanded(), savings, 0).vals[1]
 	Q = row_kron(Qϵ, Qω)
 
+	ζt == 1 && ζprime != 1 ? new_def = 1 : new_def = 0
+
 	λprime = Q' * λt
 
 	M, V = unmake_logN(μprime, σprime)
@@ -197,7 +199,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		fill_path!(p,t+1, Dict(:B => Bprime, :μ => μprime, :σ => σprime, :ζ => ζprime, :ξ => ξprime, :z => zprime, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qprime, :mean => M, :var => V))
 	end
 
-	return λprime
+	return λprime, new_def
 end
 
 function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::Bool=false)
@@ -249,6 +251,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	Qϵ = kron(h.Pϵ, ones(h.Nω_fine,1))
 
 	# Simulate
+	Ndefs = 0
 	for t in 1:T
 		# Advance one step
 		phase = ""
@@ -262,14 +265,15 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 			end
 		end
 
-		λ = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ; phase = phase)
-		# print("\nt = $t")
+		λ, new_def = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ; phase = phase)
+
+		Ndefs += new_def
 	end
 
 	jz_series = jz_series[burn_in+1:end]
 
 	# Return stuff
-	return p, jz_series
+	return p, jz_series, Ndefs
 end
 
 using DataFrames, GLM
