@@ -48,7 +48,7 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	diff_W = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	diff_R = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
-	rep_prob = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+	rep_prob = zeros(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	for js in 1:size(h.Jgrid, 1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
@@ -79,6 +79,8 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 				rep_prob[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 1.0 - cdf(Normal(μ_gov, σ_gov), Wd-Wr)
 			else
 				diff_W[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
+				diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
+				rep_prob[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
 			end
 		end
 	end
@@ -97,7 +99,7 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 		repay[ind_change] = 0.
 	end
 	
-	rep_new = reshape(repay, length(repay))
+	# rep_new = reshape(repay, length(repay))
 	rep_new = reshape(rep_prob, length(rep_prob))
 
 	return rep_new
@@ -143,6 +145,10 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 		h.welfare = upd_η * W_new + (1.-upd_η) * h.welfare
 		upd_η = 0.5
 
+		if isnan.(sum(h.welfare))
+			print_save("\nWARNING: ||welf|| = NaN")
+		end
+
 		old_rep = copy(h.repay)
 
 		if nodef
@@ -150,10 +156,17 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 			dist = 0.
 		else
 			new_rep = update_govpol(h; η_rep = 0.25)
-			old_norm = exp( max(0, log(sqrt.(sum(old_rep.^2)))) )
+			old_norm = sqrt.(sum(old_rep.^2))
+			print_save("\n||rep₀|| = $(old_norm)")
+			if isapprox(old_norm, 0.0)
+				old_norm = 1.0
+			end
+			new_norm = sqrt.(sum(new_rep.^2))
+			print_save("\n||repₜ|| = $(new_norm)")
 			dist = sqrt.(sum( (new_rep - old_rep).^2 )) / old_norm
 			h.repay = 0.4*upd_η * new_rep + (1.-0.4*upd_η) * old_rep
 		end
+
 
 		tol_vfi = max(exp(0.9*log(1+tol_vfi))-1, 1e-6)
 		t_new = time()
