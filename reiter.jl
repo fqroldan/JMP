@@ -10,7 +10,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				r_star = 1.04^0.25 - 1.0,
 				tax = 0.1,
 				ωmax = 20.,
-				wbar = 1.15,
+				wbar = 1.17,
 				curv = .4,
 				income_process = "Floden-Lindé",
 				EpsteinZin = true,
@@ -18,15 +18,15 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				Nω_fine = 2500,
 				Nω = 7,
 				Nϵ = 5,
-				Nμ = 4,
-				Nσ = 4,
-				Nb = 9,
+				Nμ = 5,
+				Nσ = 5,
+				Nb = 11,
 				Nξ = 2,
-				Nz = 9,
+				Nz = 7,
 				ρz = 0.9,
 				σz = 0.025,
 				ρξ = 0.95,
-				σξ = 0.005,
+				σξ = 0.0025,
 				ℏ = 0.4,
 				Δ = 0.1,
 				θ = .125,
@@ -298,7 +298,6 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 
 			jdefault = (ζv != 1.0)
 
-			""" HERE !!!!!!!!!!!!!!!!!!!!!!!!! """
 			bpv = h.issuance[js]
 
 			E_rep, check = 0.0, 0.0
