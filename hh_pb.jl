@@ -207,6 +207,10 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jξ, jz, exp_rep,
 		minθ = 0.1
 		maxθ = max(maxθ, 0.3)
 	end
+	if maxθ > 0.9
+		maxθ = 0.9
+		minθ = min(minθ, 0.7)
+	end
 
 	ωspace = ωmax - qʰv*h.ωmin
 	minω = min(max(qʰv*h.ωmin, guess[1] - 0.2*ωspace), qʰv*h.ωmin + 0.8 * ωspace)
