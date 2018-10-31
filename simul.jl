@@ -30,7 +30,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	exp_rep = zeros(h.Nξ, h.Nz)
 	for jξp in 1:h.Nξ, jzp in 1:h.Nz
-		exp_rep[jξp, jzp] = itp_repay[Bt, μt, σt, ξt, ζt, jz, jξp, jzp]
+		exp_rep[jξp, jzp] = max(0, min(1, itp_repay[Bt, μt, σt, ξt, ζt, jz, jξp, jzp]))
 	end
 
 	# Find pN at the current state. Deduce w, L, Π, T.
@@ -327,7 +327,7 @@ end
 function find_episodes(path::Path; episode_type::String="default")
 	ζ_vec = series(path,:ζ)
 	qg_vec = series(path,:qg)
-	qg_thres = quantile(qg_vec, 0.3)
+	qg_thres = quantile(qg_vec, 0.1)
 
 	N = 0
 	t_epi = []

@@ -711,6 +711,7 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[])
 	repay_mat 	= reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	itp_repay 	= interpolate(knots, repay_mat, Gridded(Linear()))
 	rep_new 	= itp_repay[h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, h.zgrid, h.ξgrid, h.zgrid]
+	rep_new 	= max.(0, min.(1, rep_new))
 	h.repay 	= reshape(rep_new, h.Nb*h.Nμ*h.Nσ*h.Nξ*h.Nζ*h.Nz*h.Nξ*h.Nz)
 
 	h.welfare   = reinterp(h, h.welfare, agg=true)
