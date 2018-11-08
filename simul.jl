@@ -64,7 +64,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	def_prob = 0.
 	if ζt == 1
 		for (jξp, ξvp) in enumerate(h.ξgrid), (jzp, zvp) in enumerate(h.zgrid)
-			def_prob += h.Pξ[jξ, jξp] * h.Pz[jz, jzp] * (1.-exp_rep[jξp, jzp])
+			def_prob += h.Pξ[jξ, jξp] * h.Pz[jz, jzp] * (1.0-exp_rep[jξp, jzp])
 		end
 	end
 
@@ -305,6 +305,7 @@ function simul_stats(path::Path)
 	ζ_vec = series(path,:ζ)-1
 	z_vec = exp.(series(path,:z))
 	Y_vec = series(path,:Y)
+	C_vec = series(path,:C)
 	G_vec = series(path,:G)
 	π_vec = series(path,:π)
 	u_vec = 100.0 * (1.0 - series(path, :L))
@@ -313,12 +314,13 @@ function simul_stats(path::Path)
 	print("\nT = $T")
 
 	ρy, σy = get_AR1(log.(Y_vec))
+	ρc, σc = get_AR1(log.(C_vec))
 	ρs, σs = get_AR1(spr_vec)
 	m_unemp, sd_unemp = get_MV(u_vec)
-	m_debt, sd_debt = get_MV(B_vec./(4*Y_vec))
-	m_gspend, sd_gspend = get_MV(G_vec./Y_vec)
+	m_debt, sd_debt = get_MV(100*B_vec./(4*Y_vec))
+	m_gspend, sd_gspend = get_MV(100*G_vec./Y_vec)
 
-	v_m = [ρy; σy; ρs; σs; m_unemp; sd_unemp; m_debt; sd_debt; m_gspend; sd_gspend]
+	v_m = [ρy; σy; ρc; σc; ρs; σs; m_debt; sd_debt; m_unemp; sd_unemp; m_gspend; sd_gspend]
 
 	return v_m
 end
@@ -326,8 +328,10 @@ end
 
 function find_episodes(path::Path; episode_type::String="default")
 	ζ_vec = series(path,:ζ)
-	qg_vec = series(path,:qg)
-	qg_thres = quantile(qg_vec, 0.1)
+	π_vec = series(path,:π)
+	π_thres = quantile(π_vec[π_vec.>0], 0.8)
+	ψ_vec = series(path, :ψ)
+	ψ_thres = quantile(ψ_vec, 0.025)
 
 	N = 0
 	t_epi = []
@@ -338,12 +342,12 @@ function find_episodes(path::Path; episode_type::String="default")
 				push!(t_epi, jt)
 			end
 		elseif episode_type=="highspread"
-			if maximum(qg_vec[jt-5+1:jt]) <= qg_thres
+			if minimum(π_vec[jt-5+1:jt]) >= π_thres
 				N += 1
 				push!(t_epi, jt)
 			end
 		elseif episode_type=="onlyspread"
-			if maximum(qg_vec[jt-5+1:jt]) <= qg_thres && minimum(ζ_vec[jt-5+1:jt]) == 1
+			if minimum(π_vec[jt-5+1:jt]) >= π_thres && maximum(ζ_vec[jt-5+1:jt]) == 1 && ψ_vec[jt-5+1] >= ψ_thres
 				N += 1
 				push!(t_epi, jt)
 			end
@@ -352,13 +356,14 @@ function find_episodes(path::Path; episode_type::String="default")
 		end
 	end
 
+	sample = zeros(size(path.data)[2], 21, N)
+
 	if N == 0
-		throw(error("No episodes of $(episode_type) found"))
+		warn("No episodes of $(episode_type) found")
+		return sample
 	else
 		println("$N episodes found.")
 	end
-
-	sample = zeros(size(path.data)[2], 21, N)
 
 	for jepi in 1:N
 		jt = t_epi[jepi]

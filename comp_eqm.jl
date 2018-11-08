@@ -48,7 +48,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 		# Re-solve for these values of wn and pn
 		_, ϕa, ϕb, ϕe, ϕc, _ = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = false, guess_a=guess_a, guess_b=guess_b)
 
-		isapprox(sum(abs.(ϕc)), 0)? print_save("\nWARNING: ϕc(pN = $(round(pnv, 2))) ≡ 0 when extending state space"): Void
+		isapprox(sum(abs.(ϕc)), 0) ? print_save("\nWARNING: ϕc(pN = $(round(pnv, 2))) ≡ 0 when extending state space") : Void
 
 		for jz in 1:h.Nz, jζ in 1:h.Nζ, jξ in 1:h.Nξ, jσ in 1:h.Nσ, jμ in 1:h.Nμ, jb in 1:h.Nb, jϵ in 1:h.Nϵ, jω in 1:h.Nω
 			ϕa_ext[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz,jpn] = ϕa[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz]
@@ -60,7 +60,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext")
 	!isnan(sum(ϕa_ext)) || throw(error("$(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext"))
 
-	isapprox(sum(abs.(ϕc_ext)), 0)? print_save("\nWARNING: ϕc ≡ 0 when extending state space"): Void
+	isapprox(sum(abs.(ϕc_ext)), 0) ? print_save("\nWARNING: ϕc ≡ 0 when extending state space") : Void
 
 	h.ϕa_ext = ϕa_ext
 	h.ϕb_ext = ϕb_ext
@@ -136,7 +136,7 @@ end
 
 
 function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; w_slack::Bool=false, orig_vars::Bool = true, get_others::Bool = false, get_both::Bool=false)
-	typeof(pNv) == Vector{Float64}?	pN = pNv[1]: pN = pNv
+	typeof(pNv) == Vector{Float64} ? pN = pNv[1] : pN = pNv
 	if orig_vars == false
 		pN = transform_vars(pN, pNmin, pNmax)
 	end
@@ -214,8 +214,8 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	wage, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars=true, get_others=true, w_slack=true)
 
 	if wage >= h.wbar && res.minimum < 1e-6
-		pN > pNmax? exc_dem = 1: exc_dem = 0
-		pN < pNmin? exc_sup = 1: exc_sup = 0
+		pN > pNmax ? exc_dem = 1 : exc_dem = 0
+		pN < pNmin ? exc_sup = 1 : exc_sup = 0
 
 		minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars = true)
 
@@ -231,8 +231,8 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	pN = res.minimizer
 	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars = true)
 
-	pN > pNmax? exc_dem = 1: exc_dem = 0
-	pN < pNmin? exc_sup = 1: exc_sup = 0
+	pN > pNmax ? exc_dem = 1 : exc_dem = 0
+	pN < pNmin ? exc_sup = 1 : exc_sup = 0
 	# if res.minimum > 1e-6
 	# 	exc_dem, exc_sup = 1, 1
 	# end
@@ -442,7 +442,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 			qmin, qmax, GoldenSection()
 			)
 		q[jξp, jzp, 1] = res.minimizer
-		res.minimum > 1e-4? alarm_mat[jξp, jzp, 1] = 1: alarm_mat[jξp, jzp, 1] = 0
+		res.minimum > 1e-4 ? alarm_mat[jξp, jzp, 1] = 1 : alarm_mat[jξp, jzp, 1] = 0
 
 		μ[jξp, jzp, 1], σ[jξp, jzp, 1] = find_q(h, q[jξp, jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 
@@ -455,7 +455,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 				qmin, qmax, GoldenSection()
 				)
 			q[jξp, jzp, 2] = res.minimizer
-			res.minimum > 1e-4? alarm_mat[jξp, jzp, 2] = 1: alarm_mat[jξp, jzp, 2] = 0
+			res.minimum > 1e-4 ? alarm_mat[jξp, jzp, 2] = 1 : alarm_mat[jξp, jzp, 2] = 0
 
 			μ[jξp, jzp, 2], σ[jξp, jzp, 2] = find_q(h, q[jξp, jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 		else
@@ -467,7 +467,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 				qmin, qmax, GoldenSection()
 				)
 			q[jξp, jzp, 2] = res.minimizer
-			res.minimum > 1e-4? alarm_mat[jξp, jzp, 2] = 1: alarm_mat[jξp, jzp, 2] = 0
+			res.minimum > 1e-4 ? alarm_mat[jξp, jzp, 2] = 1 : alarm_mat[jξp, jzp, 2] = 0
 
 			μ[jξp, jzp, 2], σ[jξp, jzp, 2] = find_q(h, q[jξp, jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
 		end
@@ -625,12 +625,12 @@ function update_expectations!(h::Hank, upd_η::Float64)
 		Xmin = minimum(xgrid)
 
 		# Expand grids if x′ goes beyond the bounds
-		quantile(x′[:], 0.85) > maximum(xgrid)? Xmax = maximum(xgrid) + 0.05*xdist: Void
-		quantile(x′[:], 0.15) < minimum(xgrid)? Xmin = minimum(xgrid) - 0.05*xdist: Void
+		quantile(x′[:], 0.85) > maximum(xgrid) ? Xmax = maximum(xgrid) + 0.05*xdist : Void
+		quantile(x′[:], 0.15) < minimum(xgrid) ? Xmin = minimum(xgrid) - 0.05*xdist : Void
 
 		# Retract grids if x′ doesn't reach the bounds
-		maximum(x′) < maximum(xgrid)? Xmax = maximum(xgrid) - 0.01*xdist: Void
-		minimum(x′) > minimum(xgrid)? Xmin = minimum(xgrid) + 0.01*xdist: Void
+		maximum(x′) < maximum(xgrid) ? Xmax = maximum(xgrid) - 0.01*xdist : Void
+		minimum(x′) > minimum(xgrid) ? Xmin = minimum(xgrid) + 0.01*xdist : Void
 
 		Xmax = min(Xmax, ub)
 		Xmin = max(Xmin, lb)

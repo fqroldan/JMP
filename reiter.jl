@@ -10,7 +10,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				r_star = 1.04^0.25 - 1.0,
 				tax = 0.1,
 				ωmax = 20.,
-				wbar = 1.17,
+				wbar = 1.175,
 				curv = .4,
 				income_process = "Floden-Lindé",
 				EpsteinZin = true,
@@ -20,7 +20,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				Nϵ = 5,
 				Nμ = 5,
 				Nσ = 5,
-				Nb = 11,
+				Nb = 9,
 				Nξ = 2,
 				Nz = 7,
 				ρz = 0.9,
@@ -107,7 +107,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	# ϖ = 0.7 * ϖ	
 
 	# Grids for endogenous aggregate states
-	Bmax  = 4.0
+	Bmax  = 5.0
 	Bbar  = Bmax * 0.5
 	bgrid = linspace(0.0, Bmax, Nb)
 	μgrid = linspace(-2.5, 0.75, Nμ)
@@ -291,7 +291,6 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 			jz = h.Jgrid[js, 6]
 
 			ξv = h.ξgrid[jξ]
-			coupon = h.κ * (1.0 - ξv)
 			ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
 
 			exp_rep = rep_mat[jb, jμ, jσ, jξ, jζ, jz, :, :]
@@ -303,6 +302,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 			E_rep, check = 0.0, 0.0
 			if jdefault == false
 				for (jξp, ξpv) in enumerate(h.ξgrid)
+					coupon = h.κ * (1.0 - ξpv)
 					for (jzp, zpv) in enumerate(h.zgrid)
 						prob = h.Pz[jz, jzp] * h.Pξ[jξ, jξp]
 
@@ -320,6 +320,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 				end
 			else
 				for (jξp, ξpv) in enumerate(h.ξgrid)
+					coupon = h.κ * (1.0 - ξpv)
 					for (jzp, zpv) in enumerate(h.zgrid)
 						prob = h.Pz[jz, jzp] * h.Pξ[jξ, jξp]
 
@@ -341,6 +342,8 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 			isapprox(check, 1.0) || print_save("WARNING: wrong transitions in update_qᵍ!")
 			qst = E_rep / (1.0 + h.r_star)
 			qᵍ[jb, jμ, jσ, jξ, jζ, jz] = qst
+			
+			coupon = h.κ * (1.0 - ξv)
 			spread[jb, jμ, jσ, jξ, jζ, jz] = 1.0 / qst - coupon / (h.r_star + h.ρ)
 		end
 		iter += 1
@@ -408,7 +411,7 @@ function update_fiscalrules!(h::Hank)
 
 	coef_B = [ 1.0786829981  0.3342813521  0.0001223178 -0.0102040316  0.0001494438  0.0461321365 -0.0014158229 ]
 	g = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 ] * coef_g' / 100
-	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 ] * coef_B' / 100
+	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2*0.0 NX NX2 ] * coef_B' / 100
 
 	h.spending = max.(min.(vec(g), 0.35), 0.) .* (1 * h.output)
 	h.issuance = min.(0.35,max.(0., vec(net_iss))) .* (4 * h.output) + (1.0-h.ρ)*h.bgrid[h.Jgrid[:, 1]]

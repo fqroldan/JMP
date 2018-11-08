@@ -13,7 +13,7 @@ col = [	"#1f77b4",  # muted blue
 		]
 
 function style_contour(p, n=2; slides::Bool=false)
-	slides? height = 600: height = 500
+	slides? height = 600: height = 450
 	slides? width = 1000: width = 900
 	slides? font = "Fira Sans Light": font = "STIX Two Text"
 	slides? fontsize = 16: fontsize = 16
@@ -495,7 +495,7 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, Ts::Bool=false, Bs::Bool
 		elseif Ws
 			p_vec[js] = plot([
 				scatter(;x=h.zgrid, y=Yr, marker_color=col[1], showlegend=false, line_width = 2),
-				scatter(;x=h.zgrid, y=exp_rep, marker_color=col[2], showlegend=false, line_dash="dash", line_width = 2),
+				scatter(;x=h.zgrid, y=exp_rep, marker_color=col[2], showlegend=false, line_dash="dot", line_width = 2, mode ="lines"),
 				scatter(;x=h.zgrid, y=Yd, marker_color=col[4], showlegend=false, line_dash="dashdot", line_width = 2),
 				], Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),2))", titlefont_size=32)
 				)
@@ -1415,7 +1415,7 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 	pψ = plot(scatter(; x=times, y=100*ψ_vec, marker_color=col[1],  showlegend=false), Layout(; title="Fraction domestic", xaxis=attr(title="𝑡"), yaxis_title="% of total"));
 	pA = plot(scatter(; x=times, y=A_vec, marker_color=col[1],  showlegend=false), Layout(; title="Domestic risk-free debt", xaxis_title="𝑡"));
 	pBf= plot(scatter(; x=times, y=100*Bf_vec./Y_vec, marker_color=col[1], showlegend=false), Layout(; title="Foreign debt", xaxis_title="𝑡", yaxis_title="% of GDP"));
-	pW = plot([ scatter(;x=times, y=Wr_vec, marker_color=col[1], showlegend=false),
+	pW = plot([ scatter(;x=times, y=Wr_vec + 0.0075, marker_color=col[1], showlegend=false),
 				scatter(;x=times, y=Wd_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")], Layout(;title="Welfare", xaxis_title="𝑡"));
 	pBh = plot(scatter(; x=times, y=Bh_vec, marker_color=col[1], showlegend=false), Layout(;title="Domestic debt", xaxis_title="𝑡"))
 	pqᵍ = plot(scatter(; x=times, y=qᵍ_vec, marker_color=col[1], showlegend=false), Layout(;title="Price of debt", xaxis_title="𝑡"))
@@ -1536,7 +1536,7 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	meanY = mean(rel_sample_stats[p.n[:Y], 1, 4])
 	pYs = plot_sample(:Y, rel_sample_stats, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
 
-	p = [pz pY pCl pT; pB pψ pw pu; pμ pσ pP pG]
+	p = [pz pY pCl pT; pB pψ pq pu; pμ pσ pP pG]
 	# p = [pz pY pCl; pT pB pG; pψ pw pu; pμ pσ pP]
 	slides? font = "Fira Sans Light": font = "STIX Two Text"
 	p.plot.layout["font_family"] = font
