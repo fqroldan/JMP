@@ -20,8 +20,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	abs(zt - h.zgrid[jz]) < 1e-8 || throw(error("something wrong with the simulator"))
 
 	
-	if t % 10 == 0
-		print("\n$([Bt, μt, σt, ξt, ζt, zt])")
+	if t % 100 == 0
+		print_save("\n$([Bt, μt, σt, ξt, ζt, zt])")
 	end
 
 	Bprime 	= itp_B′[Bt, μt, σt, ξt, ζt, jz]
@@ -57,8 +57,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	lumpsumT = coupons + G - h.τ*wt*Ld - qg*(Bprime - (1.0 - h.ρ) * Bt)
 
 	
-	if t % 10 == 0
-		print("\npN = $pN, pN^e = $(pNg), u = $(ceil(100*(1-Ld))) at t = $t")
+	if t % 100 == 0
+		print_save("\npN = $pN, pN^e = $(pNg), u = $(ceil(100*(1-Ld))) at t = $t")
 	end
 
 	def_prob = 0.
