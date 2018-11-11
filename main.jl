@@ -48,10 +48,10 @@ print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(no
 print_save("\nRun number: $run_number")
 
 # Set options
-local_run = true
-update_start = false
-nodef     = false
-rep_agent = false
+local_run 	 = true
+update_start = true
+nodef     	 = false
+rep_agent 	 = false
 
 # Initialize type
 function set_params(run_number, xcenter, xdist)
@@ -73,15 +73,17 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=10)
 
 	k = 0
 	curr_min = 1e10
-	best_run = 1
+	best_run = 0
 	for jj in 1:K
 		try
-			v_m = load(pwd() * "/../../../v_m$(K).jld", "v_m")
+			# println("$jj")
+			v_m = load(pwd() * "/../../../v_m$(jj).jld", "v_m")
 
 			gGMM = (v_m - targets)' * W * (v_m-targets)
+			# println("g = $gGMM")
 			if gGMM < curr_min
-				gGMM = curr_min
-				jj = best_run
+				curr_min = gGMM
+				best_run = jj
 			end
 			k += 1
 		end
@@ -89,7 +91,11 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=10)
 
 	print_save("\nBest run from $k recovered trials = $best_run")
 	
-	if best_run != 1
+	if best_run == 0
+		print_save("\nNo guesses available, keeping original parameters")
+		new_dist = old_dist
+		new_center = old_center
+	elseif best_run == 1
 		print_save("\nShrinking the cube")
 		new_dist = old_dist * 0.9
 		new_center = old_center
@@ -99,7 +105,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=10)
 		for j in 1:best_run
 			x = next!(s, old_center-old_dist, old_center+old_dist)
 		end
-		η = 0.25
+		η = 0.5
 		new_center = x * η + old_center * (1.0 - η)
 		new_dist = old_dist
 	end
@@ -110,7 +116,7 @@ end
 if update_start
 	targets = vec([9.658051e-01 1.675927e-04 9.617250e-01 2.767592e-04 9.665649e-01 1.025235e-01 6.457639e+01 2.348323e+01 1.594722e+01 6.087322e+00 1.844722e+01 1.429860e+00])
 
-	W = zeros(length(v_m),length(v_m))
+	W = zeros(length(targets),length(targets))
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
 
 	params_center, xdist = find_new_cube(targets, W)
@@ -196,8 +202,10 @@ function make_simulated_path(h::Hank, run_number)
 end
 
 # Run
-save(pwd() * "/../../../params_center.jld", "params_center", params_center)
-save(pwd() * "/../../../xdist.jld", "xdist", xdist)
+if run_number == 1
+	save(pwd() * "/../../../params_center.jld", "params_center", params_center)
+	save(pwd() * "/../../../xdist.jld", "xdist", xdist)
+end
 if remote || local_run
 	# vfi!(h, verbose = true, remote = remote)
 	mpe_iter!(h; remote = remote, nodef = nodef, rep_agent = rep_agent, run_number=run_number)
