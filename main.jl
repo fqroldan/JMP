@@ -42,7 +42,7 @@ if location == "local"
 	using Rsvg
 end
 
-print_save("\nAggregate Demand around Debt Crises\n")
+print_save("\nAggregate Demand and Sovereign Debt Crises\n")
 
 print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(),"HH:MM"))
 print_save("\nRun number: $run_number")
@@ -76,11 +76,10 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=10)
 	best_run = 0
 	for jj in 1:K
 		try
-			# println("$jj")
 			v_m = load(pwd() * "/../../../v_m$(jj).jld", "v_m")
 
 			gGMM = (v_m - targets)' * W * (v_m-targets)
-			# println("g = $gGMM")
+			print_save("\ng = $gGMM on job $(jj)")
 			if gGMM < curr_min
 				curr_min = gGMM
 				best_run = jj
@@ -88,33 +87,36 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=10)
 			k += 1
 		end
 	end
-
-	print_save("\nBest run from $k recovered trials = $best_run")
 	
 	if best_run == 0
 		print_save("\nNo guesses available, keeping original parameters")
 		new_dist = old_dist
 		new_center = old_center
-	elseif best_run == 1
-		print_save("\nShrinking the cube")
-		new_dist = old_dist * 0.9
-		new_center = old_center
 	else
-		print_save("\nComputing new starting point")
-		s = SobolSeq(length(old_center))
-		for j in 1:best_run
-			x = next!(s, old_center-old_dist, old_center+old_dist)
+		print_save("\nBest run from $k recovered trials = $best_run")
+		if best_run == 1
+			print_save(". Shrinking the cube.")
+			new_dist = old_dist * 0.9
+			new_center = old_center
+		else
+			print_save(". Computing new starting point.")
+			s = SobolSeq(length(old_center))
+			for j in 1:best_run
+				x = next!(s, old_center-old_dist, old_center+old_dist)
+			end
+			η = 0.5
+			new_center = x * η + old_center * (1.0 - η)
+			new_dist = old_dist
 		end
-		η = 0.5
-		new_center = x * η + old_center * (1.0 - η)
-		new_dist = old_dist
 	end
+
+	new_center += 0.05 * new_dist .* rand(size(new_center))
 
 	return new_center, new_dist
 end
 
 if update_start
-	targets = vec([9.658051e-01 1.675927e-04 9.617250e-01 2.767592e-04 9.665649e-01 1.025235e-01 6.457639e+01 2.348323e+01 1.594722e+01 6.087322e+00 1.844722e+01 1.429860e+00])
+	targets = vec([9.658051e-01 1.675927e-04 9.617250e-01 2.767592e-04 9.665649e-01 1.025235e-01 6.457639e+01 2.348323e+01 1.594722e+01 6.087322e+00 60 1.429860e+00])
 
 	W = zeros(length(targets),length(targets))
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
@@ -180,21 +182,25 @@ function make_simulated_path(h::Hank, run_number)
 	v_m = 0
 	try
 		v_m = simul_stats(path)
-		targets = vec([9.658051e-01 1.675927e-04 9.617250e-01 2.767592e-04 9.665649e-01 1.025235e-01 6.457639e+01 2.348323e+01 1.594722e+01 6.087322e+00 1.844722e+01 1.429860e+00])
-		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "mean G/Y"; "std G/Y" ]
+		targets = vec([9.658051e-01 1.675927e-04 9.617250e-01 2.767592e-04 9.665649e-01 1.025235e-01 6.457639e+01 2.348323e+01 1.594722e+01 6.087322e+00 60 1.429860e+00])
+		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "mean Dom Holdings"; "std G/Y" ]
 
 		W = zeros(length(v_m),length(v_m))
 		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
+		W[2,2] *= 10
+		W[4,4] *= 10
 
 		print_save("\nObjective function = $((v_m - targets)'*W*(v_m-targets))")
 		res = [targetnames v_m targets (targets-v_m)./targets]
 		for jj in 1:size(res,1)
 		    print_save("\n")
-		    print_save(res[jj,:])
+		    for ii in 1:size(res,2)
+		    	print_save("$(res[jj,ii])")
+		    	print("     ")
+		    end
 		end
 	catch
 		print_save("\nWARNING: Found problems computing simulation statistics")
-		v_m = 0
 	end
 	save(pwd() * "/../../../v_m$(run_number).jld", "v_m", v_m)
 	write(pwd()*"/stats.txt", "$(v_m)")
