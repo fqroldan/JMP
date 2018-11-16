@@ -105,8 +105,8 @@ mutable struct Hank
 	snodes::Array{Float64, 2}
 
 	# Forecasting rules
-	μ′::Array{Float64, 4} # μ′[js, jzp, 1] if reentry (or no default today)
-	σ′::Array{Float64, 4} # σ′[js, jzp, 2] if default today and no reentry
+	μ′::Array{Float64, 4}
+	σ′::Array{Float64, 4}
 	w′::Vector{Float64}
 
 	# Functions of the state
