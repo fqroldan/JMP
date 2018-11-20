@@ -105,7 +105,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=25)
 			for j in 1:best_run
 				x = next!(s, old_center-old_dist, old_center+old_dist)
 			end
-			η = 0.5
+			η = 1.0
 			new_center = x * η + old_center * (1.0 - η)
 			new_dist = old_dist
 		end
