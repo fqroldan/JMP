@@ -63,9 +63,9 @@ function set_params(run_number, xcenter, xdist)
 	end
 	return x
 end
-#				 r_loc,   tax, RRA,    τ,  ρz,    σz,   ρξ,     σξ, w_bar
-params_center = [0.055; 0.025; 7.5; 0.15; 0.9; 0.025; 0.95; 0.0025; 1.175]
-xdist = 		[0.015; 0.01; 2.5; 0.05; 0.01; 0.0025; 0.01; 0.001; 0.025]
+#				 r_loc,   tax, RRA,    τ,  ρz,      σz,   ρξ,     σξ, w_bar
+params_center = [0.055; 0.025; 7.5; 0.15; 0.9;   0.025; 0.95; 0.0025; 1.175]
+xdist = 		[0.015; 0.01;  2.5; 0.05; 0.01; 0.0025; 0.01;  0.001; 0.025]
 
 function find_new_cube(targets::Vector, W::Matrix; K::Int64=25)
 	old_center = load(pwd() * "/../../../params_center.jld", "params_center")
@@ -133,7 +133,7 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ
 			# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
 			);
-		print_save("\nRun with r, tax, RRA, τ = $(round(r_loc, 3)), $(round(tax, 3)), $(round(RRA, 2)), $(round(τ, 2))")
+		print_save("\nRun with r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ = $(round(r_loc,3)), $(round(tax,3)), $(round(RRA,3)), $(round(τ,3)), $(round(ρz,3)), $(round(σz,3)), $(round(ρξ,3)), $(round(σξ,3))")
 		# h = load(pwd() * "/../../hank.jld", "h")
 		try
 			h2 = load(pwd() * "/../../hank.jld", "h")
@@ -158,7 +158,7 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 				h.wage = h2.wage
 				h.Ld = h2.Ld
 				h.repay = h2.repay
-				# h.welfare = h2.welfare
+				h.welfare = h2.welfare
 				print_save(" ✓")
 			end
 		catch
@@ -190,6 +190,9 @@ function make_simulated_path(h::Hank, run_number)
 
 		W = zeros(length(v_m),length(v_m))
 		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
+		if v_m[end-1] > targets[end-1]
+			W[end-1,end-1] += 0.5
+		end
 		W[2,2] *= 10
 		W[4,4] *= 10
 
