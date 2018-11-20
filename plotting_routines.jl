@@ -509,6 +509,9 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, Ts::Bool=false, Bs::Bool
 	end
 
 	p_paper = [p_vec[1] p_vec[2] p_vec[3]; p_vec[4] p_vec[5] p_vec[6]]
+	if Ws
+		p_paper = [p_vec[1] p_vec[2] p_vec[3]]
+	end
 	p_paper.plot.layout["font_family"] = "STIX Two Text"
 	p_slides = [p_vec[1] p_vec[3]; p_vec[4] p_vec[6]]
 	p_slides = [p_vec[1] p_vec[2] p_vec[3]; p_vec[4] p_vec[5] p_vec[6]]
