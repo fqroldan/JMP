@@ -67,7 +67,7 @@ end
 params_center = [0.055; 0.025; 7.5; 0.15; 0.9; 0.025; 0.95; 0.0025; 1.175]
 xdist = 		[0.015; 0.01; 2.5; 0.05; 0.01; 0.0025; 0.01; 0.001; 0.025]
 
-function find_new_cube(targets::Vector, W::Matrix; K::Int64=10)
+function find_new_cube(targets::Vector, W::Matrix; K::Int64=25)
 	old_center = load(pwd() * "/../../../params_center.jld", "params_center")
 	old_dist = load(pwd() * "/../../../xdist.jld", "xdist")
 
@@ -101,6 +101,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=10)
 		else
 			print_save(". Computing new starting point.")
 			s = SobolSeq(length(old_center))
+			x = zeros(size(old_center))
 			for j in 1:best_run
 				x = next!(s, old_center-old_dist, old_center+old_dist)
 			end
@@ -116,7 +117,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=10)
 end
 
 if update_start
-	targets = vec([9.658051e-01 1.675927e-04 9.617250e-01 2.767592e-04 9.665649e-01 1.025235e-01 6.457639e+01 2.348323e+01 1.594722e+01 6.087322e+00 60 1.429860e+00])
+	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167 60  1.42985986])
 
 	W = zeros(length(targets),length(targets))
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
@@ -140,6 +141,8 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 			print_save("\nFound JLD file")
 			if h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
 				print_save(": loading previous results")
+				h2.μgrid = h.μgrid
+				h2.σgrid = h.σgrid
 				update_grids!(h2, new_μgrid = h.μgrid, new_σgrid = h.σgrid)
 				h.ϕa = h2.ϕa
 				h.ϕb = h2.ϕb
@@ -154,7 +157,7 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 				h.output = h2.output
 				h.wage = h2.wage
 				h.Ld = h2.Ld
-				# h.repay = h2.repay
+				h.repay = h2.repay
 				# h.welfare = h2.welfare
 				print_save(" ✓")
 			end
@@ -182,7 +185,7 @@ function make_simulated_path(h::Hank, run_number)
 	v_m = 0
 	try
 		v_m = simul_stats(path)
-		targets = vec([9.658051e-01 1.675927e-04 9.617250e-01 2.767592e-04 9.665649e-01 1.025235e-01 6.457639e+01 2.348323e+01 1.594722e+01 6.087322e+00 60 1.429860e+00])
+		targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167 60  1.42985986])
 		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "mean Dom Holdings"; "std G/Y" ]
 
 		W = zeros(length(v_m),length(v_m))
@@ -190,13 +193,13 @@ function make_simulated_path(h::Hank, run_number)
 		W[2,2] *= 10
 		W[4,4] *= 10
 
-		print_save("\nObjective function = $((v_m - targets)'*W*(v_m-targets))")
+		print_save("\nObjective function = $(@sprintf("%0.3g",(v_m - targets)'*W*(v_m-targets)))")
 		res = [targetnames v_m targets (targets-v_m)./targets]
 		for jj in 1:size(res,1)
 		    print_save("\n")
 		    for ii in 1:size(res,2)
-		    	print_save("$(res[jj,ii])")
-		    	print("     ")
+		    	print_save("$(@sprintf("%0.3g",h.res[jj,ii]))")
+		    	print_save("     ")
 		    end
 		end
 	catch
