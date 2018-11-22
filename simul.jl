@@ -314,6 +314,9 @@ function simul_stats(path::Path)
 
 	print("\nT = $T")
 
+	m_vec, sd_vec = unmake_logN(μ_vec, σ_vec)
+	mean_wealth = 100*mean(m_vec./(4*Y_vec))
+
 	ρy, σy = get_AR1(log.(Y_vec))
 	ρc, σc = get_AR1(log.(C_vec))
 	ρs, σs = get_AR1(spr_vec)
@@ -323,7 +326,7 @@ function simul_stats(path::Path)
 	ψ_mean = 100 * mean(ψ_vec)
 	spr_mean = mean(spr_vec)
 
-	v_m = [ρy; σy; ρc; σc; ρs; σs; m_debt; sd_debt; m_unemp; sd_unemp; ψ_mean; sd_gspend]
+	v_m = [ρy; σy; ρc; σc; ρs; σs; m_debt; sd_debt; m_unemp; sd_unemp; ψ_mean; mean_wealth]
 
 	return v_m
 end
