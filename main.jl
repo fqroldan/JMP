@@ -117,7 +117,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=25)
 end
 
 if update_start
-	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167 60  100])
+	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  0.580225545013262  94.479167])
 
 	W = zeros(length(targets),length(targets))
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
@@ -185,7 +185,7 @@ function make_simulated_path(h::Hank, run_number)
 	v_m = 0
 	try
 		v_m = simul_stats(path)
-		targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167 60  100])
+		targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  0.580225545013262  94.479167])
 		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "mean Dom Holdings"; "mean wealth/Y" ]
 
 		W = zeros(length(v_m),length(v_m))
