@@ -90,8 +90,8 @@ function Hank(;	β = (1.0/1.05)^0.25,
 
 	λϵ = stationary_distributions(ϵ_chain)[1]
 
-	α_T = 0.6
-	α_N = 0.6
+	α_T = 0.67
+	α_N = 0.67
 
 	ϑ = 0.88 # Straight from Anzoategui
 
