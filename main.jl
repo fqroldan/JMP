@@ -204,8 +204,8 @@ function make_simulated_path(h::Hank, run_number)
 		res = [targetnames v_m targets (targets-v_m)./targets]
 		for jj in 1:size(res,1)
 		    print_save("\n")
-		    for ii in 1:size(res,2)
-		    	print_save("$ii")
+		    print_save(res[jj,1])
+		    for ii in 2:size(res,2)
 		    	print_save("$(@sprintf("%0.3g",res[jj,ii]))")
 		    	print_save("     ")
 		    end
