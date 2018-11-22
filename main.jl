@@ -197,6 +197,10 @@ function make_simulated_path(h::Hank, run_number)
 		W[4,4] *= 10
 
 		print_save("\nObjective function = $(@sprintf("%0.3g",(v_m - targets)'*W*(v_m-targets)))")
+		print_save("\n")
+		for jj in 1:length(targets)
+			print_save("$(@sprintf("%0.3g",v_m[jj]))")
+		end
 		res = [targetnames v_m targets (targets-v_m)./targets]
 		for jj in 1:size(res,1)
 		    print_save("\n")
