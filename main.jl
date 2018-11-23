@@ -63,7 +63,7 @@ function set_params(run_number, xcenter, xdist)
 	end
 	return x
 end
-#				 r_loc,   tax, RRA,    τ,  ρz,      σz,   ρξ,     σξ, w_bar
+#				 r_loc,   tax, RRA,    τ,  ρz,      σz,   ρξ,     σξ, wbar
 params_center = [0.055; 0.025; 7.5; 0.15; 0.9;   0.025; 0.95; 0.0025; 1.175]
 xdist = 		[0.015; 0.01;  2.5; 0.05; 0.01; 0.0025; 0.01;  0.001; 0.025]
 
@@ -117,23 +117,25 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=25)
 end
 
 if update_start
-	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  0.580225545013262  94.479167])
+	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  58.0225545013262  94.479167])
 
 	W = zeros(length(targets),length(targets))
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
+	W[2,2] *= 10
+	W[4,4] *= 10
 
 	params_center, xdist = find_new_cube(targets, W)
 end
 
 params = set_params(run_number, params_center, xdist)
-r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ = params
+r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
 
-function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ)
+function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar)
 	if remote || local_run
-		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ
+		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
 			# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
 			);
-		print_save("\nRun with r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ = $(round(r_loc,3)), $(round(tax,3)), $(round(RRA,3)), $(round(τ,3)), $(round(ρz,3)), $(round(σz,3)), $(round(ρξ,3)), $(round(σξ,3))")
+		print_save("\nRun with r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = $(round(r_loc,3)), $(round(tax,3)), $(round(RRA,3)), $(round(τ,3)), $(round(ρz,3)), $(round(σz,3)), $(round(ρξ,3)), $(round(σξ,3)), $(round(wbar,3))")
 		# h = load(pwd() * "/../../hank.jld", "h")
 		try
 			h2 = load(pwd() * "/../../hank.jld", "h")
@@ -170,44 +172,41 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 	end
 	return h
 end
-h = make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ);
+h = make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar);
 
 print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")
 
 function make_simulated_path(h::Hank, run_number)
-	path, jz_series, Ndefs = simul(h; simul_length=4*(1000+25), only_def_end=true)
-	T = size(path.data, 1)
-	print_save("\n$Ndefs defaults in $T years")
+	path, jz_series, Ndefs = simul(h; simul_length=4*(2000+25), only_def_end=true)
+	Tyears = floor(Int64,size(path.data, 1)*0.25)
+	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(floor(100*Ndefs/Tyears))%")
 	trim_path!(path, 4*25)
 	save(pwd() * "/../../path.jld", "path", path)
 	v_m = 0
 	try
 		v_m = simul_stats(path)
-		targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  0.580225545013262  94.479167])
+		targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  58.0225545013262  94.479167])
 		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "mean Dom Holdings"; "mean wealth/Y" ]
 
 		W = zeros(length(v_m),length(v_m))
 		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
-		if v_m[end-1] > targets[end-1]
-			W[end-1,end-1] *= 0.5
-		end
 		W[2,2] *= 10
 		W[4,4] *= 10
 
 		print_save("\nObjective function = $(@sprintf("%0.3g",(v_m - targets)'*W*(v_m-targets)))")
 		print_save("\n")
 		for jj in 1:length(targets)
-			print_save("$(@sprintf("%0.3g",v_m[jj]))")
+			print_save("$(@sprintf("%0.3g",v_m[jj]))     ")
 		end
 		res = [targetnames v_m targets (targets-v_m)./targets]
 		for jj in 1:size(res,1)
 		    print_save("\n")
 		    print_save(res[jj,1])
 		    for ii in 2:size(res,2)
-		    	print_save("$(@sprintf("%0.3g",res[jj,ii]))")
 		    	print_save("     ")
+		    	print_save("$(@sprintf("%0.3g",res[jj,ii]))")
 		    end
 		end
 	catch
