@@ -135,7 +135,7 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
 			# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
 			);
-		print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,3)), $(round(RRA,3)), $(round(τ,3)), $(round(wbar,3))"), $(round(ρz,3)), $(round(σz,3)), $(round(tax,3)), $(round(ρξ,3)), $(round(σξ,3))
+		print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,3)), $(round(RRA,3)), $(round(τ,3)), $(round(wbar,3)), $(round(ρz,3)), $(round(σz,3)), $(round(tax,3)), $(round(ρξ,3)), $(round(σξ,3))")
 		# h = load(pwd() * "/../../hank.jld", "h")
 		try
 			h2 = load(pwd() * "/../../hank.jld", "h")
