@@ -185,6 +185,9 @@ function make_simulated_path(h::Hank, run_number)
 	trim_path!(path, 4*25)
 	save(pwd() * "/../../path.jld", "path", path)
 	v_m = 0
+
+	params = [(1/h.β)^4-1; h.tax; h.γ; h.τ; h.ρz; h.σz; h.ρξ; h.σξ; h.wbar]
+
 	try
 		v_m = simul_stats(path)
 		targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
@@ -199,6 +202,10 @@ function make_simulated_path(h::Hank, run_number)
 		print_save("\n")
 		for jj in 1:length(targets)
 			print_save("$(@sprintf("%0.3g",v_m[jj]))  ")
+		end
+		print_save("\nParams: ")
+		for jj in 1:length(params)
+			print_save("$(@sprintf("%0.3g",params[jj]))  ")
 		end
 		res = [targetnames v_m targets (targets-v_m)./targets]
 		for jj in 1:size(res,1)
