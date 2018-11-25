@@ -117,7 +117,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=25)
 end
 
 if update_start
-	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  58.0225545013262  94.479167])
+	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
 
 	W = zeros(length(targets),length(targets))
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
@@ -135,7 +135,7 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
 			# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
 			);
-		print_save("\nRun with r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = $(round(r_loc,3)), $(round(tax,3)), $(round(RRA,3)), $(round(τ,3)), $(round(ρz,3)), $(round(σz,3)), $(round(ρξ,3)), $(round(σξ,3)), $(round(wbar,3))")
+		print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,3)), $(round(RRA,3)), $(round(τ,3)), $(round(wbar,3))"), $(round(ρz,3)), $(round(σz,3)), $(round(tax,3)), $(round(ρξ,3)), $(round(σξ,3))
 		# h = load(pwd() * "/../../hank.jld", "h")
 		try
 			h2 = load(pwd() * "/../../hank.jld", "h")
@@ -187,8 +187,8 @@ function make_simulated_path(h::Hank, run_number)
 	v_m = 0
 	try
 		v_m = simul_stats(path)
-		targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  58.0225545013262  94.479167])
-		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "mean Dom Holdings"; "mean wealth/Y" ]
+		targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
+		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "median Dom Holdings"; "mean wealth/Y" ]
 
 		W = zeros(length(v_m),length(v_m))
 		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
@@ -198,7 +198,7 @@ function make_simulated_path(h::Hank, run_number)
 		print_save("\nObjective function = $(@sprintf("%0.3g",(v_m - targets)'*W*(v_m-targets)))")
 		print_save("\n")
 		for jj in 1:length(targets)
-			print_save("$(@sprintf("%0.3g",v_m[jj]))     ")
+			print_save("$(@sprintf("%0.3g",v_m[jj]))  ")
 		end
 		res = [targetnames v_m targets (targets-v_m)./targets]
 		for jj in 1:size(res,1)
