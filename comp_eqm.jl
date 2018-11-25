@@ -639,7 +639,7 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	end
 
 
-	new_μgrid = new_grid(μ′_new, h.μgrid, lb = -3.0, ub = 3.0)
+	new_μgrid = new_grid(μ′_new, h.μgrid, lb = -3.0, ub = 5.0)
 	new_σgrid = new_grid(σ′_new, h.σgrid, lb = 1e-2)
 
 	μ′_new = max.(min.(μ′_new, maximum(h.μgrid)), minimum(h.μgrid))
