@@ -323,7 +323,7 @@ function simul_stats(path::Path)
 	m_unemp, sd_unemp = get_MV(u_vec)
 	m_debt, sd_debt = get_MV(100*B_vec./(4*Y_vec))
 	m_gspend, sd_gspend = get_MV(100*G_vec./Y_vec)
-	ψ_mean = 100 * mean(ψ_vec)
+	ψ_mean = 100 * median(ψ_vec)
 	spr_mean = mean(spr_vec)
 
 	v_m = [ρy; σy; ρc; σc; ρs; σs; m_debt; sd_debt; m_unemp; sd_unemp; ψ_mean; mean_wealth]
