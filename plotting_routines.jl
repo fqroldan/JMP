@@ -63,7 +63,7 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 		leg[jϵ] = "ϵ = $(round(h.ϵgrid[jϵ],2))"
 	end
 
-	show_b, show_μ, show_σ, show_ξ, show_ζ, show_z = h.bgrid[end], h.μgrid[3], h.σgrid[1], h.ξgrid[1], h.ζgrid[1], h.zgrid[2]
+	show_b, show_μ, show_σ, show_ξ, show_ζ, show_z = h.bgrid[9], h.μgrid[end], h.σgrid[1], h.ξgrid[1], h.ζgrid[1], h.zgrid[2]
 
 	function hh_pol(h::Hank, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
 		knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid)
