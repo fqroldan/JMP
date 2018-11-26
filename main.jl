@@ -113,7 +113,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=25)
 
 	new_center += 0.05 * new_dist .* rand(size(new_center))
 
-	return new_center, new_dist
+	return new_center, new_dist, best_run
 end
 
 if update_start
@@ -124,13 +124,13 @@ if update_start
 	W[2,2] *= 10
 	W[4,4] *= 10
 
-	params_center, xdist = find_new_cube(targets, W)
+	params_center, xdist, best_run = find_new_cube(targets, W)
 end
 
 params = set_params(run_number, params_center, xdist)
 r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
 
-function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar)
+function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, best_run)
 	if remote || local_run
 		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
 			# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
@@ -141,6 +141,10 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 			h2 = load(pwd() * "/../../hank.jld", "h")
 			remote ? h2 = load(pwd() * "/../../hank.jld", "h") : h2 = load("hank.jld", "h")
 			print_save("\nFound JLD file")
+			try 
+				h2 = load(pwd() * "/../../hank$(best_run).jld", "h")
+				print_save(" for best past run $(best_run)")
+			end
 			if h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
 				print_save(": loading previous results")
 				h2.μgrid = h.μgrid
