@@ -49,12 +49,14 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	# Govt BC
 	if ζt == 1
 		coupons = h.κ * Bt
+		new_debt = Bprime - (1.0 - h.ρ) * Bt
 	else
 		coupons = 0
+		new_debt = 0
 	end
 	qg = getfrompath(p, t, :qg)
 
-	lumpsumT = coupons + G - h.τ*wt*Ld - qg*(Bprime - (1.0 - h.ρ) * Bt)
+	lumpsumT = coupons + G - h.τ*wt*Ld - qg*new_debt
 
 	
 	if t % 100 == 0
@@ -335,7 +337,7 @@ end
 function find_episodes(path::Path; episode_type::String="default")
 	ζ_vec = series(path,:ζ)
 	π_vec = series(path,:π)
-	π_thres = quantile(π_vec[π_vec.>0], 0.8)
+	π_thres = quantile(π_vec[π_vec.>0], 0.9)
 	ψ_vec = series(path, :ψ)
 	ψ_thres = quantile(ψ_vec, 0.025)
 
@@ -353,7 +355,7 @@ function find_episodes(path::Path; episode_type::String="default")
 				push!(t_epi, jt)
 			end
 		elseif episode_type=="onlyspread"
-			if minimum(π_vec[jt-5+1:jt]) >= π_thres && maximum(ζ_vec[jt-5+1:jt]) == 1 && ψ_vec[jt-5+1] >= ψ_thres
+			if minimum(π_vec[jt-3+1:jt+3]) >= π_thres && maximum(ζ_vec[jt-3+1:jt+3]) == 1 && ψ_vec[jt-3+1] >= ψ_thres
 				N += 1
 				push!(t_epi, jt)
 			end
