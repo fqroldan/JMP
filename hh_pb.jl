@@ -104,7 +104,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, j�
 					# Re = profits[jzp, 1]
 					ωpv = ap + bp * Rb# + ep * Re
 					if ωpv < h.ωmin
-						Ev += prob * h.θ * 1e-10
+						Ev += prob * h.θ * 1e-32
 					else
 						ωpv = min(h.ωmax, ωpv)
 						v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 1)
@@ -117,7 +117,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, j�
 					# Re = profits[jzp, 2]
 					ωpv = ap + bp * Rb# + ep * Re
 					if ωpv < h.ωmin
-						Ev += prob * (1. - h.θ) * 1e-10
+						Ev += prob * (1. - h.θ) * 1e-32
 					else
 						ωpv = min(h.ωmax, ωpv)
 						v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 2)
