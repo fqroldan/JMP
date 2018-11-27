@@ -90,80 +90,87 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, j�
 	itp_s = true
 
 	# Basis matrix for continuation values
-	check, Ev, test, ut = 0., 0., 0, 0.
+	sum_prob, Ev, test, ut = 0., 0., 0, 0.
 
 	if jdefault
 		for (jξp, ξpv) in enumerate(h.ξgrid)
 			for (jzp, zpv) in enumerate(h.zgrid)
-				for (jϵp, ϵpv) in enumerate(h.ϵgrid)
-					prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
+				agg_prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp]
+				if agg_prob > 1e-10
+					for (jϵp, ϵpv) in enumerate(h.ϵgrid)
+						prob = agg_prob * h.Pϵ[jϵ, jϵp]
 
-					# Reentry
-					ζpv = 1
-					Rb = h.κ + (1. - h.ρ) * qᵍp[jξp, jzp, 1]
-					# Re = profits[jzp, 1]
-					ωpv = ap + bp * Rb# + ep * Re
-					if ωpv < h.ωmin
-						Ev += prob * h.θ * 1e-32
-					else
-						ωpv = min(h.ωmax, ωpv)
-						v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 1)
-						Ev += EZ_G(h, v) * prob * h.θ
-					end
+						# Reentry
+						ζpv = 1
+						Rb = h.κ + (1. - h.ρ) * qᵍp[jξp, jzp, 1]
+						# Re = profits[jzp, 1]
+						ωpv = ap + bp * Rb# + ep * Re
+						if ωpv < h.ωmin
+							Ev += prob * h.θ * 1e-32
+						else
+							ωpv = min(h.ωmax, ωpv)
+							v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 1)
+							Ev += EZ_G(h, v) * prob * h.θ
+						end
 
-					# Continue in default
-					ζpv = 2
-					Rb = (1. - h.ρ) * qᵍp[jξp, jzp, 2]
-					# Re = profits[jzp, 2]
-					ωpv = ap + bp * Rb# + ep * Re
-					if ωpv < h.ωmin
-						Ev += prob * (1. - h.θ) * 1e-32
-					else
-						ωpv = min(h.ωmax, ωpv)
-						v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 2)
-						Ev += EZ_G(h, v) * prob * (1. - h.θ)
+						# Continue in default
+						ζpv = 2
+						Rb = (1. - h.ρ) * qᵍp[jξp, jzp, 2]
+						# Re = profits[jzp, 2]
+						ωpv = ap + bp * Rb# + ep * Re
+						if ωpv < h.ωmin
+							Ev += prob * (1. - h.θ) * 1e-32
+						else
+							ωpv = min(h.ωmax, ωpv)
+							v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 2)
+							Ev += EZ_G(h, v) * prob * (1. - h.θ)
+						end
+						sum_prob += prob
 					end
-					check += prob
 				end
 			end
 		end
 	else
 		for (jξp, ξpv) in enumerate(h.ξgrid)
 			for (jzp, zpv) in enumerate(h.zgrid)
-				for (jϵp, ϵpv) in enumerate(h.ϵgrid)
-					prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp] * h.Pϵ[jϵ, jϵp]
-					check += prob
+				agg_prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp]
+				if agg_prob > 1e-10
+					for (jϵp, ϵpv) in enumerate(h.ϵgrid)
+						prob = agg_prob * h.Pϵ[jϵ, jϵp]
+						sum_prob += prob
 
-					# Repayment
-					ζpv = 1
-					Rb = h.κ + (1. - h.ρ) * qᵍp[jξp, jzp, 1]
-					# Re = profits[jzp, 1]
-					ωpv = ap + bp * Rb# + ep * Re
-					if ωpv < h.ωmin
-						Ev += prob * exp_rep[jξp, jzp] * 1e-10
-					else
-						ωpv = min(h.ωmax, ωpv)
-						v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 1)
-						Ev += EZ_G(h, v) * prob * exp_rep[jξp, jzp]
-					end
-					# Default
-					ζpv = 2
-					Rb = (1.0 - h.ρ) * (1.0 - h.ℏ) * qᵍp[jξp, jzp, 2]
-					# Re = profits[jzp, 3]
-					ωpv = ap + bp * Rb# + ep * Re
-					if ωpv < h.ωmin
-						Ev += prob * (1. - exp_rep[jξp, jzp]) * 1e-10
-					else
-						ωpv = min(h.ωmax, ωpv)
-						v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 2)
-						Ev += EZ_G(h, v) * prob * (1. - exp_rep[jξp, jzp])
+						# Repayment
+						ζpv = 1
+						Rb = h.κ + (1. - h.ρ) * qᵍp[jξp, jzp, 1]
+						# Re = profits[jzp, 1]
+						ωpv = ap + bp * Rb# + ep * Re
+						if ωpv < h.ωmin
+							Ev += prob * exp_rep[jξp, jzp] * 1e-10
+						else
+							ωpv = min(h.ωmax, ωpv)
+							v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 1)
+							Ev += EZ_G(h, v) * prob * exp_rep[jξp, jzp]
+						end
+						# Default
+						ζpv = 2
+						Rb = (1.0 - h.ρ) * (1.0 - h.ℏ) * qᵍp[jξp, jzp, 2]
+						# Re = profits[jzp, 3]
+						ωpv = ap + bp * Rb# + ep * Re
+						if ωpv < h.ωmin
+							Ev += prob * (1. - exp_rep[jξp, jzp]) * 1e-10
+						else
+							ωpv = min(h.ωmax, ωpv)
+							v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 2)
+							Ev += EZ_G(h, v) * prob * (1. - exp_rep[jξp, jzp])
+						end
 					end
 				end
 			end
 		end
 	end
+	Ev = Ev / sum_prob
 
-	isapprox(check, 1) || print_save("\nwrong expectation operator")
+	# isapprox(sum_prob, 1) || print_save("\nwrong expectation operator")
 
 	""" CHANGE THIS FOR GHH """
 	# Compute value
