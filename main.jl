@@ -70,6 +70,7 @@ xdist = 		[0.015; 0.01;  2.5; 0.05; 0.01; 0.0025; 0.01;  0.001; 0.025]
 function find_new_cube(targets::Vector, W::Matrix; K::Int64=25)
 	old_center = load(pwd() * "/../../../params_center.jld", "params_center")
 	old_dist = load(pwd() * "/../../../xdist.jld", "xdist")
+	srand(1)
 
 	k = 0
 	curr_min = 1e10
