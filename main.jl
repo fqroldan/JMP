@@ -177,7 +177,7 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 	end
 	return h
 end
-h = make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar);
+h = make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, best_run);
 
 print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")
