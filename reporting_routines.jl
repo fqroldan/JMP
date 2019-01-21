@@ -42,7 +42,7 @@ function make_params_table(params)
 	corr[3] = 100
 	corr[7] = 100
 
-	colnames = ["Discount rate of HHs"; "Risk aversion"; "Progressivity of tax schedule"; "Wage minimum"; "TFP process"; "Mean risk premium"; "Risk premium AR(1)"]
+	colnames = ["Discount rate of HHs			"; "Risk aversion					"; "Progressivity of tax schedule	"; "Wage minimum					"; "TFP process						"; "Mean risk premium				"; "Risk premium AR(1)				"]
 	descrips = ["\$ 1 \/ \\beta - 1 \$"; "\$ \\gamma \$"; "\$ \\tau \$"; "\$ \\bar{w} \$"; "\$ \\rho_z, \\sigma_z \$"; "\$\\bar{\\xi}\$"; "\$\\rho_\\xi, \\sigma_\\xi\$"]
 	single = zeros(size(colnames))
 
@@ -72,7 +72,7 @@ end
 function make_calib_table(v_m)
 	table = ""
 
-	colnames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread"; "Std coef spread	"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"]
+	colnames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread	"; "Std coef spread		"; "Avg Debt-to-GDP		"; "Std Debt-to-GDP		"; "Avg unemployment	"; "Std unemployment	"; "Median dom holdings	"; "Avg wealth-to-GDP	"]
 
 	data_stats = [ 0.96580506; 0.01294576; 0.96172496; 0.01663608; 0.96656486; 0.10252351; 64.57638889; 23.48323041; 15.94722222; 6.08732167; 56.49; 94.48]
 
