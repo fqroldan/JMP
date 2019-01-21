@@ -28,6 +28,10 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	G 		= itp_G[Bt, μt, σt, ξt, ζt, jz]
 	pNg 	= itp_pN[Bt, μt, σt, ξt, ζt, jz]
 
+	if ζt == 2
+		Bprime = Bt
+	end
+
 	exp_rep = zeros(h.Nξ, h.Nz)
 	for jξp in 1:h.Nξ, jzp in 1:h.Nz
 		exp_rep[jξp, jzp] = max(0, min(1, itp_repay[Bt, μt, σt, ξt, ζt, jz, jξp, jzp]))
