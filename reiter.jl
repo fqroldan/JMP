@@ -22,12 +22,12 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				Nσ = 5,
 				Nb = 9,
 				Nξ = 2,
-				Nz = 7,
+				Nz = 9,
 				ρz = 0.9,
 				σz = 0.025,
 				ρξ = 0.95,
 				σξ = 0.0025,
-				ℏ = 0.4,
+				ℏ = 0.5,
 				Δ = 0.1,
 				θ = .04,
 				Np = 5,
@@ -56,11 +56,35 @@ function Hank(;	β = (1.0/1.05)^0.25,
 		return ρ4, σ4
 	end
 	# Aggregate risk
-	z_chain = tauchen(Nz, ρz, σz, 0, 2)
-	# z_chain = rouwenhorst(Nz, ρz, σz, 0)
-	Pz = z_chain.p
-	# zgrid = linspace(minimum(z_chain.state_values), maximum(z_chain.state_values), Nz)
-	zgrid = z_chain.state_values
+
+	function tauchen_fun(ny::Int64, ρ::Float64, σe::Float64; m=3, mu=0.0)
+	    σy = σe/sqrt((1-ρ^2))
+	    λ1 = -m*σy; λn = m*σy
+	    λgrid = linspace(λ1,λn,ny)
+	    ww = λgrid[2] - λgrid[1]
+
+	    distrib = Normal(0,1)
+
+	    Π = Array{Float64}(ny,ny)
+
+	    for ii=1:ny
+	        Π[ii,1] = cdf(distrib,(λ1+ww/2-(1-ρ)*mu-ρ*λgrid[ii])/σe) # For j=1
+	        Π[ii,end] = 1.0-cdf(distrib,(λn-ww/2-(1-ρ)*mu-ρ*λgrid[ii])/σe) # For j=ny
+	        for jj=2:ny-1
+	            Π[ii,jj] = cdf(distrib,(λgrid[jj]+ww/2-(1-ρ)*mu-ρ*λgrid[ii])/σe) - cdf(distrib,(λgrid[jj]-ww/2-(1-ρ)*mu-ρ*λgrid[ii])/σe)
+	        end
+	    end
+
+	    return λgrid,Π
+	end
+
+
+
+	# z_chain = tauchen(Nz, ρz, σz, 0, 2)
+	# Pz = z_chain.p
+	# zgrid = z_chain.state_values
+
+	zgrid, Pz = tauchen_fun(Nz, ρz, σz, m=1.5)
 
 	meanξ = tax
 	ξ_chain = tauchen(Nξ, ρξ, σξ, meanξ * (1.0-ρξ), 1)
@@ -333,7 +357,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 						ζ_cont = 2.0
 						μpv = h.μ′[js, jξp, jzp, 2]
 						σpv = h.σ′[js, jξp, jzp, 2]
-						E_rep += prob * (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, ζ_cont, jzp] * (1.0 - h.θ)
+						E_rep += prob * itp_qᵍ[bpv, μpv, σpv, ξpv, ζ_cont, jzp] * (1.0 - h.θ)
 						check += prob * (1.0 - h.θ)
 					end
 				end
@@ -417,7 +441,7 @@ function update_fiscalrules!(h::Hank)
 	h.issuance = min.(0.35,max.(0., vec(net_iss))) .* (4 * h.output) + (1.0-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
 
 	def_states = h.ζgrid[h.Jgrid[:, 5]] .!= 1.0
-	h.issuance[def_states] = (1.0-h.ρ) * h.bgrid[h.Jgrid[def_states, 1]]
+	h.issuance[def_states] = h.bgrid[h.Jgrid[def_states, 1]]
 
 	h.issuance = min.(h.issuance, maximum(h.bgrid))
 
@@ -437,10 +461,12 @@ function govt_bc(h::Hank, wage_bill)
 	B′ = h.issuance
 	B  = h.bgrid[h.Jgrid[:, 1]]
 
+	remaining_debt = (1.0 - h.ρ .* (1.0-def_states)) .* B
+
 	coupons = (1.0 - def_states) .* h.κ .* B
 	g 		= h.spending
 	inc_tax = h.τ * wage_bill
-	net_iss = qᵍ_vec .* (B′ - (1.0 - h.ρ) .* B)
+	net_iss = qᵍ_vec .* (B′ - remaining_debt)
 
 	T_vec = coupons + g - inc_tax - net_iss
 	T_mat = reshape(T_vec, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
@@ -547,7 +573,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
 
 			print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(h.pngrid))), $(@sprintf("%0.3g",maximum(h.pngrid)))]")
-			print_save("\nw_grid = [$(@sprintf("%0.3g",minimum(h.w′))), $(@sprintf("%0.3g",maximum(h.w′)))]")
+			# print_save("\nw_grid = [$(@sprintf("%0.3g",minimum(h.w′))), $(@sprintf("%0.3g",maximum(h.w′)))]")
 
 
 			print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
@@ -580,7 +606,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 			print_save("\nspread between $(floor(Int,10000*minimum(h.spread))) bps and $(floor(Int,10000*maximum(h.spread))) bps")
 
-			h.upd_tol = max(exp(0.85*log(1+h.upd_tol))-1, 1e-6)
+			h.upd_tol = max(exp(0.85*log(1+h.upd_tol))-1, 1e-8)
 			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))")
 			t_old = time()
 		end

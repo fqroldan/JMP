@@ -138,8 +138,8 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 	while dist > tol && out_iter < maxiter
 		print_save("\n\nOuter Iteration $out_iter\n")
 		vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 15)
-		h.upd_tol = 1e-3
-
+		h.upd_tol = max(h.upd_tol, 1e-5)
+		
 		W_new = update_W(h)
 
 		h.welfare = upd_η * W_new + (1.-upd_η) * h.welfare

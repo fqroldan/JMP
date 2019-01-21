@@ -79,6 +79,17 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	js = 0
 	ωvjϵ = gridmake(h.ωgrid_fine, 1:h.Nϵ)
+	λ_mat  = reshape(λt, h.Nω_fine, h.Nϵ)
+	mλω = sum(λ_mat, 2)
+	cdf_ω = cumsum(mλω)
+
+	avgω_fromb = zeros(h.Nω_fine*h.Nϵ)
+
+	b25 = zeros(h.Nω_fine*h.Nϵ)
+	b90 = zeros(h.Nω_fine*h.Nϵ)
+	q25 = findfirst(cdf_ω .<= 0.25)
+	q90 = findfirst(cdf_ω .>= 0.90)
+
 	adjustment = sum(h.λϵ.*exp.(h.ϵgrid))
 	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid_fine)
 		js += 1
@@ -90,16 +101,29 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		ϕc[js] = max(0.0, cc)
 		yd = (wt*Ld*(1.0-h.τ) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
 		Crate[js] = ϕc[js] / yd
+
+		avgω_fromb[js] = ωv * max(0.0, bp)
+
+		if jω < q25
+			b25[js] += max(0.0, bp)
+		elseif jω > q90
+			b90[js] += max(0.0, bp)
+		end
 	end
 
 	C = dot(λt, ϕc)
 	CoY = C / output
 	CoYd = dot(λt, Crate)
 
+	p25 = dot(λt, b25) / dot(λt, ϕb)
+	p90 = dot(λt, b90) / dot(λt, ϕb)
+
 	aggC_T = C  * h.ϖ * (1./pC)^(-h.η)
 	NX = supply_T - aggC_T - G * (1.-h.ϑ)
 
-	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => G, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX))
+	Eω_fromb = dot(λt, avgω_fromb) / dot(λt, ϕb)
+
+	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => G, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :avgω => Eω_fromb))
 
 	a  = dot(λt, ϕa)
 	a2 = dot(λt, ϕa.^2)
@@ -141,7 +165,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	qprime = q′[jξp,jzp, 1]
 
 	if jdef
-		# Compute welfare in case of repayment and default
+		# Compute welfare in case of reentry and remain in default
 		Wr = itp_W[Bprime, μ′[jξp,jzp,1], σ′[jξp,jzp,1], ξt, 1, jzp]
 		Wd = itp_W[Bprime, μ′[jξp,jzp,2], σ′[jξp,jzp,2], ξt, 2, jzp]
 		# Now draw reentry
@@ -158,7 +182,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 			R = (1.0-h.ρ) * qprime
 		end
 	else
-		# Compute welfare in case reenter and remain
+		# Compute welfare in case repay and default
 		Wr = itp_W[Bprime, 			μ′[jξp,jzp,1], σ′[jξp,jzp,1], ξt, 1, jzp]
 		Wd = itp_W[(1.-h.ℏ)*Bprime, μ′[jξp,jzp,2], σ′[jξp,jzp,2], ξt, 2, jzp]
 		# Now draw default
@@ -337,7 +361,7 @@ end
 function find_episodes(path::Path; episode_type::String="default")
 	ζ_vec = series(path,:ζ)
 	π_vec = series(path,:π)
-	π_thres = quantile(π_vec[π_vec.>0], 0.9)
+	π_thres = quantile(π_vec[π_vec.>0], 0.975)
 	ψ_vec = series(path, :ψ)
 	ψ_thres = quantile(ψ_vec, 0.025)
 
@@ -355,7 +379,7 @@ function find_episodes(path::Path; episode_type::String="default")
 				push!(t_epi, jt)
 			end
 		elseif episode_type=="onlyspread"
-			if minimum(π_vec[jt-3+1:jt+3]) >= π_thres && maximum(ζ_vec[jt-3+1:jt+3]) == 1 && ψ_vec[jt-3+1] >= ψ_thres
+			if minimum(π_vec[jt-2+1:jt+2]) >= π_thres && maximum(ζ_vec[jt-3+1:jt+3]) == 1# && ψ_vec[jt-3+1] >= ψ_thres
 				N += 1
 				push!(t_epi, jt)
 			end
@@ -381,24 +405,15 @@ function find_episodes(path::Path; episode_type::String="default")
 	end
 	return sample
 end
-	
-function _estimateAR1(y::Vector)
-	T = length(y)
 
-	yt   = [y[jt] for jt in 2:T]
-	ylag = [y[jt] for jt in 1:T-1]
-
-	V = var(yt)
-	# println(V)
-
-	ρ = dot(yt, ylag) / dot(yt, yt)
-	# println(ρ)
-
-	if isapprox(ρ, 1)
-		σ = 0.0
-	else
-		σ = sqrt( (1.0 - ρ^2) * V )
+function IRF(p::Path, h::Hank; shock::String="z")
+	if shock == "z"
+		zvec = series(path, :z)
+		Ez = zvec * h.ρz
 	end
+	t0 = 11
+	T = length(zvec)
 
-	return ρ, σ
+	eps_z = [zvec[jt] - Ez[jt-1] for jt in t0:T]
+
 end

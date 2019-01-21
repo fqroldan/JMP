@@ -164,7 +164,10 @@ function Path(; T::Int64 = 1)
 		:CoYd => 24,
 		:T => 25,
 		:NX => 26,
-		:ξ => 27
+		:ξ => 27,
+		:p25 => 28,
+		:p90 => 29,
+		:avgω => 30
 		)
 	data = Matrix{Float64}(T, length(n))
 	return Path(data, n)

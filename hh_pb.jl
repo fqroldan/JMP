@@ -96,7 +96,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, j�
 		for (jξp, ξpv) in enumerate(h.ξgrid)
 			for (jzp, zpv) in enumerate(h.zgrid)
 				agg_prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp]
-				if agg_prob > 1e-10
+				if agg_prob > 1e-4
 					for (jϵp, ϵpv) in enumerate(h.ϵgrid)
 						prob = agg_prob * h.Pϵ[jϵ, jϵp]
 
@@ -115,7 +115,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, j�
 
 						# Continue in default
 						ζpv = 2
-						Rb = (1. - h.ρ) * qᵍp[jξp, jzp, 2]
+						Rb = qᵍp[jξp, jzp, 2]
 						# Re = profits[jzp, 2]
 						ωpv = ap + bp * Rb# + ep * Re
 						if ωpv < h.ωmin
@@ -134,7 +134,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, j�
 		for (jξp, ξpv) in enumerate(h.ξgrid)
 			for (jzp, zpv) in enumerate(h.zgrid)
 				agg_prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp]
-				if agg_prob > 1e-10
+				if agg_prob > 1e-4
 					for (jϵp, ϵpv) in enumerate(h.ϵgrid)
 						prob = agg_prob * h.Pϵ[jϵ, jϵp]
 						sum_prob += prob
@@ -354,29 +354,32 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 		itp_vf_s = Arr_itp_VF(h.Nξ, h.Nz, 2)
 		for (jξp, ξpv) in enumerate(h.ξgrid)
 			for (jzp, zpv) in enumerate(h.zgrid)
-				qᵍp[jξp, jzp, 1] = itp_qᵍ[bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 1, jzp]
-				if jdef
-					qᵍp[jξp, jzp, 2] = itp_qᵍ[bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
-				else
-					qᵍp[jξp, jzp, 2] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
-				end
-
-				vf_mat = Array{Float64}(h.Nω, h.Nϵ, 3)
-				for (jϵp, ϵpv) in enumerate(h.ϵgrid)
-					for (jωp, ωpv) in enumerate(h.ωgrid)
-						vf_mat[jωp, jϵp, 1] = itp_vf[ωpv, jϵp, bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 1, jzp]
-						if jdef
-							vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
-						else
-							vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 2, jzp]
-						end
+				agg_prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp]
+				if agg_prob > 1e-4
+					qᵍp[jξp, jzp, 1] = itp_qᵍ[bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 1, jzp]
+					if jdef
+						qᵍp[jξp, jzp, 2] = itp_qᵍ[bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
+					else
+						qᵍp[jξp, jzp, 2] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
 					end
 
-					knots = (h.ωgrid, 1:h.Nϵ)
-					for jj in 1:2
-						itp_vf_s[jξp, jzp, jj] = interpolate(knots, vf_mat[:,:,jj], (Gridded(Linear()), NoInterp()))
-						# unscaled = interpolate(vf_mat[:,:,jj], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
-						# itp_vf_s[jξp, jzp, jj] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
+					vf_mat = Array{Float64}(h.Nω, h.Nϵ, 3)
+					for (jϵp, ϵpv) in enumerate(h.ϵgrid)
+						for (jωp, ωpv) in enumerate(h.ωgrid)
+							vf_mat[jωp, jϵp, 1] = itp_vf[ωpv, jϵp, bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 1, jzp]
+							if jdef
+								vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
+							else
+								vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 2, jzp]
+							end
+						end
+
+						knots = (h.ωgrid, 1:h.Nϵ)
+						for jj in 1:2
+							itp_vf_s[jξp, jzp, jj] = interpolate(knots, vf_mat[:,:,jj], (Gridded(Linear()), NoInterp()))
+							# unscaled = interpolate(vf_mat[:,:,jj], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
+							# itp_vf_s[jξp, jzp, jj] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
+						end
 					end
 				end
 			end
@@ -385,7 +388,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 		adjustment = sum(h.λϵ.*exp.(h.ϵgrid))
 		for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid)
 
-			RHS = ωv + wL * exp(ϵv) - Tv + profits * exp(ϵv) / adjustment
+			RHS = ωv + (wL + profits) * exp(ϵv) / adjustment - Tv
 
 			ap, bp, ep, cmax, fmax = 0., 0., 0., 0., 0.
 

@@ -1530,25 +1530,29 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	pz = plot_sample(:z, f=x->100*(exp.(x)-1), title="TFP")
 	pw = plot_sample(:w, title="Wage rate")
 	pψ = plot_sample(:ψ, f=x->100*x, title="Proportion Domestic", yaxis_title="%")
+	pπ = plot_sample(:π, f=x->100*x, title="Default prob", yaxis_title="%")
 	pP = plot_sample(:P, title="Price of nontradables")
 	pq = plot_sample(:qg, title="Price of new debt")
-	pCf = plot_sample(:CoYd, f=x->100*x, title="C/Y^d", yaxis_title="%")
+	pCf = plot_sample(:CoYd, f=x->100*x, title="C/Yᵈ", yaxis_title="%")
 	pCl = plot_sample(:C, f=x->100*(x-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
 	meanC = mean(rel_sample_stats[p.n[:C], 1, 4])
 	pCs = plot_sample(:C, rel_sample_stats, f=x->100*(x-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
 	meanY = mean(rel_sample_stats[p.n[:Y], 1, 4])
 	pYs = plot_sample(:Y, rel_sample_stats, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
+	pp25 = plot_sample(:p25, rel_sample_stats, f=x->100x, title="bottom 25% holdings")
+	pavgω = plot_sample(:avgω, rel_sample_stats, title="Bondholdings-weighted avg wealth")
+	pp90 = plot_sample(:p90, rel_sample_stats, f=x->100x, title="top 10% holdings")
 
-	p = [pz pY pCl pT; pB pψ pq pu; pμ pσ pP pG]
+	p = [pz pY pCl pCf; pB pψ pq pπ; pu pμ pσ pP; pavgω pp90 pG pT]
 	# p = [pz pY pCl; pT pB pG; pψ pw pu; pμ pσ pP]
 	slides? font = "Fira Sans Light": font = "STIX Two Text"
 	p.plot.layout["font_family"] = font
 	p.plot.layout["fontsize"] = 18
+	p.plot.layout["height"] = 600
+	p.plot.layout["width"] = 1100
 	if slides
 		p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
 		p.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
-		p.plot.layout["height"] = 600
-		p.plot.layout["width"] = 1100
 	else
 		p.plot.layout["title"] = ""
 	end

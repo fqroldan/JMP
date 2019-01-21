@@ -389,7 +389,6 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jd
 
 	zpv = h.zgrid[jzp]
 
-	ζpv = 1
 	haircut = 0.0
 	if jdef && reentry==false
 		ζpv = 2
@@ -439,7 +438,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 
 		res = Optim.optimize(
 			q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry) - q)^2,
-			qmin, qmax, GoldenSection()
+			qmin, qmax, Brent()
 			)
 		q[jξp, jzp, 1] = res.minimizer
 		res.minimum > 1e-4 ? alarm_mat[jξp, jzp, 1] = 1 : alarm_mat[jξp, jzp, 1] = 0
@@ -452,7 +451,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 			ζpv = 2 # Irrelevant but to stress that the default state continues
 			res = Optim.optimize(
 				q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry) - q)^2,
-				qmin, qmax, GoldenSection()
+				qmin, qmax, Brent()
 				)
 			q[jξp, jzp, 2] = res.minimizer
 			res.minimum > 1e-4 ? alarm_mat[jξp, jzp, 2] = 1 : alarm_mat[jξp, jzp, 2] = 0
@@ -464,7 +463,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 			ζpv = 2
 			res = Optim.optimize(
 				q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry) - q)^2,
-				qmin, qmax, GoldenSection()
+				qmin, qmax, Brent()
 				)
 			q[jξp, jzp, 2] = res.minimizer
 			res.minimum > 1e-4 ? alarm_mat[jξp, jzp, 2] = 1 : alarm_mat[jξp, jzp, 2] = 0
@@ -625,8 +624,8 @@ function update_expectations!(h::Hank, upd_η::Float64)
 		Xmin = minimum(xgrid)
 
 		# Expand grids if x′ goes beyond the bounds
-		quantile(x′[:], 0.85) > maximum(xgrid) ? Xmax = maximum(xgrid) + 0.05*xdist : Void
-		quantile(x′[:], 0.15) < minimum(xgrid) ? Xmin = minimum(xgrid) - 0.05*xdist : Void
+		quantile(x′[:], 0.95) > maximum(xgrid) ? Xmax = maximum(xgrid) + 0.05*xdist : Void
+		quantile(x′[:], 0.05) < minimum(xgrid) ? Xmin = minimum(xgrid) - 0.05*xdist : Void
 
 		# Retract grids if x′ doesn't reach the bounds
 		maximum(x′) < maximum(xgrid) ? Xmax = maximum(xgrid) - 0.01*xdist : Void
@@ -657,13 +656,16 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	return dist_exp, new_μgrid, new_σgrid
 end
 
-function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[])
+function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], new_zgrid::Vector=[])
 
 	if new_μgrid==[]
 		new_μgrid = h.μgrid
 	end
 	if new_σgrid==[]
 		new_σgrid = h.σgrid
+	end
+	if new_zgrid==[]
+		new_zgrid = h.zgrid
 	end
 
 	function reinterp(h::Hank, y; agg::Bool=false, ext::Bool=false)
@@ -680,13 +682,13 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[])
 		itp_y = extrapolate(itp_obj_y, Linear())
 
 		if agg
-			y_new = itp_y[h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, h.zgrid]
-			return reshape(y_new, size(h.Jgrid,1))
+			y_new = itp_y[h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid]
+			return reshape(y_new, length(y_new))
 		elseif ext
-			y_new = itp_y[h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, h.zgrid, h.pngrid]
+			y_new = itp_y[h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid, h.pngrid]
 			return y_new
 		else
-			y_new = itp_y[h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, h.zgrid]
+			y_new = itp_y[h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid]
 			return y_new
 		end
 	end
@@ -698,9 +700,10 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[])
 	h.ϕc = reinterp(h, h.ϕc, agg=false)
 	h.ϕc = max.(1e-6, h.ϕc)
 	h.vf = reinterp(h, h.vf, agg=false)
-	h.vf = max.(1e-6, h.vf)
+	h.vf = max.(1e-20, h.vf)
 
 	h.Ld 		= reinterp(h, h.Ld, agg=true)
+	h.output 	= reinterp(h, h.output, agg=true)
 	h.wage 		= reinterp(h, h.wage, agg=true)
 	h.issuance 	= reinterp(h, h.issuance, agg=true)
 	h.issuance 	= min.(max.(h.issuance, minimum(h.bgrid)), maximum(h.bgrid))
@@ -710,17 +713,24 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[])
 	knots 		= (h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid, h.ξgrid, h.zgrid)
 	repay_mat 	= reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	itp_repay 	= interpolate(knots, repay_mat, Gridded(Linear()))
-	rep_new 	= itp_repay[h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, h.zgrid, h.ξgrid, h.zgrid]
+	rep_new 	= itp_repay[h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid, h.ξgrid, new_zgrid]
 	rep_new 	= max.(0, min.(1, rep_new))
-	h.repay 	= reshape(rep_new, h.Nb*h.Nμ*h.Nσ*h.Nξ*h.Nζ*h.Nz*h.Nξ*h.Nz)
+	h.repay 	= reshape(rep_new, length(rep_new))
 
 	h.welfare   = reinterp(h, h.welfare, agg=true)
 
+	μ′_new = zeros(h.Nb * length(new_μgrid) * length(new_σgrid) * h.Nξ * h.Nζ * length(new_zgrid), h.Nξ, length(new_zgrid), 2)
+	σ′_new = zeros(h.Nb * length(new_μgrid) * length(new_σgrid) * h.Nξ * h.Nζ * length(new_zgrid), h.Nξ, length(new_zgrid), 2)
 	for jξp in 1:h.Nξ
-		for jzp in 1:h.Nz
+		for jzp in 1:length(new_zgrid)
 			for jreent in 1:2
-				h.μ′[:,jξp,jzp,jreent] = reinterp(h, h.μ′[:,jξp,jzp,jreent], agg=true)
-				h.σ′[:,jξp,jzp,jreent] = reinterp(h, h.σ′[:,jξp,jzp,jreent], agg=true)
+				try
+					μ′_new[:,jξp,jzp,jreent] = reinterp(h, h.μ′[:,jξp,jzp,jreent], agg=true)
+					σ′_new[:,jξp,jzp,jreent] = reinterp(h, h.σ′[:,jξp,jzp,jreent], agg=true)
+				catch
+					μ′_new[:,jξp,jzp,jreent] = reinterp(h, h.μ′[:,jξp,h.Nz,jreent], agg=true)
+					σ′_new[:,jξp,jzp,jreent] = reinterp(h, h.σ′[:,jξp,h.Nz,jreent], agg=true)
+				end	
 			end
 		end
 	end
@@ -728,8 +738,8 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[])
 	h.μgrid = new_μgrid
 	h.σgrid = new_σgrid
 
-	h.μ′ = max.(min.(h.μ′, maximum(h.μgrid)), minimum(h.μgrid))
-	h.σ′ = max.(min.(h.σ′, maximum(h.σgrid)), minimum(h.σgrid))
+	h.μ′ = max.(min.(μ′_new, maximum(h.μgrid)), minimum(h.μgrid))
+	h.σ′ = max.(min.(σ′_new, maximum(h.σgrid)), minimum(h.σgrid))
 
 	nothing
 end

@@ -61,13 +61,23 @@ function set_params(run_number, xcenter, xdist)
 	for j in 1:run_number
 		x = next!(s, xcenter-xdist, xcenter+xdist)
 	end
+	# bv(i,n) = [j==i for j in 1:n]
+	# if run_number == 1
+	# 	x = xcenter
+	# elseif run_number <= N+1
+	# 	x = xcenter + xdist .* bv(run_number-1, N)
+	# elseif run_number-N-1 <= N
+	# 	x = xcenter - xdist .* bv(run_number-N-1, N)
+	# else
+	# 	x = xcenter
+	# end
 	return x
 end
 #				 r_loc,   tax, RRA,    τ,  ρz,      σz,   ρξ,     σξ, wbar
 params_center = [0.055; 0.025; 7.5; 0.15; 0.9;   0.025; 0.95; 0.0025; 1.175]
 xdist = 		[0.015; 0.01;  2.5; 0.05; 0.01; 0.0025; 0.01;  0.001; 0.025]
 
-function find_new_cube(targets::Vector, W::Matrix; K::Int64=25)
+function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::Bool=true)
 	old_center = load(pwd() * "/../../../params_center.jld", "params_center")
 	old_dist = load(pwd() * "/../../../xdist.jld", "xdist")
 	srand(1)
@@ -97,7 +107,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=25)
 		print_save("\nBest run from $k recovered trials = $best_run")
 		if best_run == 1
 			print_save(". Shrinking the cube.")
-			new_dist = old_dist * 0.9
+			new_dist = old_dist * 0.75
 			new_center = old_center
 		else
 			print_save(". Computing new starting point.")
@@ -106,13 +116,22 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=25)
 			for j in 1:best_run
 				x = next!(s, old_center-old_dist, old_center+old_dist)
 			end
-			η = 1.0
+			η = 0.5
 			new_center = x * η + old_center * (1.0 - η)
 			new_dist = old_dist
 		end
 	end
 
-	new_center += 0.05 * new_dist .* rand(size(new_center))
+	# new_center += 0.05 * new_dist .* rand(size(new_center))
+
+	if really_update
+	else
+		new_center, new_dist = old_center, old_dist
+	end
+	
+	# new_dist[6] = new_dist[6] * 2
+
+	print_save("\nNew distances: $(new_dist)")
 
 	return new_center, new_dist, best_run
 end
@@ -122,16 +141,37 @@ if update_start
 
 	W = zeros(length(targets),length(targets))
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
-	W[2,2] *= 10
-	W[4,4] *= 10
+	W[2,2] *= 100
+	W[4,4] *= 100
 
-	params_center, xdist, best_run = find_new_cube(targets, W)
+	really_update = true
+
+	params_center, xdist, best_run = find_new_cube(targets, W, really_update=really_update)
+	try
+		if run_number == best_run
+			path = load(pwd() * "/../../path.jld", "path")
+			save(pwd() * "/../../../path$(run_number).jld", "path", path)
+		end
+	catch
+		print_save("ERROR: Couldn't move best path")
+	end
+	if really_update
+		use_run = best_run
+	else
+		use_run = run_number
+	end
 end
 
-params = set_params(run_number, params_center, xdist)
+if run_number == 20
+	params = set_params(1, params_center, xdist)
+	rep_agent = true
+else
+	params = set_params(run_number, params_center, xdist)
+end
 r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
 
-function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, best_run)
+
+function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, use_run)
 	if remote || local_run
 		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
 			# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
@@ -143,14 +183,15 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 			remote ? h2 = load(pwd() * "/../../hank.jld", "h") : h2 = load("hank.jld", "h")
 			print_save("\nFound JLD file")
 			try 
-				h2 = load(pwd() * "/../../hank$(best_run).jld", "h")
-				print_save(" for best past run $(best_run)")
+				h2 = load(pwd() * "/../../hank$(use_run).jld", "h")
+				print_save(" for best past run $(use_run)")
 			end
-			if h.Ns == h2.Ns && h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
+			if h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
 				print_save(": loading previous results")
-				h2.μgrid = h.μgrid
-				h2.σgrid = h.σgrid
-				update_grids!(h2, new_μgrid = h.μgrid, new_σgrid = h.σgrid)
+				h.μgrid = h2.μgrid
+				h.σgrid = h2.σgrid
+				update_grids!(h2, new_μgrid = h.μgrid, new_σgrid = h.σgrid, new_zgrid = h.zgrid)
+				print_save("...")
 				h.ϕa = h2.ϕa
 				h.ϕb = h2.ϕb
 				h.ϕa_ext = h2.ϕa_ext
@@ -177,14 +218,14 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 	end
 	return h
 end
-h = make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, best_run);
+h = make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, use_run);
 
 print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")
 print_save("\nω: $(h.ωgrid)\n")
 
 function make_simulated_path(h::Hank, run_number)
-	path, jz_series, Ndefs = simul(h; simul_length=4*(2000+25), only_def_end=true)
+	path, jz_series, Ndefs = simul(h; simul_length=4*(4000+25), only_def_end=true)
 	Tyears = floor(Int64,size(path.data, 1)*0.25)
 	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(floor(100*Ndefs/Tyears))%")
 	trim_path!(path, 4*25)
@@ -200,8 +241,8 @@ function make_simulated_path(h::Hank, run_number)
 
 		W = zeros(length(v_m),length(v_m))
 		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
-		W[2,2] *= 10
-		W[4,4] *= 10
+		W[2,2] *= 100
+		W[4,4] *= 100
 
 		print_save("\nObjective function = $(@sprintf("%0.3g",(v_m - targets)'*W*(v_m-targets)))")
 		print_save("\n")
@@ -234,6 +275,9 @@ if run_number == 1
 	save(pwd() * "/../../../params_center.jld", "params_center", params_center)
 	save(pwd() * "/../../../xdist.jld", "xdist", xdist)
 end
+save(pwd() * "/../../../params_$(run_number).jld", "params", params)
+save(pwd() * "/../../../params_center_$(run_number).jld", "params_center", params_center)
+
 if remote || local_run
 	# vfi!(h, verbose = true, remote = remote)
 	mpe_iter!(h; remote = remote, nodef = nodef, rep_agent = rep_agent, run_number=run_number)
