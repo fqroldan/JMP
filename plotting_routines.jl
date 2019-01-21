@@ -1494,9 +1494,9 @@ function volYC(p::Path; episode_type::String="default")
 	return σY, σC
 end
 
-function plot_episodes(p::Path; episode_type::String="default", slides::Bool=true)
+function plot_episodes(p::Path; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975)
 
-	sample = find_episodes(p, episode_type=episode_type)
+	sample = find_episodes(p, episode_type=episode_type, πthres=πthres)
 
 	sample_stats = stats_sample(p, sample)
 	rel_sample_stats = stats_sample(p, sample; relative=true)
@@ -1540,8 +1540,8 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	meanY = mean(rel_sample_stats[p.n[:Y], 1, 4])
 	pYs = plot_sample(:Y, rel_sample_stats, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
 	pp25 = plot_sample(:p25, rel_sample_stats, f=x->100x, title="bottom 25% holdings")
-	pavgω = plot_sample(:avgω, rel_sample_stats, title="Bondholdings-weighted avg wealth")
-	pp90 = plot_sample(:p90, rel_sample_stats, f=x->100x, title="top 10% holdings")
+	pavgω = plot_sample(:avgω, title="Bondholdings-weighted avg wealth")
+	pp90 = plot_sample(:p90, f=x->100x, title="top 10% holdings")
 
 	p = [pz pY pCl pCf; pB pψ pq pπ; pu pμ pσ pP; pavgω pp90 pG pT]
 	# p = [pz pY pCl; pT pB pG; pψ pw pu; pμ pσ pP]

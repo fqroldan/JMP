@@ -358,10 +358,10 @@ function simul_stats(path::Path)
 end
 
 
-function find_episodes(path::Path; episode_type::String="default")
+function find_episodes(path::Path; episode_type::String="default", πthres::Float64=0.975)
 	ζ_vec = series(path,:ζ)
 	π_vec = series(path,:π)
-	π_thres = quantile(π_vec[π_vec.>0], 0.975)
+	π_thres = quantile(π_vec[π_vec.>0], πthres)
 	ψ_vec = series(path, :ψ)
 	ψ_thres = quantile(ψ_vec, 0.025)
 
