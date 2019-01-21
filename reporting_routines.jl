@@ -43,7 +43,7 @@ function make_params_table(params)
 	corr[7] = 100
 
 	colnames = ["Discount rate of HHs			"; "Risk aversion					"; "Progressivity of tax schedule	"; "Wage minimum					"; "TFP process						"; "Mean risk premium				"; "Risk premium AR(1)				"]
-	descrips = ["\$ 1 \/ \\beta - 1 \$"; "\$ \\gamma \$"; "\$ \\tau \$"; "\$ \\bar{w} \$"; "\$ \\rho_z, \\sigma_z \$"; "\$\\bar{\\xi}\$"; "\$\\rho_\\xi, \\sigma_\\xi\$"]
+	descrips = ["\$ 1 \/ \\beta - 1 \$"; "\$ \\gamma \$		"; "\$ \\tau \$			"; "\$ \\bar{w} \$		"; "\$ \\rho_z, \\sigma_z \$"; "\$\\bar{\\xi}\$"; "\$\\rho_\\xi, \\sigma_\\xi\$"]
 	single = zeros(size(colnames))
 
 	jpar = 1
