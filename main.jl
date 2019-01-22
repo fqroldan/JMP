@@ -160,6 +160,9 @@ if update_start
 	else
 		use_run = run_number
 	end
+	if run_number == 20
+		use_run = run_number
+	end
 end
 
 if run_number == 20

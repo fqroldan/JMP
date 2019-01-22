@@ -606,7 +606,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
 			print_save("\nspread between $(floor(Int,10000*minimum(h.spread))) bps and $(floor(Int,10000*maximum(h.spread))) bps")
 
-			h.upd_tol = max(exp(0.85*log(1+h.upd_tol))-1, 1e-8)
+			h.upd_tol = max(exp(0.75*log(1+h.upd_tol))-1, 1e-8)
 			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))")
 			t_old = time()
 		end
