@@ -146,7 +146,7 @@ if update_start
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
 	W[2,2] *= 100
 
-	really_update = false
+	really_update = true
 
 	params_center, xdist, best_run = find_new_cube(targets, W, really_update=really_update)
 	# if run_number == best_run
@@ -161,12 +161,9 @@ if update_start
 	# 		print_save("ERROR: Couldn't load best path")
 	# 	end
 	# end
-	if really_update
+	if really_update && run_number != 20
 		use_run = best_run
 	else
-		use_run = run_number
-	end
-	if run_number == 20
 		use_run = run_number
 	end
 end
