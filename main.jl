@@ -132,7 +132,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 		new_center, new_dist = old_center, old_dist
 	end
 	
-	# new_dist[6] = new_dist[6] * 10
+	# new_dist[6] = new_dist[6] * 5
 
 	print_save("\nNew distances: $(new_dist)")
 
