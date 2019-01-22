@@ -1,3 +1,4 @@
+.gitignore
 
 /hank.jld
 
@@ -10,5 +11,29 @@
 /.ipynb_checkpoints/
 
 /make_plots.ipynb
+
+/New Plots.ipynb
+
+/.~New Plots.ipynb
+
+*.pdf
+
+*.jld
+
+/defs14.png
+
+/.Rhistory
+
+/.gitignore
+
+.gitignore
+
+/stats.txt
+
+/New Plots.ipynb.invalid
+
+/.gitignore
+
+/onlyspread.png
 
 /.gitignore
