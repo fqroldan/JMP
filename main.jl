@@ -132,7 +132,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 		new_center, new_dist = old_center, old_dist
 	end
 	
-	# new_dist[6] = new_dist[6] * 2
+	# new_dist[6] = new_dist[6] * 10
 
 	print_save("\nNew distances: $(new_dist)")
 
@@ -150,14 +150,18 @@ if update_start
 	really_update = true
 
 	params_center, xdist, best_run = find_new_cube(targets, W, really_update=really_update)
-	try
-		if run_number == best_run
-			path = load(pwd() * "/../../path.jld", "path")
-			save(pwd() * "/../../../path$(run_number).jld", "path", path)
-		end
-	catch
-		print_save("ERROR: Couldn't move best path")
-	end
+	# if run_number == best_run
+	# 	try
+	# 		path = load(pwd() * "/../../path.jld", "path")
+	# 		try
+	# 			save(pwd() * "/../../../path$(run_number).jld", "path", path)
+	# 		catch
+	# 			print_save("ERROR: Couldn't save best path")
+	# 		end
+	# 	catch
+	# 		print_save("ERROR: Couldn't load best path")
+	# 	end
+	# end
 	if really_update
 		use_run = best_run
 	else
