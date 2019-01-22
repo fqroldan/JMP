@@ -89,7 +89,6 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 		try
 			v_m = load(pwd() * "/../../../v_m$(jj).jld", "v_m")
 			
-			targets[4] = targets[4] / targets[2]
 			v_m[4] = v_m[4] / v_m[2]
 
 			gGMM = (v_m - targets)' * W * (v_m-targets)
@@ -141,12 +140,13 @@ end
 
 if update_start
 	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
+	targets[4] = targets[4] / targets[2]
 
 	W = zeros(length(targets),length(targets))
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
 	W[2,2] *= 100
 
-	really_update = true
+	really_update = false
 
 	params_center, xdist, best_run = find_new_cube(targets, W, really_update=really_update)
 	# if run_number == best_run
