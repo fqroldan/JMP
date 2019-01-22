@@ -145,7 +145,6 @@ if update_start
 	W = zeros(length(targets),length(targets))
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
 	W[2,2] *= 100
-	W[4,4] *= 100
 
 	really_update = true
 
@@ -254,7 +253,6 @@ function make_simulated_path(h::Hank, run_number)
 		W = zeros(length(v_m),length(v_m))
 		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
 		W[2,2] *= 100
-		W[4,4] *= 100
 
 		print_save("\nObjective function = $(@sprintf("%0.3g",(v_m - targets)'*W*(v_m-targets)))")
 		print_save("\n")
