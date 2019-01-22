@@ -88,6 +88,9 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 	for jj in 1:K
 		try
 			v_m = load(pwd() * "/../../../v_m$(jj).jld", "v_m")
+			
+			targets[4] = targets[4] / targets[2]
+			v_m[4] = v_m[4] / v_m[2]
 
 			gGMM = (v_m - targets)' * W * (v_m-targets)
 			print_save("\ng = $(@sprintf("%0.3g",gGMM)) on job $(jj)")
@@ -240,7 +243,9 @@ function make_simulated_path(h::Hank, run_number)
 	try
 		v_m = simul_stats(path)
 		targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
-		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "median Dom Holdings"; "mean wealth/Y" ]
+		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons) / σ(Output)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "median Dom Holdings"; "mean wealth/Y" ]
+		targets[4] = targets[4] / targets[2]
+		v_m[4] = v_m[4] / v_m[2]
 
 		W = zeros(length(v_m),length(v_m))
 		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
