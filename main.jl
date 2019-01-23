@@ -161,7 +161,7 @@ if update_start
 	# 		print_save("ERROR: Couldn't load best path")
 	# 	end
 	# end
-	if really_update && run_number != 20
+	if really_update #&& run_number != 20
 		use_run = best_run
 	else
 		use_run = run_number
@@ -170,7 +170,7 @@ end
 
 if run_number == 20
 	params = set_params(1, params_center, xdist)
-	rep_agent = true
+	nodef = true
 else
 	params = set_params(run_number, params_center, xdist)
 end
