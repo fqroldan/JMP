@@ -1523,8 +1523,8 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	pY = plot_sample(:Y, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
 	pu = plot_sample(:L, f=x->100*(1-x), title="Unemployment", yaxis_title="%")
 	pB = plot_sample(:B, f=x->100*x/(4*meanY), title="Bonds", yaxis_title="% of mean GDP")
-	pG = plot_sample(:G, f=x->100*x/(4*meanY), title="Govt spending", yaxis_title="% of mean GDP")
-	pT = plot_sample(:T, f=x->100*x/(4*meanY), title="Lump-sum taxes", yaxis_title="% of mean GDP")
+	pG = plot_sample(:G, f=x->100*x/(meanY), title="Govt spending", yaxis_title="% of mean GDP")
+	pT = plot_sample(:T, f=x->100*x/(meanY), title="Lump-sum taxes", yaxis_title="% of mean GDP")
 	pμ = plot_sample(:mean, title="Wealth Dist Mean")
 	pσ = plot_sample(:var, title="Wealth Dist Variance")
 	pz = plot_sample(:z, f=x->100*(exp.(x)-1), title="TFP")
@@ -1558,3 +1558,75 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	end
 	p
 end
+
+function plot_comparison_episodes(path_bench::Path, path_nodef::Path; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975)
+
+	t_epi, N = find_times_episodes(path_bench; episode_type=episode_type, πthres=πthres)
+
+	sample_bench = collect_episodes(path_bench, t_epi, N)
+	sample_nodef = collect_episodes(path_nodef, t_epi, N)
+
+	samplestats_bench = stats_sample(path_bench, sample_bench)
+	rel_samplestats_bench = stats_sample(path_bench, sample_bench; relative=true)
+
+	samplestats_nodef = stats_sample(path_nodef, sample_nodef)
+	rel_samplestats_nodef = stats_sample(path_nodef, sample_nodef; relative=true)
+
+	function plot_sample(sym::Symbol, samplestats_bench=samplestats_bench, samplestats_nodef=samplestats_nodef; fb::Function=identity, fd::Function=fb, title::String="", yaxis_title::String="")
+		# ylow = sampstats[p.n[sym],:, 1]
+		ybench = samplestats_bench[path_bench.n[sym],:, 2]
+		ynodef = samplestats_nodef[path_nodef.n[sym],:, 2]
+		# yhig = sampstats[p.n[sym],:, 3]
+		# yavg = sampstats[p.n[sym],:, 4]
+
+		p1 = plot([
+			# scatter(;x = -2.5:0.25:2.5, y = f(ylow), marker_color=col[1], line_dash="dot", opacity=0.25, showlegend=false, name="q=0.1")
+			# scatter(;x = -2.5:0.25:2.5, y = f(yhig), marker_color=col[1], line_dash="dot", opacity=0.25, fill="tonexty", fillcolor="rgba(31,119,180,0.1)", showlegend=false, name="q=0.9")
+			scatter(;x = -2.5:0.25:2.5, y = fb(ybench), marker_color=col[1], line_dash="solid", showlegend=false, name="Benchmark")
+			scatter(;x = -2.5:0.25:2.5, y = fd(ynodef), marker_color=col[2], line_dash="dashdot", showlegend=false, name="No default")
+			# scatter(;x = -2.5:0.25:2.5, y = f(yavg), marker_color=col[3], line_dash="dashdot", showlegend=false, opacity=0.4, name="mean")
+			], Layout(;title=title, yaxis_title=yaxis_title, yaxis_zeroline=false, xaxis_range=[-2.5; 2.5]))
+		return p1 
+	end
+
+	meanY = mean(path_bench.data[:,path_bench.n[:Y]])
+	meanYn = mean(path_nodef.data[:,path_nodef.n[:Y]])	
+	meanC = mean(path_bench.data[:,path_bench.n[:C]])
+	meanCd = mean(path_nodef.data[:,path_nodef.n[:C]])	
+	meanμ = mean(path_bench.data[:,path_bench.n[:μ]])
+	meanσ = mean(path_bench.data[:,path_bench.n[:σ]])
+	pY = plot_sample(:Y, fb=x->100*(x-meanY)./meanY, fd=x->100*(x-meanYn)/meanYn, title="Output", yaxis_title="% dev from mean")
+	pu = plot_sample(:L, fb=x->100*(1-x), title="Unemployment", yaxis_title="%")
+	pB = plot_sample(:B, fb=x->100*x/(4*meanY), fd = x->100*x/(4*meanYn), title="Bonds", yaxis_title="% of mean GDP")
+	pG = plot_sample(:G, fb=x->100*x/(meanY), fd = x->100*x/(1*meanYn), title="Govt spending", yaxis_title="% of mean GDP")
+	pT = plot_sample(:T, fb=x->100*x/(meanY), fd = x->100*x/(1*meanYn), title="Lump-sum taxes", yaxis_title="% of mean GDP")
+	pz = plot_sample(:z, fb=x->100*(exp.(x)-1), title="TFP")
+	pπ = plot_sample(:π, fb=x->100*x, title="Default prob", yaxis_title="%")
+	pCl = plot_sample(:C, fb=x->100*(x-meanC)./meanC, fd=x->100*(x-meanCd)/meanCd, title="Consumption", yaxis_title="% dev from mean")
+	pq = plot_sample(:qg, title="Price of new debt")
+	pWr = plot_sample(:Wr, title="Welfare in repayment")
+
+
+	println(mean(samplestats_bench[path_bench.n[:Wr],:, 2]))
+	println(mean(samplestats_nodef[path_nodef.n[:Wr],:, 2]))
+
+	println((mean(samplestats_bench[path_bench.n[:Wr],:, 2]) - mean(samplestats_nodef[path_bench.n[:Wr],:, 2]))/mean(samplestats_bench[path_bench.n[:Wr],:, 2])*100)
+
+	p1 = [pz pY pCl; pB pG pT; pu pq pWr]
+	slides? font = "Fira Sans Light": font = "STIX Two Text"
+	p1.plot.layout["font_family"] = font
+	p1.plot.layout["fontsize"] = 18
+	p1.plot.layout["height"] = 600
+	p1.plot.layout["width"] = 1100
+	if slides
+		p1.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+		p1.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+	else
+		p1.plot.layout["title"] = ""
+	end
+
+	return p1
+
+end
+
+

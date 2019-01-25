@@ -362,7 +362,21 @@ function simul_stats(path::Path)
 end
 
 
-function find_episodes(path::Path; episode_type::String="default", πthres::Float64=0.975)
+function collect_episodes(path::Path, t_epi, N)
+
+	sample = zeros(size(path.data)[2], 21, N)
+	
+	for jepi in 1:N	
+		jt = t_epi[jepi]
+		for jj in 0:20
+			sample[:, jj+1, jepi] = vec(getfrompath(path, jt-10+jj))
+		end
+	end
+
+	return sample
+end
+
+function find_times_episodes(path::Path; episode_type::String="default", πthres::Float64=0.975)
 	ζ_vec = series(path,:ζ)
 	π_vec = series(path,:π)
 	π_thres = quantile(π_vec[π_vec.>0], πthres)
@@ -392,21 +406,22 @@ function find_episodes(path::Path; episode_type::String="default", πthres::Floa
 		end
 	end
 
-	sample = zeros(size(path.data)[2], 21, N)
-
 	if N == 0
 		warn("No episodes of $(episode_type) found")
 		return sample
 	else
 		println("$N episodes found.")
 	end
+	# println(t_epi)
+	return t_epi, N
+end
 
-	for jepi in 1:N
-		jt = t_epi[jepi]
-		for jj in 0:20
-			sample[:, jj+1, jepi] = vec(getfrompath(path, jt-10+jj))
-		end
-	end
+function find_episodes(path::Path; episode_type::String="default", πthres::Float64=0.975)
+
+	t_epi, N = find_times_episodes(path; episode_type=episode_type, πthres=πthres)
+
+	sample = collect_episodes(path, t_epi, N)
+
 	return sample
 end
 
