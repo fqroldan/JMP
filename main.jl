@@ -52,25 +52,29 @@ local_run 	 = true
 update_start = true
 nodef     	 = false
 rep_agent 	 = false
+Use_Sobol 	 = false
 
 # Initialize type
 function set_params(run_number, xcenter, xdist)
 	N = length(xcenter)
-	s = SobolSeq(N)
-	x = zeros(N)
-	for j in 1:run_number
-		x = next!(s, xcenter-xdist, xcenter+xdist)
+	if Use_Sobol
+		s = SobolSeq(N)
+		x = zeros(N)
+		for j in 1:run_number
+			x = next!(s, xcenter-xdist, xcenter+xdist)
+		end
+	else
+		bv(i,n) = [j==i for j in 1:n]
+		if run_number == 1
+			x = xcenter
+		elseif run_number <= N+1
+			x = xcenter + xdist .* bv(run_number-1, N)
+		elseif run_number-N-1 <= N
+			x = xcenter - xdist .* bv(run_number-N-1, N)
+		else
+			x = xcenter
+		end
 	end
-	# bv(i,n) = [j==i for j in 1:n]
-	# if run_number == 1
-	# 	x = xcenter
-	# elseif run_number <= N+1
-	# 	x = xcenter + xdist .* bv(run_number-1, N)
-	# elseif run_number-N-1 <= N
-	# 	x = xcenter - xdist .* bv(run_number-N-1, N)
-	# else
-	# 	x = xcenter
-	# end
 	return x
 end
 #				 r_loc,   tax, RRA,    τ,  ρz,      σz,   ρξ,     σξ, wbar
@@ -82,9 +86,14 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 	old_dist = load(pwd() * "/../../../xdist.jld", "xdist")
 	srand(1)
 
+	Ng = length(old_center)
 	k = 0
 	curr_min = 1e10
 	best_run = 0
+	∇g_hi = zeros(Ng)
+	∇g_lo = zeros(Ng)
+	X_lo = zeros(Ng, Ng)
+	X_hi = zeros(Ng, Ng)
 	for jj in 1:K
 		try
 			v_m = load(pwd() * "/../../../v_m$(jj).jld", "v_m")
@@ -97,8 +106,39 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 				curr_min = gGMM
 				best_run = jj
 			end
+
+			if !Use_Sobol
+				if jj > 1
+					params = load(pwd() * "/../../../params_$(jj).jld", "params")
+					∂gj = (gGMM - gGMM_center) / norm(params - old_center)
+					if jj > 1 + Ng
+						X_hi[jj-Ng+1,:] = params - old_center
+						push!(∇g_hi, ∂gj)
+					else
+						X_lo[jj,:] = params - old_center
+						push!(∇g_lo, ∂gj)
+					end
+				else
+					gGMM_center = gGMM
+				end
+			end
+
 			k += 1
 		end
+	end
+	if !Use_Sobol
+		if det(X_hi) != 0 && det(X_lo) != 0
+			∇g_hi = transpose(transpose(∇g_hi) * inv(X_hi))
+			∇g_hi = ∇g_hi / norm(∇g_hi) * norm(xdist)
+			∇g_lo = transpose(transpose(∇g_lo) * inv(X_lo))
+			∇g_lo = ∇g_lo / norm(∇g_lo) * norm(xdist)
+			
+			∇g = (∇g_lo + ∇g_hi) / 2
+		else
+			print_save("\nMatrix of Δparams singular.")
+			∇g = zeros(size(∇g_lo))
+		end
+
 	end
 	
 	if best_run == 0
@@ -107,21 +147,29 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 		new_center = old_center
 	else
 		print_save("\nBest run from $k recovered trials = $best_run")
-		if best_run == 1
-			print_save(". Shrinking the cube.")
-			new_dist = old_dist * 0.75
-			new_center = old_center
-		else
-			print_save(". Computing new starting point.")
-			s = SobolSeq(length(old_center))
-			x = zeros(size(old_center))
-			for j in 1:best_run
-				x = next!(s, old_center-old_dist, old_center+old_dist)
+		if Use_Sobol
+			if best_run == 1
+				print_save(". Shrinking the cube.")
+				new_dist = old_dist * 0.75
+				new_center = old_center
+			else
+				print_save(". Computing new starting point.")
+				s = SobolSeq(length(old_center))
+				x = zeros(size(old_center))
+				for j in 1:best_run
+					x = next!(s, old_center-old_dist, old_center+old_dist)
+				end
+				η = 0.5
+				new_center = x * η + old_center * (1.0 - η)
 			end
-			η = 0.5
-			new_center = x * η + old_center * (1.0 - η)
-			new_dist = old_dist
+		else
+			new_center = old_center - ∇g
+			print_save("\n\nGradient movement")
+			print_save("\nold center = $(old_center)")
+			print_save("\nnew center = $(new_center)")
+			print_save("\nactual distances = $(new_center - old_center)")
 		end
+		new_dist = old_dist
 	end
 
 	# new_center += 0.05 * new_dist .* rand(size(new_center))
@@ -131,7 +179,9 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 		new_center, new_dist = old_center, old_dist
 	end
 	
-	# new_dist[6] = new_dist[6] * 5
+	# new_dist[3] = new_dist[3] * 2
+	# new_dist[5] = new_dist[5] * 2
+	# new_dist[6] = new_dist[6] * 2
 
 	print_save("\nNew distances: $(new_dist)")
 
@@ -146,7 +196,7 @@ if update_start
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
 	W[2,2] *= 100
 
-	really_update = true
+	really_update = false
 
 	params_center, xdist, best_run = find_new_cube(targets, W, really_update=really_update)
 	# if run_number == best_run
@@ -285,7 +335,7 @@ if run_number == 1
 	save(pwd() * "/../../../xdist.jld", "xdist", xdist)
 end
 save(pwd() * "/../../../params_$(run_number).jld", "params", params)
-save(pwd() * "/../../../params_center_$(run_number).jld", "params_center", params_center)
+# save(pwd() * "/../../../params_center_$(run_number).jld", "params_center", params_center)
 
 if remote || local_run
 	# vfi!(h, verbose = true, remote = remote)
