@@ -112,10 +112,10 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 					params = load(pwd() * "/../../../params_$(jj).jld", "params")
 					∂gj = (gGMM - gGMM_center) / norm(params - old_center)
 					if jj > 1 + Ng
-						X_hi[jj-Ng+1,:] = params - old_center
+						X_hi[jj-Ng-1,:] = params - old_center
 						push!(∇g_hi, ∂gj)
 					else
-						X_lo[jj,:] = params - old_center
+						X_lo[jj-1,:] = params - old_center
 						push!(∇g_lo, ∂gj)
 					end
 				else
