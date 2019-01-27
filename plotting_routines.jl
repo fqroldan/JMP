@@ -890,6 +890,107 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 	p = [p; p2]
 end
 
+function plot_defprob(h::Hank; remote::Bool=false)
+	twisted_π = zeros(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
+
+	itp_vf = make_itp(h, h.vf; agg=false)
+	itp_qᵍ = make_itp(h, h.qᵍ, agg=true)
+
+	for js in 1:size(h.Jgrid, 1)
+		jb = h.Jgrid[js, 1]
+		jμ = h.Jgrid[js, 2]
+		jσ = h.Jgrid[js, 3]
+		jξ = h.Jgrid[js, 4]
+		jζ = h.Jgrid[js, 5]
+		jz = h.Jgrid[js, 6]
+
+		bp = h.issuance[js]
+		μp = h.μ′[js,:,:,:]
+		σp = h.σ′[js,:,:,:]
+	
+		rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+
+		for (jω, ωv) in enumerate(h.ωgrid), (jϵ, ϵv) in enumerate(h.ϵgrid)
+			
+			Tv = 0.0
+			# First compute the denominator of the SDF
+			ϕa = h.ϕa[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
+			ϕb = h.ϕb[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
+
+			for (jξp, ξpv) in enumerate(h.ξgrid), jzp in 1:h.Nz
+		
+				rep_prob = rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp]
+
+				# In repayment
+				bpv = bp
+				μpv = μp[jξp, jzp, 1]
+				σpv = σp[jξp, jzp, 1]
+
+				Rb = h.κ + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, 1, jzp]
+
+
+				ωpv = ϕa + Rb * ϕb
+
+				for (jϵp, ϵpv) in enumerate(h.ϵgrid)
+					prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp] * rep_prob * h.Pϵ[jϵ, jϵp]
+					
+					vfp = itp_vf[ωpv, jϵp, bpv, μpv, σpv, ξpv, 1, jzp]
+
+					Tv += vfp^(1.0-h.γ) * prob
+				end
+				# In default
+				bpv = (1.0-h.ℏ) * bp
+				μpv = μp[jξp, jzp, 2]
+				σpv = σp[jξp, jzp, 2]
+
+				Rb = (1.0-h.ℏ) * itp_qᵍ[bpv, μpv, σpv, ξpv, 2, jzp]
+
+				ωpv = ϕa + Rb * ϕb
+
+				for (jϵp, ϵpv) in enumerate(h.ϵgrid)
+					prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp] * (1.0-rep_prob) * h.Pϵ[jϵ, jϵp]
+					
+					vfp = itp_vf[ωpv, jϵp, bpv, μpv, σpv, ξpv, 2, jzp]
+
+					Tv += vfp^(1.0-h.γ) * prob
+				end
+			end
+
+			# Now take the whole expectation to construct the likelihood ratio thing
+			ϕa = h.ϕa[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
+			ϕb = h.ϕb[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
+
+			for (jξp, ξpv) in enumerate(h.ξgrid), jzp in 1:h.Nz
+		
+				rep_prob = rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp]
+
+				# In default
+				bpv = (1.0-h.ℏ) * bp
+				μpv = μp[jξp, jzp, 2]
+				σpv = σp[jξp, jzp, 2]
+
+				Rb = (1.0-h.ℏ) * itp_qᵍ[bpv, μpv, σpv, ξpv, 2, jzp]
+
+				ωpv = ϕa + Rb * ϕb
+
+				for (jϵp, ϵpv) in enumerate(h.ϵgrid)
+					prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp] * (1.0-rep_prob) * h.Pϵ[jϵ, jϵp]
+					
+					vfp = itp_vf[ωpv, jϵp, bpv, μpv, σpv, ξpv, 1, jzp]
+
+					twisted_π[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] += prob * (vfp)^(1.0 - h.γ)/Tv
+				end
+			end
+		end
+
+	end
+
+	return twisted_π
+
+end
+
+
+
 function plot_aggcons(h::Hank; remote::Bool=false)
 	jμ, jσ, jξ = ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), ceil(Int, h.Nξ/2)
 	μv, σv, ξv = h.μgrid[jμ], h.σgrid[jσ], h.ξgrid[jξ]
