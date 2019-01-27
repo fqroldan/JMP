@@ -52,7 +52,7 @@ local_run 	 = true
 update_start = true
 nodef     	 = false
 rep_agent 	 = false
-Use_Sobol 	 = false
+Use_Sobol 	 = true
 
 # Initialize type
 function set_params(run_number, xcenter, xdist)
@@ -106,26 +106,27 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 				curr_min = gGMM
 				best_run = jj
 			end
-
-			if !Use_Sobol
-				if jj > 1
-					params = load(pwd() * "/../../../params_$(jj).jld", "params")
-					∂gj = (gGMM - gGMM_center) / norm(params - old_center)
-					if jj > 1 + Ng
-						X_hi[jj-Ng-1,:] = params - old_center
-						push!(∇g_hi, ∂gj)
-					else
-						X_lo[jj-1,:] = params - old_center
-						push!(∇g_lo, ∂gj)
-					end
-				else
-					gGMM_center = gGMM
-				end
-			end
-
 			k += 1
+
+			# if !Use_Sobol
+			if jj > 1
+				params = load(pwd() * "/../../../params_$(jj).jld", "params")
+				print_save("\nMovements in run $(jj): $(params-old_center)")
+				∂gj = (gGMM - gGMM_center) / norm(params - old_center)
+				if jj > 1 + Ng
+					X_hi[jj-Ng-1,:] = params - old_center
+					push!(∇g_hi, ∂gj)
+				else
+					X_lo[jj-1,:] = params - old_center
+					push!(∇g_lo, ∂gj)
+				end
+			else
+				gGMM_center = gGMM
+			end
+			# end
 		end
 	end
+
 	if !Use_Sobol
 		if det(X_hi) != 0 && det(X_lo) != 0
 			∇g_hi = transpose(transpose(∇g_hi) * inv(X_hi))
@@ -196,7 +197,7 @@ if update_start
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
 	W[2,2] *= 100
 
-	really_update = false
+	really_update = true
 
 	params_center, xdist, best_run = find_new_cube(targets, W, really_update=really_update)
 	# if run_number == best_run
