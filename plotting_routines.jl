@@ -892,6 +892,7 @@ end
 
 function plot_defprob(h::Hank; remote::Bool=false)
 	twisted_π = zeros(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
+	π_vec = zeros(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 
 	itp_vf = make_itp(h, h.vf; agg=false)
 	itp_qᵍ = make_itp(h, h.qᵍ, agg=true)
@@ -979,13 +980,14 @@ function plot_defprob(h::Hank; remote::Bool=false)
 					vfp = itp_vf[ωpv, jϵp, bpv, μpv, σpv, ξpv, 1, jzp]
 
 					twisted_π[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] += prob * (vfp)^(1.0 - h.γ)/Tv
+					π_vec[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] += prob
 				end
 			end
 		end
 
 	end
 
-	return twisted_π
+	return twisted_π, π_vec
 
 end
 
