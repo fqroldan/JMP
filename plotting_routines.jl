@@ -956,6 +956,7 @@ function plot_defprob(h::Hank; remote::Bool=false)
 					Tv += vfp^(1.0-h.γ) * prob
 				end
 			end
+			Tv = Tv^(1.0/(1.0-h.γ))
 
 			# Now take the whole expectation to construct the likelihood ratio thing
 			ϕa = h.ϕa[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
@@ -979,7 +980,7 @@ function plot_defprob(h::Hank; remote::Bool=false)
 					
 					vfp = itp_vf[ωpv, jϵp, bpv, μpv, σpv, ξpv, 1, jzp]
 
-					twisted_π[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] += prob * (vfp)^(1.0 - h.γ)/Tv
+					twisted_π[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] += prob * (vfp/Tv)^(1.0/h.ψ - h.γ)
 					π_vec[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] += prob
 				end
 			end
