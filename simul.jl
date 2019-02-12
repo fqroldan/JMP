@@ -325,22 +325,30 @@ end
 
 get_MV(y::Vector) = mean(y), var(y)^0.5
 
-function simul_stats(path::Path)
+function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[])
 	T = size(path.data, 1)
+	
+	if ζ_vec == []
+		ζ_vec = series(path,:ζ) - 1
+	end
 
-	B_vec = series(path,:B)
-	μ_vec = series(path,:μ)
-	σ_vec = series(path,:σ)
-	w_vec = series(path,:w)
-	ζ_vec = series(path,:ζ)-1
-	z_vec = exp.(series(path,:z))
-	Y_vec = series(path,:Y)
-	C_vec = series(path,:C)
-	G_vec = series(path,:G)
-	π_vec = series(path,:π)
-	ψ_vec = series(path,:ψ)
-	u_vec = 100.0 * (1.0 - series(path, :L))
-	spr_vec = 1.0./series(path, :qg) - 1.0
+	conditional = (ζ_vec .> -Inf)
+	if nodef
+		conditional = (ζ_vec .== 1)
+	end
+
+	B_vec = series(path,:B)[conditional]
+	μ_vec = series(path,:μ)[conditional]
+	σ_vec = series(path,:σ)[conditional]
+	w_vec = series(path,:w)[conditional]
+	z_vec = exp.(series(path,:z)[conditional])
+	Y_vec = series(path,:Y)[conditional]
+	C_vec = series(path,:C)[conditional]
+	G_vec = series(path,:G)[conditional]
+	π_vec = series(path,:π)[conditional]
+	ψ_vec = series(path,:ψ)[conditional]
+	u_vec = 100.0 * (1.0 - series(path, :L)[conditional])
+	spr_vec = 1.0./series(path, :qg)[conditional] - 1.0
 
 	print("\nT = $T")
 
