@@ -77,9 +77,10 @@ function set_params(run_number, xcenter, xdist)
 	end
 	return x
 end
-#				 r_loc,   tax, RRA,    τ,  ρz,      σz,   ρξ,     σξ, wbar
-params_center = [0.055; 0.025; 7.5; 0.15; 0.9;   0.025; 0.95; 0.0025; 1.175]
-xdist = 		[0.015; 0.01;  2.5; 0.05; 0.01; 0.0025; 0.01;  0.001; 0.025]
+#				 r_loc,         tax,   RRA,      τ,       ρz,          σz,    ρξ,     σξ,    wbar
+params_center = [0.04478; 0.0136069; 14.25; 0.1927; 0.876299;   0.0543715; 0.947; 0.0019; 1.15434]
+xdist = 		[0.015;        0.01;   2.5;   0.05;     0.01;      0.0025;  0.01;  0.001; 0.025]
+best_run, use_run = 1, 1
 
 function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::Bool=true)
 	old_center = load(pwd() * "/../../../params_center.jld", "params_center")
@@ -197,7 +198,7 @@ if update_start
 	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
 	W[2,2] *= 100
 
-	really_update = true
+	really_update = false
 
 	params_center, xdist, best_run = find_new_cube(targets, W, really_update=really_update)
 	# if run_number == best_run
@@ -212,7 +213,7 @@ if update_start
 	# 		print_save("ERROR: Couldn't load best path")
 	# 	end
 	# end
-	if really_update #&& run_number != 20
+	if really_update && run_number != 20
 		use_run = best_run
 	else
 		use_run = run_number
