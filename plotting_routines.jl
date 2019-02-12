@@ -973,12 +973,20 @@ function plot_defprob(h::Hank; remote::Bool=false)
 
 				Rb = (1.0-h.ℏ) * itp_qᵍ[bpv, μpv, σpv, ξpv, 2, jzp]
 
+				ωpv_def = ϕa + Rb * ϕb
+
+				bpv = (1.0-h.ℏ) * bp
+				μpv = μp[jξp, jzp, 2]
+				σpv = σp[jξp, jzp, 2]
+
+				Rb = (1.0-h.ℏ) * itp_qᵍ[bpv, μpv, σpv, ξpv, 2, jzp]
+
 				ωpv = ϕa + Rb * ϕb
 
 				for (jϵp, ϵpv) in enumerate(h.ϵgrid)
 					prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp] * (1.0-rep_prob) * h.Pϵ[jϵ, jϵp]
 					
-					vfp = itp_vf[ωpv, jϵp, bpv, μpv, σpv, ξpv, 1, jzp]
+					vfp = itp_vf[ωpv_def, jϵp, bpv, μpv, σpv, ξpv, 1, jzp]
 
 					twisted_π[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] += prob * (vfp/Tv)^(1.0/h.ψ - h.γ)
 					π_vec[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] += prob
