@@ -42,12 +42,12 @@ function make_params_table(params)
 	corr[3] = 100
 	corr[7] = 100
 
-	colnames = ["Discount rate of HHs			"; "Risk aversion					"; "Progressivity of tax schedule	"; "Wage minimum					"; "TFP process						"; "Mean risk premium				"; "Risk premium AR(1)				"]
+	rownames = ["Discount rate of HHs			"; "Risk aversion					"; "Progressivity of tax schedule	"; "Wage minimum					"; "TFP process						"; "Mean risk premium				"; "Risk premium AR(1)				"]
 	descrips = ["\$ 1 \/ \\beta - 1 \$"; "\$ \\gamma \$		"; "\$ \\tau \$			"; "\$ \\bar{w} \$		"; "\$ \\rho_z, \\sigma_z \$"; "\$\\bar{\\xi}\$"; "\$\\rho_\\xi, \\sigma_\\xi\$"]
-	single = zeros(size(colnames))
+	single = zeros(size(rownames))
 
 	jpar = 1
-	for jj in 1:length(colnames)
+	for jj in 1:length(rownames)
 		if jj != 5 && jj != 7
 			fill_param = "$(@sprintf("%0.3g",params[jpar]*corr[jpar]))"
 			if jj == 1
@@ -61,7 +61,7 @@ function make_params_table(params)
 			fill_param = "($(@sprintf("%0.3g",params[jpar])), $(@sprintf("%0.3g",params[jpar+1])))"
 			jpar += 2
 		end
-		table *= "\n		" * colnames[jj] * " \& " * descrips[jj] * "	\& " * fill_param * " \& Moments in Table \\ref{tab:calibration} \\\\"
+		table *= "\n		" * rownames[jj] * " \& " * descrips[jj] * "	\& " * fill_param * " \& Moments in Table \\ref{tab:calibration} \\\\"
 	end
 	table *= "\n		\\bottomrule"
 	# write(pwd()*"/../../params_table.txt", last_table)
@@ -72,7 +72,7 @@ end
 function make_calib_table(v_m)
 	table = ""
 
-	colnames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread	"; "Std coef spread		"; "Avg Debt-to-GDP		"; "Std Debt-to-GDP		"; "Avg unemployment	"; "Std unemployment	"; "Median dom holdings	"; "Avg wealth-to-GDP	"]
+	rownames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread	"; "Std coef spread		"; "Avg Debt-to-GDP		"; "Std Debt-to-GDP		"; "Avg unemployment	"; "Std unemployment	"; "Median dom holdings	"; "Avg wealth-to-GDP	"]
 
 	data_stats = [ 0.96580506; 0.01294576; 0.96172496; 0.01663608; 0.96656486; 0.10252351; 64.57638889; 23.48323041; 15.94722222; 6.08732167; 56.49; 94.48]
 
@@ -81,7 +81,26 @@ function make_calib_table(v_m)
 
 	for jj in 1:length(data_stats)
 		list_perc[jj] == 1 ? perc = "\\%" : perc = ""
-		table *= "\n		" * colnames[jj] * "	\& 	$(@sprintf("%0.3g",v_m[jj]))" * perc * "	\& 	$(@sprintf("%0.3g",data_stats[jj]))" * perc * "\\\\"
+		table *= "\n		" * rownames[jj] * "	\& 	$(@sprintf("%0.3g",v_m[jj]))" * perc * "	\& 	$(@sprintf("%0.3g",data_stats[jj]))" * perc * "\\\\"
+	end
+	table *= "\n		\\bottomrule"
+
+	print(table)
+end
+
+function make_calib_table_comp(v_m, v_m_nodef)
+	table = ""
+
+	rownames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread	"; "Std coef spread		"; "Avg Debt-to-GDP		"; "Std Debt-to-GDP		"; "Avg unemployment	"; "Std unemployment	"; "Median dom holdings	"; "Avg wealth-to-GDP	"]
+
+	data_stats = [ 0.96580506; 0.01294576; 0.96172496; 0.01663608; 0.96656486; 0.10252351; 64.57638889; 23.48323041; 15.94722222; 6.08732167; 56.49; 94.48]
+
+	list_perc = ones(size(data_stats))
+	list_perc[1:6] = 0
+
+	for jj in 1:length(data_stats)
+		list_perc[jj] == 1 ? perc = "\\%" : perc = ""
+		table *= "\n		" * rownames[jj] * "	\& 	$(@sprintf("%0.3g",v_m[jj]))" * perc * "	\& 	$(@sprintf("%0.3g",v_m_nodef[jj]))" * perc * "\\\\"
 	end
 	table *= "\n		\\bottomrule"
 
