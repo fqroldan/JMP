@@ -1,5 +1,3 @@
-.gitignore
-
 /hank.jld
 
 /income_fluct.jl

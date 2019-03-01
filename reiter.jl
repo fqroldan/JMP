@@ -12,7 +12,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				ωmax = 20.,
 				wbar = 1.175,
 				curv = .4,
-				income_process = "Floden-Lindé",
+				income_process = "Mendoza-D'Erasmo",
 				EpsteinZin = true,
 				order = 3,
 				Nω_fine = 2500,
@@ -128,7 +128,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	η = μ_anzo
 	ϖ = ω_anzo^(1.0/μ_anzo)
 
-	# ϖ = 0.7 * ϖ	
+	# ϖ = 0.7 * ϖ
 
 	# Grids for endogenous aggregate states
 	Bmax  = 5.0
@@ -231,8 +231,8 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	issuance 	= min.(max.(reshape(issuance,  Nb*Nμ*Nσ*Nξ*Nζ*Nz), minimum(bgrid)), maximum(bgrid))
 	output 		= reshape(output, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 	profits 	= output - wage .* Ld
-	
-	welfare   	= zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)	
+
+	welfare   	= zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 
 
 	ϕa     = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
@@ -366,7 +366,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 			isapprox(check, 1.0) || print_save("WARNING: wrong transitions in update_qᵍ!")
 			qst = E_rep / (1.0 + h.r_star)
 			qᵍ[jb, jμ, jσ, jξ, jζ, jz] = qst
-			
+
 			coupon = h.κ * (1.0 - ξv)
 			spread[jb, jμ, jσ, jξ, jζ, jz] = 1.0 / qst - coupon / (h.r_star + h.ρ)
 		end
@@ -599,7 +599,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			iter += 1
 			iter_cycle = 0
 			print_save("\n\nIteration $iter")
-			
+
 			iterate_qᵍ!(h)
 			update_fiscalrules!(h)
 			var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
