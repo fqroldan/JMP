@@ -42,7 +42,7 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 	
 	itp_W = make_itp(h, h.welfare; agg=true)
 
-	μ_gov = 0.01
+	μ_gov = 0.01 * 0.0
 	σ_gov = 0.0008
 
 	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
@@ -138,7 +138,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 	while dist > tol && out_iter < maxiter
 		print_save("\n\nOuter Iteration $out_iter\n")
 		vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 15)
-		h.upd_tol = max(min(h.upd_tol*10, 5e-2), 1e-5)
+		h.upd_tol = max(min(h.upd_tol*10, tol_vfi/10), 1e-5)
 		
 		W_new = update_W(h)
 
