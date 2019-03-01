@@ -335,6 +335,7 @@ function make_simulated_path(h::Hank, run_number)
 	catch
 		print_save("\nWARNING: Found problems computing simulation statistics")
 	end
+	v_m[4] = v_m[4] * v_m[2]
 	save(pwd() * "/../../../v_m$(run_number).jld", "v_m", v_m)
 	write(pwd()*"/stats.txt", "$(v_m)")
 	nothing
