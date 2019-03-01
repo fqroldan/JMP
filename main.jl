@@ -163,6 +163,12 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 				end
 				η = 0.5
 				new_center = x * η + old_center * (1.0 - η)
+				try
+					old_output = readstring(pwd()*"/../../../run$(best_run)/old_output.txt")
+					write(pwd()*"/../../../output.txt", old_output)
+				catch
+					print_save("\nWARNING: Failed to save old bests")
+				end
 			end
 		else
 			new_center = old_center - ∇g
@@ -181,6 +187,8 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 		new_center, new_dist = old_center, old_dist
 	end
 	
+	# new_center[6] = new_center[6] * 0.5
+
 	# new_dist[3] = new_dist[3] * 2
 	# new_dist[5] = new_dist[5] * 2
 	# new_dist[6] = new_dist[6] * 2
@@ -344,6 +352,6 @@ if remote || local_run
 	mpe_iter!(h; remote = remote, nodef = nodef, rep_agent = rep_agent, run_number=run_number)
 end
 
-make_simulated_path(h)
+make_simulated_path(h, run_number)
 
 nothing
