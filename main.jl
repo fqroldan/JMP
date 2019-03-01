@@ -98,7 +98,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 	for jj in 1:K
 		try
 			v_m = load(pwd() * "/../../../v_m$(jj).jld", "v_m")
-			
+
 			v_m[4] = v_m[4] / v_m[2]
 
 			gGMM = (v_m - targets)' * W * (v_m-targets)
@@ -134,7 +134,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 			∇g_hi = ∇g_hi / norm(∇g_hi) * norm(xdist)
 			∇g_lo = transpose(transpose(∇g_lo) * inv(X_lo))
 			∇g_lo = ∇g_lo / norm(∇g_lo) * norm(xdist)
-			
+
 			∇g = (∇g_lo + ∇g_hi) / 2
 		else
 			print_save("\nMatrix of Δparams singular.")
@@ -142,7 +142,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 		end
 
 	end
-	
+
 	if best_run == 0
 		print_save("\nNo guesses available, keeping original parameters")
 		new_dist = old_dist
@@ -186,7 +186,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 	else
 		new_center, new_dist = old_center, old_dist
 	end
-	
+
 	# new_center[6] = new_center[6] * 0.5
 
 	# new_dist[3] = new_dist[3] * 2
@@ -248,7 +248,7 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 			h2 = load(pwd() * "/../../hank.jld", "h")
 			remote ? h2 = load(pwd() * "/../../hank.jld", "h") : h2 = load("hank.jld", "h")
 			print_save("\nFound JLD file")
-			try 
+			try
 				h2 = load(pwd() * "/../../hank$(use_run).jld", "h")
 				print_save(" for best past run $(use_run)")
 			end
@@ -313,7 +313,8 @@ function make_simulated_path(h::Hank, run_number)
 		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
 		W[2,2] *= 100
 
-		print_save("\nObjective function = $(@sprintf("%0.3g",(v_m - targets)'*W*(v_m-targets)))")
+		g = (v_m - targets)'*W*(v_m-targets)
+		print_save("\nObjective function = $(@sprintf("%0.3g",g))")
 		print_save("\n")
 		for jj in 1:length(targets)
 			print_save("$(@sprintf("%0.3g",v_m[jj]))  ")
