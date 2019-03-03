@@ -185,6 +185,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 	if really_update
 	else
 		new_center, new_dist = old_center, old_dist
+		print_save("\nKeeping old parameters.")
 	end
 
 	# new_center[6] = new_center[6] * 0.5
