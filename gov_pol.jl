@@ -42,7 +42,7 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 	
 	itp_W = make_itp(h, h.welfare; agg=true)
 
-	μ_gov = 0.01 * 0.0
+	μ_gov = 0.01 #* 0.0
 	σ_gov = 0.0008
 
 	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)

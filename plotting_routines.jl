@@ -1595,15 +1595,15 @@ function stack_sample(p::Path, sample)
 	return stack
 end
 
-function volYC(p::Path; episode_type::String="default")
-	sample = find_episodes(p, episode_type=episode_type)
+function volYC(p::Path; episode_type::String="default", πthres::Float64=0.975)
+	sample = find_episodes(p, episode_type=episode_type, πthres=πthres)
 
 	stack = stack_sample(p, sample)
 
-	σY = _estimateAR1(stack[p.n[:Y],:])
-	σC = _estimateAR1(stack[p.n[:C],:])
+	σY = get_AR1(stack[p.n[:Y],:])[2]
+	σC = get_AR1(stack[p.n[:C],:])[2]
 
-	return σY, σC
+	return σY, σC, σC/σY
 end
 
 function plot_episodes(p::Path; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975)
