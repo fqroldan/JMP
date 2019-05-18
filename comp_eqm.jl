@@ -119,7 +119,7 @@ function labor_market(h::Hank, ζv, zv, ξREMOVE, pNv; w_slack::Bool=false)
 	if Ld - Ls > 1e-4
 		res = Optim.optimize(
 			w -> (labor_demand(h, w, zv, ζv, pNv) - Ls)^2,
-				w_constraint, 1.*w_max, GoldenSection()
+				w_constraint, 1.0.*w_max, GoldenSection()
 			)
 		w_new = res.minimizer
 		minf = Ls - labor_demand(h, w_new, zv, ζv, pNv)
@@ -157,11 +157,11 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	val_C, sum_prob = 0., 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
-		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=500)
 		sum_prob += val_pdf * h.λϵ[jϵ]
 
 		f(ω) = f_pdf(ω) * itp_ϕc[ω, jϵ, bv, μv, σv, ξv, jζ, jz, pN]
-		(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+		(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=500)
 	
 		val_C += val * h.λϵ[jϵ]
 	end
@@ -742,29 +742,4 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 	h.σ′ = max.(min.(σ′_new, maximum(h.σgrid)), minimum(h.σgrid))
 
 	nothing
-end
-
-function make_logN(meanX, varX)
-	""" Takes mean and variance and returns μ and σ parameters for logNormal dist"""
-	Eσ2 = 1.0 + varX / ( meanX^2 )
-
-	if Eσ2 > 1. 
-		σ2 = log( Eσ2 )
-	else
-		# print_save("\n1 + vω / Eω² = $(Eσ2)")
-		σ2 = 1e-6
-	end
-
-	μ = log(meanX) - 0.5 * σ2
-	σ = sqrt(σ2)
-	return μ, σ
-end
-
-function unmake_logN(μ, σ)
-	""" Takes parameters and returns mean and variance """
-
-	m = exp.(μ + 0.5*σ.^2)
-	v = exp.(σ.^2 - 1) .* exp.(2*μ + σ.^2)
-
-	return m, v
 end

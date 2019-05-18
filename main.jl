@@ -51,6 +51,7 @@ print_save("\nRun number: $run_number")
 local_run 	 = true
 update_start = true
 nodef     	 = false
+noΔ 		 = false
 rep_agent 	 = false
 Use_Sobol 	 = true
 
@@ -77,14 +78,14 @@ function set_params(run_number, xcenter, xdist)
 	end
 	return x
 end
-#				 r_loc,        tax,    RRA,      τ,       ρz,        σz,    ρξ,     σξ,    wbar
-params_center = [0.04384; 0.006731; 14.718; 0.2520; 0.871924; 0.0262483; 0.938; 0.0075; 1.17153]
-xdist = 		[0.015;       0.01;    2.5;   0.05;     0.01;    0.0025;  0.01;  0.001; 0.025]
+#				 r_loc,        tax,      RRA,      τ,       ρz,        σz,          ρξ,        σξ,    wbar
+params_center = [0.0752463; 0.0039185; 14.6399; 0.234812; 0.867237; 0.0280452; 0.943312; 0.00634375; 1.15825]
+xdist = 		[0.015;       0.01;        2.5;     0.05;     0.01;     0.025;     0.01;      0.001;   0.025]
 best_run, use_run = 1, 1
 
-function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::Bool=true)
-	old_center = load(pwd() * "/../../../params_center.jld", "params_center")
-	old_dist = load(pwd() * "/../../../xdist.jld", "xdist")
+function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::Bool=true)
+	old_center = load(pwd() * "/../../params_center.jld", "params_center")
+	old_dist = load(pwd() * "/../../xdist.jld", "xdist")
 	srand(1)
 
 	Ng = length(old_center)
@@ -96,35 +97,37 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 	X_lo = zeros(Ng, Ng)
 	X_hi = zeros(Ng, Ng)
 	for jj in 1:K
-		try
-			v_m = load(pwd() * "/../../../v_m$(jj).jld", "v_m")
+		if jj == 1 || jj > 3
+			try
+				v_m = load(pwd() * "/../../v_m$(jj).jld", "v_m")
 
-			v_m[4] = v_m[4] / v_m[2]
+				v_m[4] = v_m[4] / v_m[2]
 
-			gGMM = (v_m - targets)' * W * (v_m-targets)
-			print_save("\ng = $(@sprintf("%0.3g",gGMM)) on job $(jj)")
-			if gGMM < curr_min
-				curr_min = gGMM
-				best_run = jj
-			end
-			k += 1
-
-			# if !Use_Sobol
-			if jj > 1
-				params = load(pwd() * "/../../../params_$(jj).jld", "params")
-				print_save("\nMovements in run $(jj): $(params-old_center)")
-				∂gj = (gGMM - gGMM_center) / norm(params - old_center)
-				if jj > 1 + Ng
-					X_hi[jj-Ng-1,:] = params - old_center
-					push!(∇g_hi, ∂gj)
-				else
-					X_lo[jj-1,:] = params - old_center
-					push!(∇g_lo, ∂gj)
+				gGMM = (v_m - targets)' * W * (v_m-targets)
+				print_save("\ng = $(@sprintf("%0.3g",gGMM)) on job $(jj)")
+				if gGMM < curr_min
+					curr_min = gGMM
+					best_run = jj
 				end
-			else
-				gGMM_center = gGMM
+				k += 1
+
+				# if !Use_Sobol
+				if jj > 1
+					params = load(pwd() * "/../../../params_$(jj).jld", "params")
+					print_save("\nMovements in run $(jj): $(params-old_center)")
+					∂gj = (gGMM - gGMM_center) / norm(params - old_center)
+					if jj > 1 + Ng
+						X_hi[jj-Ng-1,:] = params - old_center
+						push!(∇g_hi, ∂gj)
+					else
+						X_lo[jj-1,:] = params - old_center
+						push!(∇g_lo, ∂gj)
+					end
+				else
+					gGMM_center = gGMM
+				end
+				# end
 			end
-			# end
 		end
 	end
 
@@ -161,7 +164,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=19, really_update::B
 				for j in 1:best_run
 					x = next!(s, old_center-old_dist, old_center+old_dist)
 				end
-				η = 0.5
+				η = 0.33
 				new_center = x * η + old_center * (1.0 - η)
 				try
 					old_output = readstring(pwd()*"/../../../run$(best_run)/old_output.txt")
@@ -223,25 +226,29 @@ if update_start
 	# 		print_save("ERROR: Couldn't load best path")
 	# 	end
 	# end
-	if really_update && run_number != 20
-		use_run = best_run
+	if really_update && run_number > 3
+		use_run = best_run - 2
 	else
 		use_run = run_number
 	end
 end
 
-if run_number == 20
+if run_number <= 3
 	params = set_params(1, params_center, xdist)
-	nodef = true
+	if run_number == 2
+		nodef = true
+	elseif run_number == 3
+		noΔ = true
+	end
 else
-	params = set_params(run_number, params_center, xdist)
+	params = set_params(run_number-2, params_center, xdist)
 end
 r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
 
 
-function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, use_run)
+function make_guess(remote, local_run, nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, use_run)
 	if remote || local_run
-		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
+		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
 			# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
 			);
 		print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,3)), $(round(RRA,3)), $(round(τ,3)), $(round(wbar,3)), $(round(ρz,3)), $(round(σz,3)), $(round(tax,3)), $(round(ρξ,3)), $(round(σξ,3))")
@@ -288,7 +295,7 @@ function make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρ
 	end
 	return h
 end
-h = make_guess(remote, local_run, nodef, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, use_run);
+h = make_guess(remote, local_run, nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, use_run);
 
 print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")
@@ -354,7 +361,7 @@ save(pwd() * "/../../../params_$(run_number).jld", "params", params)
 
 if remote || local_run
 	# vfi!(h, verbose = true, remote = remote)
-	mpe_iter!(h; remote = remote, nodef = nodef, rep_agent = rep_agent, run_number=run_number)
+	mpe_iter!(h; remote = remote, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number)
 end
 
 make_simulated_path(h, run_number)

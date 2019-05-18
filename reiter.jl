@@ -27,18 +27,23 @@ function Hank(;	β = (1.0/1.05)^0.25,
 				σz = 0.025,
 				ρξ = 0.95,
 				σξ = 0.0025,
-				ℏ = 0.65,
+				ℏ = 0.45,
 				Δ = 0.1,
-				θ = .04,
+				θ = .04167,
 				Np = 5,
 				upd_tol = 5e-3,
 				nodef::Bool = false,
+				noΔ::Bool = false,
 				rep_agent::Bool = false
 				)
 	ψ = IES
 	γ = 0.
 	if EpsteinZin == true
 		γ = RRA
+	end
+
+	if noΔ
+		Δ = 0.0
 	end
 
 	σmin, σmax = 0.1, 1.25
@@ -87,8 +92,9 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	zgrid, Pz = tauchen_fun(Nz, ρz, σz, m=1.5)
 
 	meanξ = tax
-	ξ_chain = tauchen(Nξ, ρξ, σξ, meanξ * (1.0-ρξ), 1)
-	Pξ, ξgrid = ξ_chain.p, ξ_chain.state_values
+	# ξ_chain = tauchen(Nξ, ρξ, σξ, meanξ * (1.0-ρξ), 1)
+	# Pξ, ξgrid = ξ_chain.p, ξ_chain.state_values
+	ξgrid, Pξ = tauchen_fun(Nξ, ρξ, σξ, m=0.5, mu=meanξ)
 
 	# Idiosyncratic risk
 	ρϵ, σϵ = 0., 0.
@@ -131,7 +137,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	# ϖ = 0.7 * ϖ
 
 	# Grids for endogenous aggregate states
-	Bmax  = 5.0
+	Bmax  = 6.5
 	Bbar  = Bmax * 0.5
 	bgrid = linspace(0.0, Bmax, Nb)
 	μgrid = linspace(-2.5, 0.75, Nμ)
@@ -435,7 +441,7 @@ function update_fiscalrules!(h::Hank)
 
 	coef_B = [ 1.0786829981  0.3342813521  0.0001223178 -0.0102040316  0.0001494438  0.0461321365 -0.0014158229 ]
 	g = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 ] * coef_g' / 100
-	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2*0.0 NX*0.0 NX2*0.0 ] * coef_B' / 100
+	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2*0.0 NX NX2*0.0 ] * coef_B' / 100
 
 	h.spending = max.(min.(vec(g), 0.35), 0.) .* (1 * h.output)
 	h.issuance = min.(0.35,max.(0., vec(net_iss))) .* (4 * h.output) + (1.0-h.ρ)*h.bgrid[h.Jgrid[:, 1]]

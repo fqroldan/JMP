@@ -122,8 +122,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	p25 = dot(λt, b25) / dot(λt, ϕb)
 	p90 = dot(λt, b90) / dot(λt, ϕb)
 
-	aggC_T = C  * h.ϖ * (1./pC)^(-h.η)
-	NX = supply_T - aggC_T - G * (1.-h.ϑ)
+	aggC_T = C  * h.ϖ * (1.0./pC)^(-h.η)
+	NX = supply_T - aggC_T - G * (1.0.-h.ϑ)
 
 	Eω_fromb = dot(λt, avgω_fromb) / dot(λt, ϕb)
 
@@ -188,7 +188,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	else
 		# Compute welfare in case repay and default
 		Wr = itp_W[Bprime, 			μ′[jξp,jzp,1], σ′[jξp,jzp,1], ξt, 1, jzp]
-		Wd = itp_W[(1.-h.ℏ)*Bprime, μ′[jξp,jzp,2], σ′[jξp,jzp,2], ξt, 2, jzp]
+		Wd = itp_W[(1.0.-h.ℏ)*Bprime, μ′[jξp,jzp,2], σ′[jξp,jzp,2], ξt, 2, jzp]
 		# Now draw default
 		if phase == "no def"
 			repay_prime = 1.
@@ -329,7 +329,7 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[])
 	T = size(path.data, 1)
 	
 	if ζ_vec == []
-		ζ_vec = series(path,:ζ) - 1
+		ζ_vec = series(path,:ζ) .- 1
 	end
 
 	conditional = (ζ_vec .> -Inf)
@@ -347,8 +347,8 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[])
 	G_vec = series(path,:G)[conditional]
 	π_vec = series(path,:π)[conditional]
 	ψ_vec = series(path,:ψ)[conditional]
-	u_vec = 100.0 * (1.0 - series(path, :L)[conditional])
-	spr_vec = 1.0./series(path, :qg)[conditional] - 1.0
+	u_vec = 100.0 * (1.0 .- series(path, :L)[conditional])
+	spr_vec = 1.0./series(path, :qg)[conditional] .- 1.0
 
 	print("\nT = $T")
 
@@ -400,7 +400,7 @@ function find_times_episodes(path::Path; episode_type::String="default", πthres
 				push!(t_epi, jt)
 			end
 		elseif episode_type=="highspread"
-			if minimum(π_vec[jt-5+1:jt]) >= π_thres
+			if minimum(π_vec[jt-2+1:jt+2]) >= π_thres
 				N += 1
 				push!(t_epi, jt)
 			end

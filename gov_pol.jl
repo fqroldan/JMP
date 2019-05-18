@@ -42,7 +42,8 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 	
 	itp_W = make_itp(h, h.welfare; agg=true)
 
-	μ_gov = 0.01 #* 0.0
+	# More μ means default more often
+	μ_gov = 0.001 * 0.0
 	σ_gov = 0.0008
 
 	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
@@ -124,7 +125,7 @@ function update_W(h::Hank)
 end
 
 
-function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64=1e-4, nodef::Bool=false, rep_agent::Bool=false, run_number::Int64=1)
+function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64=1e-4, nodef::Bool=false, noΔ::Bool=false, rep_agent::Bool=false, run_number::Int64=1)
 	print_save("\nIterating on the government's policy: ")
 	time_init = time()
 	t_old = time_init
@@ -153,7 +154,9 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 
 		if nodef
 			h.repay = ones(h.repay)
-			dist = 0.
+			dist = 0.0
+		elseif noΔ
+			dist = 0.0
 		else
 			new_rep = update_govpol(h; η_rep = 0.25)
 			old_norm = sqrt.(sum(old_rep.^2))

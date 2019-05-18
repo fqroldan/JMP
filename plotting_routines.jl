@@ -1,5 +1,5 @@
 using Interpolations, PlotlyJS
-include("comp_eqm.jl")
+#include("comp_eqm.jl")
 col = [	"#1f77b4",  # muted blue
 		"#ff7f0e",  # safety orange
 		"#2ca02c",  # cooked asparagus green
@@ -13,10 +13,10 @@ col = [	"#1f77b4",  # muted blue
 		]
 
 function style_contour(p, n=2; slides::Bool=false)
-	slides? height = 600: height = 450
-	slides? width = 1000: width = 900
-	slides? font = "Fira Sans Light": font = "STIX Two Text"
-	slides? fontsize = 16: fontsize = 16
+	slides ? height = 600 : height = 450
+	slides ? width = 1000 : width = 900
+	slides ? font = "Fira Sans Light" : font = "STIX Two Text"
+	slides ? fontsize = 16 : fontsize = 16
 	p.plot.layout["width"] = width
 	p.plot.layout["height"] = height
 	p.plot.layout["font_family"] = font
@@ -34,11 +34,11 @@ end
 
 function style_lines(p, w::Int=0, h::Int=0; slides::Bool=false)
 	!(w==0 || h==0) || throw(error("Must specify w and h"))
-	slides? height = 250: height = 250
+	slides ? height = 250 : height = 250
 	width = height
 	width *= w
 	height *= h
-	slides? font = "Fira Sans Light": font = "STIX Two Text"
+	slides ? font = "Fira Sans Light" : font = "STIX Two Text"
 	fontsize = 16
 	p.plot.layout["line_width"] = 3
 	p.plot.layout["width"] = width
@@ -371,7 +371,7 @@ function plot_gov_welf(h::Hank; remote::Bool=false)
 			EWr += prob * integrate_itp(h, bvp, μvp, σvp, ξvp, 1, jzp, itp_vf)
 			μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jzp, 2]
 			σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jzp, 2]
-			EWd += prob * integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, ξvp, 2, jzp, itp_vf)
+			EWd += prob * integrate_itp(h, (1.0 .-h.ℏ)*bvp, μvp, σvp, ξvp, 2, jzp, itp_vf)
 		end
 
 		Wr_vec[js] = EWr
@@ -457,7 +457,7 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, Ts::Bool=false, Bs::Bool
 		for jzp in 1:h.Nz
 			μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 1]
 			σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 1]
-			exp_rep[jzp] = (rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] * (h.κ + (1.0-h.ρ) * itp_qᵍ[bvp, μvp, σvp, ξpv, 1, jzp] ) + (1.0-rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp]) * (1.0-h.ρ) * (1.0-h.ℏ) * itp_qᵍ[(1.-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp])	/ h.qᵍ[js]
+			exp_rep[jzp] = (rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] * (h.κ + (1.0-h.ρ) * itp_qᵍ[bvp, μvp, σvp, ξpv, 1, jzp] ) + (1.0-rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp]) * (1.0-h.ρ) * (1.0-h.ℏ) * itp_qᵍ[(1.0 .-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp])	/ h.qᵍ[js]
 			# exp_rep[jzp] = rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp]
 			qr[jzp] = itp_qᵍ[bvp, μvp, σvp, ξpv, 1, jzp]
 			Wr[jzp] = integrate_itp(h, bvp, μvp, σvp, ξpv, 1, jzp, itp_vf) + 0.0075
@@ -466,11 +466,11 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, Ts::Bool=false, Bs::Bool
 			Yr[jzp] = itp_W[bvp, μvp, σvp, ξpv, 1, jzp]
 			μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
 			σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
-			qd[jzp] = itp_qᵍ[(1.-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp]
-			Wd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp, itp_vf)
-			Td[jzp] = itp_T[(1.-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp]
-			Bd[jzp] = itp_B[(1.-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp]
-			Yd[jzp] = itp_W[(1.-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp]
+			qd[jzp] = itp_qᵍ[(1.0 .-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp]
+			Wd[jzp] = integrate_itp(h, (1.0 .-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp, itp_vf)
+			Td[jzp] = itp_T[(1.0 .-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp]
+			Bd[jzp] = itp_B[(1.0 .-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp]
+			Yd[jzp] = itp_W[(1.0 .-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp]
 		end
 		if Wdiff 
 			p_vec[js] = plot(scatter(;x=h.zgrid, y=Wd-Wr, marker_color=col[1], showlegend=false, line_width=2), Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),2))", titlefont_size=32))
@@ -589,7 +589,7 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 			pC_bigfix[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = pC_fix[jb, jμ, jσ, jξ, jζ, jz]
 		end
 		for jzp in 1:h.Nz
-			def_prob[jb, jμ, jσ, jξ, jζ, jz] += h.Pz[jz, jzp] * (1.-rep_mat[jb, jμ, jσ, jξ, jζ, jz, jzp])
+			def_prob[jb, jμ, jσ, jξ, jζ, jz] += h.Pz[jz, jzp] * (1.0 .-rep_mat[jb, jμ, jσ, jξ, jζ, jz, jzp])
 		end
 	end
 	ϕc_ext_mat = h.ϕc_ext[:,:,:,:,:,:,:,:,jpn]
@@ -670,7 +670,7 @@ function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 		z = qᵍ_mat[:, jshow_μ, jshow_σ, jshow_ξ, jshow_ζ, :],
 		# contours_coloring="heatmap",
 		contours_start=tickmin, contours_end=tickmax,
-		colorbar_tick0 = 0., colorbar_dtick=floor(Int, 1./5),
+		colorbar_tick0 = 0., #colorbar_dtick=floor(Int, 1.0./5),
 		# colorscale = debtcolors, 
 		colorscale = "Reds", reversescale = true,
 		colorbar_dtick=0.1, colorbar_xpad=14
@@ -692,7 +692,7 @@ function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 		z = qg_mat,
 		# contours_coloring="heatmap",
 		contours_start=tickmin, contours_end=tickmax,
-		colorbar_tick0 = 0., colorbar_dtick=floor(Int, 1./5),
+		colorbar_tick0 = 0., #colorbar_dtick=floor(Int, 1.0./5),
 		# colorscale = debtcolors, 
 		colorscale = "Reds", reversescale = true,
 		colorbar_dtick=0.1, colorbar_xpad=14
@@ -786,20 +786,20 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 			bpv = bp
 			μpv = μp[jξp, jzp, 1]
 			σpv = σp[jξp, jzp, 1]
-			Rb = h.κ + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, 1, jzp]
+			Rb = h.κ + (1.0 .-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, 1, jzp]
 			ExpRealRet[js, jzp, 1] = Rb * pCv / itp_pC[bpv, μpv, σpv, ξpv, 1, jzp] * prob / h.qᵍ[js]
 			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 1] * rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp]
 			ExpTRet[js, jzp, 1] = Rb * prob
 			Exp_pC[js, jzp, 1] = pCv / itp_pC[bpv, μpv, σpv, ξpv, 1, jzp] * prob
 
 			# In default
-			haircut = (1.-h.ℏ*(jζ==1))
+			haircut = (1.0 .-h.ℏ*(jζ==1))
 			bpv = haircut * bp
 			μpv = μp[jξp, jzp, 2]
 			σpv = σp[jξp, jzp, 2]
-			Rb = (1.-h.ρ) * haircut * itp_qᵍ[bpv, μpv, σpv, ξpv, 2, jzp]
+			Rb = (1.0 .-h.ρ) * haircut * itp_qᵍ[bpv, μpv, σpv, ξpv, 2, jzp]
 			ExpRealRet[js, jzp, 2] = Rb * pCv / itp_pC[bpv, μpv, σpv, ξpv, 2, jzp] * prob / h.qᵍ[js]
-			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 2] * (1.-rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp])
+			ExpExpRealRet[js, jzp] += ExpRealRet[js, jzp, 2] * (1.0 .-rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp])
 			ExpTRet[js, jzp, 2] = Rb * prob
 			Exp_pC[js, jzp, 2] = pCv / itp_pC[bpv, μpv, σpv, ξpv, 2, jzp] * prob
 		end
@@ -832,32 +832,32 @@ function plot_eulereq(h::Hank; remote::Bool=false)
 					bpv = bp
 					μpv = μp[jξp, jzp, 1]
 					σpv = σp[jξp, jzp, 1]
-					R = h.κ + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, 1, jzp]
+					R = h.κ + (1.0 .-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, 1, jzp]
 					
 					ωpv = A + R * B
 					for jϵp in 1:h.Nϵ
 						V_t = itp_vf[ωpv, jϵp, bpv, μpv, σpv, ξpv, 1, jzp]
 						V[jϵp, jξp, jzp, 1] = V_t
-						EIS[jω, jϵ, js, jϵp, jzp, 1] = (itp_ϕc[ωpv, jϵp, bpv, μpv, σpv, ξpv, 1, jzp] / Cv)^(-1./h.ψ)
-						Tvf += V_t^(1.-h.γ) * h.Pϵ[jϵ, jϵp] * h.Pz[jz, jzp] * rep_prob
+						EIS[jω, jϵ, js, jϵp, jzp, 1] = (itp_ϕc[ωpv, jϵp, bpv, μpv, σpv, ξpv, 1, jzp] / Cv)^(-1.0./h.ψ)
+						Tvf += V_t^(1.0 .-h.γ) * h.Pϵ[jϵ, jϵp] * h.Pz[jz, jzp] * rep_prob
 					end
 					
 					# Then in default
-					haircut = (1.-h.ℏ*(jζ==1))
+					haircut = (1.0 .-h.ℏ*(jζ==1))
 					bpv = haircut * bp
 					μpv = μp[jξp, jzp, 2]
 					σpv = σp[jξp, jzp, 2]
-					R = h.κ + (1.-h.ρ) * haircut * itp_qᵍ[bpv, μpv, σpv, ξpv, 2, jzp]
+					R = h.κ + (1.0 .-h.ρ) * haircut * itp_qᵍ[bpv, μpv, σpv, ξpv, 2, jzp]
 					
 					ωpv = A + R * B
 					for jϵp in 1:h.Nϵ
 						V_t = itp_vf[ωpv, jϵp, bpv, μpv, σpv, ξpv, 2, jzp]
 						V[jϵp, jξp, jzp, 2] = V_t
-						EIS[jω, jϵ, js, jϵp, jzp, 2] = (itp_ϕc[ωpv, jϵp, bpv, μpv, σpv, ξpv, 2, jzp] / Cv)^(-1./h.ψ)
-						Tvf += V_t^(1.-h.γ) * h.Pϵ[jϵ, jϵp] * h.Pz[jz, jzp] * (1.-rep_prob)
+						EIS[jω, jϵ, js, jϵp, jzp, 2] = (itp_ϕc[ωpv, jϵp, bpv, μpv, σpv, ξpv, 2, jzp] / Cv)^(-1.0./h.ψ)
+						Tvf += V_t^(1.0 .-h.γ) * h.Pϵ[jϵ, jϵp] * h.Pz[jz, jzp] * (1.0 .-rep_prob)
 						
-						EZ[jω, jϵ, js, jϵp, jξp, jzp, 1] = (V[jϵp, jξp, jzp, 1] ./ Tvf).^(1./h.ψ - h.γ)
-						EZ[jω, jϵ, js, jϵp, jξp, jzp, 2] = (V[jϵp, jξp, jzp, 2] ./ Tvf).^(1./h.ψ - h.γ)
+						EZ[jω, jϵ, js, jϵp, jξp, jzp, 1] = (V[jϵp, jξp, jzp, 1] ./ Tvf).^(1.0./h.ψ - h.γ)
+						EZ[jω, jϵ, js, jϵp, jξp, jzp, 2] = (V[jϵp, jξp, jzp, 2] ./ Tvf).^(1.0./h.ψ - h.γ)
 					end
 				end
 			end
@@ -927,7 +927,7 @@ function plot_defprob(h::Hank; remote::Bool=false)
 				μpv = μp[jξp, jzp, 1]
 				σpv = σp[jξp, jzp, 1]
 
-				Rb = h.κ + (1.-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, 1, jzp]
+				Rb = h.κ + (1.0 .-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, 1, jzp]
 
 
 				ωpv = ϕa + Rb * ϕb
@@ -1034,8 +1034,8 @@ function plot_aggcons(h::Hank; remote::Bool=false)
 			VarCr[jzp] = integrate_itp(h, bvp, μvp, σvp, ξvp, 1, jzp, itp_ϕc2) - C_r[jzp]^2
 			μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
 			σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
-			C_d[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, ξvp, 2, jzp, itp_ϕc)
-			VarCd[jzp] = integrate_itp(h, (1.-h.ℏ)*bvp, μvp, σvp, ξvp, 2, jzp, itp_ϕc2) - C_d[jzp]^2
+			C_d[jzp] = integrate_itp(h, (1.0 .-h.ℏ)*bvp, μvp, σvp, ξvp, 2, jzp, itp_ϕc)
+			VarCd[jzp] = integrate_itp(h, (1.0 .-h.ℏ)*bvp, μvp, σvp, ξvp, 2, jzp, itp_ϕc2) - C_d[jzp]^2
 		end
 		p_vec[js] = plot(  [scatter(;x=h.zgrid, y=C_r, marker_color=col[1], showlegend=false),
 						scatter(;x=h.zgrid, y=C_d, marker_color=col[4], showlegend=false, line_dash="dashdot")],
@@ -1074,7 +1074,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 
 	pN_mat = reshape(h.pN,     h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 	w_mat  = reshape(h.wage,   h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
-	u_mat  = 100*max.(1.- reshape(h.Ld,     h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz),0)
+	u_mat  = 100*max.(1.0 .- reshape(h.Ld,     h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz),0)
 	Y_mat  = reshape(h.output, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 	Π_mat  = reshape(h.profits,h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 	g_mat  = reshape(h.spending,h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
@@ -1162,7 +1162,7 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 			# tickmin = 5.
 			tickmax = 27.
 
-			perc? suffix = "%": suffix = ""
+			perc ? suffix = "%" : suffix = ""
 
 			ctbz = contour(;
 				x=h.bgrid, y=exp.(h.zgrid),
@@ -1463,7 +1463,7 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 	μ_vec = series(path,:μ)
 	σ_vec = series(path,:σ)
 	w_vec = series(path,:w)
-	ζ_vec = series(path,:ζ)-1
+	ζ_vec = series(path,:ζ) .- 1
 	z_vec = exp.(series(path,:z))
 	Y_vec = 4 * series(path,:Y)
 	L_vec = series(path,:L)
@@ -1484,8 +1484,8 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 
 	shiftζ = [0; ζ_vec[1:end-1]]
 
-	defaults = find((ζ_vec.==1) .* (shiftζ.==0))./4
-	exits    = find((ζ_vec.==0) .* (shiftζ.==1))./4
+	defaults = findall((ζ_vec.==1) .* (shiftζ.==0))./4
+	exits    = findall((ζ_vec.==0) .* (shiftζ.==1))./4
 
 	times = (1:T)./4
 
@@ -1512,12 +1512,12 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 				],
 						Layout(; title="Wage", xaxis=attr(title="𝑡")));
 	pz = plot(scatter(; x=times, y=z_vec, marker_color=col[1], showlegend=false), Layout(; title="TFP", xaxis=attr(title="𝑡")));
-	pY = plot([ scatter(; x=times, y=Y_vec, z=100*(Y_vec - mean(Y_vec)) / mean(Y_vec), marker_color=col[1], showlegend=false)
+	pY = plot([ scatter(; x=times, y=Y_vec, z=100*(Y_vec .- mean(Y_vec)) / mean(Y_vec), marker_color=col[1], showlegend=false)
 				#, scatter(; x=times, y=100 * (1.0 - L_vec), marker_color=col[2], showlegend=false, line_dash="dashdot")
 			],
 			Layout(; title="Output", yaxis_title="", xaxis=attr(title="𝑡")));
 	pu = plot([
-		scatter(; x=times, y=100*(1.0 - L_vec), marker_color=col[1], showlegend=false)
+		scatter(; x=times, y=100*(1.0 .- L_vec), marker_color=col[1], showlegend=false)
 		], Layout(; title="Unemployment", yaxis_title="%", xaxis_title="𝑡"));
 	pπ = plot([scatter(; x=times, y=ζ_vec, marker_color=col[1], showlegend=false),
 				scatter(; x=times, y=π_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")],
@@ -1530,7 +1530,7 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 	pψ = plot(scatter(; x=times, y=100*ψ_vec, marker_color=col[1],  showlegend=false), Layout(; title="Fraction domestic", xaxis=attr(title="𝑡"), yaxis_title="% of total"));
 	pA = plot(scatter(; x=times, y=A_vec, marker_color=col[1],  showlegend=false), Layout(; title="Domestic risk-free debt", xaxis_title="𝑡"));
 	pBf= plot(scatter(; x=times, y=100*Bf_vec./Y_vec, marker_color=col[1], showlegend=false), Layout(; title="Foreign debt", xaxis_title="𝑡", yaxis_title="% of GDP"));
-	pW = plot([ scatter(;x=times, y=Wr_vec + 0.0075, marker_color=col[1], showlegend=false),
+	pW = plot([ scatter(;x=times, y=Wr_vec, marker_color=col[1], showlegend=false),
 				scatter(;x=times, y=Wd_vec, marker_color=col[2], showlegend=false, line_dash="dashdot")], Layout(;title="Welfare", xaxis_title="𝑡"));
 	pBh = plot(scatter(; x=times, y=Bh_vec, marker_color=col[1], showlegend=false), Layout(;title="Domestic debt", xaxis_title="𝑡"))
 	pqᵍ = plot(scatter(; x=times, y=qᵍ_vec, marker_color=col[1], showlegend=false), Layout(;title="Price of debt", xaxis_title="𝑡"))
@@ -1539,9 +1539,9 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 
 	p = [pB pw pz pY; pμ pσ pA pu; pψ pπ pW pP; pBh pqᵍ pξ pNX]
 	# p.plot.layout["shapes"] = default_shades
-	p.plot.layout["width"] = 900
-	p.plot.layout["height"] = 700
-	p.plot.layout["font_family"] = "Fira Sans Light"
+	# p.plot.layout["width"] = 900
+	# p.plot.layout["height"] = 700
+	# p.plot.layout["font_family"] = "Fira Sans Light"
 
 	name = "simul"*name
 	if remote
@@ -1554,7 +1554,7 @@ function plot_simul(path_entry::Path; remote::Bool=false, trim::Int=0)
 		return p
 	end
 
-	Void
+	nothing
 end
 
 function stats_sample(p::Path, sample; relative::Bool=false)
@@ -1623,7 +1623,7 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 			scatter(;x = -2.5:0.25:2.5, y = f(ylow), marker_color=col[1], line_dash="dot", opacity=0.25, showlegend=false, name="q=0.1")
 			scatter(;x = -2.5:0.25:2.5, y = f(yhig), marker_color=col[1], line_dash="dot", opacity=0.25, fill="tonexty", fillcolor="rgba(31,119,180,0.1)", showlegend=false, name="q=0.9")
 			scatter(;x = -2.5:0.25:2.5, y = f(ymed), marker_color=col[4], line_dash="solid", showlegend=false, name="q=0.5")
-			scatter(;x = -2.5:0.25:2.5, y = f(yavg), marker_color=col[3], line_dash="dashdot", showlegend=false, opacity=0.4, name="mean")
+			# scatter(;x = -2.5:0.25:2.5, y = f(yavg), marker_color=col[3], line_dash="dashdot", showlegend=false, opacity=0.4, name="mean")
 			], Layout(;title=title, yaxis_title=yaxis_title, yaxis_zeroline=false, xaxis_range=[-2.5; 2.5]))
 		return p1 
 	end
@@ -1632,32 +1632,34 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	meanC = mean(p.data[:,p.n[:C]])
 	meanμ = mean(p.data[:,p.n[:μ]]) 
 	meanσ = mean(p.data[:,p.n[:σ]]) 
-	pY = plot_sample(:Y, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
-	pu = plot_sample(:L, f=x->100*(1-x), title="Unemployment", yaxis_title="%")
+	pY = plot_sample(:Y, f=x->100*(x.-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
+	pu = plot_sample(:L, f=x->100*(1.0.-x), title="Unemployment", yaxis_title="%")
 	pB = plot_sample(:B, f=x->100*x/(4*meanY), title="Bonds", yaxis_title="% of mean GDP")
 	pG = plot_sample(:G, f=x->100*x/(meanY), title="Govt spending", yaxis_title="% of mean GDP")
 	pT = plot_sample(:T, f=x->100*x/(meanY), title="Lump-sum taxes", yaxis_title="% of mean GDP")
-	pμ = plot_sample(:mean, title="Wealth Dist Mean")
+	pμ = plot_sample(:mean, f=x->100*x/(4*meanY), title="Wealth Dist Mean", yaxis_title="% of mean GDP")
 	pσ = plot_sample(:var, title="Wealth Dist Variance")
-	pz = plot_sample(:z, f=x->100*(exp.(x)-1), title="TFP")
+	pz = plot_sample(:z, f=x->100*(exp.(x).-1), title="TFP")
 	pw = plot_sample(:w, title="Wage rate")
 	pψ = plot_sample(:ψ, f=x->100*x, title="Proportion Domestic", yaxis_title="%")
 	pπ = plot_sample(:π, f=x->100*x, title="Default prob", yaxis_title="%")
 	pP = plot_sample(:P, title="Price of nontradables")
 	pq = plot_sample(:qg, title="Price of new debt")
 	pCf = plot_sample(:CoYd, f=x->100*x, title="C/Yᵈ", yaxis_title="%")
-	pCl = plot_sample(:C, f=x->100*(x-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
+	pCl = plot_sample(:C, f=x->100*(x.-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
 	meanC = mean(rel_sample_stats[p.n[:C], 1, 4])
-	pCs = plot_sample(:C, rel_sample_stats, f=x->100*(x-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
+	pCs = plot_sample(:C, rel_sample_stats, f=x->100*(x.-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
 	meanY = mean(rel_sample_stats[p.n[:Y], 1, 4])
-	pYs = plot_sample(:Y, rel_sample_stats, f=x->100*(x-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
+	pYs = plot_sample(:Y, rel_sample_stats, f=x->100*(x.-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
 	pp25 = plot_sample(:p25, rel_sample_stats, f=x->100x, title="bottom 25% holdings")
 	pavgω = plot_sample(:avgω, title="Bondholdings-weighted avg wealth")
-	pp90 = plot_sample(:p90, f=x->100x, title="top 10% holdings")
+	pp90 = plot_sample(:p90, f=x->100*x, title="top 10% holdings")
+	pNX = plot_sample(:NX, title="Net Exports")
 
-	p = [pz pY pCl pCf; pB pψ pq pπ; pu pμ pσ pP; pavgω pp90 pG pT]
-	# p = [pz pY pCl; pT pB pG; pψ pw pu; pμ pσ pP]
-	slides? font = "Fira Sans Light": font = "STIX Two Text"
+	# p = [pz pY pCl pCf; pB pψ pq pπ; pu pμ pσ pP; pavgω pp90 pG pT]
+	p = [pz pY pCl pP; pB pψ pπ pp90; pμ pσ pG pT]
+	p = [pz pY pCl pP; pB pψ pπ pp90; pμ pσ pG pNX]
+	slides ? font = "Fira Sans Light" : font = "STIX Two Text"
 	p.plot.layout["font_family"] = font
 	p.plot.layout["fontsize"] = 18
 	p.plot.layout["height"] = 600
@@ -1671,12 +1673,13 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	p
 end
 
-function plot_comparison_episodes(path_bench::Path, path_nodef::Path; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975)
+function plot_comparison_episodes(path_bench::Path, path_nodef::Path, path_nodelta::Path=path_nodef; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975, levels::Bool=true)
 
 	t_epi, N = find_times_episodes(path_bench; episode_type=episode_type, πthres=πthres)
 
 	sample_bench = collect_episodes(path_bench, t_epi, N)
 	sample_nodef = collect_episodes(path_nodef, t_epi, N)
+	sample_nodelta = collect_episodes(path_nodelta, t_epi, N)
 
 	samplestats_bench = stats_sample(path_bench, sample_bench)
 	rel_samplestats_bench = stats_sample(path_bench, sample_bench; relative=true)
@@ -1684,52 +1687,71 @@ function plot_comparison_episodes(path_bench::Path, path_nodef::Path; episode_ty
 	samplestats_nodef = stats_sample(path_nodef, sample_nodef)
 	rel_samplestats_nodef = stats_sample(path_nodef, sample_nodef; relative=true)
 
-	function plot_sample(sym::Symbol, samplestats_bench=samplestats_bench, samplestats_nodef=samplestats_nodef; fb::Function=identity, fd::Function=fb, title::String="", yaxis_title::String="")
+	samplestats_nodelta = stats_sample(path_nodelta, sample_nodelta)
+	rel_samplestats_nodelta = stats_sample(path_nodelta, sample_nodelta; relative=true)
+
+	function plot_sample(sym::Symbol, samplestats_bench=samplestats_bench, samplestats_nodef=samplestats_nodef, samplestats_nodelta=samplestats_nodelta; fb::Function=identity, fd::Function=fb, fΔ::Function=fb, title::String="", yaxis_title::String="")
 		# ylow = sampstats[p.n[sym],:, 1]
 		ybench = samplestats_bench[path_bench.n[sym],:, 2]
 		ynodef = samplestats_nodef[path_nodef.n[sym],:, 2]
+		ynodelta = samplestats_nodelta[path_nodelta.n[sym],:, 2]
 		# yhig = sampstats[p.n[sym],:, 3]
 		# yavg = sampstats[p.n[sym],:, 4]
 
-		p1 = plot([
+		lines = [
 			# scatter(;x = -2.5:0.25:2.5, y = f(ylow), marker_color=col[1], line_dash="dot", opacity=0.25, showlegend=false, name="q=0.1")
 			# scatter(;x = -2.5:0.25:2.5, y = f(yhig), marker_color=col[1], line_dash="dot", opacity=0.25, fill="tonexty", fillcolor="rgba(31,119,180,0.1)", showlegend=false, name="q=0.9")
 			scatter(;x = -2.5:0.25:2.5, y = fb(ybench), marker_color=col[1], line_dash="solid", showlegend=false, name="Benchmark")
 			scatter(;x = -2.5:0.25:2.5, y = fd(ynodef), marker_color=col[2], line_dash="dashdot", showlegend=false, name="No default")
 			# scatter(;x = -2.5:0.25:2.5, y = f(yavg), marker_color=col[3], line_dash="dashdot", showlegend=false, opacity=0.4, name="mean")
-			], Layout(;title=title, yaxis_title=yaxis_title, yaxis_zeroline=false, xaxis_range=[-2.5; 2.5]))
+			]
+
+		if ynodelta != ynodef
+			push!(lines, 
+				scatter(;x = -2.5:0.25:2.5, y = fΔ(ynodelta), marker_color=col[3], line_dash="dot", showlegend=false, name="Δ = 0")
+				)
+		end
+
+
+		p1 = plot(lines, Layout(;title=title, yaxis_title=yaxis_title, yaxis_zeroline=false, xaxis_range=[-2.5; 2.5]))
 		return p1 
 	end
 
 	meanY = mean(path_bench.data[:,path_bench.n[:Y]])
 	meanYn = mean(path_nodef.data[:,path_nodef.n[:Y]])	
+	meanYΔ = mean(path_nodelta.data[:,path_nodelta.n[:Y]])	
 	meanC = mean(path_bench.data[:,path_bench.n[:C]])
 	meanCd = mean(path_nodef.data[:,path_nodef.n[:C]])	
+	meanCΔ = mean(path_nodelta.data[:,path_nodelta.n[:C]])	
 	meanμ = mean(path_bench.data[:,path_bench.n[:μ]])
 	meanσ = mean(path_bench.data[:,path_bench.n[:σ]])
-	pY = plot_sample(:Y, fb=x->100*(x-meanY)./meanY, fd=x->100*(x-meanYn)/meanYn, title="Output", yaxis_title="% dev from mean")
-	pu = plot_sample(:L, fb=x->100*(1-x), title="Unemployment", yaxis_title="%")
-	pB = plot_sample(:B, fb=x->100*x/(4*meanY), fd = x->100*x/(4*meanYn), title="Bonds", yaxis_title="% of mean GDP")
-	pG = plot_sample(:G, fb=x->100*x/(meanY), fd = x->100*x/(1*meanYn), title="Govt spending", yaxis_title="% of mean GDP")
-	pT = plot_sample(:T, fb=x->100*x/(meanY), fd = x->100*x/(1*meanYn), title="Lump-sum taxes", yaxis_title="% of mean GDP")
-	pz = plot_sample(:z, fb=x->100*(exp.(x)-1), title="TFP")
+	pY = plot_sample(:Y, fb=x->100*(x.-meanY)./meanY, fd = x->100*(x.-meanYn)/meanYn, fΔ = x->100*(x.-meanYΔ)/meanYΔ, title="Output", yaxis_title="% dev from mean")
+	pu = plot_sample(:L, fb=x->100*(1.0.-x), title="Unemployment", yaxis_title="%")
+	pB = plot_sample(:B, fb=x->100*x/(4*meanY), fd = x->100*x/(4*meanYn), fΔ = x->100*x/(4*meanYΔ), title="Bonds", yaxis_title="% of mean GDP")
+	pG = plot_sample(:G, fb=x->100*x/(meanY), fd = x->100*x/(1*meanYn), fΔ = x->100*x/(1*meanYΔ), title="Govt spending", yaxis_title="% of mean GDP")
+	pT = plot_sample(:T, fb=x->100*x/(meanY), fd = x->100*x/(1*meanYn), fΔ = x->100*x/(1*meanYΔ), title="Lump-sum taxes", yaxis_title="% of mean GDP")
+	pz = plot_sample(:z, fb=x->100*(exp.(x).-1), title="TFP")
 	pπ = plot_sample(:π, fb=x->100*x, title="Default prob", yaxis_title="%")
-	pCl = plot_sample(:C, fb=x->100*(x-meanC)./meanC, fd=x->100*(x-meanCd)/meanCd, title="Consumption", yaxis_title="% dev from mean")
+	pCl = plot_sample(:C, fb=x->100*(x.-meanC)./meanC, fd = x->100*(x.-meanCd)/meanCd, fΔ = x->100*(x.-meanCΔ)/meanCΔ, title="Consumption", yaxis_title="% dev from mean")
 	pq = plot_sample(:qg, title="Price of new debt")
 	pWr = plot_sample(:Wr, title="Welfare in repayment")
 
+	if !levels
+		pY = plot_sample(:Y, rel_samplestats_bench, rel_samplestats_nodef, rel_samplestats_nodelta, title="Output", yaxis_title="% dev from start")
+		pCl = plot_sample(:C, rel_samplestats_bench, rel_samplestats_nodef, rel_samplestats_nodelta, title="Consumption", yaxis_title="% dev from start")
+	end
 
 	println(mean(samplestats_bench[path_bench.n[:Wr],:, 2]))
 	println(mean(samplestats_nodef[path_nodef.n[:Wr],:, 2]))
 
 	println((mean(samplestats_bench[path_bench.n[:Wr],:, 2]) - mean(samplestats_nodef[path_bench.n[:Wr],:, 2]))/mean(samplestats_bench[path_bench.n[:Wr],:, 2])*100)
 
-	p1 = [pz pY pCl; pB pG pT; pu pq pWr]
-	slides? font = "Fira Sans Light": font = "STIX Two Text"
-	p1.plot.layout["font_family"] = font
-	p1.plot.layout["fontsize"] = 18
-	p1.plot.layout["height"] = 600
-	p1.plot.layout["width"] = 1100
+	p1 = [pz pY pCl; pB pG pT; pu pπ pWr]
+	slides ? font = "Fira Sans Light" : font = "STIX Two Text"
+	# p1.plot.layout["font_family"] = font
+	# p1.plot.layout["fontsize"] = 18
+	# p1.plot.layout["height"] = 600
+	# p1.plot.layout["width"] = 1100
 	if slides
 		p1.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
 		p1.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
@@ -1740,5 +1762,3 @@ function plot_comparison_episodes(path_bench::Path, path_nodef::Path; episode_ty
 	return p1
 
 end
-
-

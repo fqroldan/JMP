@@ -232,3 +232,29 @@ function series(p::Path, sym::Symbol)
 
 	return y
 end
+
+
+function make_logN(meanX, varX)
+	""" Takes mean and variance and returns μ and σ parameters for logNormal dist"""
+	Eσ2 = 1.0 + varX / ( meanX^2 )
+
+	if Eσ2 > 1. 
+		σ2 = log( Eσ2 )
+	else
+		# print_save("\n1 + vω / Eω² = $(Eσ2)")
+		σ2 = 1e-6
+	end
+
+	μ = log(meanX) - 0.5 * σ2
+	σ = sqrt(σ2)
+	return μ, σ
+end
+
+function unmake_logN(μ, σ)
+	""" Takes parameters and returns mean and variance """
+
+	m = exp.(μ + 0.5*σ.^2)
+	v = exp.(σ.^2 .- 1) .* exp.(2*μ + σ.^2)
+
+	return m, v
+end
