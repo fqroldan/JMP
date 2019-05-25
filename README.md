@@ -1,3 +1,3 @@
-# Aggregate Demand around Debt Crises
+# Aggregate Demand and Sovereign Debt Crises
 
 Preliminary and incomplete codes.
