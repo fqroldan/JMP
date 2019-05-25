@@ -80,7 +80,7 @@ function set_params(run_number, xcenter, xdist)
 end
 #				 r_loc,        tax,      RRA,      τ,       ρz,        σz,          ρξ,        σξ,    wbar
 params_center = [0.0752463; 0.0039185; 14.6399; 0.234812; 0.867237; 0.0280452; 0.943312; 0.00634375; 1.15825]
-xdist = 		[0.015;       0.01;        2.5;     0.05;     0.01;     0.025;     0.01;      0.001;   0.025]
+xdist = 		[0.015;       0.01;        2.5;     0.05;     0.01;     0.025;     0.01;      0.001;   0.05]
 best_run, use_run = 1, 1
 
 function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::Bool=true)
@@ -164,7 +164,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::B
 				for j in 1:best_run
 					x = next!(s, old_center-old_dist, old_center+old_dist)
 				end
-				η = 0.33
+				η = 0.5
 				new_center = x * η + old_center * (1.0 - η)
 				try
 					old_output = readstring(pwd()*"/../../../run$(best_run)/old_output.txt")
@@ -191,11 +191,12 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::B
 		print_save("\nKeeping old parameters.")
 	end
 
-	# new_center[6] = new_center[6] * 0.5
+	# new_center[6] = new_center[6] * 3
 
 	# new_dist[3] = new_dist[3] * 2
 	# new_dist[5] = new_dist[5] * 2
-	# new_dist[6] = new_dist[6] * 2
+	# new_dist[6] = new_dist[6] / 2
+	# new_dist[9] = new_dist[9] * 2
 
 	print_save("\nNew distances: $(new_dist)")
 
@@ -248,10 +249,10 @@ r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
 
 function make_guess(remote, local_run, nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, use_run)
 	if remote || local_run
+		print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,3)), $(round(RRA,3)), $(round(τ,3)), $(round(wbar,3)), $(round(ρz,3)), $(round(σz,3)), $(round(tax,3)), $(round(ρξ,3)), $(round(σξ,3))")
 		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
 			# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
 			);
-		print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,3)), $(round(RRA,3)), $(round(τ,3)), $(round(wbar,3)), $(round(ρz,3)), $(round(σz,3)), $(round(tax,3)), $(round(ρξ,3)), $(round(σξ,3))")
 		# h = load(pwd() * "/../../hank.jld", "h")
 		try
 			h2 = load(pwd() * "/../../hank.jld", "h")
@@ -326,6 +327,11 @@ function make_simulated_path(h::Hank, run_number)
 		g = (v_m - targets)'*W*(v_m-targets)
 		print_save("\nObjective function = $(@sprintf("%0.3g",g))")
 		print_save("\n")
+		try
+			g_simuls = readstring(pwd()*"/../../../g_simuls.txt")
+			write(pwd()*"/../../../g_simuls.txt", g_simuls*"\nRun $(run_number), g = $(@sprintf("%0.3g",g))")
+		catch
+		end
 		for jj in 1:length(targets)
 			print_save("$(@sprintf("%0.3g",v_m[jj]))  ")
 		end
