@@ -78,9 +78,9 @@ function set_params(run_number, xcenter, xdist)
 	end
 	return x
 end
-#				 r_loc,        tax,      RRA,      τ,       ρz,        σz,          ρξ,        σξ,    wbar
-params_center = [0.0752463; 0.0039185; 14.6399; 0.234812; 0.867237; 0.0280452; 0.943312; 0.00634375; 1.15825]
-xdist = 		[0.015;       0.01;        2.5;     0.05;     0.01;     0.025;     0.01;      0.001;   0.05]
+#				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
+params_center = [0.094; 0.001; 12.032; 0.092; 0.875; 0.007; 0.936; 0.005; 1.15825]
+xdist = 		[0.015; 0.001;    2.5;  0.05;  0.01;  0.01;  0.01; 0.001;   0.025]
 best_run, use_run = 1, 1
 
 function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::Bool=true)
@@ -164,7 +164,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::B
 				for j in 1:best_run
 					x = next!(s, old_center-old_dist, old_center+old_dist)
 				end
-				η = 0.5
+				η = 0.25
 				new_center = x * η + old_center * (1.0 - η)
 				try
 					old_output = readstring(pwd()*"/../../../run$(best_run)/old_output.txt")
@@ -191,7 +191,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::B
 		print_save("\nKeeping old parameters.")
 	end
 
-	# new_center[6] = new_center[6] * 3
+	# new_center[4] = 0.092
 
 	# new_dist[3] = new_dist[3] * 2
 	# new_dist[5] = new_dist[5] * 2
