@@ -76,13 +76,13 @@ function get_abec(RHS::Float64, ωmin::Float64, qʰ::Float64, qᵍ::Float64, pC:
 	return ap, bp, ep, C
 end
 
-function eval_itp_vf(itp_vf_s::Arr_itp_VF, ωpv::Float64, jϵp::Int64, jξp::Int64, jzp::Int64, jj::Int64)
+function eval_itp_vf(itp_vf_s, ωpv::Float64, jϵp::Int64, jξp::Int64, jzp::Int64, jj::Int64)
 	itp_obj = itp_vf_s[jξp, jzp, jj]
-	v = itp_obj[ωpv, jϵp]
+	v = itp_obj(ωpv, jϵp)
 	return v
 end
 
-function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, jξ, jz, exp_rep, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
+function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
 # function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Array{Interpolations.GriddedInterpolation{Float64,2,Float64,Tuple{Interpolations.Gridded{Interpolations.Linear},Interpolations.NoInterp},Tuple{Array{Float64,1},Array{Int64,1}},0}}, jϵ, jz, exp_rep, RHS, qʰ, qᵍ, qᵍp, profits, pC, jdefault)
 
 	ap, bp, ep, C = get_abec(RHS, h.ωmin, qʰ, qᵍ, pC, sp, θa)
@@ -199,7 +199,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s::Arr_itp_VF, jϵ, j�
 		vf = (1.0 - h.β) * u + h.β * Ev
 		return vf
 	end
-	Void
+	nothing
 end
 
 function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
@@ -312,14 +312,13 @@ end
 
 function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve::Bool = true, verbose::Bool=true, guess_a::Array{Float64}=zeros(1,1), guess_b::Array{Float64}=zeros(1,1))
 
-	vf = SharedArray{Float64}(size(h.vf))
-	ϕa = SharedArray{Float64}(size(h.ϕa))
-	ϕb = SharedArray{Float64}(size(h.ϕb))
-	ϕe = SharedArray{Float64}(size(h.ϕe))
-	ϕc = SharedArray{Float64}(size(h.ϕc))
-	warnc0 = SharedArray{Float64}(size(qᵍ_mat))
-	warnc0 *= 0.
-	@sync @parallel for js in 1:size(h.Jgrid,1)
+	vf = Array{Float64}(undef, size(h.vf))
+	ϕa = Array{Float64}(undef, size(h.ϕa))
+	ϕb = Array{Float64}(undef, size(h.ϕb))
+	ϕe = Array{Float64}(undef, size(h.ϕe))
+	ϕc = Array{Float64}(undef, size(h.ϕc))
+	warnc0 = zeros(size(qᵍ_mat))
+	Threads.@threads for js in 1:size(h.Jgrid,1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
 		jσ = h.Jgrid[js, 3]
@@ -342,35 +341,35 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 		exp_rep = rep_mat[jb, jμ, jσ, jξ, jζ, jz, :, :]
 
 		if verbose
-			minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid) ? print_save("\nμ out of bounds at $([jb, jμ, jσ, jξ, jζ, jz])") : Void
-			minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid) ? print_save("\nσ out of bounds at $([jb, jμ, jσ, jξ, jζ, jz])") : Void
-			bpv - minimum(h.bgrid) < -1e-4 || bpv - maximum(h.bgrid) > 1e-4 ? print_save("\nb = $(round(bpv,6)) out of bounds at $([jb, jμ, jσ, jξ, jζ, jz])") : Void
+			minimum(μpv) < minimum(h.μgrid) || maximum(μpv) > maximum(h.μgrid) ? print_save("\nμ out of bounds at $([jb, jμ, jσ, jξ, jζ, jz])") : nothing
+			minimum(σpv) < minimum(h.σgrid) || maximum(σpv) > maximum(h.σgrid) ? print_save("\nσ out of bounds at $([jb, jμ, jσ, jξ, jζ, jz])") : nothing
+			bpv - minimum(h.bgrid) < -1e-4 || bpv - maximum(h.bgrid) > 1e-4 ? print_save("\nb = $(round(bpv,6)) out of bounds at $([jb, jμ, jσ, jξ, jζ, jz])") : nothing
 		end
 
 
 		jdef = (h.ζgrid[jζ] != 1.0)
 
-		qᵍp = Array{Float64}(h.Nξ, h.Nz, 2)
-		itp_vf_s = Arr_itp_VF(h.Nξ, h.Nz, 2)
+		qᵍp = Array{Float64}(undef, h.Nξ, h.Nz, 2)
+		itp_vf_s = Arr_itp_VF(undef, h.Nξ, h.Nz, 2)
 		for (jξp, ξpv) in enumerate(h.ξgrid)
 			for (jzp, zpv) in enumerate(h.zgrid)
 				agg_prob = h.Pξ[jξ, jξp] * h.Pz[jz, jzp]
 				if agg_prob > 1e-4
-					qᵍp[jξp, jzp, 1] = itp_qᵍ[bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 1, jzp]
+					qᵍp[jξp, jzp, 1] = itp_qᵍ(bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 1, jzp)
 					if jdef
-						qᵍp[jξp, jzp, 2] = itp_qᵍ[bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
+						qᵍp[jξp, jzp, 2] = itp_qᵍ(bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp)
 					else
-						qᵍp[jξp, jzp, 2] = itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
+						qᵍp[jξp, jzp, 2] = itp_qᵍ((1.0 - h.ℏ)*bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp)
 					end
 
-					vf_mat = Array{Float64}(h.Nω, h.Nϵ, 3)
+					vf_mat = Array{Float64}(undef, h.Nω, h.Nϵ, 3)
 					for (jϵp, ϵpv) in enumerate(h.ϵgrid)
 						for (jωp, ωpv) in enumerate(h.ωgrid)
-							vf_mat[jωp, jϵp, 1] = itp_vf[ωpv, jϵp, bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 1, jzp]
+							vf_mat[jωp, jϵp, 1] = itp_vf(ωpv, jϵp, bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 1, jzp)
 							if jdef
-								vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp]
+								vf_mat[jωp, jϵp, 2] = itp_vf(ωpv, jϵp, bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp)
 							else
-								vf_mat[jωp, jϵp, 2] = itp_vf[ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 2, jzp]
+								vf_mat[jωp, jϵp, 2] = itp_vf(ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 2, jzp)
 							end
 						end
 
@@ -408,18 +407,18 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 			else
 				θg = 1.
 			end
-			isapprox(θg, 1) && θg > 1 ? θg = 1.0 : Void
+			isapprox(θg, 1) && θg > 1 ? θg = 1.0 : nothing
 
 			if resolve && ωmax > qʰv * h.ωmin
 				guess = [ωg, θg]
 
 				ap, bp, ep, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
-				if cmax < 0
-					warn("c = $cmax")
+				if cmax <= 0 || isnan(cmax)
+					# warn("c = $cmax")
 					ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8
 					fmax = 1e-10
 				end
-			elseif ωmax < qʰv * h.ωmin
+			elseif ωmax <= qʰv * h.ωmin
 				if verbose
 					# print_save("\nCan't afford positive consumption at $([jb, jμ, jσ, jξ, jζ, jz]) with w*Lᵈ=$(round(wL,2)), T=$(round(Tv,2))")
 					warnc0[jb, jμ, jσ, jξ, jζ, jz] = 1.
@@ -456,10 +455,10 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, �
 	vf, ϕa, ϕb, ϕe, ϕc, warnc0 = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, resolve = resolve, verbose = verbose)
 
 	t1 = time()
-	sum(isnan.(vf)) > 0 ? print_save("\n$(sum(isnan.(vf))) NaNs found in vf") : Void
-	sum(isnan.(ϕa)) > 0 ? print_save("$(sum(isnan.(ϕa))) NaNs found in ϕa") : Void
-	sum(isnan.(ϕb)) > 0 ? print_save("$(sum(isnan.(ϕb))) NaNs found in ϕb") : Void
-	sum(isnan.(ϕc)) > 0 ? print_save("$(sum(isnan.(ϕc))) NaNs found in ϕc") : Void
+	sum(isnan.(vf)) > 0 ? print_save("\n$(sum(isnan.(vf))) NaNs found in vf") : nothing
+	sum(isnan.(ϕa)) > 0 ? print_save("$(sum(isnan.(ϕa))) NaNs found in ϕa") : nothing
+	sum(isnan.(ϕb)) > 0 ? print_save("$(sum(isnan.(ϕb))) NaNs found in ϕb") : nothing
+	sum(isnan.(ϕc)) > 0 ? print_save("$(sum(isnan.(ϕc))) NaNs found in ϕc") : nothing
 
 	# Store results in the type
 	h.ϕa = ϕa

@@ -5,9 +5,9 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
 	Npn = length(h.pngrid)
 
-	ϕa_ext = Array{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
-	ϕb_ext = Array{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
-	ϕc_ext = Array{Float64}(h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
+	ϕa_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
+	ϕb_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
+	ϕc_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
 
 	itp_vf = make_itp(h, h.vf; agg=false)
 	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
@@ -20,7 +20,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
 		N = size(h.Jgrid, 1)
 
-		wage_pn, labor_pn, profits_pn = Array{Float64, 1}(N), Array{Float64, 1}(N), Array{Float64, 1}(N)
+		wage_pn, labor_pn, profits_pn = Array{Float64, 1}(undef, N), Array{Float64, 1}(undef, N), Array{Float64, 1}(undef, N)
 		for js in 1:N
 			jζ = h.Jgrid[js, 5]
 			jz = h.Jgrid[js, 6]
@@ -42,13 +42,18 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
 		wL_mat  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz) * (1.0 - h.τ)
 
-		guess_a = h.ϕa_ext[:,:,:,:,:,:,:,:,jpn]
-		guess_b = h.ϕb_ext[:,:,:,:,:,:,:,:,jpn]
+		if h.ϕa_ext[1,1,1,1,1,1,1,1,jpn] == 0
+			guess_a = h.ϕa
+			guess_b = h.ϕb
+		else
+			guess_a = h.ϕa_ext[:,:,:,:,:,:,:,:,jpn]
+			guess_b = h.ϕb_ext[:,:,:,:,:,:,:,:,jpn]
+		end
 
 		# Re-solve for these values of wn and pn
 		_, ϕa, ϕb, ϕe, ϕc, _ = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = false, guess_a=guess_a, guess_b=guess_b)
 
-		isapprox(sum(abs.(ϕc)), 0) ? print_save("\nWARNING: ϕc(pN = $(round(pnv, 2))) ≡ 0 when extending state space") : Void
+		isapprox(sum(abs.(ϕc)), 0) ? print_save("\nWARNING: ϕc(pN = $(round(pnv, 2))) ≡ 0 when extending state space") : nothing
 
 		for jz in 1:h.Nz, jζ in 1:h.Nζ, jξ in 1:h.Nξ, jσ in 1:h.Nσ, jμ in 1:h.Nμ, jb in 1:h.Nb, jϵ in 1:h.Nϵ, jω in 1:h.Nω
 			ϕa_ext[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz,jpn] = ϕa[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz]
@@ -60,13 +65,13 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext")
 	!isnan(sum(ϕa_ext)) || throw(error("$(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext"))
 
-	isapprox(sum(abs.(ϕc_ext)), 0) ? print_save("\nWARNING: ϕc ≡ 0 when extending state space") : Void
+	isapprox(sum(abs.(ϕc_ext)), 0) ? print_save("\nWARNING: ϕc ≡ 0 when extending state space") : nothing
 
 	h.ϕa_ext = ϕa_ext
 	h.ϕb_ext = ϕb_ext
 	h.ϕc_ext = ϕc_ext
 
-	Void
+	nothing
 end
 
 transform_vars(m::Float64, cmin, cmax) = cmax - (cmax-cmin)/(1+exp(m))
@@ -141,7 +146,7 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 		pN = transform_vars(pN, pNmin, pNmax)
 	end
 
-	isnan(pN) ? print_save("\nWARNING: pNv, pN = $(pNv[1]), $(pN)") : Void
+	isnan(pN) ? print_save("\nWARNING: pNv, pN = $(pNv[1]), $(pN)") : nothing
 
 	ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
 
@@ -152,16 +157,16 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	supply_N = TFP_N(zv, h.Δ, ζv) * Ld_N^(h.α_N)
 
 	# Get the household's policies at these prices
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) + h.ωmin
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
 	ωmax_int = min(ωmax_int, h.ωmax)
 	val_C, sum_prob = 0., 0.
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
-		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=500)
+		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=500)
 		sum_prob += val_pdf * h.λϵ[jϵ]
 
-		f(ω) = f_pdf(ω) * itp_ϕc[ω, jϵ, bv, μv, σv, ξv, jζ, jz, pN]
-		(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=500)
+		f(ω) = f_pdf(ω) * itp_ϕc(ω, jϵ, bv, μv, σv, ξv, jζ, jz, pN)
+		(val, err) = hquadrature(f, ωmin_int, ωmax_int, rtol=1e-12, atol=0, maxevals=500)
 	
 		val_C += val * h.λϵ[jϵ]
 	end
@@ -214,29 +219,29 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	wage, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars=true, get_others=true, w_slack=true)
 
 	if wage >= h.wbar && res.minimum < 1e-6
-		pN > pNmax ? exc_dem = 1 : exc_dem = 0
-		pN < pNmin ? exc_sup = 1 : exc_sup = 0
+		pN >= pNmax - 0.05*(pNmax-pNmin) ? exc_dem = 1 : exc_dem = 0
+		pN <= pNmin + 0.05*(pNmax-pNmin) ? exc_sup = 1 : exc_sup = 0
 
 		minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars = true)
 
 		results = [wage; pN; Ld; output]
 
-		return results, minf, exc_dem, exc_sup
+		return results, [minf], exc_dem, exc_sup
 	end
 
 	res = Optim.optimize(
 		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars = true)^2,
-		0.9*pNmin, 1.1*pNmax, GoldenSection()
+		# 0.9*pNmin, 1.1*pNmax, GoldenSection()
+		pNmin, pNmax, GoldenSection()
 		)
 	pN = res.minimizer
 	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars = true)
 
-	pN > pNmax ? exc_dem = 1 : exc_dem = 0
-	pN < pNmin ? exc_sup = 1 : exc_sup = 0
+	pN >= pNmax - 0.05*(pNmax-pNmin) ? exc_dem = 1 : exc_dem = 0
+	pN <= pNmin + 0.05*(pNmax-pNmin) ? exc_sup = 1 : exc_sup = 0
 	# if res.minimum > 1e-6
 	# 	exc_dem, exc_sup = 1, 1
 	# end
-
 	wage, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; get_others=true)
 
 	results = [wage; pN; Ld; output]
@@ -245,24 +250,27 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
 	end
 
-	return results, minf, exc_dem, exc_sup
+	return results, [minf], exc_dem, exc_sup
 end
 
 function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 
 	N = size(h.Jgrid, 1)
 
-	results = SharedArray{Float64}(N, 4)
-	minf	= SharedArray{Float64}(N, 1)
-	exc_dem = SharedArray{Float64}(N)
-	exc_sup = SharedArray{Float64}(N)
+	results = Array{Float64}(undef, N, 4)
+	minf	= Array{Float64}(undef, N, 1)
+	exc_dem = Array{Float64}(undef, N)
+	exc_sup = Array{Float64}(undef, N)
 
 	pN_guess = h.pN
-
-	@sync @parallel for js in 1:N
+	
+	for js in 1:N
+	# Threads.@threads for js in 1:N
 		Bpv = B′_vec[js]
 		G = G_vec[js]
-		pNg = pN_guess[js]
+		
+		pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
+		isnan(pN_guess[js]) ? pNg = (pNmin+pNmax) / 2 : pNg = 1 * pN_guess[js]
 
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
@@ -279,9 +287,14 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		zv = h.zgrid[jz]
 
 		jdefault = (ζv != 1.0)
-		pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
-		results[js, :], minf[js, :], exc_dem[js], exc_sup[js] = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
+		r, mf, ed, es = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
+
+		results[js, :] = r
+		minf[js, :], exc_dem[js], exc_sup[js] = mf, ed, es
+		if isnan(results[js, 2])
+			results[js, 2] = pNg
+		end
 	end
 
 	return results, minf, exc_dem, exc_sup
@@ -289,10 +302,13 @@ end
 
 function update_state_functions!(h::Hank, upd_η::Float64)
 	itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
+	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
 
+	t1 = time()
 	results, minf, exc_dem, exc_sup = find_all_prices(h, itp_ϕc, h.issuance, h.spending)
+	print_save(" (new prices in $(time_print(time()-t1)))")
 
-	dist = Array{Float64,1}(3)
+	dist = Array{Float64,1}(undef, 3)
 	dist[1] = sqrt.(sum( (results[:, 1] - h.wage).^2 )) / sqrt.(sum(h.wage.^2))
 	dist[2] = sqrt.(sum( (results[:, 2] - h.pN).^2 ))   / sqrt.(sum(h.pN.^2))
 	dist[3] = sqrt.(sum( (results[:, 3] - h.Ld).^2 ))   / sqrt.(sum(h.Ld.^2))
@@ -300,11 +316,11 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	h.pN = upd_η * results[:, 2] + (1.0-upd_η) * h.pN
 
 	consistent_others = true
-
 	if consistent_others
 		N = size(h.Jgrid,1)
 		wage, Ld, output = zeros(N), zeros(N), zeros(N)
-		for js in 1:N
+		Threads.@threads for js in 1:N
+		# for js in 1:N
 			Bpv = h.issuance[js]
 			G = h.spending[js]
 
@@ -317,6 +333,8 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 			ξv = h.ξgrid[h.Jgrid[js, 4]]
 			jζ = h.Jgrid[js, 5]
 			jz = h.Jgrid[js, 6]
+
+			pN = max(min(pN, pNmax), pNmin)
 
 			wage[js], Ld[js], output[js] = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, (jζ!=1); get_others=true)
 			jzmean = h.Nz # ceil(Int, h.Nz/2)
@@ -332,7 +350,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 
 	h.profits = h.output - h.wage .* h.Ld
 	mean_f = mean(minf)
-	max_f = minf[indmax(abs.(minf))]
+	max_f = maximum(abs.(minf))
 
 	exc_dem_prop = sum(exc_dem) / length(exc_dem)
 	exc_sup_prop = sum(exc_sup) / length(exc_sup)
@@ -379,7 +397,7 @@ function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
 			)
 	w_down = min(res1.minimizer, res2.minimizer) * 0.75
 
-	h.pngrid = collect(linspace(pN_down, pN_up, length(h.pngrid)))
+	h.pngrid = collect(range(pN_down, pN_up, length=length(h.pngrid)))
 
 	nothing
 end
@@ -410,8 +428,11 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jd
 	# varω >= 0. || print_save("\nvar_a, var_b, cov_ab, R, q = $(var_a), $(var_b), $(cov_ab), $(R), $(q)")
 
 	μpv, σpv = make_logN(Eω - h.ωmin, varω)
+	# μpv = min(max(μpv, minimum(h.μgrid)), maximum(h.μgrid))
+	# σpv = min(max(σpv, minimum(h.σgrid)), maximum(h.σgrid))
 
-	new_q = itp_qᵍ[(1.0 - haircut) .* Bpv, μpv, σpv, ξpv, ζpv, jzp]
+	itp_qᵍ = extrapolate(itp_qᵍ, Interpolations.Flat())
+	new_q = itp_qᵍ((1.0 - haircut) .* Bpv, μpv, σpv, ξpv, ζpv, jzp)
 
 	if get_μσ
 		return μpv, σpv
@@ -427,8 +448,8 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 	jdef = (ζv != 1.0)
 
 
-	μ, σ, q = Array{Float64, 3}(h.Nξ, h.Nz, 2), Array{Float64, 3}(h.Nξ, h.Nz, 2), Array{Float64, 3}(h.Nξ, h.Nz, 2)
-	alarm_mat = Array{Float64, 3}(h.Nξ, h.Nz, 2)
+	μ, σ, q = Array{Float64, 3}(undef, h.Nξ, h.Nz, 2), Array{Float64, 3}(undef, h.Nξ, h.Nz, 2), Array{Float64, 3}(undef, h.Nξ, h.Nz, 2)
+	alarm_mat = Array{Float64, 3}(undef, h.Nξ, h.Nz, 2)
 
 	for (jξp, ξpv) in enumerate(h.ξgrid), (jzp, zpv) in enumerate(h.zgrid)
 		# First any case where ζ′ = 1
@@ -490,31 +511,31 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, js,
 
 	val_a, val_b, val_a2, val_b2, val_ab, sum_prob = 0., 0., 0., 0., 0., 0.
 
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) + h.ωmin
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
 	ωmax_int = min(ωmax_int, h.ωmax)
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
-		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
 		sum_prob += val_pdf * h.λϵ[jϵ]
 
-		fA(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, ξv, jζ, jz])
-		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		fA(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa(ω, jϵ, bv, μv, σv, ξv, jζ, jz))
+		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
 		val_a += valA * h.λϵ[jϵ]
 
-		fA2(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, ξv, jζ, jz])^2
-		(valA2, err) = hquadrature(fA2, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		fA2(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa(ω, jϵ, bv, μv, σv, ξv, jζ, jz))^2
+		(valA2, err) = hquadrature(fA2, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
 		val_a2 += valA2 * h.λϵ[jϵ]
 
-		fB(ω) = f_pdf(ω) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, ξv, jζ, jz])
-		(valB, err) = hquadrature(fB, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		fB(ω) = f_pdf(ω) * max(0., itp_ϕb(ω, jϵ, bv, μv, σv, ξv, jζ, jz))
+		(valB, err) = hquadrature(fB, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
 		val_b += valB * h.λϵ[jϵ]
 
-		fB2(ω) = f_pdf(ω) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, ξv, jζ, jz])^2
-		(valB2, err) = hquadrature(fB2, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		fB2(ω) = f_pdf(ω) * max(0., itp_ϕb(ω, jϵ, bv, μv, σv, ξv, jζ, jz))^2
+		(valB2, err) = hquadrature(fB2, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
 		val_b2 += valB2 * h.λϵ[jϵ]
 
-		fAB(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa[ω, jϵ, bv, μv, σv, ξv, jζ, jz]) * max(0., itp_ϕb[ω, jϵ, bv, μv, σv, ξv, jζ, jz])
-		(valAB, err) = hquadrature(fAB, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		fAB(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa(ω, jϵ, bv, μv, σv, ξv, jζ, jz)) * max(0., itp_ϕb(ω, jϵ, bv, μv, σv, ξv, jζ, jz))
+		(valAB, err) = hquadrature(fAB, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
 		val_ab += valAB * h.λϵ[jϵ]
 	end
 
@@ -569,11 +590,12 @@ end
 function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec)
 	N = size(h.Jgrid, 1)
 
-	μ′ = SharedArray{Float64}(N, h.Nξ, h.Nz, 2)
-	σ′ = SharedArray{Float64}(N, h.Nξ, h.Nz, 2)
-	alarm_vec = SharedArray{Float64}(N, h.Nξ, h.Nz, 2)
+	μ′ = Array{Float64}(undef, N, h.Nξ, h.Nz, 2)
+	σ′ = Array{Float64}(undef, N, h.Nξ, h.Nz, 2)
+	alarm_vec = Array{Float64}(undef, N, h.Nξ, h.Nz, 2)
 
-	@sync @parallel for js in 1:N
+	Threads.@threads for js in 1:N
+	# for js in 1:N
 		Bpv = B′_vec[js]
 
 		jb = h.Jgrid[js, 1]
@@ -595,7 +617,7 @@ function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec)
 	if sum(alarm_vec[:]) >= 1
 		print_save("WARNING: ")
 	end
-	print_save("Couldn't find qᵍ $(round(100*sum(alarm_vec[:])/N,0))% of the time")
+	print_save("Couldn't find qᵍ $(round(100*sum(alarm_vec[:])/N,digits=0))% of the time")
 
 	return μ′, σ′
 end
@@ -608,7 +630,7 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	μ′_old = copy(h.μ′)
 	σ′_old = copy(h.σ′)
 
-	dist_exp = Array{Float64,1}(2)
+	dist_exp = Array{Float64,1}(undef, 2)
 
 	itp_ϕa = make_itp(h, h.ϕa; agg=false)
 	itp_ϕb = make_itp(h, h.ϕb; agg=false)
@@ -624,17 +646,17 @@ function update_expectations!(h::Hank, upd_η::Float64)
 		Xmin = minimum(xgrid)
 
 		# Expand grids if x′ goes beyond the bounds
-		quantile(x′[:], 0.95) > maximum(xgrid) ? Xmax = maximum(xgrid) + 0.05*xdist : Void
-		quantile(x′[:], 0.05) < minimum(xgrid) ? Xmin = minimum(xgrid) - 0.05*xdist : Void
+		quantile(x′[:], 0.95) > maximum(xgrid) ? Xmax = maximum(xgrid) + 0.05*xdist : nothing
+		quantile(x′[:], 0.05) < minimum(xgrid) ? Xmin = minimum(xgrid) - 0.05*xdist : nothing
 
 		# Retract grids if x′ doesn't reach the bounds
-		maximum(x′) < maximum(xgrid) ? Xmax = maximum(xgrid) - 0.01*xdist : Void
-		minimum(x′) > minimum(xgrid) ? Xmin = minimum(xgrid) + 0.01*xdist : Void
+		maximum(x′) < maximum(xgrid) ? Xmax = maximum(xgrid) - 0.01*xdist : nothing
+		minimum(x′) > minimum(xgrid) ? Xmin = minimum(xgrid) + 0.01*xdist : nothing
 
 		Xmax = min(Xmax, ub)
 		Xmin = max(Xmin, lb)
 
-		return collect(linspace(Xmin, Xmax, Nx))
+		return collect(range(Xmin, Xmax, length=Nx))
 	end
 
 
@@ -679,16 +701,16 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 		end
 
 		itp_obj_y = interpolate(knots, y, Gridded(Linear()))
-		itp_y = extrapolate(itp_obj_y, Linear())
+		itp_y = extrapolate(itp_obj_y, Line())
 
 		if agg
-			y_new = itp_y[h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid]
+			y_new = itp_y(h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid)
 			return reshape(y_new, length(y_new))
 		elseif ext
-			y_new = itp_y[h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid, h.pngrid]
+			y_new = itp_y(h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid, h.pngrid)
 			return y_new
 		else
-			y_new = itp_y[h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid]
+			y_new = itp_y(h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid)
 			return y_new
 		end
 	end
@@ -712,8 +734,8 @@ function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], ne
 
 	knots 		= (h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid, h.ξgrid, h.zgrid)
 	repay_mat 	= reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
-	itp_repay 	= interpolate(knots, repay_mat, Gridded(Linear()))
-	rep_new 	= itp_repay[h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid, h.ξgrid, new_zgrid]
+	itp_repay 	= extrapolate(interpolate(knots, repay_mat, Gridded(Linear())), Line())
+	rep_new 	= itp_repay(h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid, h.ξgrid, new_zgrid)
 	rep_new 	= max.(0, min.(1, rep_new))
 	h.repay 	= reshape(rep_new, length(rep_new))
 

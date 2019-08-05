@@ -1,4 +1,6 @@
-using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, MINPACK, LaTeXStrings, Distributions, JLD, Sobol
+using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, LaTeXStrings, Distributions, JLD, Sobol, HCubature, Distributed, Dates
+
+# using SharedArrays
 
 function establish_run()
 	location = "remote"
@@ -27,11 +29,11 @@ end
 write(pwd()*"/../../output.txt", "")
 
 # Load codes
-@everywhere include("reporting_routines.jl")
-@everywhere include("type_def.jl")
-@everywhere include("interp_atosr.jl")
-@everywhere include("reiter.jl")
-@everywhere include("comp_eqm.jl")
+include("reporting_routines.jl")
+include("type_def.jl")
+include("interp_atosr.jl")
+include("reiter.jl")
+include("comp_eqm.jl")
 include("gov_pol.jl")
 include("simul.jl")
 # include("plotting_routines.jl")
@@ -44,12 +46,12 @@ end
 
 print_save("\nAggregate Demand and Sovereign Debt Crises\n")
 
-print_save("\nStarting $(location) run on $(nprocs()) cores at "*Dates.format(now(),"HH:MM"))
+print_save("\nStarting $(location) run on $(nprocs()) cores and $(Threads.nthreads()) threads at "*Dates.format(now(),"HH:MM"))
 print_save("\nRun number: $run_number")
 
 # Set options
 local_run 	 = true
-update_start = true
+update_start = false
 nodef     	 = false
 noΔ 		 = false
 rep_agent 	 = false
@@ -69,9 +71,9 @@ function set_params(run_number, xcenter, xdist)
 		if run_number == 1
 			x = xcenter
 		elseif run_number <= N+1
-			x = xcenter + xdist .* bv(run_number-1, N)
+			x = xcenter .+ xdist .* bv(run_number-1, N)
 		elseif run_number-N-1 <= N
-			x = xcenter - xdist .* bv(run_number-N-1, N)
+			x = xcenter .- xdist .* bv(run_number-N-1, N)
 		else
 			x = xcenter
 		end
@@ -79,8 +81,8 @@ function set_params(run_number, xcenter, xdist)
 	return x
 end
 #				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
-params_center = [0.094; 0.001; 12.032; 0.092; 0.875; 0.007; 0.995; 0.002 ; 1.15825]
-xdist = 		[0.015; 0.001;    2.5;  0.05;  0.01;  0.01; 0.001; 0.0002;   0.025]
+params_center = [0.094; 0.02 ; 12.032; 0.092; 0.875; 0.007; 0.995; 0.002 ; 1.10825]
+xdist = 		[0.015; 0.005;    2.5;  0.05;  0.01;  0.01; 0.001; 0.0002;   0.025]
 best_run, use_run = 1, 1
 
 function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::Bool=true)
@@ -127,6 +129,7 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::B
 					gGMM_center = gGMM
 				end
 				# end
+			catch
 			end
 		end
 	end
@@ -192,11 +195,6 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::B
 	end
 
 	# new_center[4] = 0.092
-	# new_center[8] = 0.002
-	# new_dist[8] = 0.0002
-	# new_center[7] = 0.995
-	# new_dist[7] = 0.001
-	# new_center[2] = 0.02
 
 	# new_dist[3] = new_dist[3] * 2
 	# new_dist[5] = new_dist[5] * 2
@@ -217,7 +215,7 @@ if update_start
 	W[2,2] *= 100
 	W[4,4] *= 50
 
-	really_update = false
+	really_update = true
 
 	params_center, xdist, best_run = find_new_cube(targets, W, really_update=really_update)
 	# if run_number == best_run
@@ -254,7 +252,7 @@ r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
 
 function make_guess(remote, local_run, nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, use_run)
 	if remote || local_run
-		print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,3)), $(round(RRA,3)), $(round(τ,3)), $(round(wbar,3)), $(round(ρz,3)), $(round(σz,3)), $(round(tax,3)), $(round(ρξ,3)), $(round(σξ,3))")
+		print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,digits=3)), $(round(RRA,digits=3)), $(round(τ,digits=3)), $(round(wbar,digits=3)), $(round(ρz,digits=3)), $(round(σz,digits=3)), $(round(tax,digits=3)), $(round(ρξ,digits=3)), $(round(σξ,digits=3))")
 		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
 			# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
 			);
@@ -266,6 +264,7 @@ function make_guess(remote, local_run, nodef, noΔ, rep_agent, r_loc, tax, RRA, 
 			try
 				h2 = load(pwd() * "/../../hank$(use_run).jld", "h")
 				print_save(" for best past run $(use_run)")
+			catch
 			end
 			if h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
 				print_save(": loading previous results")
@@ -305,6 +304,7 @@ h = make_guess(remote, local_run, nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, �
 
 print_save("\nϵ: $(h.ϵgrid)")
 print_save("\nz: $(h.zgrid)")
+print_save("\nz: $(h.ζgrid)")
 print_save("\nω: $(h.ωgrid)\n")
 
 function make_simulated_path(h::Hank, run_number)
@@ -323,17 +323,20 @@ function make_simulated_path(h::Hank, run_number)
 		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons) / σ(Output)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "median Dom Holdings"; "mean wealth/Y" ]
 		targets[4] = targets[4] / targets[2]
 		v_m[4] = v_m[4] / v_m[2]
+		print_save("\ncomputed targets")
+		print_save("$(v_m)")
 
 		W = zeros(length(v_m),length(v_m))
 		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
 		W[2,2] *= 100
 		W[4,4] *= 50
 
+		print_save("computed W")
 		g = (v_m - targets)'*W*(v_m-targets)
 		print_save("\nObjective function = $(@sprintf("%0.3g",g))")
 		print_save("\n")
 		try
-			g_simuls = readstring(pwd()*"/../../../g_simuls.txt")
+			g_simuls = read(pwd()*"/../../../g_simuls.txt", String)
 			write(pwd()*"/../../../g_simuls.txt", g_simuls*"\nRun $(run_number), g = $(@sprintf("%0.3g",g))")
 		catch
 		end

@@ -1,3 +1,4 @@
+using Random, LinearAlgebra
 include("type_def.jl")
 
 function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ; phase::String="")
@@ -24,22 +25,24 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		print_save("\n$([Bt, μt, σt, ξt, ζt, zt])")
 	end
 
-	Bprime 	= itp_B′[Bt, μt, σt, ξt, ζt, jz]
-	G 		= itp_G[Bt, μt, σt, ξt, ζt, jz]
-	pNg 	= itp_pN[Bt, μt, σt, ξt, ζt, jz]
+	Bprime 	= itp_B′(Bt, μt, σt, ξt, ζt, jz)
+	G 		= itp_G(Bt, μt, σt, ξt, ζt, jz)
+	pNg 	= itp_pN(Bt, μt, σt, ξt, ζt, jz)
 
 	if ζt == 2
 		Bprime = Bt
 	end
 
 	exp_rep = zeros(h.Nξ, h.Nz)
+	itp_repay = extrapolate(itp_repay, Interpolations.Flat())
 	for jξp in 1:h.Nξ, jzp in 1:h.Nz
-		exp_rep[jξp, jzp] = max(0, min(1, itp_repay[Bt, μt, σt, ξt, ζt, jz, jξp, jzp]))
+		exp_rep[jξp, jzp] = max(0, min(1, itp_repay(Bt, μt, σt, ξt, ζt, jz, jξp, jzp)))
 	end
 
 	# Find pN at the current state. Deduce w, L, Π, T.
 	pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 	jdef = (ζt != 1)
+
 	results, _ = find_prices(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, ξt, ζt, jz, jdef)
 
 	wt, pN, Ld, output = results
@@ -84,8 +87,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	js = 0
 	ωvjϵ = gridmake(h.ωgrid_fine, 1:h.Nϵ)
 	λ_mat  = reshape(λt, h.Nω_fine, h.Nϵ)
-	mλω = sum(λ_mat, 2)
-	cdf_ω = cumsum(mλω)
+	mλω = sum(λ_mat, dims=2)
+	cdf_ω = cumsum(mλω[:])
 
 	avgω_fromb = zeros(h.Nω_fine*h.Nϵ)
 
@@ -97,11 +100,11 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	adjustment = sum(h.λϵ.*exp.(h.ϵgrid))
 	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid_fine)
 		js += 1
-		ap = itp_ϕa[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN]
+		ap = itp_ϕa(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
 		ϕa[js] = max(h.ωmin, ap)
-		bp = itp_ϕb[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN]
+		bp = itp_ϕb(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
 		ϕb[js] = max(0.0, bp)
-		cc = itp_ϕc[ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN]
+		cc = itp_ϕc(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
 		ϕc[js] = max(0.0, cc)
 		yd = (wt*Ld*(1.0-h.τ) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
 		Crate[js] = ϕc[js] / yd
@@ -115,7 +118,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		end
 	end
 
-	C = dot(λt, ϕc)
+	C = LinearAlgebra.dot(λt, ϕc)
 	CoY = C / output
 	CoYd = dot(λt, Crate)
 
@@ -170,8 +173,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	if jdef
 		# Compute welfare in case of reentry and remain in default
-		Wr = itp_W[Bprime, μ′[jξp,jzp,1], σ′[jξp,jzp,1], ξt, 1, jzp]
-		Wd = itp_W[Bprime, μ′[jξp,jzp,2], σ′[jξp,jzp,2], ξt, 2, jzp]
+		Wr = itp_W(Bprime, μ′[jξp,jzp,1], σ′[jξp,jzp,1], ξt, 1, jzp)
+		Wd = itp_W(Bprime, μ′[jξp,jzp,2], σ′[jξp,jzp,2], ξt, 2, jzp)
 		# Now draw reentry
 		prob_reentry = h.θ
 		reentry = (rand() <= prob_reentry)
@@ -187,8 +190,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		end
 	else
 		# Compute welfare in case repay and default
-		Wr = itp_W[Bprime, 			μ′[jξp,jzp,1], σ′[jξp,jzp,1], ξt, 1, jzp]
-		Wd = itp_W[(1.0.-h.ℏ)*Bprime, μ′[jξp,jzp,2], σ′[jξp,jzp,2], ξt, 2, jzp]
+		Wr = itp_W(Bprime, 			μ′[jξp,jzp,1], σ′[jξp,jzp,1], ξt, 1, jzp)
+		Wd = itp_W((1.0.-h.ℏ)*Bprime, μ′[jξp,jzp,2], σ′[jξp,jzp,2], ξt, 2, jzp)
 		# Now draw default
 		if phase == "no def"
 			repay_prime = 1.
@@ -234,7 +237,7 @@ end
 
 function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::Bool=false)
 
-	srand(1)
+	Random.seed!(1)
 
 	# Setup
 	T = burn_in + simul_length
@@ -246,9 +249,14 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
 
 	itp_ϕa = make_itp(h, h.ϕa_ext; agg=false)
+	itp_ϕa = extrapolate(itp_ϕa, Interpolations.Flat())
 	itp_ϕb = make_itp(h, h.ϕb_ext; agg=false)
+	itp_ϕb = extrapolate(itp_ϕb, Interpolations.Flat())
 	itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
+	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
 	itp_vf = make_itp(h, h.vf; agg=false)
+	itp_vf = extrapolate(itp_vf, Interpolations.Flat())
+
 
 	itp_B′		= make_itp(h, h.issuance; agg=true)
 	itp_G		= make_itp(h, h.spending; agg=true)
@@ -260,7 +268,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	knots = (h.bgrid, h.μgrid, h.σgrid, h.ξgrid, 1:h.Nζ, 1:h.Nz, h.ξgrid, 1:h.Nz)
 	itp_repay = interpolate(knots, rep_mat, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp(), Gridded(Linear()), NoInterp()))
 
-	jz_series = Vector{Int64}(T)
+	jz_series = Vector{Int64}(undef, T)
 	jz_series[1] = jz
 
 	# Initialize objects for iterating the distribution
@@ -355,8 +363,8 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[])
 	m_vec, sd_vec = unmake_logN(μ_vec, σ_vec)
 	mean_wealth = 100*mean(m_vec./(4*Y_vec))
 
-	ρy, σy = get_AR1(log.(Y_vec))
-	ρc, σc = get_AR1(log.(C_vec))
+	ρy, σy = get_AR1(log.(Y_vec.+1e-8))
+	ρc, σc = get_AR1(log.(C_vec.+1e-8))
 	ρs, σs = get_AR1(spr_vec)
 	m_unemp, sd_unemp = get_MV(u_vec)
 	m_debt, sd_debt = get_MV(100*B_vec./(4*Y_vec))

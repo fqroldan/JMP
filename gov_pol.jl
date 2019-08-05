@@ -1,15 +1,15 @@
 function integrate_itp(h::Hank, bv, μv, σv, ξv, jζ, jz, itp_obj)
 
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) + h.ωmin
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
 	ωmax_int = min(ωmax_int, h.ωmax)
 	W, sum_prob = 0.0, 0.0
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
-		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, reltol=1e-10, abstol=1e-12, maxevals=0)
+		f_pdf(ω) = pdf(LogNormal(μv, σv), ω.-h.ωmin)
+		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
 		sum_prob += val_pdf * h.λϵ[jϵ]
 
-	    f(ω) = f_pdf(ω) * itp_obj[ω, jϵ, bv, μv, σv, ξv, jζ, jz]
-	    (val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
+	    f(ω) = f_pdf(ω) * itp_obj(ω, jϵ, bv, μv, σv, ξv, jζ, jz)
+	    (val, err) = hquadrature(f, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
 	    W += val * h.λϵ[jϵ]
 	end
 	W = W / sum_prob
@@ -47,8 +47,8 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 	σ_gov = 0.0008
 
 	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
-	diff_W = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
-	diff_R = Array{Float64}(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+	diff_W = Array{Float64}(undef, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+	diff_R = Array{Float64}(undef, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	rep_prob = zeros(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	for js in 1:size(h.Jgrid, 1)
 		jb = h.Jgrid[js, 1]
@@ -64,12 +64,12 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 				μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 1]
 				σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 1]
 				# Wr = integrate_itp(h, bvp, μvp, σvp, ξpv, 1, jzp, itp_vf)
-				Wr = itp_W[bvp, μvp, σvp, ξpv, 1, jzp]
+				Wr = itp_W(bvp, μvp, σvp, ξpv, 1, jzp)
 
 				μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
 				σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
 				# Wd = integrate_itp(h, (1.0-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp, itp_vf)
-				Wd = itp_W[(1.0-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp]
+				Wd = itp_W((1.0-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp)
 
 				diff_W[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = Wr - Wd
 				if Wr > Wd && repay[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] < 0.5
@@ -89,15 +89,15 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 	if maximum(diff_R) == 1.
 		threshold = quantile(diff_W[diff_R .== 1.], 1.0-η_rep)
 		ind_change = (diff_W .> threshold) .& (diff_R .== 1.)
-		
-		repay[ind_change] = 1.
+
+		repay[ind_change] .= 1.
 	end
 
 	if minimum(diff_R) == -1.
 		threshold = quantile(diff_W[diff_R .== -1.], η_rep)
 		ind_change = (diff_W .< threshold) .& (diff_R .== -1.)
 		
-		repay[ind_change] = 0.
+		repay[ind_change] .= 0.
 	end
 	
 	# rep_new = reshape(repay, length(repay))
@@ -139,7 +139,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 	while dist > tol && out_iter < maxiter
 		print_save("\n\nOuter Iteration $out_iter\n")
 		vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 15)
-		h.upd_tol = max(min(h.upd_tol*10, tol_vfi/10), 1e-5)
+		h.upd_tol = max(min(h.upd_tol*0.95, tol_vfi/10), 1e-6)
 		
 		W_new = update_W(h)
 

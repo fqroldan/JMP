@@ -169,7 +169,7 @@ function Path(; T::Int64 = 1)
 		:p90 => 29,
 		:avgω => 30
 		)
-	data = Matrix{Float64}(T, length(n))
+	data = Matrix{Float64}(undef, T, length(n))
 	return Path(data, n)
 end
 
@@ -205,12 +205,12 @@ function fill_path!(p::Path, t::Int64, d::Dict{Symbol, Float64}=Dict(:VOID=>-Inf
 	else
 		throw(error("badly specified dict"))
 	end
-	Void
+	nothing
 end
 
 function trim_path!(p::Path, T_burnin::Int64)
 	p.data = p.data[T_burnin+1:end, :]
-	Void
+	nothing
 end
 
 function trim_path(p::Path, t0::Int64)

@@ -1,4 +1,4 @@
-using QuantEcon, BasisMatrices, Interpolations, Optim, MINPACK, LaTeXStrings, Distributions, JLD, Cubature
+using QuantEcon, BasisMatrices, Interpolations, Optim, LaTeXStrings, Distributions, JLD, HCubature, Distributed
 
 include("hh_pb.jl")
 
@@ -65,12 +65,12 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	function tauchen_fun(ny::Int64, ρ::Float64, σe::Float64; m=3, mu=0.0)
 	    σy = σe/sqrt((1-ρ^2))
 	    λ1 = -m*σy; λn = m*σy
-	    λgrid = linspace(λ1,λn,ny)
+	    λgrid = range(λ1,λn,length=ny)
 	    ww = λgrid[2] - λgrid[1]
 
 	    distrib = Normal(0,1)
 
-	    Π = Array{Float64}(ny,ny)
+	    Π = Array{Float64}(undef, ny,ny)
 
 	    for ii=1:ny
 	        Π[ii,1] = cdf(distrib,(λ1+ww/2-(1-ρ)*mu-ρ*λgrid[ii])/σe) # For j=1
@@ -114,7 +114,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	Pϵ = ϵ_chain.p
 	ϵgrid = ϵ_chain.state_values
 
-	pngrid = linspace(0.5, 1.1, Np)
+	pngrid = range(0.5, 1.1, length=Np)
 	ζgrid = 1:2
 	Nζ = length(ζgrid)
 
@@ -139,19 +139,19 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	# Grids for endogenous aggregate states
 	Bmax  = 6.5
 	Bbar  = Bmax * 0.5
-	bgrid = linspace(0.0, Bmax, Nb)
-	μgrid = linspace(-2.5, 0.75, Nμ)
-	σgrid = linspace(σmin, σmax, Nσ)
+	bgrid = range(0.0, Bmax, length=Nb)
+	μgrid = range(-2.5, 0.75, length=Nμ)
+	σgrid = range(σmin, σmax, length=Nσ)
 
 	# Prepare grid for cash in hand.
 	ωmin	= -0.5
-	ωgrid0	= linspace(0.0, (ωmax-ωmin)^curv, Nω).^(1/curv)
+	ωgrid0	= range(0.0, (ωmax-ωmin)^curv, length=Nω).^(1/curv)
 	# ωgrid0	= linspace(0.0, (ωmax-ωmin), Nω)
-	ωgrid0	= ωgrid0 + ωmin
+	ωgrid0	= ωgrid0 .+ ωmin
 	ωgrid 	= ωgrid0
 
-	ωgrid_fine	= linspace(0., (ωmax-ωmin), Nω_fine)
-	ωgrid_fine	= ωgrid_fine + ωmin
+	ωgrid_fine	= range(0., (ωmax-ωmin), length=Nω_fine)
+	ωgrid_fine	= ωgrid_fine .+ ωmin
 
 	snodes = [kron(ones(Nϵ,), ωgrid_fine) kron(ϵgrid, ones(Nω_fine,))]
 
@@ -177,25 +177,25 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	λ = ones(Nω_fine*Nϵ)
 	λ = λ/sum(λ)
 
-	μ = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	μ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
 	for (jμ, μv) in enumerate(μgrid)
-		μ[:,jμ,:,:,:,:,:] = μv + 0.5 * ( mean(μgrid) - μv )
+		μ[:,jμ,:,:,:,:,:] .= μv + 0.5 * ( mean(μgrid) - μv )
 	end
 	μ = reshape(μ, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
-	σ = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	σ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
 	for (jσ, σv) in enumerate(σgrid)
-		σ[:,:,jσ,:,:,:,:] = σv + 0.5 * ( mean(σgrid) - σv )
+		σ[:,:,jσ,:,:,:,:] .= σv + 0.5 * ( mean(σgrid) - σv )
 	end
 	σ = reshape(σ, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
-	μ′ = Array{Float64}(Nb*Nμ*Nσ*Nξ*Nζ*Nz, Nξ, Nz, 2)
-	σ′ = Array{Float64}(Nb*Nμ*Nσ*Nξ*Nζ*Nz, Nξ, Nz, 2)
+	μ′ = Array{Float64}(undef, Nb*Nμ*Nσ*Nξ*Nζ*Nz, Nξ, Nz, 2)
+	σ′ = Array{Float64}(undef, Nb*Nμ*Nσ*Nξ*Nζ*Nz, Nξ, Nz, 2)
 	for jξ = 1:Nξ, jz = 1:Nz, jj = 1:2
-		μ′[:, jξ, jz, jj] = μ
-		σ′[:, jξ, jz, jj] = σ
+		μ′[:, jξ, jz, jj] .= μ
+		σ′[:, jξ, jz, jj] .= σ
 	end
-	w′ = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	w′ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
 	for (jw, wv) in enumerate(ξgrid)
-		w′[:,:,:,jw,:,:] = wv
+		w′[:,:,:,jw,:,:] .= wv
 	end
 	w′ = reshape(w′, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 
@@ -210,25 +210,25 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	qᵍ = zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 	spread = zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 
-	pN 		  = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	repay 	  = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz, Nξ, Nz)
-	wage 	  = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	spending  =	Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	issuance  =	Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	output	  = Array{Float64}(Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	pN 		  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	repay 	  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz, Nξ, Nz)
+	wage 	  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	spending  =	Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	issuance  =	Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	output	  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
 	for (jz, zv) in enumerate(zgrid)
-		pN[:,:,:,:,:,jz] = mean(pngrid) - 0.1 * zv
-		output[:,:,:,:,:,jz] = exp(zv)
-		spending[:,:,:,:,:,jz] = 0.1 - 0.25 * zv
+		pN[:,:,:,:,:,jz] .= mean(pngrid) - 0.1 * zv
+		output[:,:,:,:,:,jz] .= exp(zv)
+		spending[:,:,:,:,:,jz] .= 0.1 - 0.25 * zv
 		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] = bv - 0.25 * zv + 0.1 * (Bbar-bv)
-			issuance[jb,:,:,:,2,jz] = bv
+			issuance[jb,:,:,:,1,jz] .= bv - 0.25 * zv + 0.1 * (Bbar-bv)
+			issuance[jb,:,:,:,2,jz] .= bv
 		end
 		for (jζ, ζv) in enumerate(ζgrid)
 			def = (ζv != 1.0)
-			wage[:,:,:,:,jζ,jz] = max(exp(zv) * (1.0 - Δ * def), wbar)
+			wage[:,:,:,:,jζ,jz] .= max(exp(zv) * (1.0 - Δ * def), wbar)
 		end
-		repay[:,:,:,:,:,:,:,jz] = 1.0 - (zv <= zgrid[1])
+		repay[:,:,:,:,:,:,:,jz] .= 1.0 - (zv <= zgrid[1])
 	end
 	pN	 		= reshape(pN, 	 	 Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 	repay	 	= reshape(repay, 	 Nb*Nμ*Nσ*Nξ*Nζ*Nz*Nz*Nξ)
@@ -250,7 +250,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	ϕe_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz, Np)
 	ϕc_ext = zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz, Np)
 
-	vf = Array{Float64}(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	vf = Array{Float64}(undef, Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
 	for js in 1:size(Jgrid,1)
 		jb = Jgrid[js, 1]
 		jμ = Jgrid[js, 2]
@@ -273,11 +273,11 @@ function Hank(;	β = (1.0/1.05)^0.25,
 			c = Y * 0.5 ./ pC
 			ϕa[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = a
 			ϕb[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = 0.
-			ϕa_ext[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz, :] = a
-			ϕb_ext[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz, :] = 0.
+			# ϕa_ext[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz, :] .= a
+			# ϕb_ext[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz, :] .= 0.
 			ϕc[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = c
 			ut = log(c)
-			γ == 1 ? Void : ut = c^(1.0-γ) / (1.0-γ)
+			γ == 1 ? nothing : ut = c^(1.0-γ) / (1.0-γ)
 			if EpsteinZin
 				vf[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = c
 			else
@@ -305,8 +305,8 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 	qᵍ_mat = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 
-	qᵍ = ones(qᵍ_mat)
-	spread = zeros(qᵍ)
+	qᵍ = ones(size(qᵍ_mat))
+	spread = zeros(size(qᵍ))
 	while dist > tol && iter < maxiter
 		old_q  = copy(qᵍ)
 		knots  = (h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, 1:h.Nz)
@@ -339,12 +339,12 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 						ζpv = 1.0
 						μpv = h.μ′[js, jξp, jzp, 1]
 						σpv = h.σ′[js, jξp, jzp, 1]
-						E_rep += prob * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, ζpv, jzp]) * exp_rep[jξp, jzp]
+						E_rep += prob * (coupon + (1.0-h.ρ) * itp_qᵍ(bpv, μpv, σpv, ξpv, ζpv, jzp)) * exp_rep[jξp, jzp]
 
 						ζpv = 2.0
 						μpv = h.μ′[js, jξp, jzp, 2]
 						σpv = h.σ′[js, jξp, jzp, 2]
-						E_rep += prob * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ[(1.0 - h.ℏ)*bpv, μpv, σpv, ξpv, ζpv, jzp] * (1.0-exp_rep[jξp, jzp])
+						E_rep += prob * (1.0-h.ℏ) * (1.0-h.ρ) * itp_qᵍ((1.0 - h.ℏ)*bpv, μpv, σpv, ξpv, ζpv, jzp) * (1.0-exp_rep[jξp, jzp])
 						check += prob
 					end
 				end
@@ -357,13 +357,13 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 						ζ_reent = 1.0
 						μpv = h.μ′[js, jξp, jzp, 1]
 						σpv = h.σ′[js, jξp, jzp, 1]
-						E_rep += prob * (coupon + (1.0-h.ρ) * itp_qᵍ[bpv, μpv, σpv, ξpv, ζ_reent, jzp]) * h.θ
+						E_rep += prob * (coupon + (1.0-h.ρ) * itp_qᵍ(bpv, μpv, σpv, ξpv, ζ_reent, jzp)) * h.θ
 						check += prob * h.θ
 
 						ζ_cont = 2.0
 						μpv = h.μ′[js, jξp, jzp, 2]
 						σpv = h.σ′[js, jξp, jzp, 2]
-						E_rep += prob * itp_qᵍ[bpv, μpv, σpv, ξpv, ζ_cont, jzp] * (1.0 - h.θ)
+						E_rep += prob * itp_qᵍ(bpv, μpv, σpv, ξpv, ζ_cont, jzp) * (1.0 - h.θ)
 						check += prob * (1.0 - h.θ)
 					end
 				end
@@ -388,11 +388,11 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 		if dist <= tol
 			print_save("Updated prices after $iter iterations in $(time_print(end_t-init_t))")
 		else
-			warn("Iteration on qᵍ aborted at distance $(@sprintf("%.3g",dist)) after $(time_print(end_t-init_t))")
+			print_save("WARNING: Iteration on qᵍ aborted at distance $(@sprintf("%.3g",dist)) after $(time_print(end_t-init_t))")
 		end
 	end
 
-	Void
+	nothing
 end
 
 function compute_netexports(h::Hank)
@@ -428,7 +428,7 @@ function compute_netexports(h::Hank)
 end
 
 function update_fiscalrules!(h::Hank)
-	unemp = (1.0- h.Ld)*100.
+	unemp = (1.0 .- h.Ld)*100.
 	unemp2= unemp.^2
 	BoY   = h.bgrid[h.Jgrid[:, 1]] ./ (4 * h.output) * 100
 	BoY2  = BoY.^2
@@ -440,8 +440,8 @@ function update_fiscalrules!(h::Hank)
 	coef_g = [20.6746151785  0.0307028678  0.0021122640  0.0095750707 -0.0002004299  0.0090837466 -0.0001310273]
 
 	coef_B = [ 1.0786829981  0.3342813521  0.0001223178 -0.0102040316  0.0001494438  0.0461321365 -0.0014158229 ]
-	g = [ ones(unemp) unemp unemp2 BoY BoY2 NX NX2 ] * coef_g' / 100
-	net_iss = [ ones(unemp) unemp unemp2 BoY BoY2*0.0 NX NX2*0.0 ] * coef_B' / 100
+	g = [ ones(size(unemp)) unemp unemp2 BoY BoY2 NX NX2 ] * coef_g' / 100
+	net_iss = [ ones(size(unemp)) unemp unemp2 BoY BoY2*0.0 NX NX2*0.0 ] * coef_B' / 100
 
 	h.spending = max.(min.(vec(g), 0.35), 0.) .* (1 * h.output)
 	h.issuance = min.(0.35,max.(0., vec(net_iss))) .* (4 * h.output) + (1.0-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
@@ -451,10 +451,10 @@ function update_fiscalrules!(h::Hank)
 
 	h.issuance = min.(h.issuance, maximum(h.bgrid))
 
-	Void
+	nothing
 end
 
-price_index(h::Hank, pN) = (h.ϖ * pN.^(1.0-h.η) + (1.0-h.ϖ)).^(1.0/(1.0-h.η))
+price_index(h::Hank, pN) = (h.ϖ * pN.^(1.0-h.η) .+ (1.0-h.ϖ)).^(1.0/(1.0-h.η))
 
 function govt_bc(h::Hank, wage_bill)
 	"""
@@ -462,14 +462,14 @@ function govt_bc(h::Hank, wage_bill)
 	`wage_bill` here is w * Lᵈ
 	"""
 	qᵍ_vec = h.qᵍ
-	def_states = h.ζgrid[h.Jgrid[:, 5]] .!= 1.0
+	def_states = 1 * (h.ζgrid[h.Jgrid[:, 5]] .!= 1.0)
 
 	B′ = h.issuance
 	B  = h.bgrid[h.Jgrid[:, 1]]
 
-	remaining_debt = (1.0 - h.ρ .* (1.0-def_states)) .* B
+	remaining_debt = (1.0 .- h.ρ * (1.0.-def_states)) .* B
 
-	coupons = (1.0 - def_states) .* h.κ .* B
+	coupons = (1.0 .- def_states) .* h.κ .* B
 	g 		= h.spending
 	inc_tax = h.τ * wage_bill
 	net_iss = qᵍ_vec .* (B′ - remaining_debt)
@@ -512,19 +512,21 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	iterate_qᵍ!(h, verbose = true)
 	update_fiscalrules!(h)
 	var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
-	print_save("\nqᵍ between $(round(minimum(h.qᵍ[h.Jgrid[:,5].==1]),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
+	print_save("\nqᵍ between $(round(minimum(h.qᵍ[h.Jgrid[:,5].==1]),digits=4)) and $(round(maximum(h.qᵍ),digits=4)). risk-free is $(round(mean(h.qʰ),digits=4))")
 	print_save("\nspread between $(floor(Int,10000*minimum(h.spread[h.Jgrid[:,5].==1]))) bps and $(floor(Int,10000*maximum(h.spread[h.Jgrid[:,5].==1]))) bps")
 
 	upd_η = 0.5
 
-	dist_statefuncs = Matrix{Float64}(maxiter, 3)
-	dist_LoMs = Matrix{Float64}(maxiter, 2)
+	dist_statefuncs = Matrix{Float64}(undef, maxiter, 3)
+	dist_LoMs = Matrix{Float64}(undef, maxiter, 2)
+	warnc0 = zeros(size(h.qᵍ))
 
 	μ′_old = copy(h.μ′)
 	σ′_old = copy(h.σ′)
 
 	print_save("\nIteration $iter")
 	t_old = time()
+	print_save("\nUpdate tolerance = $(@sprintf("%0.3g",h.upd_tol))")
 	while dist > tol && iter < maxiter
 		iter_cycle += 1
 
@@ -546,7 +548,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save(Dates.format(now(), "HH:MM"))
 		end
 
-		if dist < h.upd_tol || iter_cycle == 200
+		if dist < h.upd_tol
 			consw = 100*floor(Int,mean(warnc0))
 			consw > 0 ? msg = "\nWARNING: " : msg="\n"
 			msg *= "Can't affort consumption $(consw)% of the time"
@@ -554,7 +556,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 			t1 = time()
 			extend_state_space!(h, qʰ_mat, qᵍ_mat, T_mat)
-			print_save(": done in $(time_print(time()-t1))")
+			print_save(": done in $(time_print(time()-t1)) ")
+			print_save(Dates.format(now(), "HH:MM"))
 			t1 = time()
 
 			# plot_hh_policies(h, remote = remote)
@@ -573,7 +576,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save(": done in $(time_print(time()-t1))")
 			t1 = time()
 
-			print_save("\nStates with exc supply, demand = $(round(100*exc_sup_prop,2))%, $(round(100*exc_dem_prop,2))%")
+			print_save("\nStates with exc supply, demand = $(round(100*exc_sup_prop,digits=2))%, $(round(100*exc_dem_prop,digits=2))%")
 			print_save("\nAverage, max exc supply = $(@sprintf("%0.3g",mean_excS)), $(@sprintf("%0.3g",max_excS))")
 
 			update_grids_pw!(h, exc_dem_prop, exc_sup_prop)
@@ -609,10 +612,10 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			iterate_qᵍ!(h)
 			update_fiscalrules!(h)
 			var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
-			print_save("\nqᵍ between $(round(minimum(h.qᵍ),4)) and $(round(maximum(h.qᵍ),4)). risk-free is $(round(mean(h.qʰ),4))")
+			print_save("\nqᵍ between $(round(minimum(h.qᵍ),digits=4)) and $(round(maximum(h.qᵍ),digits=4)). risk-free is $(round(mean(h.qʰ),digits=4))")
 			print_save("\nspread between $(floor(Int,10000*minimum(h.spread))) bps and $(floor(Int,10000*maximum(h.spread))) bps")
 
-			h.upd_tol = max(exp(0.85*log(1+h.upd_tol))-1, 1e-8)
+			h.upd_tol = max(exp(0.85*log(1+h.upd_tol))-1, 1e-6)
 			print_save("\nNew update tolerance = $(@sprintf("%0.3g",h.upd_tol))")
 			t_old = time()
 		end
@@ -641,5 +644,5 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 	print_save("\nTotal time: $(time_print(time()-time_init))\n")
 
-	Void
+	nothing
 end

@@ -1,14 +1,14 @@
 # const Arr_itp_VF =  Array{Interpolations.ScaledInterpolation{Float64,2,Interpolations.BSplineInterpolation{Float64,2,Array{Float64,2},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,(1, 0)},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,Tuple{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},UnitRange{Int64}}}, 2}
 
-const Arr_itp_VF = Array{Interpolations.GriddedInterpolation{Float64,2,Float64,Tuple{Interpolations.Gridded{Interpolations.Linear},Interpolations.NoInterp},Tuple{Array{Float64,1},Array{Int64,1}},0},3}
+const Arr_itp_VF = Array{Interpolations.GriddedInterpolation{Float64,2,Float64,Tuple{Gridded{Linear},NoInterp},Tuple{Array{Float64,1},UnitRange{Int64}}},3}
 
 function make_itp(h::Hank, Y; agg::Bool=true)
-	ωrange = linspace(h.ωgrid[1], h.ωgrid[end], h.Nω)
-	brange = linspace(h.bgrid[1], h.bgrid[end], h.Nb)
-	μrange = linspace(h.μgrid[1], h.μgrid[end], h.Nμ)
-	σrange = linspace(h.σgrid[1], h.σgrid[end], h.Nσ)
-	ξrange = linspace(h.ξgrid[1], h.ξgrid[end], h.Nξ)
-	# zrange = linspace(h.zgrid[1], h.zgrid[end], h.Nz)
+	ωrange = range(h.ωgrid[1], h.ωgrid[end], length=h.Nω)
+	brange = range(h.bgrid[1], h.bgrid[end], length=h.Nb)
+	μrange = range(h.μgrid[1], h.μgrid[end], length=h.Nμ)
+	σrange = range(h.σgrid[1], h.σgrid[end], length=h.Nσ)
+	ξrange = range(h.ξgrid[1], h.ξgrid[end], length=h.Nξ)
+	# zrange = range(h.zgrid[1], h.zgrid[end], length=h.Nz)
 
 	interp_gridded = true
 
