@@ -546,7 +546,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			print_save(Dates.format(now(), "HH:MM"))
 		end
 
-		if dist < h.upd_tol
+		if dist < h.upd_tol || iter_cycle == 200
 			consw = 100*floor(Int,mean(warnc0))
 			consw > 0 ? msg = "\nWARNING: " : msg="\n"
 			msg *= "Can't affort consumption $(consw)% of the time"

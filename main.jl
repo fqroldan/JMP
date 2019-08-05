@@ -79,8 +79,8 @@ function set_params(run_number, xcenter, xdist)
 	return x
 end
 #				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
-params_center = [0.094; 0.001; 12.032; 0.092; 0.875; 0.007; 0.936; 0.005; 1.15825]
-xdist = 		[0.015; 0.001;    2.5;  0.05;  0.01;  0.01;  0.01; 0.001;   0.025]
+params_center = [0.094; 0.001; 12.032; 0.092; 0.875; 0.007; 0.995; 0.002 ; 1.15825]
+xdist = 		[0.015; 0.001;    2.5;  0.05;  0.01;  0.01; 0.001; 0.0002;   0.025]
 best_run, use_run = 1, 1
 
 function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::Bool=true)
@@ -192,6 +192,11 @@ function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::B
 	end
 
 	# new_center[4] = 0.092
+	# new_center[8] = 0.002
+	# new_dist[8] = 0.0002
+	# new_center[7] = 0.995
+	# new_dist[7] = 0.001
+	# new_center[2] = 0.02
 
 	# new_dist[3] = new_dist[3] * 2
 	# new_dist[5] = new_dist[5] * 2
@@ -212,7 +217,7 @@ if update_start
 	W[2,2] *= 100
 	W[4,4] *= 50
 
-	really_update = true
+	really_update = false
 
 	params_center, xdist, best_run = find_new_cube(targets, W, really_update=really_update)
 	# if run_number == best_run
