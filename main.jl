@@ -323,15 +323,14 @@ function make_simulated_path(h::Hank, run_number)
 		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons) / σ(Output)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "median Dom Holdings"; "mean wealth/Y" ]
 		targets[4] = targets[4] / targets[2]
 		v_m[4] = v_m[4] / v_m[2]
-		print_save("\ncomputed targets")
-		print_save("$(v_m)")
+		print("\nTargets ✓")
 
 		W = zeros(length(v_m),length(v_m))
 		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
 		W[2,2] *= 100
 		W[4,4] *= 50
 
-		print_save("computed W")
+		print("W ✓")
 		g = (v_m - targets)'*W*(v_m-targets)
 		print_save("\nObjective function = $(@sprintf("%0.3g",g))")
 		print_save("\n")
