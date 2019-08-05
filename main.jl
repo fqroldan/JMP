@@ -1,33 +1,5 @@
 using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, LaTeXStrings, Distributions, JLD, Sobol, HCubature, Distributed, Dates
 
-# using SharedArrays
-
-function establish_run()
-	location = "remote"
-	run_number = 1
-	try
-		if pwd() == "/home/q/Dropbox/NYU/AToSR/Codes"
-			location = "local"
-		else
-			for jj in 0:3
-				if pwd()[end-jj-4] == '/' && pwd()[end-jj-3:end-jj-1] == "run"
-					run_number = parse(Int64, pwd()[end-jj:end])
-					break
-				end
-			end
-		end
-	catch
-		print_save("\nWARNING: not able to assign run_number, reverting to default")
-		run_number = 1
-		location = "remote"
-	end
-
-	return location, run_number, (location=="remote")
-end
-
-# Initialize output file
-write(pwd()*"/../../output.txt", "")
-
 # Load codes
 include("reporting_routines.jl")
 include("type_def.jl")
@@ -36,347 +8,50 @@ include("reiter.jl")
 include("comp_eqm.jl")
 include("gov_pol.jl")
 include("simul.jl")
+include("handle_guesses.jl")
 # include("plotting_routines.jl")
 
-
-location, run_number, remote = establish_run()
-if location == "local"
-	using Rsvg
-end
-
-print_save("\nAggregate Demand and Sovereign Debt Crises\n")
-
-print_save("\nStarting $(location) run on $(nprocs()) cores and $(Threads.nthreads()) threads at "*Dates.format(now(),"HH:MM"))
-print_save("\nRun number: $run_number")
+#				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
+params_center = [0.094; 0.02 ; 12.032; 0.092; 0.875; 0.007; 0.995; 0.002; 1.10825]
 
 # Set options
-local_run 	 = true
-update_start = false
 nodef     	 = false
 noΔ 		 = false
 rep_agent 	 = false
-Use_Sobol 	 = true
-
-# Initialize type
-function set_params(run_number, xcenter, xdist)
-	N = length(xcenter)
-	if Use_Sobol
-		s = SobolSeq(N)
-		x = zeros(N)
-		for j in 1:run_number
-			x = next!(s, xcenter-xdist, xcenter+xdist)
-		end
-	else
-		bv(i,n) = [j==i for j in 1:n]
-		if run_number == 1
-			x = xcenter
-		elseif run_number <= N+1
-			x = xcenter .+ xdist .* bv(run_number-1, N)
-		elseif run_number-N-1 <= N
-			x = xcenter .- xdist .* bv(run_number-N-1, N)
-		else
-			x = xcenter
-		end
-	end
-	return x
-end
-#				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
-params_center = [0.094; 0.02 ; 12.032; 0.092; 0.875; 0.007; 0.995; 0.002 ; 1.10825]
-xdist = 		[0.015; 0.005;    2.5;  0.05;  0.01;  0.01; 0.001; 0.0002;   0.025]
-best_run, use_run = 1, 1
-
-function find_new_cube(targets::Vector, W::Matrix; K::Int64=22, really_update::Bool=true)
-	old_center = load(pwd() * "/../../params_center.jld", "params_center")
-	old_dist = load(pwd() * "/../../xdist.jld", "xdist")
-	srand(1)
-
-	Ng = length(old_center)
-	k = 0
-	curr_min = 1e10
-	best_run = 0
-	∇g_hi = zeros(Ng)
-	∇g_lo = zeros(Ng)
-	X_lo = zeros(Ng, Ng)
-	X_hi = zeros(Ng, Ng)
-	for jj in 1:K
-		if jj == 1 || jj > 3
-			try
-				v_m = load(pwd() * "/../../v_m$(jj).jld", "v_m")
-
-				v_m[4] = v_m[4] / v_m[2]
-
-				gGMM = (v_m - targets)' * W * (v_m-targets)
-				print_save("\ng = $(@sprintf("%0.3g",gGMM)) on job $(jj)")
-				if gGMM < curr_min
-					curr_min = gGMM
-					best_run = jj
-				end
-				k += 1
-
-				# if !Use_Sobol
-				if jj > 1
-					params = load(pwd() * "/../../../params_$(jj).jld", "params")
-					print_save("\nMovements in run $(jj): $(params-old_center)")
-					∂gj = (gGMM - gGMM_center) / norm(params - old_center)
-					if jj > 1 + Ng
-						X_hi[jj-Ng-1,:] = params - old_center
-						push!(∇g_hi, ∂gj)
-					else
-						X_lo[jj-1,:] = params - old_center
-						push!(∇g_lo, ∂gj)
-					end
-				else
-					gGMM_center = gGMM
-				end
-				# end
-			catch
-			end
-		end
-	end
-
-	if !Use_Sobol
-		if det(X_hi) != 0 && det(X_lo) != 0
-			∇g_hi = transpose(transpose(∇g_hi) * inv(X_hi))
-			∇g_hi = ∇g_hi / norm(∇g_hi) * norm(xdist)
-			∇g_lo = transpose(transpose(∇g_lo) * inv(X_lo))
-			∇g_lo = ∇g_lo / norm(∇g_lo) * norm(xdist)
-
-			∇g = (∇g_lo + ∇g_hi) / 2
-		else
-			print_save("\nMatrix of Δparams singular.")
-			∇g = zeros(size(∇g_lo))
-		end
-
-	end
-
-	if best_run == 0
-		print_save("\nNo guesses available, keeping original parameters")
-		new_dist = old_dist
-		new_center = old_center
-	else
-		print_save("\nBest run from $k recovered trials = $best_run")
-		if Use_Sobol
-			if best_run == 1
-				print_save(". Shrinking the cube.")
-				new_dist = old_dist * 0.75
-				new_center = old_center
-			else
-				print_save(". Computing new starting point.")
-				s = SobolSeq(length(old_center))
-				x = zeros(size(old_center))
-				for j in 1:best_run
-					x = next!(s, old_center-old_dist, old_center+old_dist)
-				end
-				η = 0.25
-				new_center = x * η + old_center * (1.0 - η)
-				try
-					old_output = readstring(pwd()*"/../../../run$(best_run)/old_output.txt")
-					write(pwd()*"/../../../output.txt", old_output)
-				catch
-					print_save("\nWARNING: Failed to save old bests")
-				end
-			end
-		else
-			new_center = old_center - ∇g
-			print_save("\n\nGradient movement")
-			print_save("\nold center = $(old_center)")
-			print_save("\nnew center = $(new_center)")
-			print_save("\nactual distances = $(new_center - old_center)")
-		end
-		new_dist = old_dist
-	end
-
-	# new_center += 0.05 * new_dist .* rand(size(new_center))
-
-	if really_update
-	else
-		new_center, new_dist = old_center, old_dist
-		print_save("\nKeeping old parameters.")
-	end
-
-	# new_center[4] = 0.092
-
-	# new_dist[3] = new_dist[3] * 2
-	# new_dist[5] = new_dist[5] * 2
-	# new_dist[6] = new_dist[6] / 2
-	# new_dist[9] = new_dist[9] * 2
-
-	print_save("\nNew distances: $(new_dist)")
-
-	return new_center, new_dist, best_run
-end
-
-if update_start
-	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
-	targets[4] = targets[4] / targets[2]
-
-	W = zeros(length(targets),length(targets))
-	[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
-	W[2,2] *= 100
-	W[4,4] *= 50
-
-	really_update = true
-
-	params_center, xdist, best_run = find_new_cube(targets, W, really_update=really_update)
-	# if run_number == best_run
-	# 	try
-	# 		path = load(pwd() * "/../../path.jld", "path")
-	# 		try
-	# 			save(pwd() * "/../../../path$(run_number).jld", "path", path)
-	# 		catch
-	# 			print_save("ERROR: Couldn't save best path")
-	# 		end
-	# 	catch
-	# 		print_save("ERROR: Couldn't load best path")
-	# 	end
-	# end
-	if really_update && run_number > 3
-		use_run = best_run - 2
-	else
-		use_run = run_number
-	end
-end
-
-if run_number <= 3
-	params = set_params(1, params_center, xdist)
-	if run_number == 2
-		nodef = true
-	elseif run_number == 3
-		noΔ = true
-	end
-else
-	params = set_params(run_number-2, params_center, xdist)
-end
-r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
-
-
-function make_guess(remote, local_run, nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, use_run)
-	if remote || local_run
-		print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,digits=3)), $(round(RRA,digits=3)), $(round(τ,digits=3)), $(round(wbar,digits=3)), $(round(ρz,digits=3)), $(round(σz,digits=3)), $(round(tax,digits=3)), $(round(ρξ,digits=3)), $(round(σξ,digits=3))")
-		h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
-			# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
-			);
-		# h = load(pwd() * "/../../hank.jld", "h")
-		try
-			h2 = load(pwd() * "/../../hank.jld", "h")
-			remote ? h2 = load(pwd() * "/../../hank.jld", "h") : h2 = load("hank.jld", "h")
-			print_save("\nFound JLD file")
-			try
-				h2 = load(pwd() * "/../../hank$(use_run).jld", "h")
-				print_save(" for best past run $(use_run)")
-			catch
-			end
-			if h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
-				print_save(": loading previous results")
-				h.μgrid = h2.μgrid
-				h.σgrid = h2.σgrid
-				update_grids!(h2, new_μgrid = h.μgrid, new_σgrid = h.σgrid, new_zgrid = h.zgrid)
-				print_save("...")
-				h.ϕa = h2.ϕa
-				h.ϕb = h2.ϕb
-				h.ϕa_ext = h2.ϕa_ext
-				h.ϕb_ext = h2.ϕb_ext
-				h.ϕc = h2.ϕc
-				h.vf = h2.vf
-				h.pngrid = h2.pngrid
-				h.pN = h2.pN
-				h.μ′ = h2.μ′
-				h.σ′ = h2.σ′
-				h.output = h2.output
-				h.wage = h2.wage
-				h.Ld = h2.Ld
-				if !nodef
-					h.repay = h2.repay
-					h.welfare = h2.welfare
-				end
-				print_save(" ✓")
-			end
-		catch
-			print_save(": JLD file incompatible")
-		end
-	else
-		print_save("\nLoading solved model file\n")
-		h = load("../HPC_Output/hank.jld", "h")
-	end
-	return h
-end
-h = make_guess(remote, local_run, nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, use_run);
-
-print_save("\nϵ: $(h.ϵgrid)")
-print_save("\nz: $(h.zgrid)")
-print_save("\nz: $(h.ζgrid)")
-print_save("\nω: $(h.ωgrid)\n")
-
-function make_simulated_path(h::Hank, run_number)
-	path, jz_series, Ndefs = simul(h; simul_length=4*(4000+25), only_def_end=true)
-	Tyears = floor(Int64,size(path.data, 1)*0.25)
-	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(floor(100*Ndefs/Tyears))%")
-	trim_path!(path, 4*25)
-	save(pwd() * "/../../path.jld", "path", path)
-	v_m = 0
-
-	params = [(1/h.β)^4-1; h.tax; h.γ; h.τ; h.ρz; h.σz; h.ρξ; h.σξ; h.wbar]
-
-	try
-		v_m = simul_stats(path)
-		targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
-		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons) / σ(Output)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "median Dom Holdings"; "mean wealth/Y" ]
-		targets[4] = targets[4] / targets[2]
-		v_m[4] = v_m[4] / v_m[2]
-		print("\nTargets ✓")
-
-		W = zeros(length(v_m),length(v_m))
-		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
-		W[2,2] *= 100
-		W[4,4] *= 50
-
-		print("W ✓")
-		g = (v_m - targets)'*W*(v_m-targets)
-		print_save("\nObjective function = $(@sprintf("%0.3g",g))")
-		print_save("\n")
-		try
-			g_simuls = read(pwd()*"/../../../g_simuls.txt", String)
-			write(pwd()*"/../../../g_simuls.txt", g_simuls*"\nRun $(run_number), g = $(@sprintf("%0.3g",g))")
-		catch
-		end
-		for jj in 1:length(targets)
-			print_save("$(@sprintf("%0.3g",v_m[jj]))  ")
-		end
-		print_save("\nParams: ")
-		for jj in 1:length(params)
-			print_save("$(@sprintf("%0.3g",params[jj]))  ")
-		end
-		res = [targetnames v_m targets (targets-v_m)./targets]
-		for jj in 1:size(res,1)
-		    print_save("\n")
-		    print_save(res[jj,1])
-		    for ii in 2:size(res,2)
-		    	print_save("     ")
-		    	print_save("$(@sprintf("%0.3g",res[jj,ii]))")
-		    end
-		end
-	catch
-		print_save("\nWARNING: Found problems computing simulation statistics")
-	end
-	v_m[4] = v_m[4] * v_m[2]
-	save(pwd() * "/../../../v_m$(run_number).jld", "v_m", v_m)
-	write(pwd()*"/stats.txt", "$(v_m)")
-	nothing
-end
 
 # Run
-if run_number == 1
-	save(pwd() * "/../../../params_center.jld", "params_center", params_center)
-	save(pwd() * "/../../../xdist.jld", "xdist", xdist)
-end
-save(pwd() * "/../../../params_$(run_number).jld", "params", params)
-# save(pwd() * "/../../../params_center_$(run_number).jld", "params_center", params_center)
+function wrapper_run(params, nodef, noΔ, rep_agent, L)
+	push!(L, length(L)+1)
+	run_number = L[end]
+	saving_folder = pwd() * "/../Output/run$(run_number)/"
+	run(`mkdir -p $saving_folder`)
 
-if remote || local_run
-	# vfi!(h, verbose = true, remote = remote)
-	mpe_iter!(h; remote = remote, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number)
+	# Initialize output file
+	write("../Output/output.txt", "")
+	# write(saving_folder * "output.txt", "")
+	# print_save(s::String) = print_save(s, saving_folder)
+
+	print_save("\nAggregate Demand and Sovereign Debt Crises\n")
+	print_save("\nStarting run on $(nprocs()) cores and $(Threads.nthreads()) threads at "*Dates.format(now(),"HH:MM"))
+
+
+	save(saving_folder * "params.jld", "params", params)
+
+	r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
+	h = make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar);
+
+	print_save("\nϵ: $(h.ϵgrid)")
+	print_save("\nz: $(h.zgrid)")
+	print_save("\nξ: $(h.ξgrid)")
+	print_save("\nω: $(h.ωgrid)\n")
+
+	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, saving_folder = saving_folder)
+	g = make_simulated_path(h, run_number)
+
+	return g
 end
 
-make_simulated_path(h, run_number)
+L = Vector{Int64}(undef, 0)
+wrapper_run(params_center, nodef, noΔ, rep_agent, L)
 
 nothing

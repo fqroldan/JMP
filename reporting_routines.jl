@@ -1,8 +1,8 @@
 using Printf
-function print_save(s::String)
+function print_save(s::String, dir::String = pwd()*"/../Output/")
 	print(s)
-	output = read(pwd()*"/../../output.txt", String)
-	write(pwd()*"/../../output.txt", output * s)
+	output = read(dir * "output.txt", String)
+	write(dir * "output.txt", output * s)
 
 	nothing
 end

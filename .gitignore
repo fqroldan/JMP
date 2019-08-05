@@ -35,3 +35,9 @@
 /onlyspread.png
 
 /.gitignore
+
+/main_old.jl
+
+/.gitignore
+
+/main.jl

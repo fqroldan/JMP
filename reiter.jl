@@ -513,7 +513,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	update_fiscalrules!(h)
 	var(h.qʰ) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(h.qʰ))")
 	print_save("\nqᵍ between $(round(minimum(h.qᵍ[h.Jgrid[:,5].==1]),digits=4)) and $(round(maximum(h.qᵍ),digits=4)). risk-free is $(round(mean(h.qʰ),digits=4))")
-	print_save("\nspread between $(floor(Int,10000*minimum(h.spread[h.Jgrid[:,5].==1]))) bps and $(floor(Int,10000*maximum(h.spread[h.Jgrid[:,5].==1]))) bps")
+	print_save(" (spread between $(floor(Int,10000*minimum(h.spread[h.Jgrid[:,5].==1]))) bps and $(floor(Int,10000*maximum(h.spread[h.Jgrid[:,5].==1]))) bps)")
 
 	upd_η = 0.5
 
@@ -524,9 +524,8 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	μ′_old = copy(h.μ′)
 	σ′_old = copy(h.σ′)
 
-	print_save("\nIteration $iter")
+	print_save("\nIteration $iter (vfi update tolerance = $(@sprintf("%0.3g",h.upd_tol)))")
 	t_old = time()
-	print_save("\nUpdate tolerance = $(@sprintf("%0.3g",h.upd_tol))")
 	while dist > tol && iter < maxiter
 		iter_cycle += 1
 
