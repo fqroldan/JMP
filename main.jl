@@ -28,25 +28,25 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L)
 
 	# Initialize output file
 	write("../Output/output.txt", "")
-	# write(saving_folder * "output.txt", "")
-	# print_save(s::String) = print_save(s, saving_folder)
 
 	print_save("\nAggregate Demand and Sovereign Debt Crises\n")
-	print_save("\nStarting run on $(nprocs()) cores and $(Threads.nthreads()) threads at "*Dates.format(now(),"HH:MM"))
-
+	print_save("\nStarting run number $(run_number) on $(nprocs()) cores and $(Threads.nthreads()) threads at $(Dates.format(now(),"HH:MM")) on $(Dates.monthname(now())) $(Dates.day(now()))")
 
 	save(saving_folder * "params.jld", "params", params)
 
 	r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
-	h = make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar);
+	h = make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number);
 
 	print_save("\nϵ: $(h.ϵgrid)")
 	print_save("\nz: $(h.zgrid)")
 	print_save("\nξ: $(h.ξgrid)")
 	print_save("\nω: $(h.ωgrid)\n")
 
-	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, saving_folder = saving_folder)
+	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number)
 	g = make_simulated_path(h, run_number)
+
+	s = read("../Output/output.txt", String)
+	write(saving_folder * "output.txt", s)
 
 	return g
 end

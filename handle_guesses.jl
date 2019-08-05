@@ -1,4 +1,4 @@
-function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar)
+function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number)
 
 	print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,digits=3)), $(round(RRA,digits=3)), $(round(τ,digits=3)), $(round(wbar,digits=3)), $(round(ρz,digits=3)), $(round(σz,digits=3)), $(round(tax,digits=3)), $(round(ρξ,digits=3)), $(round(σξ,digits=3))")
 	h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
@@ -6,7 +6,12 @@ function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ,
 		);
 	try
 		h2 = load(pwd() * "/../../hank.jld", "h")
-		print_save("\nFound JLD file")
+		try
+			h2 = load(pwd() * "/../Output/run$(run_number-1)/hank.jld", "h")
+			print_save("\nFound JLD file from last run")
+		catch
+			print_save("\nFound generic JLD file")
+		end
 		if h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
 			print_save(": loading previous results")
 			h.μgrid = h2.μgrid
