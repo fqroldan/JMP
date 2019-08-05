@@ -1,5 +1,3 @@
-# const Arr_itp_VF =  Array{Interpolations.ScaledInterpolation{Float64,2,Interpolations.BSplineInterpolation{Float64,2,Array{Float64,2},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,(1, 0)},Tuple{Interpolations.BSpline{Interpolations.Quadratic{Interpolations.Line}},Interpolations.NoInterp},Interpolations.OnGrid,Tuple{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},UnitRange{Int64}}}, 2}
-
 const Arr_itp_VF = Array{Interpolations.GriddedInterpolation{Float64,2,Float64,Tuple{Gridded{Linear},NoInterp},Tuple{Array{Float64,1},UnitRange{Int64}}},3}
 
 function make_itp(h::Hank, Y; agg::Bool=true)
