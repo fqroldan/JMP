@@ -621,7 +621,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 
 		dist = max(dist, dist_s)
 		if iter % 10 == 0 && !isnan(sum(h.vf)) && !isnan(sum(h.ϕc))
-			save(pwd() * "/../../hank.jld", "h", h)
+			save(pwd() * "/../Output/hank.jld", "h", h)
 		end
 
 		if isnan.(dist) && iter > 1
@@ -633,7 +633,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	# plot_aggcons(h; remote = remote)
 	# plot_govt_reaction(h; remote = remote)
 	# plot_debtprice(h; remote = remote)
-	save(pwd() * "/../../hank.jld", "h", h)
+	save(pwd() * "/../Output/hank.jld", "h", h)
 
 	if dist <= tol
 		print_save("\nConverged in $iter iterations. ")

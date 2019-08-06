@@ -52,7 +52,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L)
 	
 	s = read("../Output/output.txt", String)
 	write(savedir * "output.txt", s)
-	run(`mv ../../hank.jld ../Output/run$(run_number)/hank.jld`)
+	run(`cp ../Output/hank.jld ../Output/run$(run_number)/hank.jld`)
 	return g
 end
 
