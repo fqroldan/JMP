@@ -1,4 +1,4 @@
-using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, LaTeXStrings, Distributions, JLD, Sobol, HCubature, Distributed, Dates
+using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, LaTeXStrings, Distributions, JLD, Sobol, HCubature, Distributed, Dates, ORCA
 
 # Load codes
 include("reporting_routines.jl")
@@ -9,7 +9,7 @@ include("comp_eqm.jl")
 include("gov_pol.jl")
 include("simul.jl")
 include("handle_guesses.jl")
-# include("plotting_routines.jl")
+include("plotting_routines.jl")
 
 #				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
 params_center = [0.094; 0.02 ; 12.032; 0.092; 0.875; 0.007; 0.995; 0.002; 1.10825]
@@ -23,16 +23,17 @@ rep_agent 	 = false
 function wrapper_run(params, nodef, noΔ, rep_agent, L)
 	push!(L, length(L)+1)
 	run_number = L[end]
-	saving_folder = pwd() * "/../Output/run$(run_number)/"
-	run(`mkdir -p $saving_folder`)
+	savedir = pwd() * "/../Output/run$(run_number)/"
+	run(`mkdir -p $savedir`)
 
 	# Initialize output file
-	write("../Output/output.txt", "")
+	write("../Output/output.txt", "\nAggregate Demand and Sovereign Debt Crises\n")
 
-	print_save("\nAggregate Demand and Sovereign Debt Crises\n")
 	print_save("\nStarting run number $(run_number) on $(nprocs()) cores and $(Threads.nthreads()) threads at $(Dates.format(now(),"HH:MM")) on $(Dates.monthname(now())) $(Dates.day(now()))")
 
-	save(saving_folder * "params.jld", "params", params)
+	save(savedir * "params.jld", "params", params)
+	params_table = make_params_table(params)
+	write(savedir * "params_table.txt", params_table)
 
 	r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
 	h = make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number);
@@ -43,10 +44,14 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L)
 	print_save("\nω: $(h.ωgrid)\n")
 
 	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, maxiter = 17)
-	g = make_simulated_path(h, run_number)
-
+	plot_hh_policies(h, run_number=run_number)
+	plot_contour_debtprice(h, savedir)
+	plot_contour_unemp(h, savedir)
+	
+	g = make_simulated_path(h, run_number, 4000)
+	
 	s = read("../Output/output.txt", String)
-	write(saving_folder * "output.txt", s)
+	write(savedir * "output.txt", s)
 	run(`mv ../../hank.jld ../Output/run$(run_number)/hank.jld`)
 	return g
 end
@@ -55,17 +60,19 @@ end
 
 function SMM(params_center)
 	#				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
-	# params_center = [0.094; 0.02 ; 12.032; 0.092; 0.875;  0.007; 0.995; 0.002; 1.10825]
-	mins = 			[0.05 ; 0.001; 5     ;  0.05;  0.08; 0.0001;  0.99; 0.001; 1.1	  ]
-	maxs = 			[0.15 ; 0.05 ; 20    ;  0.35;  0.99;  0.001; 0.999; 0.003; 1.3	  ]
+	# params_center = [0.094; 0.02 ; 12.032; 0.092; 0.875; 0.007 ; 0.995; 0.002; 1.10825]
+	mins = 			  [0.05 ; 0.001; 5     ; 0.05 ;  0.08; 0.0001;  0.99; 0.001; 1.1	]
+	maxs = 			  [0.15 ; 0.05 ; 20    ; 0.35 ;  0.99; 0.015 ; 0.999; 0.003; 1.3	]
 
 	L = Vector{Int64}(undef, 0)
 	# inner_opt = LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))
 	res = Optim.optimize(
 		params -> wrapper_run(params, false, false, false, L)
-		, params_center
+		# , params_center
+		, mins, maxs, params_center, Fminbox(NelderMead())
 		)
 
+	print("$(res)")
 	write("../Output/big_output.txt", "$(res)")
 
 	nothing

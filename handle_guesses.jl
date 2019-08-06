@@ -43,15 +43,39 @@ function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ,
 	return h
 end
 
-function make_simulated_path(h::Hank, run_number)
-	path, jz_series, Ndefs = simul(h; simul_length=4*(4000+25), only_def_end=false)
+function make_simulated_path(h::Hank, run_number, years=100)
+	path, jz_series, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
 	Tyears = floor(Int64,size(path.data, 1)*0.25)
 	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(floor(100*Ndefs/Tyears))%")
 	trim_path!(path, 4*25)
-	save(pwd() * "/../../path.jld", "path", path)
 	v_m = 0
+	g = 0
 
-	params = [(1/h.β)^4-1; h.tax; h.γ; h.τ; h.ρz; h.σz; h.ρξ; h.σξ; h.wbar]
+	savedir = pwd() * "/../Output/run$(run_number)/"
+	save(savedir * "path.jld", "path", path)
+	
+	pl = plot_simul(path)
+	savejson(pl, savedir * "path.json")	
+	try
+		savefig(savedir * "path.pdf")
+	catch
+	end
+
+	pl = plot_episodes(path; episode_type="onlyspread", slides=true, πthres=0.975)
+	savejson(pl, savedir * "onlyspread_slides.json")
+	try
+		savefig(savedir * "onlyspread_slides.pdf")
+	catch
+	end
+
+	# pl = plot_episodes(path; episode_type="onlyspread", slides=false, πthres=0.975)
+	# savejson(pl, savedir * "onlyspread_paper.json")
+
+	for resp in ["C"; "Y"]
+		make_IRF_plots(path; slides = true, create_plots = true, response = resp)
+	end
+
+	params = pars(h)
 
 	try
 		v_m = simul_stats(path)
@@ -66,7 +90,7 @@ function make_simulated_path(h::Hank, run_number)
 		W[2,2] *= 100
 		W[4,4] *= 50
 
-		print("W ✓")
+		print("\nW ✓")
 		g = (v_m - targets)'*W*(v_m-targets)
 		print_save("\nObjective function = $(@sprintf("%0.3g",g))")
 		print_save("\n")
@@ -89,9 +113,15 @@ function make_simulated_path(h::Hank, run_number)
 	catch
 		print_save("\nWARNING: Found problems computing simulation statistics")
 	end
+
 	v_m[4] = v_m[4] * v_m[2]
-	save(pwd() * "/../../../v_m$(run_number).jld", "v_m", v_m)
-	write(pwd()*"/stats.txt", "$(v_m)")
+	# save(savedir * "v_m.jld", "v_m", v_m)
+	# write(savedir * "stats.txt", "$(v_m)")
 	
+	calib_table = make_calib_table(v_m)
+	write(savedir * "calib_table.txt", calib_table)
+
 	return g
 end
+
+pars(h::Hank) = [(1/h.β)^4-1; h.γ; h.τ; h.wbar; h.ρz; h.σz; h.tax; h.ρξ; h.σξ]

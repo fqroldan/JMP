@@ -67,7 +67,7 @@ function make_params_table(params)
 	table *= "\n		\\bottomrule"
 	# write(pwd()*"/../../params_table.txt", last_table)
 	# nothing
-	print(table)
+	return table
 end
 
 function make_calib_table(v_m)
@@ -86,7 +86,7 @@ function make_calib_table(v_m)
 	end
 	table *= "\n		\\bottomrule"
 
-	print(table)
+	return table
 end
 
 function make_calib_table_comp(v_m, v_m_nodef, v_m_nodelta=[])

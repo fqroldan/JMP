@@ -312,7 +312,7 @@ function iterate_qᵍ!(h::Hank; verbose::Bool=false)
 		knots  = (h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, 1:h.Nz)
 		itp_qᵍ = interpolate(knots, qᵍ, (Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), Gridded(Linear()), NoInterp(), NoInterp()))
 
-		for js in 1:size(h.Jgrid,1)
+		Threads.@threads for js in 1:size(h.Jgrid,1)
 			jb = h.Jgrid[js, 1]
 			jμ = h.Jgrid[js, 2]
 			jσ = h.Jgrid[js, 3]

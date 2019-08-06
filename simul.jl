@@ -94,8 +94,9 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	b25 = zeros(h.Nω_fine*h.Nϵ)
 	b90 = zeros(h.Nω_fine*h.Nϵ)
-	q25 = findfirst(cdf_ω .<= 0.25)
-	q90 = findfirst(cdf_ω .>= 0.90)
+	
+	cdf_ω[1] > 0.25  ? q25 = 1 : q25 = findfirst(cdf_ω .<= 0.25)
+	cdf_ω[end] < 0.9 ? q90 = length(cdf_ω) : q90 = findfirst(cdf_ω .>= 0.90)
 
 	adjustment = sum(h.λϵ.*exp.(h.ϵgrid))
 	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid_fine)
@@ -118,7 +119,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		end
 	end
 
-	C = LinearAlgebra.dot(λt, ϕc)
+	C = dot(λt, ϕc)
 	CoY = C / output
 	CoYd = dot(λt, Crate)
 
@@ -423,8 +424,8 @@ function find_times_episodes(path::Path; episode_type::String="default", πthres
 	end
 
 	if N == 0
-		warn("No episodes of $(episode_type) found")
-		return sample
+		print_save("WARNING: No episodes of $(episode_type) found")
+		# return sample
 	else
 		println("$N episodes found.")
 	end
@@ -438,7 +439,7 @@ function find_episodes(path::Path; episode_type::String="default", πthres::Floa
 
 	sample = collect_episodes(path, t_epi, N)
 
-	return sample
+	return sample, N
 end
 
 function IRF(p::Path, h::Hank; shock::String="z")

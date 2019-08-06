@@ -1,4 +1,4 @@
-using Interpolations, PlotlyJS
+using Interpolations, PlotlyJS, GLM, DataFrames
 #include("comp_eqm.jl")
 col = [	"#1f77b4",  # muted blue
 		"#ff7f0e",  # safety orange
@@ -17,17 +17,12 @@ function style_contour(p, n=2; slides::Bool=false)
 	slides ? width = 1000 : width = 900
 	slides ? font = "Fira Sans Light" : font = "STIX Two Text"
 	slides ? fontsize = 16 : fontsize = 16
-	p.plot.layout["width"] = width
-	p.plot.layout["height"] = height
-	p.plot.layout["font_family"] = font
-	p.plot.layout["font_size"] = fontsize
-	# p.plot.layout["titlefont_size"] = 32    
-	p.plot.layout["colorbar_xanchor"] = "right"
+
+	relayout!(p, width=width, height=height, font_family=font, font_size=fontsize, colorbar_xanchor="right")
 	if slides
-		p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
-		p.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+		relayout!(p, plot_bgcolor = "rgba(250, 250, 250, 1.0)", paper_bgcolor = "rgba(250, 250, 250, 1.0)")
 	else
-		p.plot.layout["title"] = ""
+		relayout!(p, title="")
 	end
 	return p
 end
@@ -55,12 +50,12 @@ function style_lines(p, w::Int=0, h::Int=0; slides::Bool=false)
 end
 	
 
-function plot_hh_policies(h::Hank; remote::Bool=false)
+function plot_hh_policies(h::Hank; run_number::Int64=0)
 	# leg = Array{LaTeXStrings.LaTeXString}(1, h.Nϵ)
-	leg = Array{String}(1, h.Nϵ)
+	leg = Array{String}(undef, 1, h.Nϵ)
 	for jϵ in 1:h.Nϵ
 		# leg[jϵ] = latexstring("\\epsilon = $(round(h.ϵgrid[jϵ],2))")
-		leg[jϵ] = "ϵ = $(round(h.ϵgrid[jϵ],2))"
+		leg[jϵ] = "ϵ = $(round(h.ϵgrid[jϵ],digits=2))"
 	end
 
 	show_b, show_μ, show_σ, show_ξ, show_ζ, show_z = h.bgrid[9], h.μgrid[end], h.σgrid[1], h.ξgrid[1], h.ζgrid[1], h.zgrid[2]
@@ -79,33 +74,33 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 		itp_pN  = interpolate(agg_knots, pN_mat, Gridded(Linear()))
 
 
-		ϕc_mat = itp_ϕc[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z]
-		ϕa_mat = itp_ϕa[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z]
-		ϕb_mat = itp_ϕb[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z]
-		vf_mat = itp_vf[h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z]
-		qᵍ_mat = itp_qᵍ[show_b, show_μ, show_σ, show_ξ, show_ζ, show_z]
+		ϕc_mat = itp_ϕc(h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
+		ϕa_mat = itp_ϕa(h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
+		ϕb_mat = itp_ϕb(h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
+		vf_mat = itp_vf(h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
+		qᵍ_mat = itp_qᵍ(show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
 
-		qᵍ_all = zeros(vf_mat)
+		qᵍ_all = zeros(size(vf_mat))
 		for jω in 1:h.Nω
 			for jϵ in 1:h.Nϵ
-				qᵍ_all[jω, jϵ, :,:,:,:,:,:] = qᵍ_mat
+				qᵍ_all[jω, jϵ, :,:,:,:,:,:] .= qᵍ_mat
 			end
 		end
 
 		ωg_mat = 1.0/(1.0+h.r_star) * ϕa_mat + qᵍ_all .* ϕb_mat
-		θg_mat = 1.0/(1.0+h.r_star) * (ϕa_mat - h.ωmin) ./ (ωg_mat - 1.0/(1.0+h.r_star)*h.ωmin)
-		θg_mat[isapprox.(ωg_mat, h.ωmin)] = 1.0
+		θg_mat = 1.0/(1.0+h.r_star) * (ϕa_mat .- h.ωmin) ./ (ωg_mat .- 1.0/(1.0+h.r_star)*h.ωmin)
+		θg_mat[isapprox.(ωg_mat, h.ωmin)] .= 1.0
 
-		l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nϵ, 4)
+		l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(undef, h.Nϵ, 4)
 		for (jϵ, ϵv) in enumerate(h.ϵgrid)
-			l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", name = "ϵ = $(round(exp(ϵv),4))", showlegend=false, marker_color=col[jϵ])
+			l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", name = "ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=col[jϵ])
 			l[jϵ,1] = l_new
-			l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", name = "ϵ = $(round(exp(ϵv),4))", showlegend=false, marker_color=col[jϵ])
+			l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", name = "ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=col[jϵ])
 			l[jϵ,2] = l_new
-			l_new = scatter(;x=h.ωgrid, y=ωg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, name = "ϵ = $(round(exp(ϵv),4))", marker_color=col[jϵ])
+			l_new = scatter(;x=h.ωgrid, y=ωg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, name = "ϵ = $(round(exp(ϵv),digits=4))", marker_color=col[jϵ])
 			l[jϵ,3] = l_new
 			# l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
-			l_new = scatter(;x=h.ωgrid, y=θg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, name = "ϵ = $(round(exp(ϵv),4))", marker_color=col[jϵ])
+			l_new = scatter(;x=h.ωgrid, y=θg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, name = "ϵ = $(round(exp(ϵv),digits=4))", marker_color=col[jϵ])
 			l[jϵ,4] = l_new
 		end
 
@@ -117,39 +112,30 @@ function plot_hh_policies(h::Hank; remote::Bool=false)
 		pθ = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Proportion risk-free debt"))
 
 		p = [pc pv; pb pθ]
-		p.plot.layout["xlabel"] = "ω"
-		p.plot.layout["width"] = 800
-		p.plot.layout["height"] = 600
-		p.plot.layout["font_family"] = "Fira Sans Light"
+		relayout!(p, xlabel = "ω", width = 800, height = 600, font_family = "Fira Sans Light")
 
 		return p
 	end
 
 	p = hh_pol(h, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
 
-	if remote
-		path = pwd() * "/../../Graphs/"
-		save(path * "p_hh.jld", "p", p)
-	else
-		path = pwd() * "/../Graphs/"
-		# savefig(p, path * "hh.pdf")
-		return p
-	end
+	path = pwd() * "/../Output/run$(run_number)/"
+	savejson(p, path * "p_hh.json")
 
-	show_b, show_μ, show_σ, show_ξ, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), h.ξgrid[1], h.ζgrid[2], h.zgrid[1]
+	# show_b, show_μ, show_σ, show_ξ, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), h.ξgrid[1], h.ζgrid[2], h.zgrid[1]
 
-	# p = hh_pol(h, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
+	# # p = hh_pol(h, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
 
-	if remote
-		path = pwd() * "/../../Graphs/"
-		save(path * "p_hh_def.jld", "p", p)
-	else
-		path = pwd() * "/../Graphs/"
-		# savefig(p, path * "hh_def.pdf")
-		return p
-	end
+	# if remote
+	# 	path = pwd() * "/../../Graphs/"
+	# 	save(path * "p_hh_def.jld", "p", p)
+	# else
+	# 	path = pwd() * "/../Graphs/"
+	# 	# savefig(p, path * "hh_def.pdf")
+	# 	return p
+	# end
 
-	return Void
+	nothing
 end
 
 function plot_hh_policies_z(h::Hank; remote::Bool=false)
@@ -164,9 +150,9 @@ function plot_hh_policies_z(h::Hank; remote::Bool=false)
 	itp_pN = make_itp(h, h.pN, agg=true)
 
 
-	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nz, 4)
-	Cz = Vector{Float64}(h.Nz)
-	Cz_fix = Vector{Float64}(h.Nz)
+	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(undef, h.Nz, 4)
+	Cz = Vector{Float64}(undef, h.Nz)
+	Cz_fix = Vector{Float64}(undef, h.Nz)
 	for (jz, zv) in enumerate(h.zgrid)
 		ϕc_vec = zeros(h.Nω)
 		ϕce_vec = zeros(h.Nω)
@@ -179,13 +165,13 @@ function plot_hh_policies_z(h::Hank; remote::Bool=false)
 			ϕce_vecfix[jω] = itp_ϕc_ext[ωv, show_ϵ, show_b, show_μ, show_σ, show_ξ, show_ζ, zv, mean(h.pngrid)]
 			vf_vec[jω] = itp_vf[ωv, show_ϵ, show_b, show_μ, show_σ, show_ξ, show_ζ, zv]
 		end
-		l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="z = $(round(exp(zv),2))", marker_color=col[ceil(Int,10*jz/h.Nz)])
+		l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="z = $(round(exp(zv),digits=2))", marker_color=col[ceil(Int,10*jz/h.Nz)])
 		l[jz,1] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕce_vec, line_shape="spline", name="z = $(round(exp(zv),2))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
+		l_new = scatter(;x=h.ωgrid, y=ϕce_vec, line_shape="spline", name="z = $(round(exp(zv),digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
 		l[jz,2] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕce_vecfix, line_shape="spline", name="z = $(round(exp(zv),2))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
+		l_new = scatter(;x=h.ωgrid, y=ϕce_vecfix, line_shape="spline", name="z = $(round(exp(zv),digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
 		l[jz,3] = l_new
-		l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="z = $(round(exp(zv),2))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
+		l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="z = $(round(exp(zv),digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
 		l[jz,4] = l_new
 
 		ωmin_int, ωmax_int = quantile.(LogNormal(show_μ, show_σ), [.005; .995]) + h.ωmin
@@ -239,9 +225,9 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 
 	itp_pN = make_itp(h, h.pN, agg=true)
 
-	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(h.Nb, 4)
-	Cb = Vector{Float64}(h.Nb)
-	Cb_fix = Vector{Float64}(h.Nb)
+	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(undef, h.Nb, 4)
+	Cb = Vector{Float64}(undef, h.Nb)
+	Cb_fix = Vector{Float64}(undef, h.Nb)
 	for (jb, bv) in enumerate(h.bgrid)
 		ϕc_vec = zeros(h.Nω)
 		ϕce_vec = zeros(h.Nω)
@@ -254,13 +240,13 @@ function plot_hh_policies_b(h::Hank; remote::Bool=false)
 			ϕce_vecfix[jω] = itp_ϕc_ext[ωv, show_ϵ, bv, show_μ, show_σ, show_ξ, show_ζ, show_z, mean(h.pngrid)]
 			vf_vec[jω] = itp_vf[ωv, show_ϵ, bv, show_μ, show_σ, show_ξ, show_ζ, show_z]
 		end
-		l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="b = $(round(bv,2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="b = $(round(bv,digits=2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
 		l[jb,1] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕce_vec, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l_new = scatter(;x=h.ωgrid, y=ϕce_vec, line_shape="spline", name="b = $(round(bv,digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
 		l[jb,2] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕce_vecfix, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l_new = scatter(;x=h.ωgrid, y=ϕce_vecfix, line_shape="spline", name="b = $(round(bv,digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
 		l[jb,3] = l_new
-		l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="b = $(round(bv,2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
+		l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="b = $(round(bv,digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
 		l[jb,4] = l_new
 
 		ωmin_int, ωmax_int = quantile.(LogNormal(show_μ, show_σ), [.005; .995]) + h.ωmin
@@ -333,13 +319,13 @@ function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)
 
 	layout = Layout(;	xaxis=attr(title=xlabel, zeroline=true),
 						yaxis=attr(zeroline=true),
-						font_size=32, font_family="Fira Sans Light")
+						font_family="Fira Sans Light")
 
 	l = scatter(;x=x, y=y, showlegend=false)
 	p = plot(l, layout)
 	if name == ""
 	else
-		p.plot.layout["title"]=name
+		relayout!(p, title=name)
 	end
 	return p
 end
@@ -442,7 +428,7 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, Ts::Bool=false, Bs::Bool
 	states = gridmake([3; midb; h.Nb], [1; h.Nξ])
 	jz = ceil(Int, h.Nz/2)
 	jξ = 1
-	p_vec = Array{PlotlyJS.SyncPlot}(size(states,1))
+	p_vec = Array{PlotlyJS.SyncPlot}(undef, size(states,1))
 	for js in 1:size(states,1)
 		Wr = zeros(h.Nz)
 		Wd = zeros(h.Nz)
@@ -473,38 +459,38 @@ function plot_govt_reaction(h::Hank; Wdiff::Bool=false, Ts::Bool=false, Bs::Bool
 			Yd[jzp] = itp_W[(1.0 .-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp]
 		end
 		if Wdiff 
-			p_vec[js] = plot(scatter(;x=h.zgrid, y=Wd-Wr, marker_color=col[1], showlegend=false, line_width=2), Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),2))", titlefont_size=32))
+			p_vec[js] = plot(scatter(;x=h.zgrid, y=Wd-Wr, marker_color=col[1], showlegend=false, line_width=2), Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),digits=2))", titlefont_size=32))
 		elseif Ts
 			p_vec[js] = plot([
 				scatter(;x=h.zgrid, y=Tr, marker_color=col[1], showlegend=false, line_width = 2),
 				scatter(;x=h.zgrid, y=Td, marker_color=col[4], showlegend=false, line_dash="dashdot", line_width = 2),
-				], Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),2))", titlefont_size=32)
+				], Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),digits=2))", titlefont_size=32)
 				)
 		elseif Bs
 			p_vec[js] = plot([
 				scatter(;x=h.zgrid, y=Br, marker_color=col[1], showlegend=false, line_width = 2),
 				scatter(;x=h.zgrid, y=Bd, marker_color=col[4], showlegend=false, line_dash="dashdot", line_width = 2),
-				], Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),2))", titlefont_size=32)
+				], Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),digits=2))", titlefont_size=32)
 				)
 		elseif qs
 			p_vec[js] = plot([
 				scatter(;x=h.zgrid, y=qr, marker_color=col[1], showlegend=false, line_width = 2),
 				scatter(;x=h.zgrid, y=qd, marker_color=col[4], showlegend=false, line_dash="dashdot", line_width = 2),
-				], Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),2))", titlefont_size=32)
+				], Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),digits=2))", titlefont_size=32)
 				)
 		elseif Ws
 			p_vec[js] = plot([
 				scatter(;x=h.zgrid, y=Yr, marker_color=col[1], showlegend=false, line_width = 2),
 				scatter(;x=h.zgrid, y=exp_rep, marker_color=col[2], showlegend=false, line_dash="dot", line_width = 2, mode ="lines"),
 				scatter(;x=h.zgrid, y=Yd, marker_color=col[4], showlegend=false, line_dash="dashdot", line_width = 2),
-				], Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),2))", titlefont_size=32)
+				], Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),digits=2))", titlefont_size=32)
 				)
 			# , cov = $(round(cov(Yr, exp_rep)/std(Yr)/std(exp_rep),3))
 		else
 
 			p_vec[js] = plot(  [scatter(;x=h.zgrid, y=Wr, marker_color=col[1], showlegend=false, line_width=2),
 						scatter(;x=h.zgrid, y=Wd, marker_color=col[4], showlegend=false, line_dash="dashdot", line_width=2)],
-						Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),2))", titlefont_size=32))
+						Layout(;title="𝐵=$(h.bgrid[jb]), ξ'=$(round((h.ξgrid[jξp]),digits=2))", titlefont_size=32))
 		end
 	end
 
@@ -541,8 +527,8 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	wL_vec = reshape(wL_mat, length(wL_mat))
 
 	ϕc_mat = h.ϕc
-	yd_mat = zeros(h.ϕc)
-	pC_big = zeros(h.ϕc)
+	yd_mat = zeros(size(h.ϕc))
+	pC_big = zeros(size(h.ϕc))
 
 	adj = sum(h.λϵ.*exp.(h.ϵgrid))
 	agg_income = wL_vec + Π_vec / adj
@@ -553,7 +539,7 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	jpn = ceil(Int, length(h.pngrid)/2)
 	pnv = h.pngrid[jpn]
 	N = size(h.Jgrid, 1)
-	wage_pn, labor_pn, profits_pn = Array{Float64, 1}(N), Array{Float64, 1}(N), Array{Float64, 1}(N)
+	wage_pn, labor_pn, profits_pn = Array{Float64, 1}(undef, N), Array{Float64, 1}(undef, N), Array{Float64, 1}(undef, N)
 	for js in 1:N
 		jζ = h.Jgrid[js, 5]
 		jz = h.Jgrid[js, 6]
@@ -572,8 +558,8 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	Π_fix = reshape(profits_pn, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 
 	wL_fix  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz) * (1.0 - h.τ)
-	yd_fix = zeros(h.ϕc)
-	pC_bigfix = zeros(h.ϕc)
+	yd_fix = zeros(size(h.ϕc))
+	pC_bigfix = zeros(size(h.ϕc))
 	for js in 1:size(h.Jgrid, 1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
@@ -611,25 +597,25 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 
 	jω1, jω2 = 2, 4
 	jϵ_show = ceil(Int, h.Nϵ/2)
-	pc1p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω1],2))")
+	pc1p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω1],digits=2))")
 	pc2p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  2)
 	pc3p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  3)
 	pc4p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  4)
 	pc6p = lines(h, Srate[jω1, jϵ_show,:,:,:,:,:,:],  6)
 
-	pc1r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω2],2))")
+	pc1r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  1, "Saving rate at ω = $(round(h.ωgrid[jω2],digits=2))")
 	pc2r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  2)
 	pc3r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  3)
 	pc4r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  4)
 	pc6r = lines(h, Srate[jω2, jϵ_show,:,:,:,:,:,:],  6)
 	
-	pc1pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  1, "S/Y at ω = $(round(h.ωgrid[jω1],2)), fixed pN")
+	pc1pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  1, "S/Y at ω = $(round(h.ωgrid[jω1],digits=2)), fixed pN")
 	pc2pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  2)
 	pc3pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  3)
 	pc4pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  4)
 	pc6pf = lines(h, Sratef[jω1, jϵ_show,:,:,:,:,:,:],  6)
 
-	pc1rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  1, "S/Y at ω = $(round(h.ωgrid[jω2],2)), fixed pN")
+	pc1rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  1, "S/Y at ω = $(round(h.ωgrid[jω2],digits=2)), fixed pN")
 	pc2rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  2)
 	pc3rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  3)
 	pc4rf = lines(h, Sratef[jω2, jϵ_show,:,:,:,:,:,:],  4)
@@ -651,7 +637,39 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 	Void
 end
 
-function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
+function plot_contour_unemp(h::Hank, savedir::String)
+	p1, p2, p3, p4, pu, pY, pT, pTY = plot_state_funcs(h, MV=true)
+
+	pl = style_contour(pu, 2, slides = true)
+	savejson(pl, savedir * "unemp_slides.json")
+	try
+		savefig(pl, savedir*"unemp_slides.pdf")
+	catch
+	end
+
+	pl = style_contour(pu, 2, slides = false)
+	savejson(pl, savedir * "unemp_paper.json")
+
+	nothing
+end
+
+function plot_contour_debtprice(h::Hank, savedir::String)
+	p, p1, p2 = contour_debtprice(h, MV=true)
+
+	pl = style_contour(p, 2, slides = true)
+	savejson(pl, savedir * "debtprice_slides.json")
+	try
+		savefig(pl, savedir*"debtprice_slides.pdf")
+	catch
+	end
+
+	pl = style_contour(p, 2, slides = false)
+	savejson(pl, savedir * "debtprice_paper.json")
+
+	nothing
+end
+
+function contour_debtprice(h::Hank; run_number::Int64=0, MV::Bool=true)
 	qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 
 	jshow_b, jshow_μ, jshow_σ, jshow_ξ, jshow_ζ, jshow_z = ceil(Int, h.Nb*0.8), ceil(Int, h.Nμ*0.1), ceil(Int, h.Nσ*1), 2, 1, ceil(Int, h.Nz*0.1)
@@ -701,16 +719,9 @@ function contour_debtprice(h::Hank; remote::Bool=false, MV::Bool=true)
 	pμσ = plot(ctμσ, Layout(;xaxis_title=xax, yaxis_title=yax))
 
 	p = [pbz pμσ]
-	p.plot.layout["title"] = "Price of Debt"
-	if remote
-		path = pwd() * "/../../Graphs/"
-		save(path * "p_debtprice.jld", "p", p)
-	else
-		path = pwd() * "/../Graphs/"
-		# savefig(p, path * "debtprice.pdf")
-		return p, pbz, pμσ
-	end
-	Void
+	relayout!(p, title = "Price of Debt")
+
+	return p, pbz, pμσ
 end
 
 function reeval_mat_MV(h::Hank, itp_obj, jb, jξ, jz; lb=-Inf, ub=Inf)
@@ -718,10 +729,12 @@ function reeval_mat_MV(h::Hank, itp_obj, jb, jξ, jz; lb=-Inf, ub=Inf)
 	m_min, v_min = unmake_logN(h.μgrid[1], h.σgrid[1])
 	m_max, v_max = unmake_logN(h.μgrid[end], h.σgrid[end])
 
+	itp_obj = extrapolate(itp_obj, Interpolations.Flat())
+	
 	N = max(4*h.Nμ, 4*h.Nσ)
 
-	mgrid = linspace(m_min, m_max, N)
-	vgrid = linspace(v_min, v_max, N)
+	mgrid = range(m_min, m_max, length=N)
+	vgrid = range(v_min, v_max, length=N)
 	
 	show_b, show_ξ, jζ = h.bgrid[jb], h.ξgrid[jξ], 1
 
@@ -729,7 +742,7 @@ function reeval_mat_MV(h::Hank, itp_obj, jb, jξ, jz; lb=-Inf, ub=Inf)
 	for (jm, m) in enumerate(mgrid)
 		for (jv, v) in enumerate(vgrid)
 			μv, σv = make_logN(m, v)
-			Y = itp_obj[show_b, μv, σv, show_ξ, jζ, jz]
+			Y = itp_obj(show_b, μv, σv, show_ξ, jζ, jz)
 			mat[jm, jv] = max(lb, min(ub, Y))
 		end
 	end
@@ -1016,9 +1029,9 @@ function plot_aggcons(h::Hank; remote::Bool=false)
 
 	states = gridmake([1; h.Nb], [1; h.Nz])
 	# p_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
-	p_vec = Array{PlotlyJS.SyncPlot}(size(states,1))
+	p_vec = Array{PlotlyJS.SyncPlot}(undef, size(states,1))
 	# p2_vec = Array{PlotlyJS.SyncPlot{PlotlyJS.ElectronDisplay}}(size(states,1))
-	p2_vec = Array{PlotlyJS.SyncPlot}(size(states,1))
+	p2_vec = Array{PlotlyJS.SyncPlot}(undef, size(states,1))
 	for js in 1:size(states,1)
 		C_r = zeros(h.Nz)
 		VarCr = zeros(h.Nz)
@@ -1187,28 +1200,20 @@ function plot_state_funcs(h::Hank; remote::Bool=false, MV::Bool=true)
 		end
 
 		pu = make_contour(u_mat)
-		pu.plot.layout["title"] = "Unemployment"
+		relayout!(pu, title = "Unemployment")
 
 		pY = make_contour(Y_mat; perc=false)
-		pY.plot.layout["title"] = "Output"
+		relayout!(pY, title = "Output")
 
 		pT = make_contour(T_mat; perc=false)
-		pT.plot.layout["title"] = "Taxes"		
+		relayout!(pT, title = "Taxes")
 		
 		pTY = make_contour(T_mat./Y_mat * 100; perc=true)
-		pTY.plot.layout["title"] = "Taxes to GDP"		
+		relayout!(pTY, title = "Taxes to GDP")
 		
-		
-		if remote
-			path = pwd() * "/../../Graphs/"
-			save(path * "p_statefuncs$(jp).jld", "p", p)
-		else
-			path = pwd() * "/../Graphs/"
-			# savefig(p, path * "statefuncs$(jp).pdf")
-			return p1, p2, p3, p4, pu, pY, pT, pTY
-		end
+		return p1, p2, p3, p4, pu, pY, pT, pTY
 	end
-	Void
+	nothing
 end
 
 function plot_LoM(h::Hank; remote::Bool=false)
@@ -1278,7 +1283,7 @@ function plot_labor_demand(h::Hank; remote::Bool=false)
 	l = scatter(;y=h.ξgrid, x=ones(h.ξgrid), line_dash="dashdot", marker_color="black", showlegend=false, mode="lines", title="Labor market")
 	for (jpN, pNv) in enumerate(h.pngrid)
 		Ld = labor_demand(h, h.ξgrid, exp(z_show), pNv)
-		label = "pₙ = $(round(pNv,2))"
+		label = "pₙ = $(round(pNv,digits=2))"
 		l = hcat(l, scatter(;y=h.ξgrid, x=Ld, name=label, marker_color=col[jpN], line_shape="spline"))
 		if minimum(Ld) < vl
 			vl = minimum(Ld)
@@ -1327,19 +1332,19 @@ function plot_nontradables(h::Hank; wrt::String="", remote::Bool=false)
 
 	pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 
-	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nb)
+	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(undef, 2*h.Nb)
 	maxq = 0.
 	minq = 10.
 	for (jb, bv) in enumerate(h.bgrid)
-		sup = zeros(h.pngrid)
-		dem = zeros(h.pngrid)
+		sup = zeros(size(h.pngrid))
+		dem = zeros(size(h.pngrid))
 		G   = G_mat[jb, jμ, jσ, jξ, jζ, jz]
 		Bpv = B_mat[jb, jμ, jσ, jξ, jζ, jz]
 		for (jpn, pnv) in enumerate(h.pngrid)
 			sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ!=1); get_both=true)
 		end
-		l[jb] = scatter(; y=h.pngrid, x=sup, marker_color=col[jb], name="B = $(round(bv, 2))")
-		l[h.Nb+jb] = scatter(; y=h.pngrid, x=dem, marker_color=col[jb], name="B = $(round(bv, 2))", showlegend=false)
+		l[jb] = scatter(; y=h.pngrid, x=sup, marker_color=col[jb], name="B = $(round(bv, digits=2))")
+		l[h.Nb+jb] = scatter(; y=h.pngrid, x=dem, marker_color=col[jb], name="B = $(round(bv, digits=2))", showlegend=false)
 		maxq = max(max(maximum(dem), maximum(sup)), maxq)
 		minq = min(min(minimum(dem), minimum(sup)), minq)
 	end
@@ -1360,13 +1365,13 @@ function plot_nontradables(h::Hank; wrt::String="", remote::Bool=false)
 
 	jb = ceil(Int, h.Nb/2)
 	bv, μv, σv, wv, ζv, zv = h.bgrid[jb], h.μgrid[jμ], h.σgrid[jσ], h.ξgrid[jξ], h.ζgrid[jζ], h.zgrid[jz]
-	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(2*h.Nz,2)
+	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(undef, 2*h.Nz,2)
 	maxq = 0.
 	minq = 10.
 	for (jz, zv) in enumerate(h.zgrid)
-		sup = zeros(h.pngrid)
-		dem = zeros(h.pngrid)
-		supN = zeros(h.pngrid)
+		sup = zeros(size(h.pngrid))
+		dem = zeros(size(h.pngrid))
+		supN = zeros(size(h.pngrid))
 		G   = G_mat[jb, jμ, jσ, jξ, jζ, jz]
 		Bpv = B_mat[jb, jμ, jσ, jξ, jζ, jz]
 		for (jpn, pnv) in enumerate(h.pngrid)
@@ -1377,9 +1382,9 @@ function plot_nontradables(h::Hank; wrt::String="", remote::Bool=false)
 			Ld_N, _  = labor_demand(h, w_new, zv, jζ, pnv; get_both=true)
 			supN[jpn] = TFP_N(zv, h.Δ, jζ) * Ld_N^(h.α_N)
 		end
-		l[jz,1] = scatter(; y=h.pngrid, x=sup, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
-		l[h.Nz+jz,1] = scatter(; y=h.pngrid, x=dem, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))", showlegend=false)
-		l[jz,2] = scatter(; x=supN, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), 2))")
+		l[jz,1] = scatter(; y=h.pngrid, x=sup, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), digits=2))")
+		l[h.Nz+jz,1] = scatter(; y=h.pngrid, x=dem, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), digits=2))", showlegend=false)
+		l[jz,2] = scatter(; x=supN, y=h.pngrid, marker_color=col[ceil(Int,10*jz/h.Nz)], name="z = $(round(exp(zv), digits=2))")
 		maxq = max(max(maximum(dem), maximum(sup)), maxq)
 		minq = min(min(minimum(dem), minimum(sup)), minq)
 	end
@@ -1596,7 +1601,7 @@ function stack_sample(p::Path, sample)
 end
 
 function volYC(p::Path; episode_type::String="default", πthres::Float64=0.975)
-	sample = find_episodes(p, episode_type=episode_type, πthres=πthres)
+	sample, N = find_episodes(p, episode_type=episode_type, πthres=πthres)
 
 	stack = stack_sample(p, sample)
 
@@ -1608,8 +1613,11 @@ end
 
 function plot_episodes(p::Path; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975)
 
-	sample = find_episodes(p, episode_type=episode_type, πthres=πthres)
-
+	sample, N = find_episodes(p, episode_type=episode_type, πthres=πthres)
+	while N == 0
+		sample, N = find_episodes(p, episode_type=episode_type, πthres=πthres*0.95)
+	end
+	
 	sample_stats = stats_sample(p, sample)
 	rel_sample_stats = stats_sample(p, sample; relative=true)
 
@@ -1660,17 +1668,13 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	p = [pz pY pCl pP; pB pψ pπ pp90; pμ pσ pG pT]
 	p = [pz pY pCl pP; pB pψ pπ pp90; pμ pσ pG pNX]
 	slides ? font = "Fira Sans Light" : font = "STIX Two Text"
-	p.plot.layout["font_family"] = font
-	p.plot.layout["fontsize"] = 18
-	p.plot.layout["height"] = 600
-	p.plot.layout["width"] = 1100
+	relayout!(p, font_family = font, font_size = 18, height = 600, width = 1100)
 	if slides
-		p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
-		p.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+		relayout!(p, plot_bgcolor = "rgba(250, 250, 250, 1.0)", paper_bgcolor = "rgba(250, 250, 250, 1.0)")
 	else
-		p.plot.layout["title"] = ""
+		relayout!(p, title="")
 	end
-	p
+	return p
 end
 
 function plot_comparison_episodes(path_bench::Path, path_nodef::Path, path_nodelta::Path=path_nodef; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975, levels::Bool=true)
@@ -1761,4 +1765,176 @@ function plot_comparison_episodes(path_bench::Path, path_nodef::Path, path_nodel
 
 	return p1
 
+end
+
+
+function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impulse::String="z",
+        verbose::Bool=true, create_plots::Bool=false)
+    zvec = series(p, :z)
+    ξvec = series(p, :ξ)
+    Wvec = series(p, :Wr) - series(p, :Wd)
+    Cvec = log.(series(p, :C))
+    Yvec = log.(series(p, :Y))
+    πvec = series(p, :π)*100
+    Bvec = series(p, :B)./series(p, :Y)
+    t0 = 11
+    T = length(zvec)
+
+    if impulse == "z"
+        shock_vec = zvec
+        ρ_shock = 0.9
+    elseif impulse == "ξ"
+        shock_vec = ξvec
+        ρ_shock = 0.95
+    else
+        throw(error("Keyword impulse has to be 'z' or 'ξ'"))
+    end
+    
+    if response == "Y"
+    	print_save("\nResponse variable Y")
+        yvec = Yvec
+    elseif response == "C"
+    	print_save("\nResponse variable C")
+        yvec = Cvec
+    else
+    	throw(error("No response variable selected"))
+    end
+
+    E_shock = shock_vec * ρ_shock
+    y = yvec[t0:T]
+    X = Bvec[t0:T]
+
+    eps_z = [shock_vec[jt] - E_shock[jt-1] for jt in t0:T]
+
+    Bmed = quantile(Bvec, 0.9)
+    zlow = quantile(eps_z, 0.1)
+    # eps_z = min.(eps_z, zlow)
+    # eps_z = max.(eps_z, quantile(eps_z, 0.9))
+
+    p1 = plot(
+        scatter(;x=1:T, y=eps_z)
+        , Layout(;shapes=[hline(minimum(eps_z)); hline(quantile(eps_z,0.01))])
+    )
+
+    H = 20
+    β = Matrix{Float64}(undef, H+1,3)
+    βhB = Matrix{Float64}(undef, H+1,6)
+    βlz = Matrix{Float64}(undef, H+1,6)
+    βboth = Matrix{Float64}(undef, H+1,3)
+    for jh in 1:H+1
+        yh = y[jh:end]
+        # print_save("\nVariance of y = $(var(yh))")
+        # print_save("\n$(yh)")
+        Bh = X[1:end-jh+1]
+        e_z = eps_z[1:end-jh+1]
+
+        dummy_highB = (Bh.>Bmed)
+        dummy_lowz = (e_z.<zlow)
+        data = DataFrame(yh=yh, eps_z=e_z, X = Bh, ind_B = dummy_highB, ind_z = dummy_lowz)
+
+        #data = data[data[:eps_z].<= zlow,:]
+        # println(size(data[(data[:eps_z].<=zlow) .* (data[:X].>=Bmed),:]))
+        OLS = glm(@formula(yh ~ eps_z), data, Normal(), IdentityLink())
+        if verbose
+            println(OLS)
+        end
+        β[jh,1] = coef(OLS)[2]
+        β[jh,2] = coef(OLS)[2] + stderror(OLS)[2]*1.96
+        β[jh,3] = coef(OLS)[2] - stderror(OLS)[2]*1.96
+        #data_cond = data[(data[:X].>=Bmed),:]
+        #OLS = glm(@formula(yh ~ eps_z), data_cond, Normal(), IdentityLink())    
+        OLS = glm(@formula(yh ~ eps_z + eps_z&ind_B), data, Normal(), IdentityLink())
+        if verbose
+            println(OLS)
+        end
+        βhB[jh,1] = coef(OLS)[2]
+        βhB[jh,2] = coef(OLS)[2] + stderror(OLS)[2]*1.96
+        βhB[jh,3] = coef(OLS)[2] - stderror(OLS)[2]*1.96
+        βhB[jh,4] = coef(OLS)[2] + coef(OLS)[3]
+        βhB[jh,5] = coef(OLS)[2] + coef(OLS)[3] + stderror(OLS)[3]*1.96 + stderror(OLS)[2]*1.96
+        βhB[jh,6] = coef(OLS)[2] + coef(OLS)[3] - stderror(OLS)[3]*1.96 - stderror(OLS)[2]*1.96
+        #data_cond = data[(data[:X].<=Bmed),:]
+        #OLS = glm(@formula(yh ~ eps_z), data_cond, Normal(), IdentityLink())    
+        OLS = glm(@formula(yh ~ eps_z + eps_z&ind_z), data, Normal(), IdentityLink())
+        if verbose
+            println(OLS)
+        end
+        βlz[jh,1] = coef(OLS)[2]
+        βlz[jh,2] = coef(OLS)[2] + stderror(OLS)[2]*1.96
+        βlz[jh,3] = coef(OLS)[2] - stderror(OLS)[2]*1.96
+        βlz[jh,4] = coef(OLS)[2] + coef(OLS)[3]
+        βlz[jh,5] = coef(OLS)[2] + coef(OLS)[3] + stderror(OLS)[3]*1.96 #+ stderror(OLS)[2]*1.96
+        βlz[jh,6] = coef(OLS)[2] + coef(OLS)[3] - stderror(OLS)[3]*1.96 #- stderror(OLS)[2]*1.96
+        if verbose
+            println(coef(OLS))
+            println(βlz[jh,:])
+        end
+        #data_cond = data[(data[:eps_z].<zlow) .* (data[:X].>=Bmed),:]
+        #OLS = glm(@formula(yh ~ eps_z), data_cond, Normal(), IdentityLink())    
+        # OLS = glm(@formula(yh ~ eps_z + ind_B + eps_z*ind_B + ind_z + eps_z*ind_z + eps_z*ind_B*ind_z), data, Normal(), IdentityLink())
+        # if verbose
+        #     println(OLS)
+        # end
+        # βboth[jh,1] = coef(OLS)[2]
+        # βboth[jh,2] = coef(OLS)[2] + stderror(OLS)[2]*1.96
+        # βboth[jh,3] = coef(OLS)[2] - stderror(OLS)[2]*1.96
+    end
+    #β_h *= sqrt(var(zvec))
+    
+    yaxistitle = "∂log " * response * " / ∂log z"
+    
+    pYz = plot([
+            scatter(;x=0:H, y=β[:,1], line_color=col[1], name="βₕ")        
+            scatter(;x=0:H, y=β[:,3], line_width=0, showlegend=false, name="βl")
+            scatter(;x=0:H, y=β[:,2], fill="tonexty", line_color="#bbd6e8", line_width=0, showlegend=false, name="βh")
+        ], Layout(;xaxis_zeroline=false, yaxis_zeroline=false, xaxis_title="Quarters", yaxis_title=yaxistitle,
+            legend_orientation="h", legend_x = 0.1, width = 600, height = 250, font_family = "STIX Two Text",
+            shapes=[hline(0, line_dash="dot", line_width=1)]))
+
+    pYzz = plot([
+            scatter(;x=0:H, y=βlz[:,3], line_width=0, showlegend=false, name="βl")
+            scatter(;x=0:H, y=βlz[:,2], fill="tonexty", line_color="#bbd6e8", line_width=0, showlegend=false, name="βh")
+            scatter(;x=0:H, y=βlz[:,6], line_width=0, showlegend=false, name="βl")
+            scatter(;x=0:H, y=βlz[:,5], fill="tonexty", line_color="#bfe2bf", line_width=0, showlegend=false, name="βh")
+            scatter(;x=0:H, y=βlz[:,4], line_color=col[3], name="βₕ (low z)", line_dash="dashdot")        
+            scatter(;x=0:H, y=βlz[:,1], line_color=col[1], name="βₕ")        
+        ], Layout(;xaxis_zeroline=false, yaxis_zeroline=false, xaxis_title="Quarters", yaxis_title=yaxistitle,
+            legend=attr(;orientation="h", x = 0.1, traceorder="reversed"), width = 600, height = 400, font_family = "STIX Two Text",
+            shapes=[hline(0, line_dash="dot", line_width=1)]))
+
+    pYzB = plot([
+            scatter(;x=0:H, y=β[:,3], line_width=0, showlegend=false, name="βl")
+            scatter(;x=0:H, y=β[:,2], fill="tonexty", line_color="#bbd6e8", line_width=0, showlegend=false, name="βh")
+            scatter(;x=0:H, y=βhB[:,6], line_width=0, showlegend=false, name="βl")
+            scatter(;x=0:H, y=βhB[:,5], fill="tonexty", line_color="#bfe2bf", line_width=0, showlegend=false, name="βh")
+            scatter(;x=0:H, y=βhB[:,4], line_color=col[3], name="βₕ (high B)", line_dash="dashdot")        
+            scatter(;x=0:H, y=β[:,1], line_color=col[1], name="βₕ")        
+        ], Layout(;xaxis_zeroline=false, yaxis_zeroline=false, xaxis_title="Quarters", yaxis_title=yaxistitle,
+            legend=attr(;orientation="h", x = 0.1, traceorder="reversed"), width = 600, height = 400, font_family = "STIX Two Text",
+            shapes=[hline(0, line_dash="dot", line_width=1)]))
+    
+    if slides
+        function style_plot_IRF!(pl)
+        	relayout!(pl, font_family = "Fira Sans Light", font_size=16, plot_bgcolor="rgb(250, 250, 250, 1.0)", paper_bgcolor="rgb(250, 250, 250, 1.0")
+        	nothing
+        end
+        style_plot_IRF!(pYz)
+        style_plot_IRF!(pYzz)
+        style_plot_IRF!(pYzB)
+    end
+    
+    slides ? name = "_slides" : name = ""
+
+    if create_plots
+        savejson(pYz, pwd()*"/../Graphs/elast_" * response * "z" * name * ".json")
+        savejson(pYzz, pwd()*"/../Graphs/elast_" * response * "zz" * name * ".json")
+        savejson(pYzB, pwd()*"/../Graphs/elast_" * response * "zB" * name * ".json")
+        try
+	        savefig(pYz, pwd()*"/../Graphs/elast_" * response * "z" * name * ".pdf")
+	        savefig(pYzz, pwd()*"/../Graphs/elast_" * response * "zz" * name * ".pdf")
+	        savefig(pYzB, pwd()*"/../Graphs/elast_" * response * "zB" * name * ".pdf")
+	    catch
+	    end
+    end
+    nothing
 end
