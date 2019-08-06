@@ -42,16 +42,33 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L)
 	print_save("\nξ: $(h.ξgrid)")
 	print_save("\nω: $(h.ωgrid)\n")
 
-	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number)
+	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, maxiter = 17)
 	g = make_simulated_path(h, run_number)
 
 	s = read("../Output/output.txt", String)
 	write(saving_folder * "output.txt", s)
-
+	run(`mv ../../hank.jld ../Output/run$(run_number)/hank.jld`)
 	return g
 end
 
-L = Vector{Int64}(undef, 0)
-wrapper_run(params_center, nodef, noΔ, rep_agent, L)
+# wrapper_run(params_center, nodef, noΔ, rep_agent, L)
 
-nothing
+function SMM(params_center)
+	#				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
+	# params_center = [0.094; 0.02 ; 12.032; 0.092; 0.875;  0.007; 0.995; 0.002; 1.10825]
+	mins = 			[0.05 ; 0.001; 5     ;  0.05;  0.08; 0.0001;  0.99; 0.001; 1.1	  ]
+	maxs = 			[0.15 ; 0.05 ; 20    ;  0.35;  0.99;  0.001; 0.999; 0.003; 1.3	  ]
+
+	L = Vector{Int64}(undef, 0)
+	# inner_opt = LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))
+	res = Optim.optimize(
+		params -> wrapper_run(params, false, false, false, L)
+		, params_center
+		)
+
+	write("../Output/big_output.txt", "$(res)")
+
+	nothing
+end
+
+SMM(params_center)
