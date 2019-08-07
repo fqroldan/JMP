@@ -137,7 +137,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 	h.upd_tol = max(h.upd_tol, 1e-3)
 
 	while dist > tol && out_iter < maxiter
-		print_save("\n\nOuter Iteration $out_iter\n")
+		print_save("\n\nOuter Iteration $out_iter (run $(run_number))\n")
 		vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 15)
 		h.upd_tol = max(min(h.upd_tol*0.95, tol_vfi/10), 1e-6)
 		
