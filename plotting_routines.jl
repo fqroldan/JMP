@@ -1769,7 +1769,7 @@ end
 
 
 function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impulse::String="z",
-        verbose::Bool=true, create_plots::Bool=false)
+        verbose::Bool=false, create_plots::Bool=false)
     zvec = series(p, :z)
     ξvec = series(p, :ξ)
     Wvec = series(p, :Wr) - series(p, :Wd)

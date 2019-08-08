@@ -184,7 +184,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 		if out_iter % 5 == 0 && out_iter > 5
 			t_sim = time()
 			print_save("\nSimulating")
-			make_simulated_path(h, run_number)
+			make_simulated_path(h, run_number, 1000)
 			print_save(": done in $(time_print(time()-t_sim))")
 		end
 
