@@ -1769,7 +1769,7 @@ end
 
 
 function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impulse::String="z",
-        verbose::Bool=false, create_plots::Bool=false)
+        verbose::Bool=false, create_plots::Bool=false, savedir::String="")
     zvec = series(p, :z)
     ξvec = series(p, :ξ)
     Wvec = series(p, :Wr) - series(p, :Wd)
@@ -1926,13 +1926,13 @@ function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impuls
     slides ? name = "_slides" : name = ""
 
     if create_plots
-        savejson(pYz, pwd()*"/../Graphs/elast_" * response * "z" * name * ".json")
-        savejson(pYzz, pwd()*"/../Graphs/elast_" * response * "zz" * name * ".json")
-        savejson(pYzB, pwd()*"/../Graphs/elast_" * response * "zB" * name * ".json")
+        savejson(pYz, savedir * "elast_" * response * "z" * name * ".json")
+        savejson(pYzz, savedir * "elast_" * response * "zz" * name * ".json")
+        savejson(pYzB, savedir * "elast_" * response * "zB" * name * ".json")
         try
-	        savefig(pYz, pwd()*"/../Graphs/elast_" * response * "z" * name * ".pdf")
-	        savefig(pYzz, pwd()*"/../Graphs/elast_" * response * "zz" * name * ".pdf")
-	        savefig(pYzB, pwd()*"/../Graphs/elast_" * response * "zB" * name * ".pdf")
+	        savefig(pYz, savedir * "elast_" * response * "z" * name * ".pdf")
+	        savefig(pYzz, savedir * "elast_" * response * "zz" * name * ".pdf")
+	        savefig(pYzB, savedir * "elast_" * response * "zB" * name * ".pdf")
 	    catch
 	    end
     end

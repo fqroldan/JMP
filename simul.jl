@@ -366,7 +366,11 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[])
 
 	ρy, σy = get_AR1(log.(Y_vec.+1e-8))
 	ρc, σc = get_AR1(log.(C_vec.+1e-8))
-	ρs, σs = get_AR1(spr_vec)
+	if var(spr_vec) > 1e-6
+		ρs, σs = get_AR1(spr_vec)
+	else
+		ρs, σs = 1.0, 0.0
+	end
 	m_unemp, sd_unemp = get_MV(u_vec)
 	m_debt, sd_debt = get_MV(100*B_vec./(4*Y_vec))
 	m_gspend, sd_gspend = get_MV(100*G_vec./Y_vec)
