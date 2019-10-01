@@ -38,6 +38,25 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L)
 	r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
 	h = make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number);
 
+	try
+		h_done = load(pwd() * "/../Output/run$(run_number)/hank.jld", "h")
+		print_save("\nFound previous file for run $(run_number).")
+		if pars(h_done) == pars(h)
+			print_save(" Already did this run. Looking for g value.")
+			try
+				g_done = load(pwd() * "/../Output/run$(run_number)", "g")
+				print_save(" Found g.")
+				return g
+			catch
+				print_save(" Couldn't find g.")
+			end
+		else
+			print_save("Found different parameters, rewriting.")
+		end
+	catch
+		print_save("\nNo previous file found.")
+	end
+
 	print_save("\nϵ: $(h.ϵgrid)")
 	print_save("\nz: $(h.zgrid)")
 	print_save("\nξ: $(h.ξgrid)")
@@ -49,6 +68,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L)
 	plot_contour_unemp(h, savedir)
 	
 	g = make_simulated_path(h, run_number, 4000)
+	save(savedir * "g.jld", "g", g)
 	
 	s = read("../Output/output.txt", String)
 	write(savedir * "output.txt", s)
