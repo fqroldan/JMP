@@ -594,8 +594,8 @@ function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec)
 	σ′ = Array{Float64}(undef, N, h.Nξ, h.Nz, 2)
 	alarm_vec = Array{Float64}(undef, N, h.Nξ, h.Nz, 2)
 
-	Threads.@threads for js in 1:N
-	# for js in 1:N
+	# Threads.@threads for js in 1:N
+	for js in 1:N
 		Bpv = B′_vec[js]
 
 		jb = h.Jgrid[js, 1]
