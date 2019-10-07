@@ -38,15 +38,17 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L)
 	r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
 	h = make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number);
 
+	already_done = false
 	try
 		h_done = load(pwd() * "/../Output/run$(run_number)/hank.jld", "h")
 		print_save("\nFound previous file for run $(run_number).")
 		if pars(h_done) == pars(h)
 			print_save(" Already did this run. Looking for g value.")
 			try
-				g_done = load(pwd() * "/../Output/run$(run_number)", "g")
+				g_done = load(pwd() * "/../Output/run$(run_number)/g.jld", "g")
 				print_save(" Found g.")
-				return g
+				print_save("\ng = $(g_done)")
+				return g_done
 			catch
 				print_save(" Couldn't find g.")
 			end
