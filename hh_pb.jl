@@ -232,47 +232,47 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jξ, jz, exp_rep,
 
 	ap, bp, ep, cmax, fmax = 0., 0., 0., 0., 0.
 	if optim_type == "sequential"
-		function sub_value(h, sp, itp_vf_s, jϵ, jξ, jz, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef; get_all::Bool=false)
+		# function sub_value(h, sp, itp_vf_s, jϵ, jξ, jz, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef; get_all::Bool=false)
 
-			# minθ = 0.
-			# maxθ = 1.
+		# 	res = Optim.optimize(
+		# 		θ -> -value(h, sp, θ, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
+		# 		minθ, maxθ, GoldenSection(), rel_tol=h.tol_θ
+		# 		)
 
-			res = Optim.optimize(
-				θ -> -value(h, sp, θ, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
-				minθ, maxθ, GoldenSection(), rel_tol=h.tol_θ
-				)
+		# 	if get_all
+		# 		θa = res.minimizer
+		# 		ap, bp, ep, cmax = get_abec(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θa)
+		# 		return ap, bp, ep, cmax, θa
+		# 	else
+		# 		fmax = -res.minimum
+		# 		return fmax
+		# 	end
+		# end
 
-			if get_all
-				θa = res.minimizer
-				ap, bp, ep, cmax = get_abec(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θa)
-				return ap, bp, ep, cmax, θa
-			else
-				fmax = -res.minimum
-				return fmax
-			end
-		end
-
-		res = Optim.optimize(
-				sp -> -sub_value(h, sp, itp_vf_s, jϵ, jξ, jz, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
-					minω, maxω, GoldenSection(), rel_tol=h.tol_θ
-				)
-		sp = res.minimizer
-		fmax = -res.minimum
-		ap, bp, ep, cmax, θa = sub_value(h, sp, itp_vf_s, jϵ, jξ, jz, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef; get_all=true)
+		# res = Optim.optimize(
+		# 		sp -> -sub_value(h, sp, itp_vf_s, jϵ, jξ, jz, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
+		# 			minω, maxω, GoldenSection(), rel_tol=h.tol_θ
+		# 		)
+		# sp = res.minimizer
+		# fmax = -res.minimum
+		# ap, bp, ep, cmax, θa = sub_value(h, sp, itp_vf_s, jϵ, jξ, jz, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef; get_all=true)
 	elseif optim_type == "multivariate"
 
 		guess[1] = max(min(guess[1], maxω-1e-6), minω+1e-6)
 		guess[2] = max(min(guess[2], maxθ-1e-6), minθ+1e-6)
 
+		sp, θa = 0.0, 0.0
 		try
-			inner_opt = LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))
+			# inner_opt = 
 			res = Optim.optimize(
 				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
-				, [minω, minθ], [maxω, maxθ], guess, Fminbox(inner_opt))
+				, [minω, minθ], [maxω, maxθ], guess, Fminbox(LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))))
 			if Optim.converged(res)
 			else
 				throw("Main algorithm failed")
 			end
+			sp, θa = res.minimizer::Vector{Float64}
+			fmax = -res.minimum::Float64
 		catch
 			if minω < guess[1] < maxω && minθ < guess[2] < maxθ
 			else
@@ -283,27 +283,26 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jξ, jz, exp_rep,
 			res = Optim.optimize(
 				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 				, [minω, minθ], [maxω, maxθ], guess, Fminbox(NelderMead()))
+			sp, θa = res.minimizer::Vector{Float64}
+			fmax = -res.minimum::Float64
 		end
-
-		sp, θa = res.minimizer
-		fmax = -res.minimum
 
 		ap, bp, ep, cmax = get_abec(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θa)
 	else
-		curr_min = 1e10
-		θa_grid = linspace(0,1,8)
-		for θa in θa_grid
-			res = Optim.optimize(
-				sp -> -value(h, sp, θa, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
-					qʰv*h.ωmin, ωmax, GoldenSection()
-				)
-			if res.minimum < curr_min
-				sp = res.minimizer
-				ap, bp, ep, cmax = get_abec(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θa)
-				fmax = -res.minimum
-				curr_min = res.minimum
-			end
-		end
+		# curr_min = 1e10
+		# θa_grid = linspace(0,1,8)
+		# for θa in θa_grid
+		# 	res = Optim.optimize(
+		# 		sp -> -value(h, sp, θa, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
+		# 			qʰv*h.ωmin, ωmax, GoldenSection()
+		# 		)
+		# 	if res.minimum < curr_min
+		# 		sp = res.minimizer
+		# 		ap, bp, ep, cmax = get_abec(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θa)
+		# 		fmax = -res.minimum
+		# 		curr_min = res.minimum
+		# 	end
+		# end
 	end
 
 	return ap, bp, ep, cmax, fmax
@@ -318,7 +317,8 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 	ϕe = Array{Float64}(undef, size(h.ϕe))
 	ϕc = Array{Float64}(undef, size(h.ϕc))
 	warnc0 = zeros(size(qᵍ_mat))
-	Threads.@threads for js in 1:size(h.Jgrid,1)
+	# Threads.@threads for js in 1:size(h.Jgrid,1)
+	for js in 1:size(h.Jgrid,1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
 		jσ = h.Jgrid[js, 3]
