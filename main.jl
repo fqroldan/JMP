@@ -65,7 +65,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L)
 	print_save("\nξ: $(h.ξgrid)")
 	print_save("\nω: $(h.ωgrid)\n")
 
-	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, maxiter = 16)
+	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, maxiter = 25)
 	plot_hh_policies(h, run_number=run_number)
 	plot_contour_debtprice(h, savedir)
 	plot_contour_unemp(h, savedir)
