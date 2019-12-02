@@ -553,10 +553,10 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 			msg *= "Can't affort consumption $(consw)% of the time"
 			print_save(msg)
 
-			t1 = time()
-			extend_state_space!(h, qʰ_mat, qᵍ_mat, T_mat)
-			print_save(": done in $(time_print(time()-t1)) ")
-			print_save(Dates.format(now(), "HH:MM"))
+			# t1 = time()
+			# extend_state_space!(h, qʰ_mat, qᵍ_mat, T_mat)
+			# print_save(": done in $(time_print(time()-t1)) ")
+			# print_save(Dates.format(now(), "HH:MM"))
 			t1 = time()
 
 			# plot_hh_policies(h, remote = remote)
