@@ -441,7 +441,7 @@ function update_fiscalrules!(h::Hank)
 
 	coef_B = [ 1.0786829981  0.3342813521  0.0001223178 -0.0102040316  0.0001494438  0.0461321365 -0.0014158229 ]
 	g = [ ones(size(unemp)) unemp unemp2 BoY BoY2 NX NX2 ] * coef_g' / 100
-	net_iss = [ ones(size(unemp)) unemp unemp2 BoY BoY2*0.0 NX NX2*0.0 ] * coef_B' / 100
+	net_iss = [ ones(size(unemp)) unemp unemp2 BoY BoY2*1.0 NX NX2*1.0 ] * coef_B' / 100
 
 	h.spending = max.(min.(vec(g), 0.35), 0.) .* (1 * h.output)
 	h.issuance = min.(0.35,max.(0., vec(net_iss))) .* (4 * h.output) + (1.0-h.ρ)*h.bgrid[h.Jgrid[:, 1]]
