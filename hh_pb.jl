@@ -317,8 +317,8 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 	ϕe = Array{Float64}(undef, size(h.ϕe))
 	ϕc = Array{Float64}(undef, size(h.ϕc))
 	warnc0 = zeros(size(qᵍ_mat))
-	# Threads.@threads for js in 1:size(h.Jgrid,1)
-	for js in 1:size(h.Jgrid,1)
+	Threads.@threads for js in 1:size(h.Jgrid,1)
+	# for js in 1:size(h.Jgrid,1)
 		jb = h.Jgrid[js, 1]
 		jμ = h.Jgrid[js, 2]
 		jσ = h.Jgrid[js, 3]
