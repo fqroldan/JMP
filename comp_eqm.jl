@@ -31,7 +31,7 @@ function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
 			# wv = 0.9
 
-			labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, ζv, zv, wv, pnv)
+			labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, ζv, zv, pnv)
 		end
 
 		pC = price_index(h, pnv)
@@ -98,7 +98,7 @@ function labor_demand(h::Hank, w, z, ζ, pN; get_both::Bool = false)
 	end
 end
 
-function labor_market(h::Hank, ζv, zv, ξREMOVE, pNv; w_slack::Bool=false)
+function labor_market(h::Hank, ζv, zv, pNv; w_slack::Bool=false)
 	""" Finds w and Lᵈ at the current state given a guess of pNv """
 	w_constraint = h.wbar
 	if w_slack
@@ -150,7 +150,7 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 
 	ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
 
-	Ld, w_new, profits, output = labor_market(h, ζv, zv, ξv, pN; w_slack=w_slack)
+	Ld, w_new, profits, output = labor_market(h, ζv, zv, pN; w_slack=w_slack)
 
 	# Check market clearing for nontradables
 	Ld_N, _  = labor_demand(h, w_new, zv, ζv, pN; get_both=true)

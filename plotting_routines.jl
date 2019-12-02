@@ -548,7 +548,7 @@ function plot_debtprice(h::Hank; remote::Bool=false)
 		ζv = h.ζgrid[jζ]
 		zv = h.zgrid[jz]
 
-		labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, ζv, zv, wv, pnv)
+		labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, ζv, zv, pnv)
 	end
 
 	pC = price_index(h, pnv)
@@ -1378,7 +1378,7 @@ function plot_nontradables(h::Hank; wrt::String="", remote::Bool=false)
 			sup[jpn], dem[jpn] = mkt_clearing(h, itp_ϕc, G, Bpv, pnv, pNmin, pNmax, bv, μv, σv, wv, jζ, jz, (jζ!=1); get_both=true)
 
 			zv = h.zgrid[jz]
-			Ld, w_new, profits, output = labor_market(h, jζ, zv, wv, pnv)
+			Ld, w_new, profits, output = labor_market(h, jζ, zv, pnv)
 			Ld_N, _  = labor_demand(h, w_new, zv, jζ, pnv; get_both=true)
 			supN[jpn] = TFP_N(zv, h.Δ, jζ) * Ld_N^(h.α_N)
 		end
