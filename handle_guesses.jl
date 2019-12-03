@@ -72,7 +72,10 @@ function make_simulated_path(h::Hank, run_number, years=100)
 	# savejson(pl, savedir * "onlyspread_paper.json")
 
 	for resp in ["C"; "Y"]
-		make_IRF_plots(path; slides = true, create_plots = true, response = resp, savedir=savedir)
+		try
+			make_IRF_plots(path; slides = true, create_plots = true, response = resp, savedir=savedir)
+		catch
+		end
 	end
 
 	params = pars(h)
