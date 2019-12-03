@@ -1614,10 +1614,17 @@ end
 function plot_episodes(p::Path; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975)
 
 	sample, N = find_episodes(p, episode_type=episode_type, πthres=πthres)
-	while N == 0
+	iter = 0
+	maxiter = 25
+	while N == 0 && iter < maxiter
+		iter += 1
 		sample, N = find_episodes(p, episode_type=episode_type, πthres=πthres*0.95)
 	end
-	
+	if iter == maxiter
+		print_save("WARNING: No episodes of $(episode_type) found")
+		return plot()
+	end
+
 	sample_stats = stats_sample(p, sample)
 	rel_sample_stats = stats_sample(p, sample; relative=true)
 
