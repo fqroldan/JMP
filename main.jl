@@ -24,6 +24,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L)
 	push!(L, length(L)+1)
 	run_number = L[end]
 	savedir = pwd() * "/../Output/run$(run_number)/"
+	run(`rm $savedir -rf`)
 	run(`mkdir -p $savedir`)
 
 	# Initialize output file
