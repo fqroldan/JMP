@@ -43,7 +43,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 	jdef = (ζt != 1)
 
-	results, _ = find_prices(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, ξt, ζt, jz, jdef)
+	results, _ = find_prices_direct(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, ξt, ζt, jz, jdef)
 
 	wt, pN, Ld, output = results
 	profits = output - wt*Ld
@@ -101,11 +101,14 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	adjustment = sum(h.λϵ.*exp.(h.ϵgrid))
 	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid_fine)
 		js += 1
-		ap = itp_ϕa(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
+		# ap = itp_ϕa(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
+		ap = itp_ϕa(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz)
 		ϕa[js] = max(h.ωmin, ap)
-		bp = itp_ϕb(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
+		# bp = itp_ϕb(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
+		bp = itp_ϕb(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz)
 		ϕb[js] = max(0.0, bp)
-		cc = itp_ϕc(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
+		# cc = itp_ϕc(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
+		cc = itp_ϕc(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz)
 		ϕc[js] = max(0.0, cc)
 		yd = (wt*Ld*(1.0-h.τ) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
 		Crate[js] = ϕc[js] / yd
@@ -249,11 +252,14 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	B0, μ0, σ0, ξ0, ζ0, z0 = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), h.ξgrid[2], h.ζgrid[1], h.zgrid[jz]
 	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
 
-	itp_ϕa = make_itp(h, h.ϕa_ext; agg=false)
+	# itp_ϕa = make_itp(h, h.ϕa_ext; agg=false)
+	itp_ϕa = make_itp(h, h.ϕa; agg=false)
 	itp_ϕa = extrapolate(itp_ϕa, Interpolations.Flat())
-	itp_ϕb = make_itp(h, h.ϕb_ext; agg=false)
+	# itp_ϕb = make_itp(h, h.ϕb_ext; agg=false)
+	itp_ϕb = make_itp(h, h.ϕb; agg=false)
 	itp_ϕb = extrapolate(itp_ϕb, Interpolations.Flat())
-	itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
+	# itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
+	itp_ϕc = make_itp(h, h.ϕc; agg=false)
 	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
 	itp_vf = make_itp(h, h.vf; agg=false)
 	itp_vf = extrapolate(itp_vf, Interpolations.Flat())
