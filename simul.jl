@@ -153,10 +153,12 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	μ′, σ′, q′, _ = compute_stats_logN(h, ζt, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bprime, exp_rep)
 
+	lb = h.bgrid[end] - h.bgrid[1]
 	lμ = h.μgrid[end] - h.μgrid[1]
 	lσ = h.σgrid[end] - h.σgrid[1]
-	μ′ = max.(min.(μ′, h.μgrid[end]+0.0*lμ), h.μgrid[1]-0.0*lμ)
-	σ′ = max.(min.(σ′, h.σgrid[end]+0.0*lσ), h.σgrid[1]-0.0*lσ)
+	Bprime = max.(min.(Bprime, h.bgrid[end]-0.01*lb), h.bgrid[1]+0.01*lb)
+	μ′ = max.(min.(μ′, h.μgrid[end]-0.01*lμ), h.μgrid[1]+0.01*lμ)
+	σ′ = max.(min.(σ′, h.σgrid[end]-0.01*lσ), h.σgrid[1]+0.01*lσ)
 
 	# μ′, σ′, q′ = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bprime, wt, thres, Bt, μt, σt, w0, ζt, zt, jdef) # This would assume that λₜ is lognormal
 	# print("\n$(q′)")
@@ -265,11 +267,16 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	itp_vf = extrapolate(itp_vf, Interpolations.Flat())
 
 
-	itp_B′		= make_itp(h, h.issuance; agg=true)
-	itp_G		= make_itp(h, h.spending; agg=true)
-	itp_pN		= make_itp(h, h.pN; agg=true)
-	itp_qᵍ 		= make_itp(h, h.qᵍ; agg=true)
-	itp_W 		= make_itp(h, h.welfare; agg=true)
+	itp_B′	= make_itp(h, h.issuance; agg=true)
+	# itp_B′ 	= extrapolate(itp_B′, Interpolations.Flat())
+	itp_G	= make_itp(h, h.spending; agg=true)
+	# itp_G 	= extrapolate(itp_G, Interpolations.Flat())
+	itp_pN	= make_itp(h, h.pN; agg=true)
+	# itp_pN 	= extrapolate(itp_pN, Interpolations.Flat())
+	itp_qᵍ 	= make_itp(h, h.qᵍ; agg=true)
+	# itp_qᵍ 	= extrapolate(itp_qᵍ, Interpolations.Flat())
+	itp_W 	= make_itp(h, h.welfare; agg=true)
+	# itp_W 	= extrapolate(itp_W, Interpolations.Flat())
 
 	rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	knots = (h.bgrid, h.μgrid, h.σgrid, h.ξgrid, 1:h.Nζ, 1:h.Nz, h.ξgrid, 1:h.Nz)
