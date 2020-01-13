@@ -92,6 +92,9 @@ function SMM(params_center)
 
 	L = Vector{Int64}(undef, 0)
 	# inner_opt = LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))
+	nlprecon = GradientDescent(alphaguess=Optim.LineSearches.InitialStatic(alpha=1e-4,scaled=true),
+                           linesearch=Optim.LineSearches.Static())
+	oacc10 = OACCEL(nlprecon=nlprecon, wmax=10)
 	res = Optim.optimize(
 		params -> wrapper_run(params, false, false, false, L)
 		# , params_center
