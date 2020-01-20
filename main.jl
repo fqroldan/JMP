@@ -28,7 +28,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L)
 	run(`mkdir -p $savedir`)
 
 	s = read("../Output/big_output.txt", String)
-	write("../Output/big_output.txt", s * "run number : ")
+	write("../Output/big_output.txt", s * "run number : $(run_number). ")
 
 	# Initialize output file
 	write("../Output/output.txt", "\nAggregate Demand and Sovereign Debt Crises\n")
@@ -84,7 +84,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L)
 	run(`cp ../Output/hank.jld ../Output/run$(run_number)/hank.jld`)
 
 	s = read("../Output/big_output.txt", String)
-	write("../Output/big_output.txt", s * "$g\n")
+	write("../Output/big_output.txt", s * "g = $g\n")
 
 	return g
 end
