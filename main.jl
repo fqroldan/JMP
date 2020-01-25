@@ -12,7 +12,7 @@ include("handle_guesses.jl")
 include("plotting_routines.jl")
 
 #				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,  wbar
-params_center = [0.094; 0.02 ; 12.032; 0.092; 0.950; 0.010; 0.995; 0.002; 1.11]
+params_center = [0.094; 0.02 ; 12.032; 0.092; 0.950; 0.010; 0.995; 0.002; 1.08]
 
 # Set options
 nodef     	 = false
@@ -95,7 +95,7 @@ function SMM(params_center)
 	write("../Output/big_output.txt", "")
 	#				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
 	# params_center = [0.094; 0.02 ; 12.032; 0.092; 0.875; 0.007; 0.995; 0.002; 1.10825]
-	mins = 			  [0.05 ; 0.001; 5     ; 0.05 ;  0.85; 0.008;  0.99; 0.001; 1.08	]
+	mins = 			  [0.05 ; 0.001; 5     ; 0.05 ;  0.85; 0.008;  0.99; 0.001; 1.06	]
 	maxs = 			  [0.15 ; 0.05 ; 20    ; 0.35 ;  0.99; 0.015; 0.999; 0.003; 1.15	]
 
 	L = Vector{Int64}(undef, 0)
