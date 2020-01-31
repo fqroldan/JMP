@@ -12,7 +12,7 @@ include("handle_guesses.jl")
 include("plotting_routines.jl")
 
 #				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,  wbar
-params_center = [0.094; 0.02 ; 12.032; 0.092; 0.950; 0.010; 0.995; 0.002; 0.90]
+params_center = [0.094; 0.02 ; 12.032; 0.092; 0.970; 0.008; 0.995; 0.002; 0.91]
 
 # Set options
 nodef     	 = false
@@ -20,7 +20,12 @@ noΔ 		 = false
 rep_agent 	 = false
 
 # Run
-function wrapper_run(params, nodef, noΔ, rep_agent, L)
+function wrapper_run(params, nodef, noΔ, rep_agent, L; do_all::Bool=true)
+
+	ρξ, σξ = 0.995, 0.002
+	if !do_all
+		params = [params[1:6]; ρξ; σξ; params[end]]
+	end
 	push!(L, length(L)+1)
 	run_number = L[end]
 	savedir = pwd() * "/../Output/run$(run_number)/"
@@ -91,12 +96,18 @@ end
 
 # wrapper_run(params_center, nodef, noΔ, rep_agent, L)
 
-function SMM(params_center)
+function SMM(params_center, do_all::Bool=true)
 	write("../Output/big_output.txt", "")
 	#				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
-	# params_center = [0.094; 0.02 ; 12.032; 0.092; 0.875; 0.007; 0.995; 0.002; 1.10825]
-	mins = 			  [0.05 ; 0.001; 5     ; 0.05 ;  0.85; 0.008;  0.99; 0.001; 0.82	]
-	maxs = 			  [0.15 ; 0.05 ; 20    ; 0.35 ;  0.99; 0.015; 0.999; 0.003; 1.02	]
+	# params_center = [0.094; 0.02 ; 12.032; 0.092; 0.970; 0.008; 0.995; 0.002; 0.91]
+	if do_all
+		mins = 	      [0.05 ; 0.001; 5     ; 0.05 ;  0.85; 0.006;  0.99; 0.001; 0.82]
+		maxs = 		  [0.15 ; 0.05 ; 20    ; 0.35 ;  0.99; 0.012; 0.999; 0.003; 1.02]
+	else
+		mins = 		  [0.05 ; 0.001; 5     ; 0.05 ;  0.85; 0.006; 			    0.82]
+		maxs = 		  [0.15 ; 0.05 ; 20    ; 0.35 ;  0.99; 0.012; 			    1.02]
+		params_center = [params_center[1:6]; params_center[9]]
+	end
 
 	L = Vector{Int64}(undef, 0)
 	# inner_opt = LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))
@@ -104,9 +115,9 @@ function SMM(params_center)
                            linesearch=Optim.LineSearches.Static())
 	oacc10 = OACCEL(nlprecon=nlprecon, wmax=10)
 	res = Optim.optimize(
-		params -> wrapper_run(params, false, false, false, L)
+		params -> wrapper_run(params, false, false, false, L, do_all=do_all)
 		# , params_center
-		, mins, maxs, params_center, Fminbox(NelderMead())
+		, mins, maxs, params_center, Fminbox(oacc10)
 		)
 
 	print("$(res)")
