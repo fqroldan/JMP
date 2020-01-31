@@ -347,8 +347,8 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 
 	pN_guess = h.pN
 	
-	for js in 1:N
-	# Threads.@threads for js in 1:N
+	# for js in 1:N
+	Threads.@threads for js in 1:N
 		Bpv = B′_vec[js]
 		G = G_vec[js]
 		
