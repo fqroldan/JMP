@@ -426,12 +426,12 @@ function find_times_episodes(path::Path; episode_type::String="default", πthres
 				push!(t_epi, jt)
 			end
 		elseif episode_type=="highspread"
-			if minimum(π_vec[jt-2+1:jt+2]) >= π_thres
+			if minimum(π_vec[jt-2+1:jt+2]) >= π_thres && π_vec[jt] == maximum(π_vec[jt-2+1:jt+2])
 				N += 1
 				push!(t_epi, jt)
 			end
 		elseif episode_type=="onlyspread"
-			if minimum(π_vec[jt-2+1:jt+2]) >= π_thres && maximum(ζ_vec[jt-3+1:jt+3]) == 1# && ψ_vec[jt-3+1] >= ψ_thres
+			if minimum(π_vec[jt-2+1:jt+2]) >= π_thres && maximum(ζ_vec[jt-3+1:jt+3]) == 1 && π_vec[jt] == maximum(π_vec[jt-2+1:jt+2]) # && ψ_vec[jt-3+1] >= ψ_thres
 				N += 1
 				push!(t_epi, jt)
 			end

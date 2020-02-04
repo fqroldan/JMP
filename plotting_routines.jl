@@ -1629,18 +1629,28 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	sample_stats = stats_sample(p, sample)
 	rel_sample_stats = stats_sample(p, sample; relative=true)
 
-	function plot_sample(sym::Symbol, sampstats=sample_stats; f::Function=identity, title::String="", yaxis_title::String="")
+	function plot_sample(sym::Symbol, sampstats=sample_stats, sample=sample; f::Function=identity, title::String="", yaxis_title::String="")
 		ylow = sampstats[p.n[sym],:, 1]
 		ymed = sampstats[p.n[sym],:, 2]
 		yhig = sampstats[p.n[sym],:, 3]
 		yavg = sampstats[p.n[sym],:, 4]
 
-		p1 = plot([
-			scatter(;x = -2.5:0.25:2.5, y = f(ylow), marker_color=col[1], line_dash="dot", opacity=0.25, showlegend=false, name="q=0.1")
-			scatter(;x = -2.5:0.25:2.5, y = f(yhig), marker_color=col[1], line_dash="dot", opacity=0.25, fill="tonexty", fillcolor="rgba(31,119,180,0.1)", showlegend=false, name="q=0.9")
+		data = [
+			scatter(;x = -2.5:0.25:2.5, y = f(ylow), marker_color=col[1], line_dash="dot", opacity=0.25, showlegend=false, name="q=0.25", hoverinfo="skip")
+			scatter(;x = -2.5:0.25:2.5, y = f(yhig), marker_color=col[1], line_dash="dot", opacity=0.25, fill="tonexty", fillcolor="rgba(31,119,180,0.1)", showlegend=false, name="q=0.75", hoverinfo="skip")
 			scatter(;x = -2.5:0.25:2.5, y = f(ymed), marker_color=col[4], line_dash="solid", showlegend=false, name="q=0.5")
 			# scatter(;x = -2.5:0.25:2.5, y = f(yavg), marker_color=col[3], line_dash="dashdot", showlegend=false, opacity=0.4, name="mean")
-			], Layout(;title=title, yaxis_title=yaxis_title, yaxis_zeroline=false, xaxis_range=[-2.5; 2.5]))
+		]
+
+		if false
+			for jj in 1:size(sample, 3)
+				y = sample(p.n[sym], :, jj)
+				scat = scatter(x = -2.5:0.25:2.5, y=y, marker_color=col[1], opacity = 0.25, showlegend=false, hoverinfo="skip")
+				push!(data, scat)
+			end
+		end
+
+		p1 = plot(data, Layout(;title=title, yaxis_title=yaxis_title, yaxis_zeroline=false, xaxis_range=[-2.5; 2.5]))
 		return p1 
 	end
 
