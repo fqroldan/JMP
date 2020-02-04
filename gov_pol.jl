@@ -86,19 +86,19 @@ function update_govpol(h::Hank; η_rep::Float64=0.5)
 		end
 	end
 
-	if maximum(diff_R) == 1.
-		threshold = quantile(diff_W[diff_R .== 1.], 1.0-η_rep)
-		ind_change = (diff_W .> threshold) .& (diff_R .== 1.)
+	# if maximum(diff_R) == 1.
+	# 	threshold = quantile(diff_W[diff_R .== 1.], 1.0-η_rep)
+	# 	ind_change = (diff_W .> threshold) .& (diff_R .== 1.)
 
-		repay[ind_change] .= 1.
-	end
+	# 	repay[ind_change] .= 1.
+	# end
 
-	if minimum(diff_R) == -1.
-		threshold = quantile(diff_W[diff_R .== -1.], η_rep)
-		ind_change = (diff_W .< threshold) .& (diff_R .== -1.)
+	# if minimum(diff_R) == -1.
+	# 	threshold = quantile(diff_W[diff_R .== -1.], η_rep)
+	# 	ind_change = (diff_W .< threshold) .& (diff_R .== -1.)
 		
-		repay[ind_change] .= 0.
-	end
+	# 	repay[ind_change] .= 0.
+	# end
 	
 	# rep_new = reshape(repay, length(repay))
 	rep_new = reshape(rep_prob, length(rep_prob))
@@ -153,11 +153,14 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 		old_rep = copy(h.repay)
 
 		if nodef
+			# Make sure the government never defaults
 			h.repay = ones(h.repay)
 			dist = 0.0
 		elseif noΔ
+			# Keep the same default policy
 			dist = 0.0
 		else
+			# Update the default policy
 			new_rep = update_govpol(h; η_rep = 0.25)
 			old_norm = sqrt.(sum(old_rep.^2))
 			print_save("\n||rep₀|| = $(old_norm)")
@@ -170,18 +173,16 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 			h.repay = 0.4*upd_η * new_rep + (1.0-0.4*upd_η) * old_rep
 		end
 
-
-		tol_vfi = max(exp(0.8*log(1+tol_vfi))-1, 1e-6)
-		t_new = time()
-		print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $out_iter iterations. New tol = $(@sprintf("%0.3g",tol_vfi))")
-
 		dist = max(dist, tol_vfi)
 		
 		push!(h.outer_dists, dist)
 		# plot_outerdists(h; remote = remote)
 
+		tol_vfi = max(exp(0.8*log(1+tol_vfi))-1, 1e-6)
+		t_new = time()
+		print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $out_iter iterations. New tol = $(@sprintf("%0.3g",tol_vfi))")
 
-		if out_iter % 5 == 0 && out_iter > 5
+		if out_iter % 10 == 0 && out_iter > 5
 			t_sim = time()
 			print_save("\nSimulating")
 			make_simulated_path(h, run_number, 1000)
