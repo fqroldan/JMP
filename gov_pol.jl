@@ -144,7 +144,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 		W_new = update_W(h)
 
 		h.welfare = upd_η * W_new + (1.0-upd_η) * h.welfare
-		upd_η = 0.5
+		# upd_η = 0.5
 
 		if isnan.(sum(h.welfare))
 			print_save("\nWARNING: ||welf|| = NaN")
@@ -170,7 +170,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 			new_norm = sqrt.(sum(new_rep.^2))
 			print_save("\n||repₜ|| = $(new_norm)")
 			dist = sqrt.(sum( (new_rep - old_rep).^2 )) / old_norm
-			h.repay = 0.2*upd_η * new_rep + (1.0-0.2*upd_η) * old_rep
+			h.repay = 0.1*upd_η * new_rep + (1.0-0.1*upd_η) * old_rep
 		end
 
 		dist = max(dist, tol_vfi)
@@ -178,7 +178,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 		push!(h.outer_dists, dist)
 		# plot_outerdists(h; remote = remote)
 
-		tol_vfi = max(exp(0.85*log(1+tol_vfi))-1, 1e-6)
+		tol_vfi = max(exp(0.875*log(1+tol_vfi))-1, 1e-6)
 		t_new = time()
 		print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $out_iter iterations. New tol = $(@sprintf("%0.3g",tol_vfi))")
 
