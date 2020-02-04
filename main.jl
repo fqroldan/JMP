@@ -29,8 +29,6 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	push!(L, length(L)+1)
 	run_number = L[end]
 	savedir = pwd() * "/../Output/run$(run_number)/"
-	run(`rm $savedir -rf`)
-	run(`mkdir -p $savedir`)
 
 	s = read("../Output/big_output.txt", String)
 	write("../Output/big_output.txt", s * "run number : $(run_number). ")
@@ -40,9 +38,6 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
 	print_save("\nStarting run number $(run_number) on $(nprocs()) cores and $(Threads.nthreads()) threads at $(Dates.format(now(),"HH:MM")) on $(Dates.monthname(now())) $(Dates.day(now()))")
 
-	save(savedir * "params.jld", "params", params)
-	params_table = make_params_table(params)
-	write(savedir * "params_table.txt", params_table)
 
 	r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
 	h = make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number);
@@ -58,6 +53,14 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 				g_done = load(pwd() * "/../Output/run$(run_number)/g.jld", "g")
 				print_save(" Found g.")
 				print_save("\ng = $(g_done)")
+				s = read("../Output/big_output.txt", String)
+				s *= "g = $g_done"
+				push!(gs, g_done)
+				if g_done == minimum(gs)
+					s *= " ✓"
+				end
+				s *= "\n"
+				write("../Output/big_output.txt", s)
 				return g_done
 			catch
 				print_save(" Couldn't find g.")
@@ -68,6 +71,13 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	catch
 		print_save("\nNo previous file found.")
 	end
+
+	run(`rm $savedir -rf`)
+	run(`mkdir -p $savedir`)
+
+	save(savedir * "params.jld", "params", params)
+	params_table = make_params_table(params)
+	write(savedir * "params_table.txt", params_table)
 
 	print_save("\nϵ: $(h.ϵgrid)")
 	print_save("\nz: $(h.zgrid)")
