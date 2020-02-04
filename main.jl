@@ -20,7 +20,7 @@ noΔ 		 = false
 rep_agent 	 = false
 
 # Run
-function wrapper_run(params, nodef, noΔ, rep_agent, L; do_all::Bool=true)
+function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
 	ρξ, σξ = 0.995, 0.002
 	if !do_all
@@ -74,12 +74,14 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L; do_all::Bool=true)
 	print_save("\nξ: $(h.ξgrid)")
 	print_save("\nω: $(h.ωgrid)\n")
 
-	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, maxiter = 16)
+	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, maxiter = 21)
 	plot_hh_policies(h, run_number=run_number)
 	plot_contour_debtprice(h, savedir)
 	plot_contour_unemp(h, savedir)
 	
-	g = make_simulated_path(h, run_number, 4000)
+	years = 4000
+	g, p_bench, πthres = make_simulated_path(h, run_number, years)
+
 	save(savedir * "g.jld", "g", g)
 	params = pars(h)
 	save(savedir * "params.jld", "params", params)
@@ -89,8 +91,16 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L; do_all::Bool=true)
 	run(`cp ../Output/hank.jld ../Output/run$(run_number)/hank.jld`)
 
 	s = read("../Output/big_output.txt", String)
-	write("../Output/big_output.txt", s * "g = $g\n")
+	s *= "g = $g"
+	push!(gs, g)
+	if g == minimum(gs)
+		s *= " ✓"
 
+		make_comparison_simul(h, noΔ, rep_agent, run_number, years, p_bench, "onlyspread", πthres)
+	end
+
+	s *= "\n"
+	write("../Output/big_output.txt", s)
 	return g
 end
 
@@ -110,12 +120,13 @@ function SMM(params_center, do_all::Bool=true)
 	end
 
 	L = Vector{Int64}(undef, 0)
+	gs = Vector{Float64}(undef, 0)
 	# inner_opt = LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))
 	nlprecon = GradientDescent(alphaguess=Optim.LineSearches.InitialStatic(alpha=1e-4,scaled=true),
                            linesearch=Optim.LineSearches.Static())
 	oacc10 = OACCEL(nlprecon=nlprecon, wmax=10)
 	res = Optim.optimize(
-		params -> wrapper_run(params, false, false, false, L, do_all=do_all)
+		params -> wrapper_run(params, false, false, false, L, gs, do_all=do_all)
 		# , params_center
 		, mins, maxs, params_center, Fminbox(oacc10)
 		)

@@ -1618,7 +1618,8 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	maxiter = 25
 	while N == 0 && iter < maxiter
 		iter += 1
-		sample, N = find_episodes(p, episode_type=episode_type, πthres=πthres*0.95)
+		πthres *= 0.95
+		sample, N = find_episodes(p, episode_type=episode_type, πthres=πthres)
 	end
 	if iter == maxiter
 		print_save("WARNING: No episodes of $(episode_type) found")
@@ -1681,7 +1682,7 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	else
 		relayout!(p, title="")
 	end
-	return p
+	return p, πthres
 end
 
 function plot_comparison_episodes(path_bench::Path, path_nodef::Path, path_nodelta::Path=path_nodef; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975, levels::Bool=true)

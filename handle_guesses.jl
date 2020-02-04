@@ -61,7 +61,7 @@ function make_simulated_path(h::Hank, run_number, years=100)
 	catch
 	end
 
-	pl = plot_episodes(path; episode_type="onlyspread", slides=true, πthres=0.975)
+	pl, πthres = plot_episodes(path; episode_type="onlyspread", slides=true, πthres=0.975)
 	savejson(pl, savedir * "onlyspread_slides.json")
 	try
 		savefig(savedir * "onlyspread_slides.pdf")
@@ -124,7 +124,23 @@ function make_simulated_path(h::Hank, run_number, years=100)
 	calib_table = make_calib_table(v_m)
 	write(savedir * "calib_table.txt", calib_table)
 
-	return g
+	return g, path, πthres
+end
+
+
+function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres)
+
+	mpe_iter!(h; nodef = true, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, maxiter = 21)
+	p_nodef, _, _ = simul(h; simul_length=4*(years+25), only_def_end=false)
+
+	for (jj, slides) in enumerate([true; false])
+		pcomp = plot_comparison_episodes(p_bench, p_nodef; episode_type = episode_type, slides = slides, πthres=πthres)
+		savejson(pcomp, savedir * "comparison_crisis_nodef$(jj).json")
+	end
+	nothing
 end
 
 pars(h::Hank) = [(1/h.β)^4-1; h.γ; h.τ; h.wbar; h.ρz; h.σz; h.tax; h.ρξ; h.σξ]
+
+
+
