@@ -154,7 +154,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 
 		if nodef
 			# Make sure the government never defaults
-			h.repay = ones(h.repay)
+			h.repay = ones(size(h.repay))
 			dist = 0.0
 		elseif noΔ
 			# Keep the same default policy
