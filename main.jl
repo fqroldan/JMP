@@ -91,11 +91,6 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	
 	years = 4000
 	g, p_bench, πthres = make_simulated_path(h, run_number, years)
-
-	save(savedir * "g.jld", "g", g)
-	params = pars(h)
-	save(savedir * "params.jld", "params", params)
-	
 	s = read("../Output/output.txt", String)
 	write(savedir * "output.txt", s)
 	run(`cp ../Output/hank.jld ../Output/run$(run_number)/hank.jld`)
@@ -111,6 +106,11 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
 	s *= "\n"
 	write("../Output/big_output.txt", s)
+
+	save(savedir * "g.jld", "g", g)
+	params = pars(h)
+	save(savedir * "params.jld", "params", params)
+	
 	return g
 end
 
