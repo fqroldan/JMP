@@ -84,7 +84,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	print_save("\nξ: $(h.ξgrid)")
 	print_save("\nω: $(h.ωgrid)\n")
 
-	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, maxiter = 31)
+	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, maxiter = 51)
 	plot_hh_policies(h, run_number=run_number)
 	plot_contour_debtprice(h, savedir)
 	plot_contour_unemp(h, savedir)
@@ -101,7 +101,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	if g == minimum(gs)
 		s *= " ✓"
 
-		make_comparison_simul(h, noΔ, rep_agent, run_number, years, p_bench, "onlyspread", πthres)
+		make_comparison_simul(h, noΔ, rep_agent, run_number, years, p_bench, "onlyspread", πthres, savedir)
 	end
 
 	s *= "\n"

@@ -170,7 +170,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 			new_norm = sqrt.(sum(new_rep.^2))
 			print_save("\n||repₜ|| = $(new_norm)")
 			dist = sqrt.(sum( (new_rep - old_rep).^2 )) / old_norm
-			h.repay = 0.1*upd_η * new_rep + (1.0-0.1*upd_η) * old_rep
+			h.repay = 0.075*upd_η * new_rep + (1.0-0.075*upd_η) * old_rep
 		end
 
 		dist = max(dist, tol_vfi)
@@ -182,7 +182,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 		t_new = time()
 		print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $out_iter iterations. New tol = $(@sprintf("%0.3g",tol_vfi))")
 
-		if out_iter % 15 == 0 && out_iter != maxiter-1
+		if out_iter % 25 == 0 && out_iter != maxiter-1
 			t_sim = time()
 			print_save("\nSimulating")
 			make_simulated_path(h, run_number, 1000)

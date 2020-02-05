@@ -128,7 +128,7 @@ function make_simulated_path(h::Hank, run_number, years=100)
 end
 
 
-function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres)
+function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres, savedir)
 
 	mpe_iter!(h; nodef = true, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, maxiter = 21)
 	p_nodef, _, _ = simul(h; simul_length=4*(years+25), only_def_end=false)
