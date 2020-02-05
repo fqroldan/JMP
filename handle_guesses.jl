@@ -124,7 +124,7 @@ function make_simulated_path(h::Hank, run_number, years=100)
 	calib_table = make_calib_table(v_m)
 	write(savedir * "calib_table.txt", calib_table)
 
-	return g, path, πthres
+	return g, path, πthres, v_m
 end
 
 
@@ -137,7 +137,9 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 		pcomp = plot_comparison_episodes(p_bench, p_nodef; episode_type = episode_type, slides = slides, πthres=πthres)
 		savejson(pcomp, savedir * "comparison_crisis_nodef$(jj).json")
 	end
-	nothing
+	v_nodef = simul_stats(p_nodef)
+
+	return v_nodef
 end
 
 pars(h::Hank) = [(1/h.β)^4-1; h.γ; h.τ; h.wbar; h.ρz; h.σz; h.tax; h.ρξ; h.σξ]

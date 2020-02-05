@@ -90,7 +90,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	plot_contour_unemp(h, savedir)
 	
 	years = 4000
-	g, p_bench, πthres = make_simulated_path(h, run_number, years)
+	g, p_bench, πthres, v_m = make_simulated_path(h, run_number, years)
 	s = read("../Output/output.txt", String)
 	write(savedir * "output.txt", s)
 	run(`cp ../Output/hank.jld ../Output/run$(run_number)/hank.jld`)
@@ -101,7 +101,10 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	if g == minimum(gs)
 		s *= " ✓"
 
-		make_comparison_simul(h, noΔ, rep_agent, run_number, years, p_bench, "onlyspread", πthres, savedir)
+		v_nodef = make_comparison_simul(h, noΔ, rep_agent, run_number, years, p_bench, "onlyspread", πthres, savedir)
+
+		calib_table_comp = make_calib_table_comp(v_m, v_nodef)
+		write(savedir * "calib_table_comp.txt", calib_table_comp)
 	end
 
 	s *= "\n"
