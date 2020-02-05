@@ -63,24 +63,22 @@ function update_govpol(h::Hank)
 			if jζ == 1
 				μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 1]
 				σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 1]
-				# Wr = integrate_itp(h, bvp, μvp, σvp, ξpv, 1, jzp, itp_vf)
 				Wr = itp_W(bvp, μvp, σvp, ξpv, 1, jzp)
 
 				μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
 				σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
-				# Wd = integrate_itp(h, (1.0-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp, itp_vf)
 				Wd = itp_W((1.0-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp)
 
-				diff_W[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = Wr - Wd
-				if Wr > Wd && repay[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] < 0.5
-					diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 1.
-				elseif Wr < Wd && repay[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] > 0.5
-					diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = -1.
-				end
+				# diff_W[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = Wr - Wd
+				# if Wr > Wd && repay[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] < 0.5
+				# 	diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 1.
+				# elseif Wr < Wd && repay[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] > 0.5
+				# 	diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = -1.
+				# end
 				rep_prob[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 1.0 - cdf(Normal(μ_gov, σ_gov), Wd-Wr)
 			else
-				diff_W[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
-				diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
+				# diff_W[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
+				# diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
 				rep_prob[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
 			end
 		end
@@ -133,7 +131,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 	dist = 10.
 
 	upd_η = 1.
-	upd_ηR = 0.05*upd_η
+	upd_ηR = 0.05
 	tol_vfi = 5e-2
 	h.upd_tol = max(h.upd_tol, 1e-3)
 
