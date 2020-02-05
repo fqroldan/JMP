@@ -632,7 +632,6 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 	# plot_aggcons(h; remote = remote)
 	# plot_govt_reaction(h; remote = remote)
 	# plot_debtprice(h; remote = remote)
-	save(pwd() * "/../Output/hank.jld", "h", h)
 
 	if dist <= tol
 		print_save("\nConverged in $iter iterations. ")

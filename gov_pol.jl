@@ -125,7 +125,7 @@ function update_W(h::Hank)
 end
 
 
-function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64=1e-2, nodef::Bool=false, noΔ::Bool=false, rep_agent::Bool=false, run_number::Int64=1)
+function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64=1e-2, nodef::Bool=false, noΔ::Bool=false, rep_agent::Bool=false, run_number::Int64=1, save_copies::Bool=true)
 	print_save("\nIterating on the government's policy: ")
 	time_init = time()
 	t_old = time_init
@@ -133,6 +133,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 	dist = 10.
 
 	upd_η = 1.
+	upd_ηR = 0.075*upd_η
 	tol_vfi = 5e-2
 	h.upd_tol = max(h.upd_tol, 1e-3)
 
@@ -170,7 +171,11 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 			new_norm = sqrt.(sum(new_rep.^2))
 			print_save("\n||repₜ|| = $(new_norm)")
 			dist = sqrt.(sum( (new_rep - old_rep).^2 )) / old_norm
-			h.repay = 0.075*upd_η * new_rep + (1.0-0.075*upd_η) * old_rep
+			h.repay = upd_ηR * new_rep + (1.0-upd_ηR) * old_rep
+		end
+
+		if save_copies
+			save(pwd() * "/../Output/hank.jld", "h", h)
 		end
 
 		dist = max(dist, tol_vfi)
