@@ -22,6 +22,8 @@ rep_agent 	 = false
 # Run
 function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
+	time_init = time()
+	
 	ρξ, σξ = 0.995, 0.002
 	if !do_all
 		params = [params[1:6]; ρξ; σξ; params[end]]
@@ -96,7 +98,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	run(`cp ../Output/hank.jld ../Output/run$(run_number)/hank.jld`)
 
 	s = read("../Output/big_output.txt", String)
-	s *= "g = $g"
+	s *= "g = $(@sprintf("%0.3g",g)) in $(time_print(time()-time_init))"
 	push!(gs, g)
 	if g == minimum(gs)
 		s *= " ✓"
