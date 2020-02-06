@@ -111,5 +111,5 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_nodelta=[])
 	end
 	table *= "\n		\\bottomrule"
 
-	print(table)
+	return table
 end
