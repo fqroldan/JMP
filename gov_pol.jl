@@ -136,7 +136,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 	h.upd_tol = max(h.upd_tol, 1e-3)
 
 	while dist > tol && out_iter < maxiter
-		print_save("\n\nOuter Iteration $out_iter (run $(run_number))\n")
+		print_save("\n\nOuter Iteration $out_iter (run $(run_number)) with upd_ηR = $(@sprintf("%0.3g",upd_ηR))\n")
 		vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 15)
 		h.upd_tol = max(min(h.upd_tol*0.95, tol_vfi/10), 1e-6)
 		
@@ -182,7 +182,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 		# plot_outerdists(h; remote = remote)
 
 		tol_vfi = max(max(exp(0.875*log(1+tol_vfi))-1, dist/20, 1e-6))
-		upd_ηR = max(upd_ηR * 0.95, 1e-4)
+		upd_ηR = max(upd_ηR * 0.9, 1e-4)
 		t_new = time()
 		print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $out_iter iterations. New tol = $(@sprintf("%0.3g",tol_vfi))")
 
