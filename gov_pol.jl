@@ -123,7 +123,7 @@ function update_W(h::Hank)
 end
 
 
-function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64=18e-3, nodef::Bool=false, noΔ::Bool=false, rep_agent::Bool=false, run_number::Int64=1, save_copies::Bool=true)
+function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=100, tol::Float64=18e-3, nodef::Bool=false, noΔ::Bool=false, rep_agent::Bool=false, run_number::Int64=1, save_copies::Bool=true)
 	print_save("\nIterating on the government's policy: ")
 	time_init = time()
 	t_old = time_init
@@ -131,7 +131,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 	dist = 10.
 
 	upd_η = 1.
-	upd_ηR = 0.1
+	upd_ηR = 0.01
 	tol_vfi = 5e-2
 	h.upd_tol = max(h.upd_tol, 1e-3)
 
@@ -182,7 +182,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=150, tol::Float64
 		# plot_outerdists(h; remote = remote)
 
 		tol_vfi = max(max(exp(0.875*log(1+tol_vfi))-1, dist/20, 1e-6))
-		upd_ηR = max(upd_ηR * 0.9, 1e-4)
+		upd_ηR = max(upd_ηR * 0.95, 5e-4)
 		t_new = time()
 		print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $out_iter iterations. New tol = $(@sprintf("%0.3g",tol_vfi))")
 
