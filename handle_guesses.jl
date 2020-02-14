@@ -29,6 +29,11 @@ function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ,
 			h.μ′ = h2.μ′
 			h.σ′ = h2.σ′
 			h.output = h2.output
+			h.issuance = h2.issuance
+			h.spending = h2.spending
+			h.profits = h2.profits
+			h.T = h2.T
+			h.qᵍ = h2.qᵍ
 			h.wage = h2.wage
 			h.Ld = h2.Ld
 			if !nodef
