@@ -34,6 +34,8 @@ function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ,
 			if !nodef
 				h.repay = h2.repay
 				h.welfare = h2.welfare
+			else
+				print_save(" Not loading default policy.")
 			end
 			print_save(" ✓")
 		end
