@@ -93,24 +93,28 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	
 	years = 4000
 	g, p_bench, πthres, v_m = make_simulated_path(h, run_number, years)
-	s = read("../Output/output.txt", String)
-	write(savedir * "output.txt", s)
 	run(`cp ../Output/hank.jld ../Output/run$(run_number)/hank.jld`)
 
 	s = read("../Output/big_output.txt", String)
 	s *= "g = $(@sprintf("%0.3g",g)) in $(time_print(time()-time_init))"
 	push!(gs, g)
 	if g == minimum(gs)
+		print_save("Minimum g for now. Computing no-def comparison")
 		s *= " ✓"
 
 		v_nodef = make_comparison_simul(h, noΔ, rep_agent, run_number, years, p_bench, "onlyspread", πthres, savedir)
 
 		calib_table_comp = make_calib_table_comp(v_m, v_nodef)
 		write(savedir * "calib_table_comp.txt", calib_table_comp)
+	else
+		print_save("Suboptimal g. Skipping computation of no-def")
 	end
 
 	s *= "\n"
 	write("../Output/big_output.txt", s)
+
+	s = read("../Output/output.txt", String)
+	write(savedir * "output.txt", s)
 
 	save(savedir * "g.jld", "g", g)
 	params = pars(h)
