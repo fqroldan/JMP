@@ -7,7 +7,7 @@ function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ,
 	try
 		h2 = load(pwd() * "/../Output/hank.jld", "h")
 		try
-			h2 = load(pwd() * "/../Output/run$(run_number-1)/hank.jld", "h")
+			h2 = load(pwd() * "/../Output/run$(max(1,run_number-1))/hank.jld", "h")
 			print_save("\nFound JLD file from last run")
 		catch
 			print_save("\nFound generic JLD file")
