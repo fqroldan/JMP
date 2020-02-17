@@ -102,9 +102,9 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		print_save("Minimum g for now. Computing no-def comparison")
 		s *= " ✓"
 
-		v_nodef = make_comparison_simul(h, noΔ, rep_agent, run_number, years, p_bench, "onlyspread", πthres, savedir)
+		v_noΔ, v_nodef = make_comparison_simul(h, noΔ, rep_agent, run_number, years, p_bench, "onlyspread", πthres, savedir)
 
-		calib_table_comp = make_calib_table_comp(v_m, v_nodef)
+		calib_table_comp = make_calib_table_comp(v_m, v_nodef, v_noΔ)
 		write(savedir * "calib_table_comp.txt", calib_table_comp)
 	else
 		print_save("Suboptimal g. Skipping computation of no-def")
