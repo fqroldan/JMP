@@ -94,7 +94,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	b25 = zeros(h.Nω_fine*h.Nϵ)
 	b90 = zeros(h.Nω_fine*h.Nϵ)
-	
+
 	cdf_ω[1] > 0.25  ? q25 = 1 : q25 = findfirst(cdf_ω .<= 0.25)
 	cdf_ω[end] < 0.9 ? q90 = length(cdf_ω) : q90 = findfirst(cdf_ω .>= 0.90)
 
@@ -110,7 +110,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 		ωg = qhv * ag + qg * bg
 		θg = qhv * (ag - h.ωmin) / (ωg - qhv*h.ωmin)
-	
+
 		ap, bp, ep, cc = get_abec(yd, h.ωmin, qhv, qg, pC, ωg, θg)
 
 		ϕa[js] = ap
