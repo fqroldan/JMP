@@ -137,11 +137,14 @@ end
 
 function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres, savedir)
 
+	old_Δ = h.Δ
+	h.Δ = 0
 	mpe_iter!(h; nodef = false, noΔ = true, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
 	p_noΔ, _, _ = simul(h; simul_length=4*(years+25), only_def_end=false)
 	v_noΔ = simul_stats(p_noΔ)
 
-	mpe_iter!(h; nodef = true, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
+	h.Δ = old_Δ
+	mpe_iter!(h; nodef = true, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
 	p_nodef, _, _ = simul(h; simul_length=4*(years+25), only_def_end=false)
 
 	for (jj, slides) in enumerate([true; false])
