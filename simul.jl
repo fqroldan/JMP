@@ -98,19 +98,25 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	cdf_ω[1] > 0.25  ? q25 = 1 : q25 = findfirst(cdf_ω .<= 0.25)
 	cdf_ω[end] < 0.9 ? q90 = length(cdf_ω) : q90 = findfirst(cdf_ω .>= 0.90)
 
+	qhv = h.qʰ[1]
 	adjustment = sum(h.λϵ.*exp.(h.ϵgrid))
 	for (jϵ, ϵv) in enumerate(h.ϵgrid), (jω, ωv) in enumerate(h.ωgrid_fine)
 		js += 1
-		# ap = itp_ϕa(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
-		ap = itp_ϕa(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz)
-		ϕa[js] = max(h.ωmin, ap)
-		# bp = itp_ϕb(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
-		bp = itp_ϕb(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz)
-		ϕb[js] = max(0.0, bp)
-		# cc = itp_ϕc(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz, pN)
-		cc = itp_ϕc(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz)
-		ϕc[js] = max(0.0, cc)
 		yd = (wt*Ld*(1.0-h.τ) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
+		
+		ag = max(h.ωmin, itp_ϕa(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
+		bg = max(0.0, itp_ϕb(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
+		# cc = max(0.0, itp_ϕc(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
+
+		ωg = qhv * ag + qg * bg
+		θg = qhv * (ag - h.ωmin) / (ωg - qhv*h.ωmin)
+	
+		ap, bp, ep, cc = get_abec(yd, h.ωmin, qhv, qg, pC, ωg, θg)
+
+		ϕa[js] = ap
+		ϕb[js] = bp
+
+		ϕc[js] = cc
 		Crate[js] = ϕc[js] / yd
 
 		avgω_fromb[js] = ωv * max(0.0, bp)
