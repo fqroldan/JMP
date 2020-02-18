@@ -106,12 +106,12 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		
 		ag = max(h.ωmin, itp_ϕa(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
 		bg = max(0.0, itp_ϕb(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
-		# cc = max(0.0, itp_ϕc(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
+		cc = max(0.0, itp_ϕc(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
 
-		ωg = qhv * ag + qg * bg
-		θg = qhv * (ag - h.ωmin) / (ωg - qhv*h.ωmin)
+		ωg = yd - cc*pC
+		θg = qhv * (ag - h.ωmin) / (qhv * ag + qg * bg - qhv*h.ωmin)
 
-		ap, bp, ep, cc = get_abec(yd, h.ωmin, qhv, qg, pC, ωg, θg)
+		ap, bp, _, _ = get_abec(yd, h.ωmin, qhv, qg, pC, ωg, θg)
 
 		ϕa[js] = ap
 		ϕb[js] = bp
