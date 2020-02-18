@@ -44,7 +44,7 @@ function update_govpol(h::Hank)
 
 	# More μ means default more often
 	μ_gov = 0.001 * 0.0
-	σ_gov = 0.0008
+	σ_gov = 0.001
 
 	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	diff_W = Array{Float64}(undef, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
