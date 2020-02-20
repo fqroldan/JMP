@@ -12,7 +12,7 @@ include("handle_guesses.jl")
 include("plotting_routines.jl")
 
 #				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,  wbar
-params_center = [0.094; 0.015; 12.032; 0.092; 0.970; 0.0045; 0.995; 0.002; 0.905]
+params_center = [0.094; 0.015;     10; 0.092; 0.970; 0.0045; 0.995; 0.002; 0.905]
 
 # Set options
 nodef     	 = false
@@ -109,6 +109,8 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	else
 		print_save("Suboptimal g. Skipping computation of no-def")
 	end
+
+	run(`cp ../Output/run$(run_number)/hank.jld ../Output/hank.jld`)
 
 	s *= "\n"
 	write("../Output/big_output.txt", s)

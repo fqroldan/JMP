@@ -143,7 +143,7 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 	p_noΔ, _, _ = simul(h; simul_length=4*(years+25), only_def_end=false)
 	v_noΔ = simul_stats(p_noΔ)
 
-	h.Δ = old_Δ
+	h = load(savedir * "hank.jld", "h")
 	mpe_iter!(h; nodef = true, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
 	p_nodef, _, _ = simul(h; simul_length=4*(years+25), only_def_end=false)
 

@@ -20,7 +20,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	zt == h.zgrid[jz] || print("something wrong with the simulator")
 	abs(zt - h.zgrid[jz]) < 1e-8 || throw(error("something wrong with the simulator"))
 
-	
+	# print("\n$(t), μ = $μt")
 	if t % 100 == 0
 		print_save("\n$([Bt, μt, σt, ξt, ζt, zt])")
 	end
