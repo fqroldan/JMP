@@ -309,7 +309,7 @@ function eval_prices_direct(h::Hank, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz,
 
 	if get_others
 		output = pN * supply_N + supply_T
-		return wv, Ld, output, supply_N, cN + gN
+		return wv, Ld, output, supply_N, cN + gN, pN_new
 	else
 		return F
 	end
@@ -317,17 +317,29 @@ end
 
 function find_prices_direct(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
 
-	res = Optim.optimize(
-		pNv -> (eval_prices_direct(h, itp_ϕc, G, pNv, bv, μv, σv, ξv, jζ, jz, jdefault))^2,
-		pNmin, pNmax, GoldenSection()
-		)
+	do_solver_prices = false
 
-	pN = res.minimizer
+	if do_solver_prices
+		res = Optim.optimize(
+			pNv -> (eval_prices_direct(h, itp_ϕc, G, pNv, bv, μv, σv, ξv, jζ, jz, jdefault))^2,
+			pNmin, pNmax, GoldenSection()
+			)
+
+		pN = res.minimizer
+	else
+		obj_f = pNv -> (eval_prices_direct(h, itp_ϕc, G, pNv, bv, μv, σv, ξv, jζ, jz, jdefault))^2
+		res = Optim.optimize(
+			pN -> obj_f(first(pN)),
+			[pNmin], [pNmax], [pNg], LBFGS()#, autodiff=:forward#, Optim.Options(f_tol=1e-12)
+			)
+
+		pN = res.minimizer
+	end
+
+	wage, Ld, output, supply_N, demand_N, pN = eval_prices_direct(h, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz, jdefault; get_others=true)
 
 	pN >= pNmax - 0.05*(pNmax-pNmin) ? exc_dem = 1 : exc_dem = 0
 	pN <= pNmin + 0.05*(pNmax-pNmin) ? exc_sup = 1 : exc_sup = 0
-
-	wage, Ld, output, supply_N, demand_N = eval_prices_direct(h, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz, jdefault; get_others=true)
 
 	minf = supply_N - demand_N
 
@@ -423,7 +435,7 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 
 			# wage[js], Ld[js], output[js] = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, (jζ!=1); get_others=true)
 
-			wage[js], Ld[js], output[js], _, _ = eval_prices_direct(h, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz, (jζ!=1); get_others=true)
+			wage[js], Ld[js], output[js], _, _, _ = eval_prices_direct(h, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz, (jζ!=1); get_others=true)
 
 			jzmean = h.Nz # ceil(Int, h.Nz/2)
 		end
