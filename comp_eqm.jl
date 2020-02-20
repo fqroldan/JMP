@@ -317,7 +317,7 @@ end
 
 function find_prices_direct(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
 
-	do_solver_prices = false
+	do_solver_prices = true
 
 	if do_solver_prices
 		res = Optim.optimize(
@@ -327,13 +327,17 @@ function find_prices_direct(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv
 
 		pN = res.minimizer
 	else
-		obj_f = pNv -> (eval_prices_direct(h, itp_ϕc, G, pNv, bv, μv, σv, ξv, jζ, jz, jdefault))^2
-		res = Optim.optimize(
-			pN -> obj_f(first(pN)),
-			[pNmin], [pNmax], [pNg], LBFGS()#, autodiff=:forward#, Optim.Options(f_tol=1e-12)
-			)
-
-		pN = res.minimizer
+		if false
+			pNg = max(min(pNg, pNmax - 1e-6), pNmin + 1e-6)
+			obj_f(x) = (eval_prices_direct(h, itp_ϕc, G, x, bv, μv, σv, ξv, jζ, jz, jdefault))^2
+			res = Optim.optimize(
+				pN -> obj_f(first(pN)),
+				[pNmin], [pNmax], [pNg], Fminbox(LBFGS())#, autodiff=:forward#, Optim.Options(f_tol=1e-12)
+				)
+			pN = first(res.minimizer)
+		else
+			pN = pNg
+		end
 	end
 
 	wage, Ld, output, supply_N, demand_N, pN = eval_prices_direct(h, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz, jdefault; get_others=true)
