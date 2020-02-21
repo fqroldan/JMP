@@ -1611,7 +1611,7 @@ function volYC(p::Path; episode_type::String="default", πthres::Float64=0.975)
 	return σY, σC, σC/σY
 end
 
-function plot_episodes(p::Path; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975)
+function plot_episodes(p::Path; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975, onlystats::Bool=true)
 
 	sample, N = find_episodes(p, episode_type=episode_type, πthres=πthres)
 	iter = 0
@@ -1629,7 +1629,7 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	sample_stats = stats_sample(p, sample)
 	rel_sample_stats = stats_sample(p, sample; relative=true)
 
-	function plot_sample(sym::Symbol, sampstats=sample_stats, sample=sample, onlystats::Bool=true; f::Function=identity, title::String="", yaxis_title::String="")
+	function plot_sample(sym::Symbol, sampstats=sample_stats, sample=sample; onlystats::Bool=true, f::Function=identity, title::String="", yaxis_title::String="")
 		ylow = sampstats[p.n[sym],:, 1]
 		ymed = sampstats[p.n[sym],:, 2]
 		yhig = sampstats[p.n[sym],:, 3]
@@ -1657,29 +1657,29 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	meanC = mean(p.data[:,p.n[:C]])
 	meanμ = mean(p.data[:,p.n[:μ]]) 
 	meanσ = mean(p.data[:,p.n[:σ]]) 
-	pY = plot_sample(:Y, f=x->100*(x.-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
-	pu = plot_sample(:L, f=x->100*(1.0.-x), title="Unemployment", yaxis_title="%")
-	pB = plot_sample(:B, f=x->100*x/(4*meanY), title="Bonds", yaxis_title="% of mean GDP")
-	pG = plot_sample(:G, f=x->100*x/(meanY), title="Govt spending", yaxis_title="% of mean GDP")
-	pT = plot_sample(:T, f=x->100*x/(meanY), title="Lump-sum taxes", yaxis_title="% of mean GDP")
-	pμ = plot_sample(:mean, f=x->100*x/(4*meanY), title="Wealth Dist Mean", yaxis_title="% of mean GDP")
-	pσ = plot_sample(:var, title="Wealth Dist Variance")
-	pz = plot_sample(:z, f=x->100*(exp.(x).-1), title="TFP")
-	pw = plot_sample(:w, title="Wage rate")
-	pψ = plot_sample(:ψ, f=x->100*x, title="Proportion Domestic", yaxis_title="%")
-	pπ = plot_sample(:π, f=x->100*x, title="Default prob", yaxis_title="%")
-	pP = plot_sample(:P, title="Price of nontradables")
-	pq = plot_sample(:qg, title="Price of new debt")
-	pCf = plot_sample(:CoYd, f=x->100*x, title="C/Yᵈ", yaxis_title="%")
-	pCl = plot_sample(:C, f=x->100*(x.-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
+	pY = plot_sample(:Y, f=x->100*(x.-meanY)./meanY, title="Output", yaxis_title="% dev from mean", onlystats=onlystats)
+	pu = plot_sample(:L, f=x->100*(1.0.-x), title="Unemployment", yaxis_title="%", onlystats=onlystats)
+	pB = plot_sample(:B, f=x->100*x/(4*meanY), title="Bonds", yaxis_title="% of mean GDP", onlystats=onlystats)
+	pG = plot_sample(:G, f=x->100*x/(meanY), title="Govt spending", yaxis_title="% of mean GDP", onlystats=onlystats)
+	pT = plot_sample(:T, f=x->100*x/(meanY), title="Lump-sum taxes", yaxis_title="% of mean GDP", onlystats=onlystats)
+	pμ = plot_sample(:mean, f=x->100*x/(4*meanY), title="Wealth Dist Mean", yaxis_title="% of mean GDP", onlystats=onlystats)
+	pσ = plot_sample(:var, title="Wealth Dist Variance", onlystats=onlystats)
+	pz = plot_sample(:z, f=x->100*(exp.(x).-1), title="TFP", onlystats=onlystats)
+	pw = plot_sample(:w, title="Wage rate", onlystats=onlystats)
+	pψ = plot_sample(:ψ, f=x->100*x, title="Proportion Domestic", yaxis_title="%", onlystats=onlystats)
+	pπ = plot_sample(:π, f=x->100*x, title="Default prob", yaxis_title="%", onlystats=onlystats)
+	pP = plot_sample(:P, title="Price of nontradables", onlystats=onlystats)
+	pq = plot_sample(:qg, title="Price of new debt", onlystats=onlystats)
+	pCf = plot_sample(:CoYd, f=x->100*x, title="C/Yᵈ", yaxis_title="%", onlystats=onlystats)
+	pCl = plot_sample(:C, f=x->100*(x.-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean", onlystats=onlystats)
 	meanC = mean(rel_sample_stats[p.n[:C], 1, 4])
-	pCs = plot_sample(:C, rel_sample_stats, f=x->100*(x.-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean")
+	pCs = plot_sample(:C, rel_sample_stats, f=x->100*(x.-meanC)./meanC, title="Consumption", yaxis_title="% dev from mean", onlystats=onlystats)
 	meanY = mean(rel_sample_stats[p.n[:Y], 1, 4])
-	pYs = plot_sample(:Y, rel_sample_stats, f=x->100*(x.-meanY)./meanY, title="Output", yaxis_title="% dev from mean")
-	pp25 = plot_sample(:p25, rel_sample_stats, f=x->100x, title="bottom 25% holdings")
-	pavgω = plot_sample(:avgω, title="Bondholdings-weighted avg wealth")
-	pp90 = plot_sample(:p90, f=x->100*x, title="top 10% holdings")
-	pNX = plot_sample(:NX, title="Net Exports")
+	pYs = plot_sample(:Y, rel_sample_stats, f=x->100*(x.-meanY)./meanY, title="Output", yaxis_title="% dev from mean", onlystats=onlystats)
+	pp25 = plot_sample(:p25, rel_sample_stats, f=x->100x, title="bottom 25% holdings", onlystats=onlystats)
+	pavgω = plot_sample(:avgω, title="Bondholdings-weighted avg wealth", onlystats=onlystats)
+	pp90 = plot_sample(:p90, f=x->100*x, title="top 10% holdings", onlystats=onlystats)
+	pNX = plot_sample(:NX, title="Net Exports", onlystats=onlystats)
 
 	# p = [pz pY pCl pCf; pB pψ pq pπ; pu pμ pσ pP; pavgω pp90 pG pT]
 	p = [pz pY pCl pP; pB pψ pπ pp90; pμ pσ pG pT]
