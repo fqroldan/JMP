@@ -340,7 +340,7 @@ function find_prices_direct(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv
 		end
 	end
 
-	wage, Ld, output, supply_N, demand_N, pN = eval_prices_direct(h, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz, jdefault; get_others=true)
+	wage, Ld, output, supply_N, demand_N, _ = eval_prices_direct(h, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz, jdefault; get_others=true)
 
 	pN >= pNmax - 0.05*(pNmax-pNmin) ? exc_dem = 1 : exc_dem = 0
 	pN <= pNmin + 0.05*(pNmax-pNmin) ? exc_sup = 1 : exc_sup = 0
