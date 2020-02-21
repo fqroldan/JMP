@@ -416,7 +416,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 				if cmax <= 0 || isnan(cmax)
 					# warn("c = $cmax")
 					ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8
-					ep = cmax * pCv / RHS # Make ep the fraction of disposable income spent on consumption
+					ep = cmax * pCv / (RHS-qʰv*h.ωmin) # Make ep the fraction of disposable income spent on consumption
 					fmax = 1e-10
 				end
 			elseif ωmax <= qʰv * h.ωmin
@@ -425,13 +425,13 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 					warnc0[jb, jμ, jσ, jξ, jζ, jz] = 1.
 				end
 				ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8
-				ep = cmax * pCv / RHS # Make ep the fraction of disposable income spent on consumption
+				ep = cmax * pCv / (RHS-qʰv*h.ωmin) # Make ep the fraction of disposable income spent on consumption
 				fmax = 1e-10
 			else
 				ap = h.ϕa[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
 				bp = h.ϕb[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
 				cmax = h.ϕc[jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
-				ep = cmax * pCv / RHS # Make ep the fraction of disposable income spent on consumption
+				ep = cmax * pCv / (RHS-qʰv*h.ωmin) # Make ep the fraction of disposable income spent on consumption
 				fmax = value(h, ωg, θg, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 			end
 			!isnan(fmax) || print_save("\nWARNING: NaN in value function at (ap, bp, c) = ($(round(ap, 2)), $(round(bp, 2)), $(cmax))")

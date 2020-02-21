@@ -107,15 +107,15 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		ag = max(h.ωmin, itp_ϕa(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
 		bg = max(0.0, itp_ϕb(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
 		cc = max(0.0, itp_ϕc(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
-		ce = max(0.0, itp_ϕe(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz)) * yd / pC
+		ce = max(0.0, itp_ϕe(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz)) * (yd-qhv*h.ωmin) / pC
 
-		ωg = yd - ce*pC
+		ωg = max(yd - ce*pC, h.ωmin)
 		θg = qhv * (ag - h.ωmin) / (qhv * ag + qg * bg - qhv*h.ωmin)
 
 		ap, bp, _, _ = get_abec(yd, h.ωmin, qhv, qg, pC, ωg, θg)
 
-		ϕa[js] = ap
-		ϕb[js] = bp
+		ϕa[js] = max(h.ωmin, ap)
+		ϕb[js] = max(0.0, bp)
 
 		ϕc[js] = ce
 		Crate[js] = ϕc[js] / yd
