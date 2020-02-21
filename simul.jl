@@ -1,7 +1,7 @@
 using Random, LinearAlgebra
 include("type_def.jl")
 
-function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ; phase::String="")
+function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕe, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ; phase::String="")
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal getfrompath(p, t, :z)
 	# B, ζ, and z are decided at the end of the last period
@@ -107,8 +107,9 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		ag = max(h.ωmin, itp_ϕa(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
 		bg = max(0.0, itp_ϕb(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
 		cc = max(0.0, itp_ϕc(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz))
+		ce = max(0.0, itp_ϕe(ωvjϵ[js,1], ωvjϵ[js,2], Bt, μt, σt, ξt, ζt, jz)) * yd / pC
 
-		ωg = yd - cc*pC
+		ωg = yd - ce*pC
 		θg = qhv * (ag - h.ωmin) / (qhv * ag + qg * bg - qhv*h.ωmin)
 
 		ap, bp, _, _ = get_abec(yd, h.ωmin, qhv, qg, pC, ωg, θg)
@@ -116,7 +117,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		ϕa[js] = ap
 		ϕb[js] = bp
 
-		ϕc[js] = cc
+		ϕc[js] = ce
 		Crate[js] = ϕc[js] / yd
 
 		avgω_fromb[js] = ωv * max(0.0, bp)
@@ -269,6 +270,8 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 	# itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
 	itp_ϕc = make_itp(h, h.ϕc; agg=false)
 	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
+	itp_ϕe = make_itp(h, h.ϕe; agg=false)
+	itp_ϕe = extrapolate(itp_ϕe, Interpolations.Flat())
 	itp_vf = make_itp(h, h.vf; agg=false)
 	itp_vf = extrapolate(itp_vf, Interpolations.Flat())
 
@@ -323,7 +326,7 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 			end
 		end
 
-		λ, new_def = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ; phase = phase)
+		λ, new_def = iter_simul!(h, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕe, itp_vf, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ; phase = phase)
 
 		Ndefs += new_def
 	end
