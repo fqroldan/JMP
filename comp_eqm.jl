@@ -529,7 +529,7 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jd
 
 	# varω >= 0. || print_save("\nvar_a, var_b, cov_ab, R, q = $(var_a), $(var_b), $(cov_ab), $(R), $(q)")
 
-	μpv, σpv = make_logN(Eω - h.ωmin, varω)
+	μpv, σpv = make_logN(max(0.0, Eω - h.ωmin), varω)
 	# μpv = min(max(μpv, minimum(h.μgrid)), maximum(h.μgrid))
 	# σpv = min(max(σpv, minimum(h.σgrid)), maximum(h.σgrid))
 
