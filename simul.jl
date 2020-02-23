@@ -20,7 +20,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	zt == h.zgrid[jz] || print("something wrong with the simulator")
 	abs(zt - h.zgrid[jz]) < 1e-8 || throw(error("something wrong with the simulator"))
 
-	# print("\n$(t), μ = $μt")
+	print("\n$(t), μ = $μt")
 	if t % 100 == 0
 		print_save("\n$([Bt, μt, σt, ξt, ζt, zt])")
 	end
@@ -61,7 +61,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 		coupons = 0
 		new_debt = 0
 	end
-	qg = getfrompath(p, t, :qg)
+	qg = max(1e-10, getfrompath(p, t, :qg))
 
 	lumpsumT = coupons + G - h.τ*wt*Ld - qg*new_debt
 
@@ -114,6 +114,9 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 		ap, bp, _, _ = get_abec(yd, h.ωmin, qhv, qg, pC, ωg, θg)
 
+		isnan(ap) ? ap = h.ωmin : nothing
+		isnan(bp) ? bp = 0 : nothing
+
 		ϕa[js] = max(h.ωmin, ap)
 		ϕb[js] = max(0.0, bp)
 
@@ -149,6 +152,7 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	b2 = dot(λt, ϕb.^2)
 	ab = dot(λt, ϕa.*ϕb)
 
+	# print("\na = $a, b = $b, ab = $ab, a2 = $(a2), b2 = $(b2)")
 	var_a  = a2 - a^2
 	var_b  = b2 - b^2
 	cov_ab = ab - a*b
