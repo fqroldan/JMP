@@ -550,7 +550,7 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 	jdef = (ζv != 1.0)
 
 
-	μ, σ, q = Array{Float64, 3}(undef, h.Nξ, h.Nz, 2), Array{Float64, 3}(undef, h.Nξ, h.Nz, 2), Array{Float64, 3}(undef, h.Nξ, h.Nz, 2)
+	μ, σ, q = zeros(h.Nξ, h.Nz, 2), zeros(h.Nξ, h.Nz, 2), zeros(h.Nξ, h.Nz, 2)
 	alarm_mat = Array{Float64, 3}(undef, h.Nξ, h.Nz, 2)
 
 	for (jξp, ξpv) in enumerate(h.ξgrid), (jzp, zpv) in enumerate(h.zgrid)
