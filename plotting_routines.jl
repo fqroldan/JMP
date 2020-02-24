@@ -1694,7 +1694,7 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	return p, πthres
 end
 
-function plot_comparison_episodes(path_bench::Path, path_nodef::Path, path_nodelta::Path=path_nodef; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975, levels::Bool=true)
+function plot_comparison_episodes(path_bench::Path, path_nodef::Path, path_nodelta::Path=path_nodef; episode_type::String="default", slides::Bool=true, πthres::Float64=0.95, levels::Bool=true)
 
 	t_epi, N = find_times_episodes(path_bench; episode_type=episode_type, πthres=πthres)
 
