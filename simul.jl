@@ -457,7 +457,7 @@ function find_times_episodes(path::Path; episode_type::String="default", πthres
 		# print_save("WARNING: No episodes of $(episode_type) found")
 		# return sample
 	else
-		println("$N episodes found.")
+		print_save("\n$N episodes found.")
 	end
 	# println(t_epi)
 	return t_epi, N
