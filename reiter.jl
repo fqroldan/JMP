@@ -65,7 +65,7 @@ function Hank(;	β = (1.0/1.05)^0.25,
 	function tauchen_fun(ny::Int64, ρ::Float64, σe::Float64; m=3, mu=0.0)
 	    σy = σe/sqrt((1-ρ^2))
 	    λ1 = -m*σy; λn = m*σy
-	    λgrid = range(λ1,λn,length=ny)
+	    λgrid = range(λ1,λn,length=ny) .+ mu
 	    ww = λgrid[2] - λgrid[1]
 
 	    distrib = Normal(0,1)
