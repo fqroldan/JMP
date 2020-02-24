@@ -22,7 +22,13 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 
 	# print("\n$(t), μ = $μt")
 	if t % 100 == 0
-		print_save("\n$([Bt, μt, σt, ξt, ζt, zt])")
+		print_save("\n[Bt, μt, σt, ξt, ζt, zt]\n")
+		print_save("$(@sprintf("%0.3g",Bt)), ")
+		print_save("$(@sprintf("%0.3g",μt)), ")
+		print_save("$(@sprintf("%0.3g",σt)), ")
+		print_save("$(@sprintf("%0.3g",ξt)), ")
+		print_save("$(@sprintf("%0.3g",ζt)), ")
+		print_save("$(@sprintf("%0.3g",zt))")
 	end
 
 	Bprime 	= itp_B′(Bt, μt, σt, ξt, ζt, jz)

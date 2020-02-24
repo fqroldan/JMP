@@ -186,7 +186,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=250, tol::Float64
 		t_new = time()
 		print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $out_iter iterations. New tol = $(@sprintf("%0.3g",tol_vfi))")
 
-		if out_iter % 25 == 0 && out_iter != maxiter-1
+		if out_iter % 100 == 0 && out_iter != maxiter-1
 			t_sim = time()
 			print_save("\nSimulating")
 			make_simulated_path(h, run_number, 1000)
