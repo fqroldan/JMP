@@ -68,7 +68,7 @@ function make_simulated_path(h::Hank, run_number, years=100)
 	catch
 	end
 
-	pl, πthres = plot_episodes(path; episode_type="onlyspread", slides=true, πthres=0.975)
+	pl, πthres = plot_episodes(path; episode_type="onlyspread", slides=true, πthres=0.95)
 	savejson(pl, savedir * "onlyspread_slides.json")
 	try
 		savefig(savedir * "onlyspread_slides.pdf")
