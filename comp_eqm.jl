@@ -748,8 +748,8 @@ function update_expectations!(h::Hank, upd_η::Float64)
 		Xmin = minimum(xgrid)
 
 		# Expand grids if x′ goes beyond the bounds
-		quantile(x′[:], 0.95) > maximum(xgrid) ? Xmax = maximum(xgrid) + 0.05*xdist : nothing
-		quantile(x′[:], 0.05) < minimum(xgrid) ? Xmin = minimum(xgrid) - 0.05*xdist : nothing
+		quantile(x′[:], 0.975) > maximum(xgrid) ? Xmax = maximum(xgrid) + 0.025*xdist : nothing
+		quantile(x′[:], 0.025) < minimum(xgrid) ? Xmin = minimum(xgrid) - 0.025*xdist : nothing
 
 		# Retract grids if x′ doesn't reach the bounds
 		maximum(x′) < maximum(xgrid) ? Xmax = maximum(xgrid) - 0.01*xdist : nothing
