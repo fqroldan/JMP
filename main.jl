@@ -115,8 +115,10 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	s *= "\n"
 	write("../Output/big_output.txt", s)
 
-	s = read("../Output/output.txt", String)
-	write(savedir * "output.txt", s)
+	run(`cp ../Output/output.txt ../Output/run$(run_number)/output.txt`)
+
+	# s = read("../Output/output.txt", String)
+	# write(savedir * "output.txt", s)
 
 	save(savedir * "g.jld", "g", g)
 	params = pars(h)
