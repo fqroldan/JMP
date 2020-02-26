@@ -101,11 +101,11 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_nodelta=[])
 
 	for jj in 1:length(data_stats)
 		list_perc[jj] == 1 ? perc = "\\%" : perc = ""
-		table *= "\n		" * rownames[jj] * "	& 	$(@sprintf("%0.3g",v_m[jj]))" * perc
+		table *= "\n		" * rownames[jj] * "	& $(@sprintf("%0.3g",v_m[jj]))" * perc
 		if length(v_m_nodelta) > 0
-			table *=  "& 	$(@sprintf("%0.3g",v_m_nodelta[jj]))" * perc
+			table *=  " 	& $(@sprintf("%0.3g",v_m_nodelta[jj]))" * perc
 		end
-		table *= "	& 	$(@sprintf("%0.3g",v_m_nodef[jj]))" * perc
+		table *= "	& $(@sprintf("%0.3g",v_m_nodef[jj]))" * perc
 
 		table *= "\\\\"
 	end
