@@ -12,7 +12,7 @@ include("handle_guesses.jl")
 include("plotting_routines.jl")
 
 #				r_loc,   tax, RRA,     τ,    ρz,     σz,    ρξ,   σξ,  wbar
-params_center = [0.087; 0.009;  10; 0.092; 0.970; 0.002; 0.995; 1e-5; 0.885]
+params_center = [0.087; 0.009;  10; 0.092; 0.970; 0.0018; 0.995; 1e-5; 0.885]
 
 # Set options
 nodef     	 = false
