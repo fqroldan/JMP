@@ -466,16 +466,16 @@ function find_times_episodes(path::Path; episode_type::String="default", πthres
 		print_save("\n$N episodes found.")
 	end
 	# println(t_epi)
-	return t_epi, N
+	return t_epi, N, π_thres
 end
 
 function find_episodes(path::Path; episode_type::String="default", πthres::Float64=0.975)
 
-	t_epi, N = find_times_episodes(path; episode_type=episode_type, πthres=πthres)
+	t_epi, N, πv = find_times_episodes(path; episode_type=episode_type, πthres=πthres)
 
 	sample = collect_episodes(path, t_epi, N)
 
-	return sample, N
+	return sample, N, πv
 end
 
 function IRF(p::Path, h::Hank; shock::String="z")

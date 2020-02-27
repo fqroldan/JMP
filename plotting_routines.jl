@@ -1601,7 +1601,7 @@ function stack_sample(p::Path, sample)
 end
 
 function volYC(p::Path; episode_type::String="default", πthres::Float64=0.975)
-	sample, N = find_episodes(p, episode_type=episode_type, πthres=πthres)
+	sample, N, πv = find_episodes(p, episode_type=episode_type, πthres=πthres)
 
 	stack = stack_sample(p, sample)
 
@@ -1613,17 +1613,19 @@ end
 
 function plot_episodes(p::Path; episode_type::String="default", slides::Bool=true, πthres::Float64=0.975, onlystats::Bool=true)
 
-	sample, N = find_episodes(p, episode_type=episode_type, πthres=πthres)
+	sample, N, πv = find_episodes(p, episode_type=episode_type, πthres=πthres)
 	iter = 0
 	maxiter = 25
 	while N == 0 && iter < maxiter
 		iter += 1
 		πthres *= 0.95
-		sample, N = find_episodes(p, episode_type=episode_type, πthres=πthres)
+		sample, N, πv = find_episodes(p, episode_type=episode_type, πthres=πthres)
 	end
 	if iter == maxiter
 		print_save("WARNING: No episodes of $(episode_type) found")
 		return plot()
+	else
+		print_save("\nπthres = $πv, quantile $πthres")
 	end
 
 	sample_stats = stats_sample(p, sample)
@@ -1696,7 +1698,7 @@ end
 
 function plot_comparison_episodes(path_bench::Path, path_nodef::Path, path_nodelta::Path=path_nodef; episode_type::String="default", slides::Bool=true, πthres::Float64=0.95, levels::Bool=true)
 
-	t_epi, N = find_times_episodes(path_bench; episode_type=episode_type, πthres=πthres)
+	t_epi, N, πv = find_times_episodes(path_bench; episode_type=episode_type, πthres=πthres)
 
 	sample_bench = collect_episodes(path_bench, t_epi, N)
 	sample_nodef = collect_episodes(path_nodef, t_epi, N)
