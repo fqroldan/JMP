@@ -5,12 +5,12 @@ function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ,
 		# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
 		);
 	try
-		h2 = load(pwd() * "/../Output/hank.jld", "h")
+		h2 = load(pwd() * "/../Output/hank_backup.jld", "h")
+		print_save("\nFound generic JLD file")
 		try
-			h2 = load(pwd() * "/../Output/run$(max(1,run_number-1))/hank.jld", "h")
-			print_save("\nFound JLD file from last run")
+			# h2 = load(pwd() * "/../Output/run$(max(1,run_number-1))/hank.jld", "h")
+			# print_save("\nFound JLD file from last run")
 		catch
-			print_save("\nFound generic JLD file")
 		end
 		if h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
 			print_save(": loading previous results")
