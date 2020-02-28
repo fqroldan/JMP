@@ -131,7 +131,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=250, tol::Float64
 	dist = 10.
 
 	upd_η = 1.
-	upd_ηR = 0.2
+	upd_ηR = 0.12
 	tol_vfi = 5e-2
 	h.upd_tol = max(h.upd_tol, 1e-3)
 

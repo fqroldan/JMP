@@ -25,8 +25,9 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	time_init = time()
 	
 	ρξ, σξ = 0.995, 0.002
+	τ, ρz = 0.092, 0.970
 	if !do_all
-		params = [params[1:6]; ρξ; σξ; params[end]]
+		params = [params[1:3]; 4; 5; params[6]; ρξ; σξ; params[end]]
 	end
 	push!(L, length(L)+1)
 	run_number = L[end]
@@ -134,12 +135,12 @@ function SMM(params_center, do_all::Bool=true)
 	#				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
 	# params_center = [0.094; 0.02 ; 12.032; 0.092; 0.970; 0.005; 0.995; 0.002; 0.91]
 	if do_all
-		mins = 	      [0.05 ; 0.001; 5     ; 0.05 ;  0.85; 0.0001;  0.99; 1e-8; 0.82]
-		maxs = 		  [0.15 ; 0.05 ; 20    ; 0.35 ;  0.99; 0.012; 0.999; 0.003 ; 1.12]
+		mins = 	      [0.05 ; 0.0001; 5     ; 0.05 ;  0.85; 0.0001;  0.99; 1e-8; 0.82]
+		maxs = 		  [0.15 ; 0.05  ; 20    ; 0.35 ;  0.99; 0.012; 0.999; 0.003 ; 1.00]
 	else
-		mins = 		  [0.05 ; 0.001; 5     ; 0.05 ;  0.85; 0.001; 			    0.82]
-		maxs = 		  [0.15 ; 0.05 ; 20    ; 0.35 ;  0.99; 0.012; 			    1.12]
-		params_center = [params_center[1:6]; params_center[9]]
+		mins = 		  [0.05 ; 0.0001; 5     ;      ;      ; 0.001; 			    0.82]
+		maxs = 		  [0.15 ; 0.05  ; 20    ;      ;      ; 0.012; 			    1.00]
+		params_center = [params_center[1:3]; params_center[6]; params_center[9]]
 	end
 
 	L = Vector{Int64}(undef, 0)
