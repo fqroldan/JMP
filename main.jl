@@ -27,7 +27,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	ρξ, σξ = 0.995, 0.002
 	τ, ρz = 0.092, 0.970
 	if !do_all
-		params1 = [params[1:3]; τ; ρz; params[4]; ρξ; σξ; params[5]]
+		params = [params[1:3]; τ; ρz; params[4]; ρξ; σξ; params[5]]
 	end
 	push!(L, length(L)+1)
 	run_number = L[end]
@@ -130,7 +130,7 @@ end
 
 # wrapper_run(params_center, nodef, noΔ, rep_agent, L)
 
-function SMM(params_center, do_all::Bool=true)
+function SMM(params_center; do_all::Bool=true)
 	write("../Output/big_output.txt", "")
 	#				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
 	# params_center = [0.094; 0.02 ; 12.032; 0.092; 0.970; 0.005; 0.995; 0.002; 0.91]
