@@ -1644,7 +1644,7 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 				# scatter(;x = -2.5:0.25:2.5, y = f(yavg), marker_color=col[3], line_dash="dashdot", showlegend=false, opacity=0.4, name="mean")
 		else
 			for jj in 1:size(sample, 3)
-				y = sample(p.n[sym], :, jj)
+				y = sample[p.n[sym], :, jj]
 				scat = scatter(x = -2.5:0.25:2.5, y=f(y), marker_color=col[1], opacity = 0.25, showlegend=false, hoverinfo="skip")
 				push!(data, scat)
 			end
