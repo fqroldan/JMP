@@ -11,7 +11,7 @@ include("simul.jl")
 include("handle_guesses.jl")
 include("plotting_routines.jl")
 
-#				r_loc,   tax, RRA,     τ,    ρz,     σz,    ρξ,   σξ,  wbar
+#				r_loc,   tax, RRA,     τ,    ρz,    σz,    ρξ,   σξ,  wbar
 params_center = [0.09; 0.002;  10; 0.092; 0.970; 0.003; 0.995; 1e-6; 0.88]
 
 # Set options
@@ -27,7 +27,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	ρξ, σξ = 0.995, 0.002
 	τ, ρz = 0.092, 0.970
 	if !do_all
-		params = [params[1:3]; τ; ρz; params[6]; ρξ; σξ; params[9]]
+		params1 = [params[1:3]; τ; ρz; params[4]; ρξ; σξ; params[5]]
 	end
 	push!(L, length(L)+1)
 	run_number = L[end]
