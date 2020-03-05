@@ -1,9 +1,9 @@
 function integrate_itp(h::Hank, bv, μv, σv, ξv, jζ, jz, itp_obj)
 
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
-	ωmax_int = min(ωmax_int, maximum(h.ωgrid)-1e-8)
+	# ωmax_int = min(ωmax_int, maximum(h.ωgrid)-1e-8)
 	W, sum_prob = 0.0, 0.0
-	itp_obj = extrapolate(itp_obj, Interpolations.Flat())
+	itp_obj = extrapolate(itp_obj, Interpolations.Line())
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω.-h.ωmin)
 		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
