@@ -160,6 +160,7 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
 	ωmax_int = min(ωmax_int, h.ωmax)
 	val_C, sum_prob = 0., 0.
+	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
 		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=500)
@@ -279,6 +280,7 @@ function eval_prices_direct(h::Hank, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz,
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
 	ωmax_int = min(ωmax_int, h.ωmax)
 	val_C, sum_prob = 0., 0.
+	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Line())
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
 		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=500)
@@ -598,6 +600,9 @@ function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, B
 end
 
 function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, js, jdef)
+
+	itp_ϕa = extrapolate(itp_ϕa, Interpolations.Line())
+	itp_ϕb = extrapolate(itp_ϕb, Interpolations.Line())
 
 	jb = h.Jgrid[js, 1]
 	jμ = h.Jgrid[js, 2]
