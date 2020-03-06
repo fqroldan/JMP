@@ -158,7 +158,7 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 
 	# Get the household's policies at these prices
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
-	ωmax_int = min(ωmax_int, h.ωmax)
+	# ωmax_int = min(ωmax_int, h.ωmax)
 	val_C, sum_prob = 0., 0.
 	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
@@ -278,7 +278,7 @@ function eval_prices_direct(h::Hank, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz,
 	# Step 4: Get traded absorption
 	# Get the household's policies
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
-	ωmax_int = min(ωmax_int, h.ωmax)
+	# ωmax_int = min(ωmax_int, h.ωmax)
 	val_C, sum_prob = 0., 0.
 	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Line())
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
@@ -405,7 +405,7 @@ end
 function update_state_functions!(h::Hank, upd_η::Float64)
 	# itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
 	itp_ϕc = make_itp(h, h.ϕc; agg=false)
-	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
+	# itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
 
 	t1 = time()
 	results, minf, exc_dem, exc_sup = find_all_prices(h, itp_ϕc, h.issuance, h.spending)
@@ -619,7 +619,7 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, js,
 	val_a, val_b, val_a2, val_b2, val_ab, sum_prob = 0., 0., 0., 0., 0., 0.
 
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
-	ωmax_int = min(ωmax_int, h.ωmax)
+	# ωmax_int = min(ωmax_int, h.ωmax)
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
 		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
@@ -767,7 +767,7 @@ function update_expectations!(h::Hank, upd_η::Float64)
 	end
 
 
-	new_μgrid = new_grid(μ′_new, h.μgrid, lb = -3.0, ub = 5.0)
+	new_μgrid = new_grid(μ′_new, h.μgrid, lb = -3.0, ub = 3.0)
 	new_σgrid = new_grid(σ′_new, h.σgrid, lb = 1e-2)
 
 	μ′_new = max.(min.(μ′_new, maximum(h.μgrid)), minimum(h.μgrid))

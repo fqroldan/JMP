@@ -41,3 +41,4 @@
 /.gitignore
 
 /main.jl
+/analysis_SGU.Rmd
