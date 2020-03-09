@@ -280,6 +280,7 @@ function eval_prices_direct(h::Hank, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz,
 	# Get the household's policies
 	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ h.ωmin
 	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
+	ωmax = maximum(h.ωgrid)
 	ωmin_int = h.ωmin
 	val_C, sum_prob = 0., 0.
 	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Line())
