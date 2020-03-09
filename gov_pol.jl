@@ -1,7 +1,8 @@
 function integrate_itp(h::Hank, bv, μv, σv, ξv, jζ, jz, itp_obj)
 
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
-	# ωmax_int = min(ωmax_int, maximum(h.ωgrid)-1e-8)
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ h.ωmin
+	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
+	ωmin_int = h.ωmin
 	W, sum_prob = 0.0, 0.0
 	itp_obj = extrapolate(itp_obj, Interpolations.Line())
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)

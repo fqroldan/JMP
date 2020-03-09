@@ -157,8 +157,9 @@ function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv,
 	supply_N = TFP_N(zv, h.Δ, ζv) * Ld_N^(h.α_N)
 
 	# Get the household's policies at these prices
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
-	# ωmax_int = min(ωmax_int, h.ωmax)
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ h.ωmin
+	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
+	ωmin_int = h.ωmin
 	val_C, sum_prob = 0., 0.
 	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
@@ -277,8 +278,9 @@ function eval_prices_direct(h::Hank, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz,
 
 	# Step 4: Get traded absorption
 	# Get the household's policies
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
-	# ωmax_int = min(ωmax_int, h.ωmax)
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ h.ωmin
+	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
+	ωmin_int = h.ωmin
 	val_C, sum_prob = 0., 0.
 	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Line())
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
@@ -618,8 +620,9 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, js,
 
 	val_a, val_b, val_a2, val_b2, val_ab, sum_prob = 0., 0., 0., 0., 0., 0.
 
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [.0005; .9995]) .+ h.ωmin
-	# ωmax_int = min(ωmax_int, h.ωmax)
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ h.ωmin
+	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
+	ωmin_int = h.ωmin
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
 		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
