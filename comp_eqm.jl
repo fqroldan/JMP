@@ -283,7 +283,7 @@ function eval_prices_direct(h::Hank, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz,
 	ωmax = maximum(h.ωgrid)
 	ωmin_int = h.ωmin
 	val_C, sum_prob = 0., 0.
-	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Line())
+	# itp_ϕc = extrapolate(itp_ϕc, Interpolations.Line())
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
 		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=500)

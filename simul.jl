@@ -273,17 +273,17 @@ function simul(h::Hank; simul_length::Int64=1, burn_in::Int64=0, only_def_end::B
 
 	# itp_ϕa = make_itp(h, h.ϕa_ext; agg=false)
 	itp_ϕa = make_itp(h, h.ϕa; agg=false)
-	itp_ϕa = extrapolate(itp_ϕa, Interpolations.Flat())
+	# itp_ϕa = extrapolate(itp_ϕa, Interpolations.Flat())
 	# itp_ϕb = make_itp(h, h.ϕb_ext; agg=false)
 	itp_ϕb = make_itp(h, h.ϕb; agg=false)
-	itp_ϕb = extrapolate(itp_ϕb, Interpolations.Flat())
+	# itp_ϕb = extrapolate(itp_ϕb, Interpolations.Flat())
 	# itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
 	itp_ϕc = make_itp(h, h.ϕc; agg=false)
-	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
+	# itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
 	itp_ϕe = make_itp(h, h.ϕe; agg=false)
-	itp_ϕe = extrapolate(itp_ϕe, Interpolations.Flat())
+	# itp_ϕe = extrapolate(itp_ϕe, Interpolations.Flat())
 	itp_vf = make_itp(h, h.vf; agg=false)
-	itp_vf = extrapolate(itp_vf, Interpolations.Flat())
+	# itp_vf = extrapolate(itp_vf, Interpolations.Flat())
 
 
 	itp_B′	= make_itp(h, h.issuance; agg=true)
