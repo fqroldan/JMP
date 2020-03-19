@@ -148,11 +148,13 @@ function SMM(params_center; do_all::Bool=true)
 	# inner_opt = LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))
 	nlprecon = GradientDescent(alphaguess=Optim.LineSearches.InitialStatic(alpha=1e-4,scaled=true),
                            linesearch=Optim.LineSearches.Static())
-	oacc10 = OACCEL(nlprecon=nlprecon, wmax=10)
+	inner_opt = OACCEL(nlprecon=nlprecon, wmax=10)
+
+	inner_opt = NelderMead()
 	res = Optim.optimize(
 		params -> wrapper_run(params, false, false, false, L, gs, do_all=do_all)
 		# , params_center
-		, mins, maxs, params_center, Fminbox(oacc10)
+		, mins, maxs, params_center, Fminbox(inner_opt)
 		)
 
 	print("$(res)")
