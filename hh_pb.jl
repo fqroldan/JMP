@@ -448,8 +448,8 @@ end
 function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve::Bool=true, verbose::Bool=true)
 	t1 = time()
 	# Interpolate the value function
-	itp_vf = make_itp(h, h.vf; agg=false)
-	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
+	itp_vf = make_itp(h, h.vf; agg=false);
+	itp_qᵍ = make_itp(h, h.qᵍ; agg=true);
 
 	# Compute values
 	t1 = time()

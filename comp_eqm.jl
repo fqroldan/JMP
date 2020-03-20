@@ -407,7 +407,7 @@ end
 
 function update_state_functions!(h::Hank, upd_η::Float64)
 	# itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
-	itp_ϕc = make_itp(h, h.ϕc; agg=false)
+	itp_ϕc = make_itp(h, h.ϕc; agg=false);
 	# itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
 
 	t1 = time()
