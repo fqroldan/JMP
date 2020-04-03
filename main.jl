@@ -14,6 +14,16 @@ include("plotting_routines.jl")
 #				r_loc,   tax, RRA,     τ,    ρz,    σz,    ρξ,   σξ,  wbar
 params_center = [0.09; 0.002;  10; 0.092; 0.970; 0.003; 0.995; 1e-6; 0.883]
 
+function load_params(run_number)
+
+	params = load(pwd() * "/../Output/run$(run_number)/params.jld", "params")
+	r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = params
+
+	return [r_loc; tax; RRA; τ; ρz; σz; ρξ; σξ; wbar]
+end
+
+params_center = load_params(60)
+
 # Set options
 nodef     	 = false
 noΔ 		 = false
