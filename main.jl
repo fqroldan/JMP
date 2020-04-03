@@ -22,7 +22,7 @@ function load_params(run_number)
 	return [r_loc; tax; RRA; τ; ρz; σz; ρξ; σξ; wbar]
 end
 
-params_center = load_params(60)
+# params_center = load_params(60)
 
 # Set options
 nodef     	 = false
