@@ -1,78 +1,78 @@
 TFP_N(z, Δ, ζ) = 1.0    * max(0, (1.0 - Δ*1*(ζ==2) - Δ*(1.0-1)*exp(.25*z)^3 ))
 TFP_T(z, Δ, ζ) = exp(z) * max(0, (1.0 - Δ*1*(ζ==2) - Δ*(1.0-1)*exp(z)^3))
 
-function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
+# function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
 
-	Npn = length(h.pngrid)
+# 	Npn = length(h.pngrid)
 
-	ϕa_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
-	ϕb_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
-	ϕc_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
+# 	ϕa_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
+# 	ϕb_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
+# 	ϕc_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
 
-	itp_vf = make_itp(h, h.vf; agg=false)
-	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
+# 	itp_vf = make_itp(h, h.vf; agg=false)
+# 	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
 
-	print_save("\nExtending the state space ($(Npn) iterations needed)")
+# 	print_save("\nExtending the state space ($(Npn) iterations needed)")
 
-	for jpn in 1:Npn
+# 	for jpn in 1:Npn
 
-		pnv = h.pngrid[jpn]
+# 		pnv = h.pngrid[jpn]
 
-		N = size(h.Jgrid, 1)
+# 		N = size(h.Jgrid, 1)
 
-		wage_pn, labor_pn, profits_pn = Array{Float64, 1}(undef, N), Array{Float64, 1}(undef, N), Array{Float64, 1}(undef, N)
-		for js in 1:N
-			jζ = h.Jgrid[js, 5]
-			jz = h.Jgrid[js, 6]
+# 		wage_pn, labor_pn, profits_pn = Array{Float64, 1}(undef, N), Array{Float64, 1}(undef, N), Array{Float64, 1}(undef, N)
+# 		for js in 1:N
+# 			jζ = h.Jgrid[js, 5]
+# 			jz = h.Jgrid[js, 6]
 
-			wv = h.wbar
-			ζv = h.ζgrid[jζ]
-			zv = h.zgrid[jz]
+# 			wv = h.wbar
+# 			ζv = h.ζgrid[jζ]
+# 			zv = h.zgrid[jz]
 
-			# wv = 0.9
+# 			# wv = 0.9
 
-			labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, ζv, zv, pnv)
-		end
+# 			labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, ζv, zv, pnv)
+# 		end
 
-		pC = price_index(h, pnv)
-		pC_mat = ones(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz) * pC
+# 		pC = price_index(h, pnv)
+# 		pC_mat = ones(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz) * pC
 
-		T_mat = govt_bc(h, wage_pn.*labor_pn)# - reshape(profits_pn - h.profits, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
-		Π_mat = reshape(profits_pn, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
+# 		T_mat = govt_bc(h, wage_pn.*labor_pn)# - reshape(profits_pn - h.profits, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
+# 		Π_mat = reshape(profits_pn, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 
-		wL_mat  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz) * (1.0 - h.τ)
+# 		wL_mat  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz) * (1.0 - h.τ)
 
-		if h.ϕa_ext[1,1,1,1,1,1,1,1,jpn] == 0
-			guess_a = h.ϕa
-			guess_b = h.ϕb
-		else
-			guess_a = h.ϕa_ext[:,:,:,:,:,:,:,:,jpn]
-			guess_b = h.ϕb_ext[:,:,:,:,:,:,:,:,jpn]
-		end
+# 		if h.ϕa_ext[1,1,1,1,1,1,1,1,jpn] == 0
+# 			guess_a = h.ϕa
+# 			guess_b = h.ϕb
+# 		else
+# 			guess_a = h.ϕa_ext[:,:,:,:,:,:,:,:,jpn]
+# 			guess_b = h.ϕb_ext[:,:,:,:,:,:,:,:,jpn]
+# 		end
 
-		# Re-solve for these values of wn and pn
-		_, ϕa, ϕb, ϕe, ϕc, _ = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = false, guess_a=guess_a, guess_b=guess_b)
+# 		# Re-solve for these values of wn and pn
+# 		_, ϕa, ϕb, ϕe, ϕc, _ = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = false, guess_a=guess_a, guess_b=guess_b)
 
-		isapprox(sum(abs.(ϕc)), 0) ? print_save("\nWARNING: ϕc(pN = $(round(pnv, 2))) ≡ 0 when extending state space") : nothing
+# 		isapprox(sum(abs.(ϕc)), 0) ? print_save("\nWARNING: ϕc(pN = $(round(pnv, 2))) ≡ 0 when extending state space") : nothing
 
-		for jz in 1:h.Nz, jζ in 1:h.Nζ, jξ in 1:h.Nξ, jσ in 1:h.Nσ, jμ in 1:h.Nμ, jb in 1:h.Nb, jϵ in 1:h.Nϵ, jω in 1:h.Nω
-			ϕa_ext[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz,jpn] = ϕa[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz]
-			ϕb_ext[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz,jpn] = ϕb[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz]
-			ϕc_ext[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz,jpn] = ϕc[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz]
-		end
-	end
+# 		for jz in 1:h.Nz, jζ in 1:h.Nζ, jξ in 1:h.Nξ, jσ in 1:h.Nσ, jμ in 1:h.Nμ, jb in 1:h.Nb, jϵ in 1:h.Nϵ, jω in 1:h.Nω
+# 			ϕa_ext[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz,jpn] = ϕa[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz]
+# 			ϕb_ext[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz,jpn] = ϕb[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz]
+# 			ϕc_ext[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz,jpn] = ϕc[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz]
+# 		end
+# 	end
 
-	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext")
-	!isnan(sum(ϕa_ext)) || throw(error("$(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext"))
+# 	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext")
+# 	!isnan(sum(ϕa_ext)) || throw(error("$(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext"))
 
-	isapprox(sum(abs.(ϕc_ext)), 0) ? print_save("\nWARNING: ϕc ≡ 0 when extending state space") : nothing
+# 	isapprox(sum(abs.(ϕc_ext)), 0) ? print_save("\nWARNING: ϕc ≡ 0 when extending state space") : nothing
 
-	h.ϕa_ext = ϕa_ext
-	h.ϕb_ext = ϕb_ext
-	h.ϕc_ext = ϕc_ext
+# 	h.ϕa_ext = ϕa_ext
+# 	h.ϕb_ext = ϕb_ext
+# 	h.ϕc_ext = ϕc_ext
 
-	nothing
-end
+# 	nothing
+# end
 
 transform_vars(m::Float64, cmin, cmax) = cmax - (cmax-cmin)/(1+exp(m))
 

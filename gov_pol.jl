@@ -125,7 +125,7 @@ function update_W(h::Hank)
 end
 
 
-function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=250, tol::Float64=5e-3, nodef::Bool=false, noΔ::Bool=false, rep_agent::Bool=false, run_number::Int64=1, save_copies::Bool=true)
+function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=250, tol::Float64=5e-3, nodef::Bool=false, noΔ::Bool=false, rep_agent::Bool=false, run_number::Int64=1, save_copies::Bool=true, only_a::Bool=false)
 	print_save("\nIterating on the government's policy: ")
 	time_init = time()
 	t_old = time_init
@@ -139,7 +139,7 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=250, tol::Float64
 
 	while dist > tol && out_iter < maxiter
 		print_save("\n\nOuter Iteration $out_iter (run $(run_number)) with upd_ηR = $(@sprintf("%0.3g",upd_ηR))\n")
-		vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 15)
+		vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 15, only_a=only_a)
 		h.upd_tol = max(min(h.upd_tol*0.95, tol_vfi/10), 1e-6)
 		
 		W_new = update_W(h)

@@ -202,10 +202,13 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s, jϵ, jξ, jz, exp_r
 	nothing
 end
 
-function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
+function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax; only_a::Bool=false)
 
-
-	optim_type = "multivariate"
+	if only_a
+		optim_type = "only_a"
+	else
+		optim_type = "multivariate"
+	end
 
 	minθ = min(max(0.1, guess[2]-0.2), 0.8)
 	maxθ = max(min(0.9, guess[2]+0.2), 0.2)
@@ -288,28 +291,22 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jξ, jz, exp_rep,
 		end
 
 		ap, bp, ep, cmax = get_abec(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θa)
-	else
-		# curr_min = 1e10
-		# θa_grid = linspace(0,1,8)
-		# for θa in θa_grid
-		# 	res = Optim.optimize(
-		# 		sp -> -value(h, sp, θa, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
-		# 			qʰv*h.ωmin, ωmax, GoldenSection()
-		# 		)
-		# 	if res.minimum < curr_min
-		# 		sp = res.minimizer
-		# 		ap, bp, ep, cmax = get_abec(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θa)
-		# 		fmax = -res.minimum
-		# 		curr_min = res.minimum
-		# 	end
-		# end
+	elseif optim_type == "only_a"
+		θa = 1.0
+		res = Optim.optimize(
+			sp -> -value(h, sp, θa, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef),
+				minω, maxω, GoldenSection()
+			)
+		sp = res.minimizer
+		ap, bp, ep, cmax = get_abec(RHS, h.ωmin, qʰv, qᵍv, pCv, sp, θa)
+		fmax = -res.minimum
 	end
 
 	return ap, bp, ep, cmax, fmax
 end
 
 
-function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve::Bool = true, verbose::Bool=true, guess_a::Array{Float64}=zeros(1,1), guess_b::Array{Float64}=zeros(1,1))
+function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve::Bool = true, verbose::Bool=true, guess_a::Array{Float64}=zeros(1,1), guess_b::Array{Float64}=zeros(1,1), only_a::Bool=false)
 
 	vf = Array{Float64}(undef, size(h.vf))
 	ϕa = Array{Float64}(undef, size(h.ϕa))
@@ -412,7 +409,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 			if resolve && ωmax > qʰv * h.ωmin
 				guess = [ωg, θg]
 
-				ap, bp, ep, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax)
+				ap, bp, ep, cmax, fmax = solve_optvalue(h, guess, itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef, ωmax, only_a=only_a)
 				if cmax <= 0 || isnan(cmax)
 					# warn("c = $cmax")
 					ap, bp, ep, cmax = h.ωmin, 0., 0., 1e-8
@@ -445,7 +442,7 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 	return vf, ϕa, ϕb, ϕe, ϕc, warnc0
 end
 
-function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve::Bool=true, verbose::Bool=true)
+function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve::Bool=true, verbose::Bool=true, only_a::Bool=false)
 	t1 = time()
 	# Interpolate the value function
 	itp_vf = make_itp(h, h.vf; agg=false);
@@ -453,7 +450,7 @@ function bellman_iteration!(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, �
 
 	# Compute values
 	t1 = time()
-	vf, ϕa, ϕb, ϕe, ϕc, warnc0 = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, resolve = resolve, verbose = verbose)
+	vf, ϕa, ϕb, ϕe, ϕc, warnc0 = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, resolve = resolve, verbose = verbose, only_a=only_a)
 
 	t1 = time()
 	sum(isnan.(vf)) > 0 ? print_save("\n$(sum(isnan.(vf))) NaNs found in vf") : nothing

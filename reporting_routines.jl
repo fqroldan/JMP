@@ -89,8 +89,16 @@ function make_calib_table(v_m)
 	return table
 end
 
-function make_calib_table_comp(v_m, v_m_nodef, v_m_nodelta=[])
-	table = ""
+function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
+	table = "		& Benchmark "
+	if length(v_m_noΔ) > 0
+		table *=  " 	& \$\\Delta = 0 \$"
+	end
+	if length(v_m_nob) > 0
+		table *=  " 	& No dom. holdings \$"
+	end
+	table *= "	& No default "
+	table *= "\\\\"
 
 	rownames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread"; "Std coef spread	"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"]
 
@@ -102,8 +110,11 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_nodelta=[])
 	for jj in 1:length(data_stats)
 		list_perc[jj] == 1 ? perc = "\\%" : perc = ""
 		table *= "\n		" * rownames[jj] * "	& $(@sprintf("%0.3g",v_m[jj]))" * perc
-		if length(v_m_nodelta) > 0
-			table *=  " 	& $(@sprintf("%0.3g",v_m_nodelta[jj]))" * perc
+		if length(v_m_noΔ) > 0
+			table *=  " 	& $(@sprintf("%0.3g",v_m_noΔ[jj]))" * perc
+		end
+		if length(v_m_nob) > 0
+			table *=  " 	& $(@sprintf("%0.3g",v_m_nob[jj]))" * perc
 		end
 		table *= "	& $(@sprintf("%0.3g",v_m_nodef[jj]))" * perc
 
