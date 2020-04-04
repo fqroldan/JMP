@@ -54,7 +54,8 @@ end
 function make_simulated_path(h::Hank, run_number, years=100)
 	path, jz_series, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
 	Tyears = floor(Int64,size(path.data, 1)*0.25)
-	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(floor(100*Ndefs/Tyears))%")
+	def_freq = Ndefs/Tyears
+	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(floor(100*def_freq))%")
 	trim_path!(path, 4*25)
 	v_m = 0
 	g = 0
@@ -132,7 +133,7 @@ function make_simulated_path(h::Hank, run_number, years=100)
 	calib_table = make_calib_table(v_m)
 	write(savedir * "calib_table.txt", calib_table)
 
-	return g, path, πthres, v_m
+	return g, path, πthres, v_m, def_freq
 end
 
 
@@ -141,12 +142,15 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 	old_Δ = h.Δ
 	h.Δ = 0
 	mpe_iter!(h; nodef = false, noΔ = true, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
-	p_noΔ, _, _ = simul(h; simul_length=4*(years+25), only_def_end=false)
+	p_noΔ, _, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
+	Tyears = floor(Int64,size(p_noΔ.data, 1)*0.25)
+	freq_noΔ = Ndefs/Tyears
 	v_noΔ = simul_stats(p_noΔ)
 
 	h = load(savedir * "hank.jld", "h")
 	mpe_iter!(h; nodef = true, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
-	p_nodef, _, _ = simul(h; simul_length=4*(years+25), only_def_end=false)
+	p_nodef, _, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
+	freq_nodef = Ndefs/Tyears
 
 	for (jj, slides) in enumerate([true; false])
 		pcomp = plot_comparison_episodes(p_bench, p_nodef; episode_type = episode_type, slides = slides, πthres=πthres)
@@ -156,12 +160,13 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 
 	h = load(savedir * "hank.jld", "h")
 	mpe_iter!(h; nodef = false, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false, only_a=true)
-	p_nob, _, _ = simul(h; simul_length=4*(years+25), only_def_end=false)
+	p_nob, _, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
+	freq_nob = Ndefs/Tyears
 
 	v_nob = simul_stats(p_nob)
 
 
-	return v_noΔ, v_nodef, v_nob
+	return v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob
 end
 
 pars(h::Hank) = [(1/h.β)^4-1; h.γ; h.τ; h.wbar; h.ρz; h.σz; h.tax; h.ρξ; h.σξ]

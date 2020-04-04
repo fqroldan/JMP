@@ -100,7 +100,7 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 	table *= "	& No default "
 	table *= "\\\\"
 
-	rownames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread"; "Std coef spread	"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"]
+	rownames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread"; "Std coef spread	"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"; "Default frequency"]
 
 	data_stats = [ 0.96580506; 0.01294576; 0.96172496; 0.01663608; 0.96656486; 0.10252351; 64.57638889; 23.48323041; 15.94722222; 6.08732167; 56.49; 94.48]
 

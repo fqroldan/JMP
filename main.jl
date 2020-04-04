@@ -66,15 +66,18 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 				g_done = load(pwd() * "/../Output/run$(run_number)/g.jld", "g")
 				print_save(" Found g.")
 				print_save("\ng = $(g_done)")
-				s = read("../Output/big_output.txt", String)
-				s *= "g = $(@sprintf("%0.3g",g_done))"
-				push!(gs, g_done)
-				if g_done == minimum(gs)
-					s *= " ✓"
-				end
-				s *= "\n"
-				write("../Output/big_output.txt", s)
-				return g_done
+				print_save("\nLooking for path")
+				path = load("../Output/run$(run_number)/path.jld", "path")
+				print_save(": ✓")
+				# s = read("../Output/big_output.txt", String)
+				# s *= "g = $(@sprintf("%0.3g",g_done))"
+				# push!(gs, g_done)
+				# if g_done == minimum(gs)
+				# 	s *= " ✓"
+				# end
+				# s *= "\n"
+				# write("../Output/big_output.txt", s)
+				already_done = true
 			catch
 				print_save(" Couldn't find g.")
 			end
@@ -85,26 +88,35 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		print_save("\nNo previous file found.")
 	end
 
-	run(`rm $savedir -rf`)
-	run(`mkdir -p $savedir`)
+	if !already_done
+		run(`rm $savedir -rf`)
+		run(`mkdir -p $savedir`)
 
-	save(savedir * "params.jld", "params", params)
-	params_table = make_params_table(params)
-	write(savedir * "params_table.txt", params_table)
+		save(savedir * "params.jld", "params", params)
+		params_table = make_params_table(params)
+		write(savedir * "params_table.txt", params_table)
 
-	print_save("\nϵ: $(h.ϵgrid)")
-	print_save("\nz: $(h.zgrid)")
-	print_save("\nξ: $(h.ξgrid)")
-	print_save("\nω: $(h.ωgrid)\n")
+		print_save("\nϵ: $(h.ϵgrid)")
+		print_save("\nz: $(h.zgrid)")
+		print_save("\nξ: $(h.ξgrid)")
+		print_save("\nω: $(h.ωgrid)\n")
 
-	mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number)
-	plot_hh_policies(h, run_number=run_number)
-	plot_contour_debtprice(h, savedir)
-	plot_contour_unemp(h, savedir)
-	
-	years = 4000
-	g, p_bench, πthres, v_m = make_simulated_path(h, run_number, years)
-	run(`cp ../Output/hank.jld ../Output/run$(run_number)/hank.jld`)
+		mpe_iter!(h; nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, run_number=run_number)
+		plot_hh_policies(h, run_number=run_number)
+		plot_contour_debtprice(h, savedir)
+		plot_contour_unemp(h, savedir)
+		
+		years = 4000
+		g, p_bench, πthres, v_m, def_freq = make_simulated_path(h, run_number, years)
+		run(`cp ../Output/hank.jld ../Output/run$(run_number)/hank.jld`)
+	else
+		path = load("../Output/run$(run_number)/path.jld", "path")
+		v_m = simul_stats(path)
+		ζ_vec = series(path,:ζ) .- 1
+		Ndefs = sum([ (ζ_vec[jj] == 1) & (ζ_vec[jj-1] == 0) for jj in 2:length(ζ_vec)])
+		Tyears = floor(Int64,size(path.data, 1)*0.25)
+		def_freq = Ndefs / Tyears
+	end
 
 	s = read("../Output/big_output.txt", String)
 	s *= "g = $(@sprintf("%0.3g",g)) in $(time_print(time()-time_init))"
@@ -113,9 +125,9 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		print_save("Minimum g for now. Computing no-def comparison")
 		s *= " ✓"
 
-		v_noΔ, v_nodef, v_nob = make_comparison_simul(h, noΔ, rep_agent, run_number, years, p_bench, "onlyspread", πthres, savedir)
+		v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob = make_comparison_simul(h, noΔ, rep_agent, run_number, years, p_bench, "onlyspread", πthres, savedir)
 
-		calib_table_comp = make_calib_table_comp(v_m, v_nodef, v_noΔ, v_nob)
+		calib_table_comp = make_calib_table_comp([v_m; 100*def_freq], [v_nodef; 100*freq_nodef], [v_noΔ; 100*freq_noΔ], [v_nob; 100*freq_nob])
 		write(savedir * "calib_table_comp.txt", calib_table_comp)
 	else
 		print_save("Suboptimal g. Skipping computation of no-def")
