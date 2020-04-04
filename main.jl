@@ -67,7 +67,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 				print_save(" Found g.")
 				print_save("\ng = $(g_done)")
 				s = read("../Output/big_output.txt", String)
-				s *= "g = $(@sprintf("%0.3g",g))"
+				s *= "g = $(@sprintf("%0.3g",g_done))"
 				push!(gs, g_done)
 				if g_done == minimum(gs)
 					s *= " ✓"
