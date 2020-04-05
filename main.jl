@@ -63,9 +63,9 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		if params == pars(h)
 			print_save(" Parameters correct. Looking for g value.")
 			try
-				g_done = load(pwd() * "/../Output/run$(run_number)/g.jld", "g")
+				g = load(pwd() * "/../Output/run$(run_number)/g.jld", "g")
 				print_save(" Found g.")
-				print_save("\ng = $(g_done)")
+				print_save("\ng = $(g)")
 				print_save("\nLooking for path")
 				path = load("../Output/run$(run_number)/path.jld", "path")
 				print_save(": ✓")
@@ -110,12 +110,13 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		g, p_bench, πthres, v_m, def_freq = make_simulated_path(h, run_number, years)
 		run(`cp ../Output/hank.jld ../Output/run$(run_number)/hank.jld`)
 	else
-		path = load("../Output/run$(run_number)/path.jld", "path")
-		v_m = simul_stats(path)
-		ζ_vec = series(path,:ζ) .- 1
+		p_bench = load("../Output/run$(run_number)/path.jld", "path")
+		v_m = simul_stats(p_bench)
+		ζ_vec = series(p_bench,:ζ) .- 1
 		Ndefs = sum([ (ζ_vec[jj] == 1) & (ζ_vec[jj-1] == 0) for jj in 2:length(ζ_vec)])
-		Tyears = floor(Int64,size(path.data, 1)*0.25)
-		def_freq = Ndefs / Tyears
+		years = floor(Int64,size(p_bench.data, 1)*0.25)
+		def_freq = Ndefs / years
+		_, πthres = plot_episodes(p_bench; episode_type="onlyspread", slides=true, πthres=0.95)
 	end
 
 	s = read("../Output/big_output.txt", String)
@@ -133,12 +134,14 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		print_save("Suboptimal g. Skipping computation of no-def")
 	end
 
-	run(`cp ../Output/run$(run_number)/hank.jld ../Output/hank.jld`)
+	if !already_done
+		run(`cp ../Output/run$(run_number)/hank.jld ../Output/hank.jld`)
+		run(`cp ../Output/output.txt ../Output/run$(run_number)/output.txt`)
+	end
 
 	s *= "\n"
 	write("../Output/big_output.txt", s)
 
-	run(`cp ../Output/output.txt ../Output/run$(run_number)/output.txt`)
 
 	# s = read("../Output/output.txt", String)
 	# write(savedir * "output.txt", s)
