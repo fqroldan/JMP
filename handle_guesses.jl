@@ -159,7 +159,7 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 		h = load(savedir * "hank.jld", "h")
 		mpe_iter!(h; nodef = true, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
 		p_nodef, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
-		save("../Output/run$(run_number)/p_nof.jld", "p_nodef", p_nodef, "Ndefs", Ndefs)
+		save("../Output/run$(run_number)/p_nodef.jld", "p_nodef", p_nodef, "Ndefs", Ndefs)
 	end		
 	p_nodef, Ndefs = load("../Output/run$(run_number)/p_nodef.jld", "p_nodef", "Ndefs")
 	freq_nodef = Ndefs/Tyears
