@@ -90,9 +90,9 @@ function make_calib_table(v_m)
 end
 
 function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
-	table = "		& Benchmark "
+	table = "			& Benchmark "
 	if length(v_m_noΔ) > 0
-		table *=  " 	& \$\\Delta = 0 \$"
+		table *=  " 	& \$\\Delta=0\$"
 	end
 	if length(v_m_nob) > 0
 		table *=  " 	& No dom. holdings \$"
@@ -104,12 +104,12 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 
 	data_stats = [ 0.96580506; 0.01294576; 0.96172496; 0.01663608; 0.96656486; 0.10252351; 64.57638889; 23.48323041; 15.94722222; 6.08732167; 56.49; 94.48]
 
-	list_perc = ones(size(data_stats))
+	list_perc = ones(length(v_m))
 	list_perc[1:6] = zeros(6)
 
-	for jj in 1:length(data_stats)
+	for jj in 1:length(v_m)
 		list_perc[jj] == 1 ? perc = "\\%" : perc = ""
-		table *= "\n		" * rownames[jj] * "	& $(@sprintf("%0.3g",v_m[jj]))" * perc
+		table *= "\n" * rownames[jj] * "	& $(@sprintf("%0.3g",v_m[jj]))" * perc
 		if length(v_m_noΔ) > 0
 			table *=  " 	& $(@sprintf("%0.3g",v_m_noΔ[jj]))" * perc
 		end

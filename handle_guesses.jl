@@ -166,7 +166,7 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 		p_nodef, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
 		save("../Output/run$(run_number)/p_nodef.jld", "p_nodef", p_nodef, "Ndefs", Ndefs)
 		print_save(" ✓")
-	end		
+	end
 	p_nodef, Ndefs = load("../Output/run$(run_number)/p_nodef.jld", "p_nodef", "Ndefs")
 	freq_nodef = Ndefs/Tyears
 
