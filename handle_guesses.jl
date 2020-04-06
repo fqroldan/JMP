@@ -171,7 +171,8 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 	v_nodef = simul_stats(p_nodef)
 
 	try
-		p_nob, Ndefs = load("../Output/run$(run_number)/p_nob.jld", "p_nob", "Ndefs")
+		# p_nob, Ndefs = load("../Output/run$(run_number)/p_nob.jld", "p_nob", "Ndefs")
+		throw(error("Skipping"))
 	catch
 		h = load(savedir * "hank.jld", "h")
 		mpe_iter!(h; nodef = false, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false, only_a=true)

@@ -501,7 +501,7 @@ function _unpackstatefs(h::Hank)
 end
 
 
-function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=50, bellman_iter::Int64=maxiter, only_a::Bool=false)
+function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true, maxiter::Int64=50, bellman_iter::Int64=maxiter, nob::Bool=false)
 
 	print_save("\nSolving household problem: ")
 	time_init = time()
@@ -533,7 +533,7 @@ function vfi!(h::Hank; tol::Float64=5e-3, verbose::Bool=true, remote::Bool=true,
 		# println(mean(T_mat))
 		v_old = copy(h.vf)
 		if iter_cycle <= 5 || iter_cycle % 3 == 0
-			warnc0 = bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=true, only_a=only_a)
+			warnc0 = bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=true, nob=nob)
 		else
 			bellman_iteration!(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=false)
 		end
