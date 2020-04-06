@@ -143,10 +143,13 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 	h.Δ = 0
 	try 
 		p_noΔ, Ndefs = load("../Output/run$(run_number)/p_nodelta.jld", "p_noΔ", "Ndefs")
+		print_save("\nFound noΔ simul")
 	catch
+		print_save("\nSolving noΔ version")
 		mpe_iter!(h; nodef = false, noΔ = true, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
 		p_noΔ, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
 		save("../Output/run$(run_number)/p_nodelta.jld", "p_noΔ", p_noΔ, "Ndefs", Ndefs)
+		print_save(" ✓")
 	end
 	p_noΔ, Ndefs = load("../Output/run$(run_number)/p_nodelta.jld", "p_noΔ", "Ndefs")
 	Tyears = floor(Int64,size(p_noΔ.data, 1)*0.25)
@@ -155,11 +158,14 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 
 	try 
 		p_nodef, Ndefs = load("../Output/run$(run_number)/p_nodef.jld", "p_nodef", "Ndefs")
+		print_save("\nFound nodef simul")
 	catch
+		print_save("\nSolving nodef version")
 		h = load(savedir * "hank.jld", "h")
 		mpe_iter!(h; nodef = true, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
 		p_nodef, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
 		save("../Output/run$(run_number)/p_nodef.jld", "p_nodef", p_nodef, "Ndefs", Ndefs)
+		print_save(" ✓")
 	end		
 	p_nodef, Ndefs = load("../Output/run$(run_number)/p_nodef.jld", "p_nodef", "Ndefs")
 	freq_nodef = Ndefs/Tyears
@@ -172,11 +178,14 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 
 	try
 		p_nob, Ndefs = load("../Output/run$(run_number)/p_nob.jld", "p_nob", "Ndefs")
+		print_save("\nFound nob simul")
 	catch
+		print_save("\nSolving nob version")
 		h = load(savedir * "hank.jld", "h")
-		mpe_iter!(h; nodef = false, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false, only_a=true)
+		mpe_iter!(h; nodef = false, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false, nob=true)
 		p_nob, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
 		save("../Output/run$(run_number)/p_nob.jld", "p_nob", p_nob, "Ndefs", Ndefs)
+		print_save(" ✓")
 	end
 	p_nob, Ndefs = load("../Output/run$(run_number)/p_nob.jld", "p_nob", "Ndefs")
 	freq_nob = Ndefs/Tyears
