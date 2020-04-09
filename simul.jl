@@ -49,7 +49,8 @@ function iter_simul!(h::Hank, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, 
 	pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
 	jdef = (ζt != 1)
 
-	results, _ = find_prices_direct(h, itp_ϕc, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, ξt, ζt, jz, jdef)
+	val_int_C = get_agg_C(h, itp_ϕc, Bt, μt, σt, ξt, ζt, jz)
+	results, _ = find_prices_direct(h, val_int_C, G, Bprime, pNg, pNmin, pNmax, Bt, μt, σt, ξt, ζt, jz, jdef)
 
 	wt, pN, Ld, output = results
 	profits = output - wt*Ld

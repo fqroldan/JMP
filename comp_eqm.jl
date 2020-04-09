@@ -255,7 +255,7 @@ function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, 
 	return results, [minf], exc_dem, exc_sup
 end
 
-function eval_prices_direct(h::Hank, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz, jdefault; get_others::Bool=false)
+function eval_prices_direct(h::Hank, val_int_C, G, pN, bv, μv, σv, ξv, jζ, jz, jdefault; get_others::Bool=false)
 
 	ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
 
@@ -276,27 +276,7 @@ function eval_prices_direct(h::Hank, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz,
 	supply_N = TFP_N(zv,h.Δ,ζv) * Ld_N^h.α_N
 	supply_T = TFP_T(zv,h.Δ,ζv) * Ld_T^h.α_T
 
-	# Step 4: Get traded absorption
-	# Get the household's policies
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ h.ωmin
-	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
-	ωmax = maximum(h.ωgrid)
-	ωmin_int = h.ωmin
-	val_C, sum_prob = 0., 0.
-	# itp_ϕc = extrapolate(itp_ϕc, Interpolations.Line())
-	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
-		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=500)
-		sum_prob += val_pdf * h.λϵ[jϵ]
-
-		f(ω) = f_pdf(ω) * itp_ϕc(ω, jϵ, bv, μv, σv, ξv, jζ, jz)
-		(val, err) = hquadrature(f, ωmin_int, ωmax_int, rtol=1e-12, atol=0, maxevals=500)
-	
-		val_C += val * h.λϵ[jϵ]
-	end
-
-	val_int_C = val_C / sum_prob
-
+	# Step 4: Get nontraded demand
  	# Recover traded demand from total consumption
 	pC = price_index(h, pN)
 	cT = val_int_C * (1.0-h.ϖ) * (1.0/pC)^(-h.η)
@@ -320,13 +300,35 @@ function eval_prices_direct(h::Hank, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz,
 	end
 end
 
-function find_prices_direct(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
+function get_agg_C(h::Hank, itp_ϕc, bv, μv, σv, ξv, jζ, jz)
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ h.ωmin
+	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
+	ωmax = maximum(h.ωgrid)
+	ωmin_int = h.ωmin
+	val_C, sum_prob = 0., 0.
+	# itp_ϕc = extrapolate(itp_ϕc, Interpolations.Line())
+	for (jϵ, ϵv) in enumerate(h.ϵgrid)
+		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
+		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=500)
+		sum_prob += val_pdf * h.λϵ[jϵ]
+
+		f(ω) = f_pdf(ω) * itp_ϕc(ω, jϵ, bv, μv, σv, ξv, jζ, jz)
+		(val, err) = hquadrature(f, ωmin_int, ωmax_int, rtol=1e-12, atol=0, maxevals=500)
+	
+		val_C += val * h.λϵ[jϵ]
+	end
+
+	val_int_C = val_C / sum_prob
+end
+
+
+function find_prices_direct(h::Hank, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
 
 	do_solver_prices = true
 
 	if do_solver_prices
 		res = Optim.optimize(
-			pNv -> (eval_prices_direct(h, itp_ϕc, G, pNv, bv, μv, σv, ξv, jζ, jz, jdefault))^2,
+			pNv -> (eval_prices_direct(h, val_int_C, G, pNv, bv, μv, σv, ξv, jζ, jz, jdefault))^2,
 			pNmin, pNmax, GoldenSection()
 			)
 
@@ -334,7 +336,7 @@ function find_prices_direct(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv
 	else
 		if false
 			pNg = max(min(pNg, pNmax - 1e-6), pNmin + 1e-6)
-			obj_f(x) = (eval_prices_direct(h, itp_ϕc, G, x, bv, μv, σv, ξv, jζ, jz, jdefault))^2
+			obj_f(x) = (eval_prices_direct(h, val_int_C, G, x, bv, μv, σv, ξv, jζ, jz, jdefault))^2
 			res = Optim.optimize(
 				pN -> obj_f(first(pN)),
 				[pNmin], [pNmax], [pNg], Fminbox(LBFGS())#, autodiff=:forward#, Optim.Options(f_tol=1e-12)
@@ -345,7 +347,7 @@ function find_prices_direct(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv
 		end
 	end
 
-	wage, Ld, output, supply_N, demand_N, _ = eval_prices_direct(h, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz, jdefault; get_others=true)
+	wage, Ld, output, supply_N, demand_N, _ = eval_prices_direct(h, val_int_C, G, pN, bv, μv, σv, ξv, jζ, jz, jdefault; get_others=true)
 
 	pN >= pNmax - 0.05*(pNmax-pNmin) ? exc_dem = 1 : exc_dem = 0
 	pN <= pNmin + 0.05*(pNmax-pNmin) ? exc_sup = 1 : exc_sup = 0
@@ -393,7 +395,9 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 		jdefault = (ζv != 1.0)
 
 		# r, mf, ed, es = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
-		r, mf, ed, es = find_prices_direct(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
+
+		val_int_C = get_agg_C(h, itp_ϕc, bv, μv, σv, ξv, jζ, jz)
+		r, mf, ed, es = find_prices_direct(h, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
 
 		results[js, :] = r
 		minf[js, :], exc_dem[js], exc_sup[js] = mf, ed, es
@@ -443,8 +447,9 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 			pN = max(min(pN, pNmax), pNmin)
 
 			# wage[js], Ld[js], output[js] = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, (jζ!=1); get_others=true)
+			val_int_C = get_agg_C(h, itp_ϕc, bv, μv, σv, ξv, jζ, jz)
 
-			wage[js], Ld[js], output[js], _, _, _ = eval_prices_direct(h, itp_ϕc, G, pN, bv, μv, σv, ξv, jζ, jz, (jζ!=1); get_others=true)
+			wage[js], Ld[js], output[js], _, _, _ = eval_prices_direct(h, val_int_C, G, pN, bv, μv, σv, ξv, jζ, jz, (jζ!=1); get_others=true)
 
 			jzmean = h.Nz # ceil(Int, h.Nz/2)
 		end
