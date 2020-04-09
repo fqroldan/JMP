@@ -69,14 +69,6 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 				print_save("\nLooking for path")
 				path = load("../Output/run$(run_number)/path.jld", "path")
 				print_save(": ✓")
-				# s = read("../Output/big_output.txt", String)
-				# s *= "g = $(@sprintf("%0.3g",g_done))"
-				# push!(gs, g_done)
-				# if g_done == minimum(gs)
-				# 	s *= " ✓"
-				# end
-				# s *= "\n"
-				# write("../Output/big_output.txt", s)
 				already_done = true
 			catch
 				print_save(" Couldn't find g.")

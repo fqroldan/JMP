@@ -90,7 +90,7 @@ function make_calib_table(v_m)
 end
 
 function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
-	table = "			& Benchmark "
+	table = "Moment		& Benchmark "
 	if length(v_m_noΔ) > 0
 		table *=  " 	& \$\\Delta=0\$"
 	end

@@ -139,12 +139,12 @@ end
 
 function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres, savedir)
 
-	old_Δ = h.Δ
-	h.Δ = 0
+	old_Δ = copy(h.Δ)
 	try 
 		p_noΔ, Ndefs = load("../Output/run$(run_number)/p_nodelta.jld", "p_noΔ", "Ndefs")
 		print_save("\nFound noΔ simul")
 	catch
+		h.Δ = 0
 		print_save("\nSolving noΔ version")
 		mpe_iter!(h; nodef = false, noΔ = true, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
 		p_noΔ, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
@@ -156,6 +156,7 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 	freq_noΔ = Ndefs/Tyears
 	v_noΔ = simul_stats(p_noΔ)
 
+	h.Δ = old_Δ
 	try 
 		p_nodef, Ndefs = load("../Output/run$(run_number)/p_nodef.jld", "p_nodef", "Ndefs")
 		print_save("\nFound nodef simul")
@@ -176,6 +177,7 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 	end
 	v_nodef = simul_stats(p_nodef)
 
+	h.Δ = old_Δ
 	try
 		p_nob, Ndefs = load("../Output/run$(run_number)/p_nob.jld", "p_nob", "Ndefs")
 		print_save("\nFound nob simul")
