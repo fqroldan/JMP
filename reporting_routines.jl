@@ -7,6 +7,8 @@ function print_save(s::String, dir::String = pwd()*"/../Output/")
 	nothing
 end
 
+show_float(x; digits=10) = @sprintf("%.3g", round(x, digits=digits))
+
 function time_print(tfloat::Float64)
 	t = floor(Int, tfloat)
 	if t < 1
@@ -90,7 +92,7 @@ function make_calib_table(v_m)
 end
 
 function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
-	table = "Moment		& Benchmark "
+	table = "Moment 			& Benchmark "
 	if length(v_m_noΔ) > 0
 		table *=  " 	& \$\\Delta=0\$"
 	end
@@ -98,7 +100,7 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 		table *=  " 	& No dom. holdings \$"
 	end
 	table *= "	& No default "
-	table *= "\\\\"
+	table *= "\\\\ \\midrule"
 
 	rownames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread"; "Std coef spread	"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"; "Default frequency"]
 
@@ -109,14 +111,14 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 
 	for jj in 1:length(v_m)
 		list_perc[jj] == 1 ? perc = "\\%" : perc = ""
-		table *= "\n" * rownames[jj] * "	& $(@sprintf("%0.3g",v_m[jj]))" * perc
+		table *= "\n" * rownames[jj] * "	& $(show_float(v_m[jj]))" * perc
 		if length(v_m_noΔ) > 0
-			table *=  " 	& $(@sprintf("%0.3g",v_m_noΔ[jj]))" * perc
+			table *=  " 	& $(show_float(v_m_noΔ[jj]))" * perc
 		end
 		if length(v_m_nob) > 0
-			table *=  " 	& $(@sprintf("%0.3g",v_m_nob[jj]))" * perc
+			table *=  " 	& $(show_float(v_m_nob[jj]))" * perc
 		end
-		table *= "	& $(@sprintf("%0.3g",v_m_nodef[jj]))" * perc
+		table *= "	& $(show_float(v_m_nodef[jj]))" * perc
 
 		table *= "\\\\"
 	end
