@@ -1623,7 +1623,7 @@ function plot_episodes(p::Path; episode_type::String="default", slides::Bool=tru
 	end
 	if iter == maxiter
 		print_save("WARNING: No episodes of $(episode_type) found")
-		return plot()
+		return plot(), πthres
 	else
 		print_save("\nπthres = $πv, quantile $πthres")
 	end
