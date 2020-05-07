@@ -266,10 +266,15 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jξ, jz, exp_rep,
 
 		sp, θa = 0.0, 0.0
 		try
-			# inner_opt = 
-			res = Optim.optimize(
-				x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
-				, [minω, minθ], [maxω, maxθ], guess, Fminbox(LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))))
+			obj_f(x) = -value(h, x[1], x[2], itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
+
+			initial_x = [0.0]
+			od = OnceDifferentiable(obj_f, initial_x; autodiff = :forward)
+			res = Optim.optimize(od , [minω, minθ], [maxω, maxθ], guess, Fminbox(BFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))))
+
+			# res = Optim.optimize(
+			# 	x -> -value(h, x[1], x[2], itp_vf_s, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
+			# 	, [minω, minθ], [maxω, maxθ], guess, Fminbox(LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))))
 			if Optim.converged(res)
 			else
 				throw("Main algorithm failed")

@@ -1,4 +1,4 @@
-using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, LaTeXStrings, Distributions, JLD, Sobol, HCubature, Distributed, Dates, ORCA
+using QuantEcon, BasisMatrices, Interpolations, Optim, NLopt, LaTeXStrings, Distributions, JLD, Sobol, HCubature, Distributed, Dates, ORCA, ForwardDiff
 
 # Load codes
 include("reporting_routines.jl")
