@@ -125,7 +125,7 @@ function update_W(h::Hank)
 end
 
 
-function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=250, tol::Float64=5e-3, nodef::Bool=false, noΔ::Bool=false, rep_agent::Bool=false, run_number::Int64=1, save_copies::Bool=true, nob::Bool=false)
+function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=250, tol::Float64=25e-4, nodef::Bool=false, noΔ::Bool=false, rep_agent::Bool=false, run_number::Int64=1, save_copies::Bool=true, nob::Bool=false)
 	print_save("\nIterating on the government's policy: ")
 	time_init = time()
 	t_old = time_init
