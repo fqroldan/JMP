@@ -199,3 +199,9 @@ end
 
 pars(h::Hank) = [(1/h.β)^4-1; h.γ; h.τ; h.wbar; h.ρz; h.σz; h.tax; h.ρξ; h.σξ]
 
+function make_center(params::Vector)
+
+	rloc, RRA, τ, wbar, ρz,σz, tax, ρξ,σξ = params
+
+	return [rloc; tax; RRA; τ; ρz; σz; ρξ; σξ; wbar]
+end
