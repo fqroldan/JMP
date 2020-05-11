@@ -13,7 +13,7 @@ include("plotting_routines.jl")
 
 #				r_loc,   tax, RRA,     τ,    ρz,    σz,    ρξ,   σξ,  wbar
 # params_center = [0.09; 0.002;  10; 0.092; 0.970; 0.003; 0.995; 1e-6; 0.883]
-params_center = [0.09; 0.002; 15.03; 0.092; 0.97; 0.003; 0.995; 0.002; 0.883]
+params_center = [0.09; 0.002; 15.03; 0.092; 0.97; 0.003; 0.995; 0.001; 0.883]
 
 
 function load_params(run_number)
@@ -100,7 +100,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		plot_contour_debtprice(h, savedir)
 		plot_contour_unemp(h, savedir)
 		
-		years = 4000
+		years = 10000
 		g, p_bench, πthres, v_m, def_freq = make_simulated_path(h, run_number, years)
 		run(`cp ../Output/hank.jld ../Output/run$(run_number)/hank.jld`)
 	else
