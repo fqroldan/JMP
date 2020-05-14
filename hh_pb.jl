@@ -377,7 +377,6 @@ function vfi!(sd::SOEdef; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=
 		v_old = copy(sd.v)
 		warnc0 = bellman_iteration!(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=true, autodiff=false)
 		v_new = copy(sd.v)
-		println("$iter")
 
 		dist = maximum([sqrt.(sum( (v_new[key] - v_old[key]).^2 )) / sqrt.(sum(v_old[key].^2)) for key in keys(sd.v)])
 		norm_v = Dict(key => sqrt.(sum(v_old[key].^2)) for key in keys(sd.v))
