@@ -103,7 +103,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 
 	while dist > tol && iter < maxiter
 		iter += 1
-		print_save("\n\nOuter Iteration $iter (run $(run_number)) with upd_ηR = $(@sprintf("%0.3g",upd_ηR))\n")
+		print_save("\n\nOuter Iteration $iter (run $(run_number)) with upd_ηR = $(@sprintf("%0.3g",upd_ηR)) at $(Dates.format(now(), "HH:MM"))")
 
 		""" RUN COMP_EQM LOOP """
 		comp_eqm!(sd, verbose = verbose, tol = tol_eqm, maxiter = maxiter_CE)

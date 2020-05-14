@@ -587,7 +587,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		if iter % iter_show == 0
 			print_save("\nIteration $iter")
 			print_save("(vfi update tolerance = $(@sprintf("%0.3g",tol_vfi)))")
-			print_save(". upd_η = $(@sprintf("%0.3g", upd_η))")
+			print_save(". (upd_η = $(@sprintf("%0.3g", upd_η)))")
 			print_save(Dates.format(now(), "HH:MM"))
 		end
 
