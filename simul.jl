@@ -330,5 +330,5 @@ function simul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=0)
 
 	jz_series = jz_series[burn_in+1:end]
 
-	return p, jz_series, Ndefs
+	return trim_path(p, burn_in), jz_series, Ndefs
 end

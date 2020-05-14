@@ -55,7 +55,7 @@ end
 function trim_path(p::Path{T}, t0::Int64) where T
 	check_periods(p,t0)
 	
-	return Path{T-t0+1}(Dict(key => val[t0:end] for (key, val) in p.data))
+	return Path{T-t0}(Dict(key => val[t0+1:end] for (key, val) in p.data))
 end
 
 function tauchen_fun(ny::Int64, ρ::Float64, σe::Float64; m=3, mu=0.0)
