@@ -162,6 +162,7 @@ function solve_optvalue(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz
 			ϕp[:s] = first(res.minimizer)
 			vp[:v] = first(-res.minimum)
 		else
+			# res = Optim.optimize(obj_v, [smin], [smax], [sguess], Fminbox(BFGS()))
 			res = Optim.optimize(obj_v, smin, smax, GoldenSection())
 			ϕp[:s] = first(res.minimizer)
 			vp[:v] = first(-res.minimum)
@@ -313,7 +314,6 @@ function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, p
 				ϕmax = guess
 				fmax = eval_value(sd, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 			end
-			# !isnan(fmax) || print_save("\nWARNING: NaN in value function at (ap, bp, c) = ($(round(ap, 2)), $(round(bp, 2)), $(cmax))")
 
 			for (key, val) in ϕmax
 				ϕ[key][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = val
@@ -381,7 +381,7 @@ function vfi!(sd::SOEdef; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=
 		dist = maximum([sqrt.(sum( (v_new[key] - v_old[key]).^2 )) / sqrt.(sum(v_old[key].^2)) for key in keys(sd.v)])
 		norm_v = Dict(key => sqrt.(sum(v_old[key].^2)) for key in keys(sd.v))
 		if verbose 
-			if dist < tol #|| iter % 20 == 0
+			if dist < tol || iter % 20 == 0
 				t_new = time()
 				print_save("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v,w‖ = ($(@sprintf("%0.3g",norm_v[:v])), $(@sprintf("%0.3g",norm_v[:w]))) after $(time_print(t_new-t_old)) and $iter iterations ")
 				print_save(Dates.format(now(), "HH:MM"))
