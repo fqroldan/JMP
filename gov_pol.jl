@@ -106,7 +106,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 		print_save("\n\nOuter Iteration $iter (run $(run_number)) with upd_ηR = $(@sprintf("%0.3g",upd_ηR))\n")
 
 		""" RUN COMP_EQM LOOP """
-		comp_eqm!(sd, verbose = false, tol = tol_eqm, maxiter = maxiter_CE)
+		comp_eqm!(sd, verbose = true, tol = tol_eqm, maxiter = maxiter_CE)
 
 		""" UPDATES """
 		W_new = update_W(sd)

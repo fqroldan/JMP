@@ -598,7 +598,8 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		!verbose || print_save("\nqᵍ between $(round(minimum(sd.eq[:qᵍ][Jgrid[:,5].==1]),digits=4)) and $(round(maximum(sd.eq[:qᵍ]),digits=4)). risk-free is $(round(mean(sd.eq[:qʰ]),digits=4))")
 		!verbose || print_save(" (spread between $(floor(Int,10000*minimum(sd.eq[:spread]))) bps and $(floor(Int,10000*maximum(sd.eq[:spread][Jgrid[:,5].==1]))) bps)")
 
-		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = false);
+		""" SOLVE INCOME FLUCTUATIONS PROBLEM """
+		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = true);
 		flag = (dist_v < tol_vfi)
 		if flag && iter % 20 == 0
 			print_save(" ✓")
@@ -609,21 +610,23 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		msg *= "Can't affort consumption $(consw)% of the time"
 		!verbose || print_save(msg)
 
+		""" UPDATE STATE FUNCTIONS """
 		t1 = time()
 		!verbose || print_save("\nUpdating functions of the state")
-
 		exc_dem_prop, exc_sup_prop, mean_excS, max_excS, dists = update_state_functions!(sd, upd_η)
 		!verbose || print_save(": done in $(time_print(time()-t1))")
 		!verbose || print_save("\nStates with exc supply, demand = $(round(100*exc_sup_prop,digits=2))%, $(round(100*exc_dem_prop,digits=2))%")
 		!verbose || print_save("\nAverage, max exc supply = $(@sprintf("%0.3g",mean_excS)), $(@sprintf("%0.3g",max_excS))")
 
+		""" UPDATE GRID FOR PN """
 		t1 = time()
 		update_grid_p!(sd, exc_dem_prop, exc_sup_prop)
 		!verbose || print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:pN]))), $(@sprintf("%0.3g",maximum(sd.gr[:pN])))]")
 		!verbose || print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
-
+		
 		dist_s = maximum(dists)
 
+		""" UPDATE EXPECTATIONS AND GRIDS FOR LOMS """
 		dist_exp, new_μgrid, new_σgrid = update_expectations!(sd, 0.5 * upd_η)
 		update_grids!(sd, new_μgrid = new_μgrid, new_σgrid = new_σgrid)
 
