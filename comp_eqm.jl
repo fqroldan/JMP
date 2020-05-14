@@ -1,334 +1,63 @@
-TFP_N(z, Δ, ζ) = 1.0    * max(0, (1.0 - Δ*1*(ζ==2) - Δ*(1.0-1)*exp(.25*z)^3 ))
-TFP_T(z, Δ, ζ) = exp(z) * max(0, (1.0 - Δ*1*(ζ==2) - Δ*(1.0-1)*exp(z)^3))
+TFP_N(z, Δ, ζv) = 1.0    * max(0, (1.0 - Δ*(ζv==1)))
+TFP_T(z, Δ, ζv) = exp(z) * max(0, (1.0 - Δ*(ζv==1)))
 
-# function extend_state_space!(h::Hank, qʰ_mat, qᵍ_mat, T_mat)
+function labor_demand(sd::SOEdef, w, z, ζ, pN)
+	pars = sd.pars
 
-# 	Npn = length(h.pngrid)
+	Ld_nontradables = (pars[:α_N] * pN * TFP_N(z,pars[:Δ],ζ) / w).^(1.0/(1.0-pars[:α_N]))
+	Ld_tradables    = (pars[:α_T] * 1  * TFP_T(z,pars[:Δ],ζ) / w).^(1.0/(1.0-pars[:α_T]))
 
-# 	ϕa_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
-# 	ϕb_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
-# 	ϕc_ext = Array{Float64}(undef, h.Nω, h.Nϵ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, Npn)
-
-# 	itp_vf = make_itp(h, h.vf; agg=false)
-# 	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
-
-# 	print_save("\nExtending the state space ($(Npn) iterations needed)")
-
-# 	for jpn in 1:Npn
-
-# 		pnv = h.pngrid[jpn]
-
-# 		N = size(h.Jgrid, 1)
-
-# 		wage_pn, labor_pn, profits_pn = Array{Float64, 1}(undef, N), Array{Float64, 1}(undef, N), Array{Float64, 1}(undef, N)
-# 		for js in 1:N
-# 			jζ = h.Jgrid[js, 5]
-# 			jz = h.Jgrid[js, 6]
-
-# 			wv = h.wbar
-# 			ζv = h.ζgrid[jζ]
-# 			zv = h.zgrid[jz]
-
-# 			# wv = 0.9
-
-# 			labor_pn[js], wage_pn[js], profits_pn[js], _ = labor_market(h, ζv, zv, pnv)
-# 		end
-
-# 		pC = price_index(h, pnv)
-# 		pC_mat = ones(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz) * pC
-
-# 		T_mat = govt_bc(h, wage_pn.*labor_pn)# - reshape(profits_pn - h.profits, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
-# 		Π_mat = reshape(profits_pn, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
-
-# 		wL_mat  = reshape(wage_pn.*labor_pn, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz) * (1.0 - h.τ)
-
-# 		if h.ϕa_ext[1,1,1,1,1,1,1,1,jpn] == 0
-# 			guess_a = h.ϕa
-# 			guess_b = h.ϕb
-# 		else
-# 			guess_a = h.ϕa_ext[:,:,:,:,:,:,:,:,jpn]
-# 			guess_b = h.ϕb_ext[:,:,:,:,:,:,:,:,jpn]
-# 		end
-
-# 		# Re-solve for these values of wn and pn
-# 		_, ϕa, ϕb, ϕe, ϕc, _ = opt_value(h, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf; resolve = true, verbose = false, guess_a=guess_a, guess_b=guess_b)
-
-# 		isapprox(sum(abs.(ϕc)), 0) ? print_save("\nWARNING: ϕc(pN = $(round(pnv, 2))) ≡ 0 when extending state space") : nothing
-
-# 		for jz in 1:h.Nz, jζ in 1:h.Nζ, jξ in 1:h.Nξ, jσ in 1:h.Nσ, jμ in 1:h.Nμ, jb in 1:h.Nb, jϵ in 1:h.Nϵ, jω in 1:h.Nω
-# 			ϕa_ext[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz,jpn] = ϕa[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz]
-# 			ϕb_ext[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz,jpn] = ϕb[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz]
-# 			ϕc_ext[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz,jpn] = ϕc[jω,jϵ,jb,jμ,jσ,jξ,jζ,jz]
-# 		end
-# 	end
-
-# 	!isnan(sum(ϕa_ext)) || print_save("ERROR: $(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext")
-# 	!isnan(sum(ϕa_ext)) || throw(error("$(isnan(sum(ϕa_ext))) NaN counts in ϕa_ext"))
-
-# 	isapprox(sum(abs.(ϕc_ext)), 0) ? print_save("\nWARNING: ϕc ≡ 0 when extending state space") : nothing
-
-# 	h.ϕa_ext = ϕa_ext
-# 	h.ϕb_ext = ϕb_ext
-# 	h.ϕc_ext = ϕc_ext
-
-# 	nothing
-# end
-
-transform_vars(m::Float64, cmin, cmax) = cmax - (cmax-cmin)/(1+exp(m))
-
-function _unpack_origvars(x, xmin, xmax)
-	y = zeros(x)
-	for (jx, xv) in enumerate(x)
-		y[jx] = transform_vars(xv, xmax[jx], xmin[jx])
-	end
-	return y
-end
-
-function labor_demand(h::Hank, w, z, ζ, pN; get_both::Bool = false)
-
-	Δ = h.Δ
-
-	Ld_nontradables = (h.α_N * pN * TFP_N(z,Δ,ζ) / w).^(1.0/(1.0-h.α_N))
-	Ld_tradables    = (h.α_T * 1. * TFP_T(z,Δ,ζ) / w).^(1.0/(1.0-h.α_T))
-
-	if get_both
-		return Ld_nontradables, Ld_tradables
-	else
-		return Ld_nontradables + Ld_tradables
-	end
-end
-
-function labor_market(h::Hank, ζv, zv, pNv; w_slack::Bool=false)
-	""" Finds w and Lᵈ at the current state given a guess of pNv """
-	w_constraint = h.wbar
-	if w_slack
-		w_constraint = 0.5
-	end
-
-	# Step 1: Assume wₜ is at the constraint, find labor demand, and check whether the eq'm wage is above or below
-	Ld_N, Ld_T = labor_demand(h, w_constraint, zv, ζv, pNv; get_both=true)
-	Ld = Ld_N + Ld_T
-
-	# Step 2: If labor demand is lower than supply, find the wage above γw * wv that clears the labor mkt
-	Ls = 1.0
-	αmax = max(h.α_N, h.α_T)
-	w_max = 1.1 * αmax * ( TFP_T(zv,h.Δ,ζv)^(1.0/(1.0-αmax)) + (pNv*TFP_N(zv,h.Δ,ζv))^(1.0/(1.0-αmax)) )^(1.0-αmax) 
-
-	if w_max < w_constraint
-		# print_save("\nSomething wrong with wages")
-		w_max = w_constraint
-	end
-
-	w_new = w_constraint
-
-	if Ld - Ls > 1e-4
-		res = Optim.optimize(
-			w -> (labor_demand(h, w, zv, ζv, pNv) - Ls)^2,
-				w_constraint, 1.0.*w_max, GoldenSection()
-			)
-		w_new = res.minimizer
-		minf = Ls - labor_demand(h, w_new, zv, ζv, pNv)
-		abs(minf) < 1e-4 || print_save("\nWARNING: Labor exc supply = $(@sprintf("%0.3g",minf)) at (w, w_max) = ($(@sprintf("%0.3g",w_new)), $(@sprintf("%0.3g",w_max))) at (z,ζ,pN) = $([zv, ζv, pNv])")
-		Ld_N, Ld_T = labor_demand(h, w_new, zv, ζv, pNv; get_both=true)
-		Ld = Ld_N + Ld_T
-	end
-
-	output 	= pNv * TFP_N(zv,h.Δ,ζv) * Ld_N^h.α_N + TFP_T(zv,h.Δ,ζv) * Ld_T^h.α_T
-	profits = output - w_new * (Ld_N + Ld_T)
-
-	return Ld, w_new, profits, output
+	return Ld_nontradables, Ld_tradables
 end
 
 
-function mkt_clearing(h::Hank, itp_ϕc, G, Bpv, pNv, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; w_slack::Bool=false, orig_vars::Bool = true, get_others::Bool = false, get_both::Bool=false)
-	typeof(pNv) == Vector{Float64} ? pN = pNv[1] : pN = pNv
-	if orig_vars == false
-		pN = transform_vars(pN, pNmin, pNmax)
-	end
-
-	isnan(pN) ? print_save("\nWARNING: pNv, pN = $(pNv[1]), $(pN)") : nothing
-
-	ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
-
-	Ld, w_new, profits, output = labor_market(h, ζv, zv, pN; w_slack=w_slack)
-
-	# Check market clearing for nontradables
-	Ld_N, _  = labor_demand(h, w_new, zv, ζv, pN; get_both=true)
-	supply_N = TFP_N(zv, h.Δ, ζv) * Ld_N^(h.α_N)
-
-	# Get the household's policies at these prices
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ h.ωmin
-	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
-	ωmin_int = h.ωmin
-	val_C, sum_prob = 0., 0.
-	itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
-	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
-		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=500)
-		sum_prob += val_pdf * h.λϵ[jϵ]
-
-		f(ω) = f_pdf(ω) * itp_ϕc(ω, jϵ, bv, μv, σv, ξv, jζ, jz, pN)
-		(val, err) = hquadrature(f, ωmin_int, ωmax_int, rtol=1e-12, atol=0, maxevals=500)
-	
-		val_C += val * h.λϵ[jϵ]
-	end
-
-	# val_C, sum_prob = 0., 0.
-	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
-	# 	for jω = 1:length(h.ωgrid_fine)-1
-	# 		ωv  = h.ωgrid_fine[jω]
-	# 		ω1v = h.ωgrid_fine[jω+1]
-	# 		ωmv = 0.5*(ωv+ω1v)
-
-	# 		prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
-
-	# 		ϕc = itp_ϕc[ωmv, jϵ, bv, μv, σv, wv, jζ, jz, pN]
-
-	# 		val_C  += prob * ϕc
-	# 		sum_prob += prob
-	# 	end
-	# end
-	# isapprox(sum_prob, 1) || print_save("\nWARNING: Something wrong computing aggregate consumption")
-
-	val_int_C = val_C / sum_prob
- 	
- 	# Recover nontraded demand from total consumption
-	pC = price_index(h, pN)
-	demand_N_cons = val_int_C * h.ϖ * (pN/pC)^(-h.η)
-	demand_N_govt = G * h.ϑ / pN
-
-	demand_N = demand_N_cons + demand_N_govt
-
-	F = supply_N - demand_N
-
-	if get_others
-		return w_new, Ld, output
-	elseif get_both
-		return supply_N, demand_N
-	else
-		return F
-	end
-end
-
-function find_prices(h::Hank, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
-
-	# First find eq'm assuming the constraint does not bind
-	res = Optim.optimize(
-		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars = true, w_slack=true)^2,
-		pNmin, pNmax, GoldenSection()
-		)
-	pN = res.minimizer
-	wage, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars=true, get_others=true, w_slack=true)
-
-	if wage >= h.wbar && res.minimum < 1e-6
-		pN >= pNmax - 0.05*(pNmax-pNmin) ? exc_dem = 1 : exc_dem = 0
-		pN <= pNmin + 0.05*(pNmax-pNmin) ? exc_sup = 1 : exc_sup = 0
-
-		minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars = true)
-
-		results = [wage; pN; Ld; output]
-
-		return results, [minf], exc_dem, exc_sup
-	end
-
-	res = Optim.optimize(
-		pN -> mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars = true)^2,
-		# 0.9*pNmin, 1.1*pNmax, GoldenSection()
-		pNmin, pNmax, GoldenSection()
-		)
-	pN = res.minimizer
-	minf = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; orig_vars = true)
-
-	pN >= pNmax - 0.05*(pNmax-pNmin) ? exc_dem = 1 : exc_dem = 0
-	pN <= pNmin + 0.05*(pNmax-pNmin) ? exc_sup = 1 : exc_sup = 0
-	# if res.minimum > 1e-6
-	# 	exc_dem, exc_sup = 1, 1
-	# end
-	wage, Ld, output = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault; get_others=true)
-
-	results = [wage; pN; Ld; output]
-
-	if abs(minf) > 1e-4
-		# print_save("\nNontradables exc supply = $(@sprintf("%0.4g",minf)) at pN = $(@sprintf("%0.4g",pN))")
-	end
-
-	return results, [minf], exc_dem, exc_sup
-end
-
-function eval_prices_direct(h::Hank, val_int_C, G, pN, bv, μv, σv, ξv, jζ, jz, jdefault; get_others::Bool=false)
-
-	ζv, zv = h.ζgrid[jζ], h.zgrid[jz]
-
+function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv, zv)
+	pars = sd.pars
 	Ls = 1.0
 	
 	# Step 1: Find unconstrained wage
 	res = Optim.optimize(
-		w -> (Ls - labor_demand(h, w, zv, ζv, pN))^2,
-		0.5, 4*pN, GoldenSection()
+		w -> (Ls - sum(labor_demand(sd, w, zv, ζv, pN)))^2,
+		min(0.5*pN,0.5), max(1,4*pN), GoldenSection()
 		)
 
 	# Step 2: Apply constraint
-	wv = max(res.minimizer, h.wbar)
+	wv = max(res.minimizer, pars[:wbar])
 
 	# Step 3: Compute labor demand in nontradables and supply
-	Ld_N, Ld_T  = labor_demand(h, wv, zv, ζv, pN; get_both=true)
+	Ld_N, Ld_T = labor_demand(sd, wv, zv, ζv, pN)
 	Ld = Ld_N + Ld_T
-	supply_N = TFP_N(zv,h.Δ,ζv) * Ld_N^h.α_N
-	supply_T = TFP_T(zv,h.Δ,ζv) * Ld_T^h.α_T
+	supply_N = TFP_N(zv,pars[:Δ],ζv) * Ld_N^pars[:α_N]
+	supply_T = TFP_T(zv,pars[:Δ],ζv) * Ld_T^pars[:α_T]
 
 	# Step 4: Get nontraded demand
  	# Recover traded demand from total consumption
-	pC = price_index(h, pN)
-	cT = val_int_C * (1.0-h.ϖ) * (1.0/pC)^(-h.η)
-	cN = val_int_C * (h.ϖ) * (pN/pC)^(-h.η)
-	gN = G * h.ϑ / pN
+ 	ϖ, η, ϑ = [pars[key] for key in [:ϖ, :η, :ϑ]]
+	pC = price_index(sd, pN)
+	cT = val_int_C * (1-ϖ) * (1.0/pC)^(-η)
+	cN = val_int_C * ( ϖ ) * (pN/pC)^(-η)
+	gN = G * ϑ / pN
 
 	yN = max(0.0, supply_N - gN)
 
 	# Get new implied pN
-	pN_new = h.ϖ^(1/h.η) / (1-h.ϖ^(1/h.η)) * (cT/yN)^(1/h.η)
+	pN_new = ϖ^(1/η) / (1-ϖ^(1/η)) * (cT/yN)^(1/η)
 
 	pN_new = min(100.0, pN_new)
 
+	output = pN * supply_N + supply_T
 	F = pN - pN_new
 
-	if get_others
-		output = pN * supply_N + supply_T
-		return wv, Ld, output, supply_N, cN + gN, pN_new
-	else
-		return F
-	end
+	return Dict(:output => output, :Ld => Ld, :pN_new => pN_new, :C => val_int_C, :wage => wv, :F => F, :supply_N => supply_N, :demand_N => cN+gN)
 end
 
-function get_agg_C(h::Hank, itp_ϕc, bv, μv, σv, ξv, jζ, jz)
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ h.ωmin
-	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
-	ωmax = maximum(h.ωgrid)
-	ωmin_int = h.ωmin
-	val_C, sum_prob = 0., 0.
-	# itp_ϕc = extrapolate(itp_ϕc, Interpolations.Line())
-	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
-		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=500)
-		sum_prob += val_pdf * h.λϵ[jϵ]
-
-		f(ω) = f_pdf(ω) * itp_ϕc(ω, jϵ, bv, μv, σv, ξv, jζ, jz)
-		(val, err) = hquadrature(f, ωmin_int, ωmax_int, rtol=1e-12, atol=0, maxevals=500)
-	
-		val_C += val * h.λϵ[jϵ]
-	end
-
-	val_int_C = val_C / sum_prob
-end
-
-
-function find_prices_direct(h::Hank, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
+function find_prices_direct(sd::SOEdef, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, ζv, zv)
 
 	do_solver_prices = true
 
 	if do_solver_prices
 		res = Optim.optimize(
-			pNv -> (eval_prices_direct(h, val_int_C, G, pNv, bv, μv, σv, ξv, jζ, jz, jdefault))^2,
+			pNv -> (eval_prices_direct(sd, val_int_C, G, pNv, bv, μv, σv, ξv, ζv, zv)[:F])^2,
 			pNmin, pNmax, GoldenSection()
 			)
 
@@ -336,7 +65,7 @@ function find_prices_direct(h::Hank, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv, �
 	else
 		if false
 			pNg = max(min(pNg, pNmax - 1e-6), pNmin + 1e-6)
-			obj_f(x) = (eval_prices_direct(h, val_int_C, G, x, bv, μv, σv, ξv, jζ, jz, jdefault))^2
+			obj_f(x) = (eval_prices_direct(sd, val_int_C, G, x, bv, μv, σv, ξv, ζv, zv)[:F])^2
 			res = Optim.optimize(
 				pN -> obj_f(first(pN)),
 				[pNmin], [pNmax], [pNg], Fminbox(LBFGS())#, autodiff=:forward#, Optim.Options(f_tol=1e-12)
@@ -347,57 +76,50 @@ function find_prices_direct(h::Hank, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv, �
 		end
 	end
 
-	wage, Ld, output, supply_N, demand_N, _ = eval_prices_direct(h, val_int_C, G, pN, bv, μv, σv, ξv, jζ, jz, jdefault; get_others=true)
+	vars = eval_prices_direct(sd, val_int_C, G, pN, bv, μv, σv, ξv, ζv, zv)
 
 	pN >= pNmax - 0.05*(pNmax-pNmin) ? exc_dem = 1 : exc_dem = 0
 	pN <= pNmin + 0.05*(pNmax-pNmin) ? exc_sup = 1 : exc_sup = 0
 
-	minf = supply_N - demand_N
+	minf = vars[:supply_N] - vars[:demand_N]
 
-	results = [wage; pN; Ld; output]
+	results = [vars[:wage]; pN; vars[:Ld]; vars[:output]]
 
 	return results, [minf], exc_dem, exc_sup
 end
 
-function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
+function find_all_prices(sd::SOEdef, itp_ϕc)
+	eq, gr = sd.eq, sd.gr
+	B′_vec = eq[:issuance]
+	G_vec  = eq[:spending]
 
-	N = size(h.Jgrid, 1)
+	Jgrid = agg_grid(sd)
+	Nj = size(Jgrid, 1)
 
-	results = Array{Float64}(undef, N, 4)
-	minf	= Array{Float64}(undef, N, 1)
-	exc_dem = Array{Float64}(undef, N)
-	exc_sup = Array{Float64}(undef, N)
+	results = Array{Float64}(undef, Nj, 4)
+	minf	= Array{Float64}(undef, Nj, 1)
+	exc_dem = Array{Float64}(undef, Nj)
+	exc_sup = Array{Float64}(undef, Nj)
 
-	pN_guess = h.pN
+	pN_guess = eq[:pN]
 	
 	# for js in 1:N
-	Threads.@threads for js in 1:N
+	Threads.@threads for js in 1:Nj
 		Bpv = B′_vec[js]
 		G = G_vec[js]
 		
-		pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
+		pNmin, pNmax = minimum(gr[:pN]), maximum(gr[:pN])
 		isnan(pN_guess[js]) ? pNg = (pNmin+pNmax) / 2 : pNg = 1 * pN_guess[js]
 
-		jb = h.Jgrid[js, 1]
-		jμ = h.Jgrid[js, 2]
-		jσ = h.Jgrid[js, 3]
-		jξ = h.Jgrid[js, 4]
-		jζ = h.Jgrid[js, 5]
-		jz = h.Jgrid[js, 6]
+		bv = gr[:b][Jgrid[js, 1]]
+		μv = gr[:μ][Jgrid[js, 2]]
+		σv = gr[:σ][Jgrid[js, 3]]
+		ξv = gr[:ξ][Jgrid[js, 4]]
+		ζv = gr[:ζ][Jgrid[js, 5]]
+		zv = gr[:z][Jgrid[js, 6]]
 
-		bv = h.bgrid[jb]
-		μv = h.μgrid[jμ]
-		σv = h.σgrid[jσ]
-		ξv = h.ξgrid[jξ]
-		ζv = h.ζgrid[jζ]
-		zv = h.zgrid[jz]
-
-		jdefault = (ζv != 1.0)
-
-		# r, mf, ed, es = find_prices(h, itp_ϕc, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
-
-		val_int_C = get_agg_C(h, itp_ϕc, bv, μv, σv, ξv, jζ, jz)
-		r, mf, ed, es = find_prices_direct(h, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, jdefault)
+		val_int_C = get_agg_C(sd, itp_ϕc, bv, μv, σv, ξv, ζv, zv)
+		r, mf, ed, es = find_prices_direct(sd, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, ζv, zv)
 
 		results[js, :] = r
 		minf[js, :], exc_dem[js], exc_sup[js] = mf, ed, es
@@ -409,60 +131,74 @@ function find_all_prices(h::Hank, itp_ϕc, B′_vec, G_vec)
 	return results, minf, exc_dem, exc_sup
 end
 
-function update_state_functions!(h::Hank, upd_η::Float64)
-	# itp_ϕc = make_itp(h, h.ϕc_ext; agg=false)
-	itp_ϕc = make_itp(h, h.ϕc; agg=false);
-	# itp_ϕc = extrapolate(itp_ϕc, Interpolations.Flat())
+function get_agg_C(sd::SOEdef, itp_ϕc, bv, μv, σv, ξv, ζv, zv)
+	pars, gr = sd.pars, sd.gr
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ pars[:ωmin]
+	ωmax_int = min(ωmax_int, maximum(gr[:ω]))
+	ωmax = maximum(gr[:ω])
+	ωmin_int = pars[:ωmin]
+	val_C, sum_prob = 0., 0.
+	λϵ = ergodic_ϵ(sd)
+	for (jϵ, ϵv) in enumerate(gr[:ϵ])
+		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-pars[:ωmin])
+		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=500)
+		sum_prob += val_pdf * λϵ[jϵ]
 
-	t1 = time()
-	results, minf, exc_dem, exc_sup = find_all_prices(h, itp_ϕc, h.issuance, h.spending)
-	print_save(" (new prices in $(time_print(time()-t1)))")
-
-	dist = Array{Float64,1}(undef, 3)
-	dist[1] = sqrt.(sum( (results[:, 1] - h.wage).^2 )) / sqrt.(sum(h.wage.^2))
-	dist[2] = sqrt.(sum( (results[:, 2] - h.pN).^2 ))   / sqrt.(sum(h.pN.^2))
-	dist[3] = sqrt.(sum( (results[:, 3] - h.Ld).^2 ))   / sqrt.(sum(h.Ld.^2))
-
-	h.pN = upd_η * results[:, 2] + (1.0-upd_η) * h.pN
-
-	consistent_others = true
-	if consistent_others
-		N = size(h.Jgrid,1)
-		wage, Ld, output = zeros(N), zeros(N), zeros(N)
-		Threads.@threads for js in 1:N
-		# for js in 1:N
-			Bpv = h.issuance[js]
-			G = h.spending[js]
-
-			pN = h.pN[js]
-			pNmin, pNmax = minimum(h.pngrid), maximum(h.pngrid)
-
-			bv = h.bgrid[h.Jgrid[js, 1]]
-			μv = h.μgrid[h.Jgrid[js, 2]]
-			σv = h.σgrid[h.Jgrid[js, 3]]
-			ξv = h.ξgrid[h.Jgrid[js, 4]]
-			jζ = h.Jgrid[js, 5]
-			jz = h.Jgrid[js, 6]
-
-			pN = max(min(pN, pNmax), pNmin)
-
-			# wage[js], Ld[js], output[js] = mkt_clearing(h, itp_ϕc, G, Bpv, pN, pNmin, pNmax, bv, μv, σv, ξv, jζ, jz, (jζ!=1); get_others=true)
-			val_int_C = get_agg_C(h, itp_ϕc, bv, μv, σv, ξv, jζ, jz)
-
-			wage[js], Ld[js], output[js], _, _, _ = eval_prices_direct(h, val_int_C, G, pN, bv, μv, σv, ξv, jζ, jz, (jζ!=1); get_others=true)
-
-			jzmean = h.Nz # ceil(Int, h.Nz/2)
-		end
-		h.wage, h.Ld, h.output = wage, Ld, output
-		update_fiscalrules!(h)
-	else
-		h.wage 	 = upd_η * results[:, 1] + (1.0-upd_η) * h.wage
-		h.Ld 	 = upd_η * results[:, 3] + (1.0-upd_η) * h.Ld
-		h.output = upd_η * results[:, 4] + (1.0-upd_η) * h.output
-		h.w′ 	 = h.w′
+		f(ω) = f_pdf(ω) * itp_ϕc(ω, ϵv, bv, μv, σv, ξv, ζv, zv)
+		(val, err) = hquadrature(f, ωmin_int, ωmax_int, rtol=1e-12, atol=0, maxevals=500)
+	
+		val_C += val * λϵ[jϵ]
 	end
 
-	h.profits = h.output - h.wage .* h.Ld
+	val_int_C = val_C / sum_prob
+end
+
+function update_state_functions!(sd::SOEdef, upd_η; verbose::Bool=false)
+	eq, gr = sd.eq, sd.gr
+	itp_ϕc = make_itp(sd, sd.ϕ[:c]; agg=false);
+
+	t1 = time()
+	results, minf, exc_dem, exc_sup = find_all_prices(sd, itp_ϕc);
+	!verbose || print_save(" (new prices in $(time_print(time()-t1)))")
+
+	dist = Array{Float64,1}(undef, 3)
+	dist[1] = sqrt.(sum( (results[:, 1] - eq[:wage]).^2 )) / sqrt.(sum(eq[:wage].^2))
+	dist[2] = sqrt.(sum( (results[:, 2] - eq[:pN]).^2 ))   / sqrt.(sum(eq[:pN].^2))
+	dist[3] = sqrt.(sum( (results[:, 3] - eq[:Ld]).^2 ))   / sqrt.(sum(eq[:Ld].^2))
+
+	eq[:pN] = upd_η * results[:, 2] + (1.0-upd_η) * eq[:pN]
+
+	Jgrid = agg_grid(sd)
+	Threads.@threads for js in 1:size(Jgrid,1)
+	# for js in 1:N
+		Bpv = eq[:issuance][js]
+		G = eq[:spending][js]
+
+		pN = eq[:pN][js]
+		pNmin, pNmax = minimum(gr[:pN]), maximum(gr[:pN])
+
+		bv = gr[:b][Jgrid[js, 1]]
+		μv = gr[:μ][Jgrid[js, 2]]
+		σv = gr[:σ][Jgrid[js, 3]]
+		ξv = gr[:ξ][Jgrid[js, 4]]
+		ζv = gr[:ζ][Jgrid[js, 5]]
+		zv = gr[:z][Jgrid[js, 6]]
+
+		pN = max(min(pN, pNmax), pNmin)
+
+		val_int_C = get_agg_C(sd, itp_ϕc, bv, μv, σv, ξv, ζv, zv)
+
+		others = eval_prices_direct(sd, val_int_C, G, pN, bv, μv, σv, ξv, ζv, zv)
+
+		for (key, val) in others # should contain :wage, :Ld, :output, :C
+			if haskey(eq, key)
+				eq[key][js] = val
+			end
+		end
+	end
+	update_fiscalrules!(sd)
+
+	eq[:profits] = eq[:output] - eq[:wage] .* eq[:Ld]
 	mean_f = mean(minf)
 	max_f = maximum(abs.(minf))
 
@@ -472,66 +208,38 @@ function update_state_functions!(h::Hank, upd_η::Float64)
 	return exc_dem_prop, exc_sup_prop, mean_f, max_f, dist
 end
 
-function update_grids_pw!(h::Hank, exc_dem_prop, exc_sup_prop)
+function update_grid_p!(sd::SOEdef, exc_dem_prop, exc_sup_prop)
+	gr = sd.gr
 
-	pN_down = minimum(h.pngrid)
+	pN_down = minimum(gr[:pN])
 	if exc_sup_prop > 0.01
 		pN_down = pN_down * 0.95
 	elseif exc_sup_prop == 0.
 		pN_down = pN_down * 1.01
 	end
-	pN_up = maximum(h.pngrid)
+	pN_up = maximum(gr[:pN])
 	if exc_dem_prop > 0.01
 		pN_up = pN_up * 1.05
 	elseif exc_dem_prop == 0.
 		pN_up = pN_up * 0.99
 	end
 
-	Ls = 1.0
-	ζ = 1
-	wlow, whigh = minimum(h.wage), maximum(h.wage)
-
-	res1 = Optim.optimize(
-			w -> (labor_demand(h, w, h.zgrid[end], ζ, pN_up) - Ls).^2,
-			wlow, whigh * 2.0, GoldenSection()
-			)
-	res2 = Optim.optimize(
-			w -> (labor_demand(h, w, h.zgrid[end], ζ, pN_down) - Ls).^2,
-			wlow, whigh * 2.0, GoldenSection()
-			)
-	w_up = max(res1.minimizer, res2.minimizer) * 1.25
-	ζ = 2
-	res1 = Optim.optimize(
-			w -> (labor_demand(h, w, h.zgrid[1], ζ, pN_up) - Ls).^2,
-			0.5 * wlow, whigh, GoldenSection()
-			)
-	res2 = Optim.optimize(
-			w -> (labor_demand(h, w, h.zgrid[1], ζ, pN_down) - Ls).^2,
-			0.5 * wlow, whigh, GoldenSection()
-			)
-	w_down = min(res1.minimizer, res2.minimizer) * 0.75
-
-	h.pngrid = collect(range(pN_down, pN_up, length=length(h.pngrid)))
+	gr[:pN] = collect(range(pN_down, pN_up, length=length(gr[:pN])))
 
 	nothing
 end
 
-
-function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry; get_μσ::Bool=false)
-
-	zpv = h.zgrid[jzp]
-
+function find_q(sd::SOEdef, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)
+	pars = sd.pars
 	haircut = 0.0
 	if jdef && reentry==false
-		ζpv = 2
 		haircut = 0.0
 	end
-	if jdef == false && ζpv == 2
-		ζpv = 2
-		haircut = h.ℏ
+	if jdef == false && ζpv == 0
+		haircut = pars[:ℏ]
 	end
 
-	R = (ζpv==1) * h.κ + (1.0 - haircut) .* ((1.0-h.ρ)*q)
+	R = (ζpv==1) * pars[:κ] + (1.0 - haircut) .* ((1.0-pars[:ρ])*q)
 
 	Eω   = a + R*b
 	varω = var_a + R^2 * var_b + 2*R * cov_ab
@@ -539,145 +247,120 @@ function find_q(h::Hank, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jd
 
 	# varω >= 0. || print_save("\nvar_a, var_b, cov_ab, R, q = $(var_a), $(var_b), $(cov_ab), $(R), $(q)")
 
-	μpv, σpv = make_logN(max(0.0, Eω - h.ωmin), varω)
-	# μpv = min(max(μpv, minimum(h.μgrid)), maximum(h.μgrid))
-	# σpv = min(max(σpv, minimum(h.σgrid)), maximum(h.σgrid))
+	μpv, σpv = make_logN(max(0.0, Eω - pars[:ωmin]), varω)
 
 	itp_qᵍ = extrapolate(itp_qᵍ, Interpolations.Flat())
-	new_q = itp_qᵍ((1.0 - haircut) .* Bpv, μpv, σpv, ξpv, ζpv, jzp)
+	new_q = itp_qᵍ((1.0 - haircut) .* Bpv, μpv, σpv, ξpv, ζpv, zpv)
 
-	if get_μσ
-		return μpv, σpv
-	else
-		return new_q
-	end
+	return new_q, μpv, σpv
 end
 
+function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, exp_rep, jdef)
+	gr = sd.gr
 
-function compute_stats_logN(h::Hank, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, exp_rep)
+	q = zeros(N(sd,:ξ), N(sd,:z), 2)
+	μ = [zeros(2) for jξp in 1:N(sd,:ξ), jzp in 1:N(sd,:z)]
+	σ = [zeros(2) for jξp in 1:N(sd,:ξ), jzp in 1:N(sd,:z)]
 
-	ζv = h.ζgrid[h.Jgrid[js, 5]]
-	jdef = (ζv != 1.0)
+	alarm_mat = Array{Float64, 3}(undef, N(sd,:ξ), N(sd,:z), 2)
 
-
-	μ, σ, q = zeros(h.Nξ, h.Nz, 2), zeros(h.Nξ, h.Nz, 2), zeros(h.Nξ, h.Nz, 2)
-	alarm_mat = Array{Float64, 3}(undef, h.Nξ, h.Nz, 2)
-
-	for (jξp, ξpv) in enumerate(h.ξgrid), (jzp, zpv) in enumerate(h.zgrid)
-		# First any case where ζ′ = 1
+	for (jξp, ξpv) in enumerate(gr[:ξ]), (jzp, zpv) in enumerate(gr[:z])
+		# First any case where ζ′ = 1 -- no default
 		reentry = true
-		ζpv = 1
-		qmin, qmax = minimum(h.qᵍ), maximum(h.qᵍ)
+		jζp = 2
+		ζpv = gr[:ζ][jζp]
+		qmin, qmax = minimum(sd.eq[:qᵍ]), maximum(sd.eq[:qᵍ])
 
 		res = Optim.optimize(
-			q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry) - q)^2,
+			q -> (find_q(sd, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1] - q)^2,
 			qmin, qmax, Brent()
 			)
-		q[jξp, jzp, 1] = res.minimizer
-		res.minimum > 1e-4 ? alarm_mat[jξp, jzp, 1] = 1 : alarm_mat[jξp, jzp, 1] = 0
+		q[jξp, jzp, jζp] = res.minimizer
+		res.minimum > 1e-4 ? alarm_mat[jξp, jzp, jζp] = 1 : alarm_mat[jξp, jzp, jζp] = 0
 
-		μ[jξp, jzp, 1], σ[jξp, jzp, 1] = find_q(h, q[jξp, jzp, 1], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
+		_, μ[jξp, jzp][jζp], σ[jξp, jzp][jζp] = find_q(sd, q[jξp, jzp, jζp], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)
 
 		if jdef
-			# If default continues
+			# If default continues (both ζv and ζvp are 0)
 			reentry = false
-			ζpv = 2 # Irrelevant but to stress that the default state continues
+			jζp = 1
+			ζpv = gr[:ζ][jζp] # Irrelevant but to stress that the default state continues
 			res = Optim.optimize(
-				q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry) - q)^2,
+				q -> (find_q(sd, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1] - q)^2,
 				qmin, qmax, Brent()
 				)
-			q[jξp, jzp, 2] = res.minimizer
-			res.minimum > 1e-4 ? alarm_mat[jξp, jzp, 2] = 1 : alarm_mat[jξp, jzp, 2] = 0
+			q[jξp, jzp, jζp] = res.minimizer
+			res.minimum > 1e-4 ? alarm_mat[jξp, jzp, jζp] = 1 : alarm_mat[jξp, jzp, jζp] = 0
 
-			μ[jξp, jzp, 2], σ[jξp, jzp, 2] = find_q(h, q[jξp, jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
+			_, μ[jξp, jzp][jζp], σ[jξp, jzp][jζp] = find_q(sd, q[jξp, jzp, jζp], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)
 		else
 			# Entering default
 			reentry = true # Irrelevant
-			ζpv = 2
+			jζp = 1
+			ζpv = gr[:ζ][jζp]
 			res = Optim.optimize(
-				q -> (find_q(h, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry) - q)^2,
+				q -> (find_q(sd, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1] - q)^2,
 				qmin, qmax, Brent()
 				)
-			q[jξp, jzp, 2] = res.minimizer
-			res.minimum > 1e-4 ? alarm_mat[jξp, jzp, 2] = 1 : alarm_mat[jξp, jzp, 2] = 0
+			q[jξp, jzp, jζp] = res.minimizer
+			res.minimum > 1e-4 ? alarm_mat[jξp, jzp, jζp] = 1 : alarm_mat[jξp, jzp, jζp] = 0
 
-			μ[jξp, jzp, 2], σ[jξp, jzp, 2] = find_q(h, q[jξp, jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, jzp, jdef, itp_qᵍ, reentry; get_μσ = true)
+			_, μ[jξp, jzp][jζp], σ[jξp, jzp][jζp] = find_q(sd, q[jξp, jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)
 		end
 	end
 	return μ, σ, q, alarm_mat
 end
 
-function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, js, jdef)
+function new_expectations(sd::SOEdef, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, js, jdef)
+	pars, gr = sd.pars, sd.gr
 
 	itp_ϕa = extrapolate(itp_ϕa, Interpolations.Line())
 	itp_ϕb = extrapolate(itp_ϕb, Interpolations.Line())
 
-	jb = h.Jgrid[js, 1]
-	jμ = h.Jgrid[js, 2]
-	jσ = h.Jgrid[js, 3]
-	jξ = h.Jgrid[js, 4]
-	jζ = h.Jgrid[js, 5]
-	jz = h.Jgrid[js, 6]
+	Jgrid = agg_grid(sd)
 
-	bv = h.bgrid[jb]
-	μv = h.μgrid[jμ]
-	σv = h.σgrid[jσ]
-	ξv = h.ξgrid[jξ]
+	bv = gr[:b][Jgrid[js, 1]]
+	μv = gr[:μ][Jgrid[js, 2]]
+	σv = gr[:σ][Jgrid[js, 3]]
+	ξv = gr[:ξ][Jgrid[js, 4]]
+	ζv = gr[:ζ][Jgrid[js, 5]]
+	zv = gr[:z][Jgrid[js, 6]]
+
+	λϵ = ergodic_ϵ(sd)
 
 	val_a, val_b, val_a2, val_b2, val_ab, sum_prob = 0., 0., 0., 0., 0., 0.
 
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ h.ωmin
-	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
-	ωmin_int = h.ωmin
-	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-h.ωmin)
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ pars[:ωmin]
+	ωmax_int = min(ωmax_int, maximum(gr[:ω]))
+	ωmin_int = pars[:ωmin]
+	for (jϵ, ϵv) in enumerate(gr[:ϵ])
+		f_pdf(ω) = pdf(LogNormal(μv, σv), ω-pars[:ωmin])
 		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
-		sum_prob += val_pdf * h.λϵ[jϵ]
+		sum_prob += val_pdf * λϵ[jϵ]
 
-		fA(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa(ω, jϵ, bv, μv, σv, ξv, jζ, jz))
+		fA(ω) = f_pdf(ω) * max(pars[:ωmin], itp_ϕa(ω, ϵv, bv, μv, σv, ξv, ζv, zv))
 		(valA, err) = hquadrature(fA, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
-		val_a += valA * h.λϵ[jϵ]
+		val_a += valA * λϵ[jϵ]
 
-		fA2(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa(ω, jϵ, bv, μv, σv, ξv, jζ, jz))^2
+		fA2(ω) = f_pdf(ω) * max(pars[:ωmin], itp_ϕa(ω, ϵv, bv, μv, σv, ξv, ζv, zv))^2
 		(valA2, err) = hquadrature(fA2, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
-		val_a2 += valA2 * h.λϵ[jϵ]
+		val_a2 += valA2 * λϵ[jϵ]
 
-		fB(ω) = f_pdf(ω) * max(0., itp_ϕb(ω, jϵ, bv, μv, σv, ξv, jζ, jz))
+		fB(ω) = f_pdf(ω) * max(0., itp_ϕb(ω, ϵv, bv, μv, σv, ξv, ζv, zv))
 		(valB, err) = hquadrature(fB, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
-		val_b += valB * h.λϵ[jϵ]
+		val_b += valB * λϵ[jϵ]
 
-		fB2(ω) = f_pdf(ω) * max(0., itp_ϕb(ω, jϵ, bv, μv, σv, ξv, jζ, jz))^2
+		fB2(ω) = f_pdf(ω) * max(0., itp_ϕb(ω, ϵv, bv, μv, σv, ξv, ζv, zv))^2
 		(valB2, err) = hquadrature(fB2, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
-		val_b2 += valB2 * h.λϵ[jϵ]
+		val_b2 += valB2 * λϵ[jϵ]
 
-		fAB(ω) = f_pdf(ω) * max(h.ωmin, itp_ϕa(ω, jϵ, bv, μv, σv, ξv, jζ, jz)) * max(0., itp_ϕb(ω, jϵ, bv, μv, σv, ξv, jζ, jz))
+		fAB(ω) = f_pdf(ω) * max(pars[:ωmin], itp_ϕa(ω, ϵv, bv, μv, σv, ξv, ζv, zv)) * max(0., itp_ϕb(ω, ϵv, bv, μv, σv, ξv, ζv, zv))
 		(valAB, err) = hquadrature(fAB, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
-		val_ab += valAB * h.λϵ[jϵ]
+		val_ab += valAB * λϵ[jϵ]
 	end
 
-	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
-	# 	for jω = 1:length(h.ωgrid_fine)-1
-	# 		ωv  = h.ωgrid_fine[jω]
-	# 		ω1v = h.ωgrid_fine[jω+1]
-	# 		ωmv = 0.5*(ωv+ω1v)
-
-	# 		prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
-
-	# 		ϕa = max(itp_ϕa[ωmv, jϵ, bv, μv, σv, ξv, jζ, jz], h.ωmin)
-	# 		ϕb = max(itp_ϕb[ωmv, jϵ, bv, μv, σv, ξv, jζ, jz], 0.)
-
-	# 		val_a  += prob * ϕa
-	# 		val_a2 += prob * ϕa^2
-	# 		val_b  += prob * ϕb
-	# 		val_b2 += prob * ϕb^2
-	# 		val_ab += prob * ϕa * ϕb
-
-	# 		sum_prob += prob
-	# 	end
-	# end
-
 	!isnan(sum_prob) || throw(error("NaN in sum_prob"))
-	!isapprox(sum_prob, 0.) || throw(error("\nsum_prob = $(sum_prob) at $([jb, jμ, jσ, jξ, jζ, jz])"))
+	!isapprox(sum_prob, 0.) || throw(error("\nsum_prob = $(sum_prob)"))
 
 	!isnan(val_a+val_a2+val_b+val_b2+val_ab) || print_save("\na,a2,b,b2,ab = $([val_a,val_a2,val_b,val_b2,val_ab])")
 
@@ -695,189 +378,278 @@ function new_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, js,
 		var_a, var_b, cov_ab = 0., 0., 0.
 	end
 
-	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab at $([jb, jμ, jσ, jξ, jζ, jz])")
+	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab")
 
-	μ′, σ′, q, alarm_vec = compute_stats_logN(h, js, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, exp_rep)
-
+	μ′, σ′, q, alarm_vec = compute_stats_logN(sd, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, exp_rep, jdef)
 	return μ′, σ′, alarm_vec
 end
 
+function find_all_expectations(sd::SOEdef, itp_ϕa, itp_ϕb, itp_qᵍ)
+	B′_vec = sd.eq[:issuance]
 
-function find_all_expectations(h::Hank, itp_ϕa, itp_ϕb, itp_qᵍ, B′_vec)
-	N = size(h.Jgrid, 1)
+	Jgrid = agg_grid(sd)
+	Nj = size(Jgrid, 1)
 
-	μ′ = Array{Float64}(undef, N, h.Nξ, h.Nz, 2)
-	σ′ = Array{Float64}(undef, N, h.Nξ, h.Nz, 2)
-	alarm_vec = Array{Float64}(undef, N, h.Nξ, h.Nz, 2)
+	# μ′ = Array{Float64}(undef, Nj, N(sd,:ξ), N(sd,:z), 2)
+	# σ′ = Array{Float64}(undef, Nj, N(sd,:ξ), N(sd,:z), 2)
+	μ′ = similar(sd.LoM[:μ])
+	σ′ = similar(sd.LoM[:σ])
+	alarm_vec = Array{Float64}(undef, Nj, N(sd,:ξ), N(sd,:z), 2)
 
 	# Threads.@threads for js in 1:N
-	for js in 1:N
+	for js in 1:Nj
 		Bpv = B′_vec[js]
 
-		jb = h.Jgrid[js, 1]
-		jμ = h.Jgrid[js, 2]
-		jσ = h.Jgrid[js, 3]
-		jξ = h.Jgrid[js, 4]
-		jζ = h.Jgrid[js, 5]
-		jz = h.Jgrid[js, 6]
+		jb = Jgrid[js, 1]
+		jμ = Jgrid[js, 2]
+		jσ = Jgrid[js, 3]
+		jξ = Jgrid[js, 4]
+		jζ = Jgrid[js, 5]
+		jz = Jgrid[js, 6]
 
-		rep_mat = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+		rep_mat = reshape(sd.gov[:repay], N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z), N(sd,:ξ), N(sd,:z))
 		exp_rep = rep_mat[jb, jμ, jσ, jξ, jζ, jz, :, :]
 
-		jdefault = (jζ != 1.0)
+		jdefault = (jζ == 1)
 
-		μ′[js, :, :, :], σ′[js, :, :, :], alarm_vec[js, :, :, :] = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, js, jdefault)
+		μ′[js, :, :], σ′[js, :, :], alarm_vec[js, :, :, :] = new_expectations(sd, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, js, jdefault)
 	end
 
-	print_save("\n")
 	if sum(alarm_vec[:]) >= 1
-		print_save("WARNING: ")
+		print_save("\nWARNING: Couldn't find qᵍ $(round(100*sum(alarm_vec[:])/Nj,digits=0))% of the time")
 	end
-	print_save("Couldn't find qᵍ $(round(100*sum(alarm_vec[:])/N,digits=0))% of the time")
 
 	return μ′, σ′
 end
 
-function update_expectations!(h::Hank, upd_η::Float64)
+fl(x) = [x[js][jj] for js in 1:length(x), jj in 1:2][:]
+function new_grid(x′, xgrid; ub=Inf, lb=-Inf)
+	Nx = length(xgrid)
+	xdist = maximum(xgrid) - minimum(xgrid)
+
+	Xmax = maximum(xgrid)
+	Xmin = minimum(xgrid)
+
+
+	# Expand grids if x′ goes beyond the bounds
+	quantile(fl(x′)[:], 0.99) > maximum(xgrid) ? Xmax = maximum(xgrid) + 0.01*xdist : nothing
+	quantile(fl(x′)[:], 0.01) < minimum(xgrid) ? Xmin = minimum(xgrid) - 0.01*xdist : nothing
+
+	# Retract grids if x′ doesn't reach the bounds
+	maximum(fl(x′)) < maximum(xgrid) ? Xmax = maximum(xgrid) - 0.01*xdist : nothing
+	minimum(fl(x′)) > minimum(xgrid) ? Xmin = minimum(xgrid) + 0.01*xdist : nothing
+
+	Xmax = min(Xmax, ub)
+	Xmin = max(Xmin, lb)
+
+	return collect(range(Xmin, Xmax, length=Nx))
+end
+
+function update_expectations!(sd::SOEdef, upd_η::Float64)
 	"""
 	Computes mean and variance of tomorrow's distribution and deduces parameters for logN
 	"""
+	LoM, gr = sd.LoM, sd.gr
 
-	μ′_old = copy(h.μ′)
-	σ′_old = copy(h.σ′)
+	μ_old = copy(LoM[:μ])
+	σ_old = copy(LoM[:σ])
 
 	dist_exp = Array{Float64,1}(undef, 2)
 
-	itp_ϕa = make_itp(h, h.ϕa; agg=false)
-	itp_ϕb = make_itp(h, h.ϕb; agg=false)
-	itp_qᵍ = make_itp(h, h.qᵍ; agg=true)
+	itp_ϕa = make_itp(sd, sd.ϕ[:a]; agg=false)
+	itp_ϕb = make_itp(sd, sd.ϕ[:b]; agg=false)
+	itp_qᵍ = make_itp(sd, sd.eq[:qᵍ]; agg=true)
 
-	μ′_new, σ′_new = find_all_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, h.issuance)
+	μ_new, σ_new = find_all_expectations(sd, itp_ϕa, itp_ϕb, itp_qᵍ)
 
-	function new_grid(x′, xgrid; ub::Float64=Inf, lb::Float64=-Inf)
-		Nx = length(xgrid)
-		xdist = maximum(xgrid) - minimum(xgrid)
+	new_μgrid = new_grid(μ_new, gr[:μ], lb = -3.0, ub = 3.0)
+	new_σgrid = new_grid(σ_new, gr[:σ], lb = 1e-2)
 
-		Xmax = maximum(xgrid)
-		Xmin = minimum(xgrid)
-
-		# Expand grids if x′ goes beyond the bounds
-		quantile(x′[:], 0.99) > maximum(xgrid) ? Xmax = maximum(xgrid) + 0.01*xdist : nothing
-		quantile(x′[:], 0.01) < minimum(xgrid) ? Xmin = minimum(xgrid) - 0.01*xdist : nothing
-
-		# Retract grids if x′ doesn't reach the bounds
-		maximum(x′) < maximum(xgrid) ? Xmax = maximum(xgrid) - 0.01*xdist : nothing
-		minimum(x′) > minimum(xgrid) ? Xmin = minimum(xgrid) + 0.01*xdist : nothing
-
-		Xmax = min(Xmax, ub)
-		Xmin = max(Xmin, lb)
-
-		return collect(range(Xmin, Xmax, length=Nx))
+	for js in 1:length(μ_new)
+		μ_new[js] = max.(min.(μ_new[js], maximum(gr[:μ])), minimum(gr[:μ]))
+		σ_new[js] = max.(min.(σ_new[js], maximum(gr[:σ])), minimum(gr[:σ]))
 	end
 
+	dist_exp[1] = sqrt.(sum( (fl(μ_new) - fl(μ_old)).^2 )) / sqrt.(sum(fl(μ_old).^2))
+	dist_exp[2] = sqrt.(sum( (fl(σ_new) - fl(σ_old)).^2 )) / sqrt.(sum(fl(σ_old).^2))
 
-	new_μgrid = new_grid(μ′_new, h.μgrid, lb = -3.0, ub = 3.5)
-	new_σgrid = new_grid(σ′_new, h.σgrid, lb = 1e-2)
+	μ_new = upd_η * μ_new + (1.0 - upd_η) * μ_old
+	σ_new = upd_η * σ_new + (1.0 - upd_η) * σ_old
 
-	μ′_new = max.(min.(μ′_new, maximum(h.μgrid)), minimum(h.μgrid))
-	σ′_new = max.(min.(σ′_new, maximum(h.σgrid)), minimum(h.σgrid))
-
-	dist_exp[1] = sqrt.(sum( (μ′_new - μ′_old).^2 )) / sqrt.(sum(μ′_old.^2))
-	dist_exp[2] = sqrt.(sum( (σ′_new - σ′_old).^2 )) / sqrt.(sum(σ′_old.^2))
-
-	μ′_new = upd_η * μ′_new + (1.0 - upd_η) * μ′_old
-	σ′_new = upd_η * σ′_new + (1.0 - upd_η) * σ′_old
-
-	h.μ′ = μ′_new
-	h.σ′ = σ′_new
+	LoM[:μ] = μ_new
+	LoM[:σ] = σ_new
 
 	return dist_exp, new_μgrid, new_σgrid
 end
 
-function update_grids!(h::Hank; new_μgrid::Vector=[], new_σgrid::Vector=[], new_zgrid::Vector=[])
+function update_grids!(sd::SOEdef; new_μgrid::Vector=[], new_σgrid::Vector=[], new_zgrid::Vector=[])
+	gr = sd.gr
 
 	if new_μgrid==[]
-		new_μgrid = h.μgrid
+		new_μgrid = gr[:μ]
 	end
 	if new_σgrid==[]
-		new_σgrid = h.σgrid
+		new_σgrid = gr[:σ]
 	end
 	if new_zgrid==[]
-		new_zgrid = h.zgrid
+		new_zgrid = gr[:z]
 	end
 
-	function reinterp(h::Hank, y; agg::Bool=false, ext::Bool=false)
-		knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid)
+	function reinterp(sd::SOEdef, y; agg::Bool=false, ext::Bool=false)
+		gr = sd.gr
+		knots = (gr[:ω], gr[:ϵ], gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z])
 		if agg
-			knots = (h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid)
-			y = reshape(y, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
+			knots = (gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z])
+			y = reshape(y, N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z))
 		end
 		if ext
-			knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid, h.pngrid)
+			knots = (gr[:ω], gr[:ϵ], gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z], gr[:pN])
 		end
 
 		itp_obj_y = interpolate(knots, y, Gridded(Linear()))
 		itp_y = extrapolate(itp_obj_y, Line())
 
 		if agg
-			y_new = itp_y(h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid)
+			y_new = itp_y(gr[:b], new_μgrid, new_σgrid, gr[:ξ], gr[:ζ], new_zgrid)
 			return reshape(y_new, length(y_new))
 		elseif ext
-			y_new = itp_y(h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid, h.pngrid)
+			y_new = itp_y(gr[:ω], gr[:ϵ], gr[:b], new_μgrid, new_σgrid, gr[:ξ], gr[:ζ], new_zgrid, gr[:pN])
 			return y_new
 		else
-			y_new = itp_y(h.ωgrid, h.ϵgrid, h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid)
+			y_new = itp_y(gr[:ω], gr[:ϵ], gr[:b], new_μgrid, new_σgrid, gr[:ξ], gr[:ζ], new_zgrid)
 			return y_new
 		end
 	end
 
-	h.ϕa = reinterp(h, h.ϕa, agg=false)
-	h.ϕb = reinterp(h, h.ϕb, agg=false)
-	h.ϕa_ext = reinterp(h, h.ϕa_ext, agg=false, ext=true)
-	h.ϕb_ext = reinterp(h, h.ϕb_ext, agg=false, ext=true)
-	h.ϕc = reinterp(h, h.ϕc, agg=false)
-	h.ϕc = max.(1e-6, h.ϕc)
-	h.vf = reinterp(h, h.vf, agg=false)
-	h.vf = max.(1e-20, h.vf)
+	for key in [:a, :b, :c, :s, :θ]
+		sd.ϕ[key] = reinterp(sd, sd.ϕ[key], agg=false)
+	end
+	sd.v[:v] = max.(1e-20, reinterp(sd, sd.v[:v], agg=false))
+	sd.v[:w] = max.(1e-20, reinterp(sd, sd.v[:w], agg=false))
 
-	h.Ld 		= reinterp(h, h.Ld, agg=true)
-	h.output 	= reinterp(h, h.output, agg=true)
-	h.wage 		= reinterp(h, h.wage, agg=true)
-	h.issuance 	= reinterp(h, h.issuance, agg=true)
-	h.issuance 	= min.(max.(h.issuance, minimum(h.bgrid)), maximum(h.bgrid))
-	h.spending 	= reinterp(h, h.spending, agg=true)
-	h.pN 		= reinterp(h, h.pN, agg=true)
+	for key in [:Ld, :output, :wage, :spending, :pN, :issuance, :welfare]
+		sd.eq[key] = reinterp(sd, sd.eq[key], agg=true)
+	end
+	sd.eq[:issuance] = min.(max.(sd.eq[:issuance], minimum(gr[:b])), maximum(gr[:b]))
 
-	knots 		= (h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid, h.ξgrid, h.zgrid)
-	repay_mat 	= reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+	knots 		= (gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z], gr[:ξ], gr[:z])
+	repay_mat 	= reshape(sd.gov[:repay], N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z), N(sd,:ξ), N(sd,:z))
 	itp_repay 	= extrapolate(interpolate(knots, repay_mat, Gridded(Linear())), Line())
-	rep_new 	= itp_repay(h.bgrid, new_μgrid, new_σgrid, h.ξgrid, h.ζgrid, new_zgrid, h.ξgrid, new_zgrid)
+	rep_new 	= itp_repay(gr[:b], new_μgrid, new_σgrid, gr[:ξ], gr[:ζ], new_zgrid, gr[:ξ], new_zgrid)
 	rep_new 	= max.(0, min.(1, rep_new))
-	h.repay 	= reshape(rep_new, length(rep_new))
+	sd.gov[:repay] 	= reshape(rep_new, length(rep_new))
 
-	h.welfare   = reinterp(h, h.welfare, agg=true)
+	μmax, μmin = maximum(new_μgrid) - 1e-6, minimum(new_μgrid) + 1e-6
+	σmax, σmin = maximum(new_σgrid) - 1e-6, minimum(new_σgrid) + 1e-6
 
-	μ′_new = zeros(h.Nb * length(new_μgrid) * length(new_σgrid) * h.Nξ * h.Nζ * length(new_zgrid), h.Nξ, length(new_zgrid), 2)
-	σ′_new = zeros(h.Nb * length(new_μgrid) * length(new_σgrid) * h.Nξ * h.Nζ * length(new_zgrid), h.Nξ, length(new_zgrid), 2)
-	for jξp in 1:h.Nξ
+	μ′_new = similar(sd.LoM[:μ])
+	σ′_new = similar(sd.LoM[:σ])
+
+	for (jξp, ξpv) in enumerate(gr[:ξ])
 		for jzp in 1:length(new_zgrid)
-			for jreent in 1:2
-				try
-					μ′_new[:,jξp,jzp,jreent] = reinterp(h, h.μ′[:,jξp,jzp,jreent], agg=true)
-					σ′_new[:,jξp,jzp,jreent] = reinterp(h, h.σ′[:,jξp,jzp,jreent], agg=true)
-				catch
-					μ′_new[:,jξp,jzp,jreent] = reinterp(h, h.μ′[:,jξp,h.Nz,jreent], agg=true)
-					σ′_new[:,jξp,jzp,jreent] = reinterp(h, h.σ′[:,jξp,h.Nz,jreent], agg=true)
-				end	
+			try
+				mvec = [reinterp(sd, [sd.LoM[:μ][js,jξp,jzp][jre] for js in 1:size(sd.LoM[:μ],1)], agg=true) for jre in 1:2]
+				svec = [reinterp(sd, [sd.LoM[:σ][js,jξp,jzp][jre] for js in 1:size(sd.LoM[:σ],1)], agg=true) for jre in 1:2]
+				for js in 1:size(μ′_new,1)
+					μ′_new[js,jξp,jzp] = [max(min(mvec[jre][js], μmax), μmin) for jre in 1:2]
+					σ′_new[js,jξp,jzp] = [max(min(svec[jre][js], σmax), σmin) for jre in 1:2]
+				end
+			catch
+				mvec = [reinterp(sd, [sd.LoM[:μ][js,jξp,N(sd,:z)][jre] for js in 1:size(sd.LoM[:μ],1)], agg=true) for jre in 1:2]
+				svec = [reinterp(sd, [sd.LoM[:σ][js,jξp,N(sd,:z)][jre] for js in 1:size(sd.LoM[:σ],1)], agg=true) for jre in 1:2]
+				for js in 1:size(μ′_new,1)
+					μ′_new[js,jξp,jzp] = [max(min(mvec[jre][js], μmax), μmin) for jre in 1:2]
+					σ′_new[js,jξp,jzp] = [max(min(svec[jre][js], σmax), σmin) for jre in 1:2]
+				end
 			end
 		end
 	end
 
-	h.μgrid = new_μgrid
-	h.σgrid = new_σgrid
+	gr[:μ] = new_μgrid
+	gr[:σ] = new_σgrid
 
-	h.μ′ = max.(min.(μ′_new, maximum(h.μgrid)), minimum(h.μgrid))
-	h.σ′ = max.(min.(σ′_new, maximum(h.σgrid)), minimum(h.σgrid))
+	sd.LoM[:μ] = μ′_new
+	sd.LoM[:σ] = σ′_new
 
+	nothing
+end
+
+function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false)
+	dist = 1+tol
+	iter = 0
+
+	upd_η = 0.5
+
+	tol_vfi = 1e-2
+	t0 = time()
+	while dist > tol && iter < maxiter
+		iter += 1
+		if iter % 20 == 0
+			print_save("\nIteration $iter")
+			!verbose || print_save("(vfi update tolerance = $(@sprintf("%0.3g",tol_vfi)))")
+			print_save(". upd_η = $(@sprintf("%0.3g", upd_η))")
+		end
+
+		iterate_qᵍ!(sd, verbose = verbose)
+		update_fiscalrules!(sd)
+
+		Jgrid = agg_grid(sd);
+		var(sd.eq[:qʰ]) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(sd.eq[:qʰ]))")
+		!verbose || print_save("\nqᵍ between $(round(minimum(sd.eq[:qᵍ][Jgrid[:,5].==1]),digits=4)) and $(round(maximum(sd.eq[:qᵍ]),digits=4)). risk-free is $(round(mean(sd.eq[:qʰ]),digits=4))")
+		!verbose || print_save(" (spread between $(floor(Int,10000*minimum(sd.eq[:spread]))) bps and $(floor(Int,10000*maximum(sd.eq[:spread][Jgrid[:,5].==1]))) bps)")
+
+		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = false);
+		flag = (dist_v < tol_vfi)
+		if flag && iter % 20 == 0
+			print_save(" ✓")
+		end
+
+		consw = 100*floor(Int,mean(consw))
+		consw > 0 ? msg = "\nWARNING: " : msg="\n"
+		msg *= "Can't affort consumption $(consw)% of the time"
+		!verbose || print_save(msg)
+
+		t1 = time()
+		!verbose || print_save("\nUpdating functions of the state")
+
+		exc_dem_prop, exc_sup_prop, mean_excS, max_excS, dists = update_state_functions!(sd, upd_η)
+		!verbose || print_save(": done in $(time_print(time()-t1))")
+		!verbose || print_save("\nStates with exc supply, demand = $(round(100*exc_sup_prop,digits=2))%, $(round(100*exc_dem_prop,digits=2))%")
+		!verbose || print_save("\nAverage, max exc supply = $(@sprintf("%0.3g",mean_excS)), $(@sprintf("%0.3g",max_excS))")
+
+		t1 = time()
+		update_grid_p!(sd, exc_dem_prop, exc_sup_prop)
+		!verbose || print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:pN]))), $(@sprintf("%0.3g",maximum(sd.gr[:pN])))]")
+		!verbose || print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
+
+		dist_s = maximum(dists)
+
+		dist_exp, new_μgrid, new_σgrid = update_expectations!(sd, 0.5 * upd_η)
+		update_grids!(sd, new_μgrid = new_μgrid, new_σgrid = new_σgrid)
+
+		!verbose || print_save("\nDistance in expectations: (dμ,dσ) = ($(@sprintf("%0.3g",mean(dist_exp[1]))),$(@sprintf("%0.3g",mean(dist_exp[2]))))")
+		!verbose || print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:μ]))), $(@sprintf("%0.3g",maximum(sd.gr[:μ])))]")
+		!verbose || print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:σ]))), $(@sprintf("%0.3g",maximum(sd.gr[:σ])))]")
+		# !verbose || print_save("\nNew σ′ ∈ [$(@sprintf("%0.3g",minimum(fl(sd.LoM[:σ])))), $(@sprintf("%0.3g",maximum(fl(sd.LoM[:σ]))))]")
+		!verbose || print_save("\nGrids and expectations updated in $(time_print(time()-t1))")
+
+		dist_exp = maximum(dist_exp)
+		if iter % 20 == 0
+			print_save("\nDistances: (10dv, dLoM, dp) = ($(@sprintf("%0.3g",minimum(10*dist_v))), $(@sprintf("%0.3g",minimum(dist_exp))), $(@sprintf("%0.3g",minimum(dist_s))))")
+		end
+		dist_s = max(dist_s, dist_exp)
+		dist = max(10*dist_v, dist_s)
+		tol_vfi = max(exp(0.95*log(1+tol_vfi))-1, tol/10)
+
+		upd_η = max(0.98*upd_η, 5e-2)
+	end
+
+	if dist <= tol
+		print_save("\nConverged in $iter iterations. ")
+	else
+		print_save("\nStopping at distance $(@sprintf("%0.3g",dist)), target was $(@sprintf("%0.3g",tol)).")
+	end
+
+	print_save("\nTotal time: $(time_print(time()-t0))\n")
 	nothing
 end

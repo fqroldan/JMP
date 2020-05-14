@@ -1,244 +1,295 @@
-using QuantEcon, BasisMatrices
+mutable struct SOEdef{Ktot, Kshocks}
+	pars::Dict{Symbol, Float64}
+	opt::Dict{Symbol, Bool}
+	gr::Dict{Symbol, Vector{Float64}}
+	prob::Dict{Symbol, Matrix{Float64}}
 
-mutable struct Hank
-	# Utility parameters
-	β::Float64
-	γ::Float64
-	ψ::Float64
-	EpsteinZin::Bool
-	wbar::Float64
-	# θL::Float64
-	# χ::Float64
-	# Ξ::Float64
-	# prop_transf::Bool
+	ϕ::Dict{Symbol, Array{Float64, Ktot}}
+	v::Dict{Symbol, Array{Float64, Ktot}}
 
-	# Debt parameters
-	ρ::Float64
-	κ::Float64
-	r_star::Float64
-	tax::Float64
-
-	# Open Economy and production parameters
-	η::Float64
-	ϖ::Float64
-	α_T::Float64
-	α_N::Float64
-	ϑ::Float64
-
-	# Policy functions
-	ϕa::Array{Float64, 8}
-	ϕb::Array{Float64, 8}
-	ϕe::Array{Float64, 8}
-	ϕc::Array{Float64, 8}
-
-	ϕa_ext::Array{Float64, 9}
-	ϕb_ext::Array{Float64, 9}
-	ϕe_ext::Array{Float64, 9}
-	ϕc_ext::Array{Float64, 9}
-
-	vf::Array{Float64, 8}
-
-	# Transitions of exogenous states
-	ρϵ::Float64
-	σϵ::Float64
-	ρξ::Float64
-	σξ::Float64
-	ρz::Float64
-	σz::Float64
-
-	# Grid points
-	Nω::Int64
-	Nϵ::Int64
-	Nb::Int64
-	Nμ::Int64
-	Nσ::Int64
-	Nξ::Int64
-	Nζ::Int64
-	Nz::Int64
-	Ns::Int64
-	Nω_fine::Int64
-
-	# Transition matrices
-	Pϵ::Matrix{Float64}
-	Pξ::Matrix{Float64}
-	Pz::Matrix{Float64}
-
-	# Ps::Matrix{Float64}
-
-	# Distributions
-	λ::Vector{Float64}
-	λϵ::Vector{Float64}
-
-	# Default parameters
-	ℏ::Float64
-	θ::Float64
-	Δ::Float64
-
-	# Parameters of the a grid
-	# curv::Float64
-	# order::Int64
-	ωmin::Float64
-	ωmax::Float64
-
-	ωgrid::Vector{Float64}
-	ϵgrid::Vector{Float64}
-	bgrid::Vector{Float64}
-	μgrid::Vector{Float64}
-	σgrid::Vector{Float64}
-	ξgrid::Vector{Float64}
-	ζgrid::Vector{Float64}
-	zgrid::Vector{Float64}
-	s::Matrix{Float64}
-
-	Jgrid::Matrix{Int64}
-
-	# Extra grids for prices
-	pngrid::Vector{Float64}
-
-	# Collocation objects
-	# basis::Basis
-	# bs::BasisMatrix
-	# Φ::SparseMatrixCSC
-	# Emat::SparseMatrixCSC
-
-	ωgrid_fine::Vector{Float64}
-	snodes::Array{Float64, 2}
-
-	# Forecasting rules
-	μ′::Array{Float64, 4}
-	σ′::Array{Float64, 4}
-	w′::Vector{Float64}
-
-	# Functions of the state
-	repay::Vector{Float64}
-	welfare::Vector{Float64}
-	τ::Float64
-	T::Vector{Float64}
-	issuance::Vector{Float64}
-	output::Vector{Float64}
-	profits::Vector{Float64}
-	spending::Vector{Float64}
-	wage::Vector{Float64}
-	Ld::Vector{Float64}
-	# sdf_vec::Vector{Float64}
-	qʰ::Vector{Float64}
-	qᵍ::Vector{Float64}
-	spread::Vector{Float64}
-	pN::Vector{Float64}
-
-	outer_dists::Vector{Float64}
-
-	# Options
-	upd_tol::Float64
+	eq::Dict{Symbol, Vector{Float64}}
+	gov::Dict{Symbol, Vector{Float64}}
+	LoM::Dict{Symbol, Array{Vector{Float64}, Kshocks}}
 end
 
-mutable struct Path
-	data::Matrix{Float64}
-	n::Dict{Symbol,Int64}
+mutable struct Path{T}
+	data::Dict{Symbol, Vector{Float64}}
 end
 function Path(; T::Int64 = 1)
-	n = Dict(
-		:B => 1,
-		:μ => 2,
-		:σ => 3,
-		:w => 4,
-		:ζ => 5,
-		:z => 6,
-		:π => 7,
-		:Y => 8,
-		:L => 9,
-		:ψ => 10,
-		:P => 11,
-		:A => 12,
-		:Bh => 13,
-		:Bf => 14,
-		:Pe => 15,
-		:Wr => 16,
-		:Wd => 17,
-		:qg => 18,
-		:G => 19,
-		:mean => 20,
-		:var => 21,
-		:CoY => 22,
-		:C => 23,
-		:CoYd => 24,
-		:T => 25,
-		:NX => 26,
-		:ξ => 27,
-		:p25 => 28,
-		:p90 => 29,
-		:avgω => 30
-		)
-	data = Matrix{Float64}(undef, T, length(n))
-	return Path(data, n)
+	data = Dict( key => Vector{Float64}(undef, T) for key in [:B,:μ,:σ,:w,:ζ,:z,:π,:Y,:L,:ψ,:P,:A,:Bh,:Bf,:Pe,:Wr,:Wd,:qg,:G,:mean,:var,:CoY,:C,:CoYd,:T,:NX,:ξ,:p25,:p90,:avgω])
+	return Path{T}(data)
+end
+# periods(p::Path) = length(p.data[first(keys(p.data))])
+periods(p::Path{T}) where T = T
+
+function check_periods(p::Path, t::Int64)
+	0 < t <= periods(p) || throw("t out of bounds")
+	nothing
 end
 
-getfrompath(p::Path, t::Int64, sym::Symbol) = p.data[t, p.n[sym]]
-getfrompath(p::Path, t::AbstractArray, sym::Symbol) = p.data[t, p.n[sym]]
-getfrompath(p::Path, t::Int) = p.data[t,:]
-getfrompath(p::Path, sym::Symbol) = p.data[:, p.n[sym]]
+getfrompath(p::Path, t::Int64, sym::Symbol) = p.data[sym][t]
+getfrompath(p::Path, t::AbstractArray, sym::Symbol) = [p.data[sym][tv] for tv in t]
+getfrompath(p::Path, t::Int) = Dict(key => p.data[key][t] for key in keys(p.data))
+getfrompath(p::Path, sym::Symbol) = p.data[sym]
+series(p::Path, sym::Symbol) = getfrompath(p,sym)
 
-
-function fill_path!(p::Path, t::Int64, d::Dict{Symbol, Float64}=Dict(:VOID=>-Inf);
-					B::Float64=-Inf,
-					μ::Float64=-Inf,
-					σ::Float64=-Inf,
-					w::Float64=-Inf,
-					ζ::Float64=-Inf,
-					z::Float64=-Inf,
-					π::Float64=-Inf,
-					Y::Float64=-Inf,
-					L::Float64=-Inf,
-					ψ::Float64=-Inf,
-					P::Float64=-Inf,
-					A::Float64=-Inf,
-					Bh::Float64=-Inf,
-					Bf::Float64=-Inf,
-					Wr::Float64=-Inf,
-					Wd::Float64=-Inf)
-	0 < t <= size(p.data, 1) || throw("t out of bounds")
-	if d != Dict(:VOID=>-Inf)
-		for (jd, dv) in enumerate(d)
-			sym, val = dv[1], dv[2]
-			p.data[t, p.n[sym]] = val
+function fill_path!(p::Path, t::Int64, d::Dict=Dict())
+	check_periods(p,t)
+	missing_keys = 0
+	for (key, val) in d
+		if haskey(p.data, key)
+			p.data[key][t] = val
+		else
+			missing_keys += 1
 		end
+	end
+	
+	if missing_keys > 0
+		print_save("WARNING: $missing_keys missing keys")
+	end
+	nothing
+end
+
+function trim_path(p::Path{T}, t0::Int64) where T
+	check_periods(p,t0)
+	
+	return Path{T-t0+1}(Dict(key => val[t0:end] for (key, val) in p.data))
+end
+
+function tauchen_fun(ny::Int64, ρ::Float64, σe::Float64; m=3, mu=0.0)
+	σy = σe/sqrt((1-ρ^2))
+	λ1 = -m*σy; λn = m*σy
+	λgrid = range(λ1,λn,length=ny) .+ mu
+	ww = λgrid[2] - λgrid[1]
+
+	distrib = Normal(0,1)
+
+	Π = Array{Float64}(undef, ny,ny)
+
+	for ii=1:ny
+		Π[ii,1] = cdf(distrib,(λ1+ww/2-(1-ρ)*mu-ρ*λgrid[ii])/σe) # For j=1
+		Π[ii,end] = 1.0-cdf(distrib,(λn-ww/2-(1-ρ)*mu-ρ*λgrid[ii])/σe) # For j=ny
+		for jj=2:ny-1
+			Π[ii,jj] = cdf(distrib,(λgrid[jj]+ww/2-(1-ρ)*mu-ρ*λgrid[ii])/σe) - cdf(distrib,(λgrid[jj]-ww/2-(1-ρ)*mu-ρ*λgrid[ii])/σe)
+		end
+	end
+	return λgrid,Π
+end
+function quarterlize_AR1(ρ, σ)
+	ρ4 = ρ^0.25
+	σ4 = sqrt(  σ^2 / ( 1 + ρ4^2 + ρ4^4 + ρ4^6 )  )
+	return ρ4, σ4
+end
+
+function SOEdef(;
+	β = (1.0/1.05)^0.25,
+	IES = 1.0,
+	RRA = 10,
+	τ = 0.2,
+	r_star = 1.04^0.25 - 1.0,
+	tax = 0.1,
+	ωmax = 20,
+	wbar = 1.175,
+	curv = .4,
+	income_process = "Mendoza-D'Erasmo",
+	EpsteinZin = true,
+	order = 3,
+	Nω_fine = 1000,
+	Nω = 7,
+	Nϵ = 5,
+	Nμ = 5,
+	Nσ = 5,
+	Nb = 9,
+	Nξ = 2,
+	Nz = 9,
+	ρz = 0.9,
+	σz = 0.025,
+	ρξ = 0.95,
+	σξ = 0.0025,
+	ℏ = 0.45,
+	Δ = 0.1,
+	θ = .04167,
+	Np = 5,
+	upd_tol = 5e-3,
+	nodef = false,
+	noΔ = false,
+	rep_agent = false,
+	nob = false
+	)
+
+	ψ = IES
+	γ = 0.
+	if EpsteinZin == true
+		γ = RRA
+	end
+
+	if noΔ
+		Δ = 0.0
+	end
+
+	σmin, σmax = 0.01, 1.25
+	if rep_agent
+		σϵ = 0.0001
+		Nϵ = 2
+		Nσ = 2
+		σmin, σmax = 0.01, 0.02
+	end
+
+	# Debt parameters
+	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
+	κ = ρ + r_star
+
+	## Prepare discretized processes
+	# Aggregate risk
+	zgrid, Pz = tauchen_fun(Nz, ρz, σz, m=1.5)
+
+	meanξ = tax
+	ξgrid, Pξ = tauchen_fun(Nξ, ρξ, σξ, m=0.5, mu=meanξ)
+
+	ρϵ, σϵ = 0., 0.
+	if income_process == "Floden-Lindé"
+		ρϵ = 0.9136		# Floden-Lindé for US
+		σϵ = 0.0426		# Floden-Lindé for US
+	elseif income_process == "Mendoza-D'Erasmo"
+		ρϵ = 0.85		# Mendoza-D'Erasmo for Spain
+		σϵ = 0.2498		# Mendoza-D'Erasmo for Spain
 	else
-		throw(error("badly specified dict"))
+		throw(error("Must specify an income process"))
 	end
-	nothing
-end
+	ρϵ, σϵ = quarterlize_AR1(ρϵ, σϵ)
 
-function trim_path!(p::Path, T_burnin::Int64)
-	p.data = p.data[T_burnin+1:end, :]
-	nothing
-end
+	ϵ_chain = tauchen(Nϵ, ρϵ, σϵ, 0, 1)
 
-function trim_path(p::Path, t0::Int64)
-	t0 < length(p.data[:,1]) || throw(error("Trying to trim too far out"))
+	Pϵ = ϵ_chain.p
+	ϵgrid = ϵ_chain.state_values
 
-	n = p.n
-	data = p.data[t0+1:end, :]
+	pngrid = range(0.5, 1.1, length=Np)
+	ζgrid = 0:1
+	Nζ = length(ζgrid)
 
-	return Path(data, n)
-end
+	α_T = 0.67
+	α_N = 0.67
 
-function series(p::Path, sym::Symbol)
-	T = size(p.data, 1)
+	ϑ = 0.88 # Straight from Anzoategui
 
-	y = zeros(T)
-	for jt in 1:T
-		y[jt] = getfrompath(p, jt, sym)
+	μ_anzo = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
+	ω_anzo = 0.8  # Taken from Anzoategui, targets SS output share of nontradables at 88%
+
+	η = μ_anzo
+	ϖ = ω_anzo^(1.0/μ_anzo)
+
+	# Grids for endogenous aggregate states
+	Bmax  = 6.5
+	Bbar  = Bmax * 0.5
+	bgrid = range(0.0, Bmax, length=Nb)
+	μgrid = range(-2.5, 0.75, length=Nμ)
+	σgrid = range(σmin, σmax, length=Nσ)
+
+	# Prepare grid for cash in hand.
+	ωmin	= -0.5
+	ωgrid0	= range(0.0, (ωmax-ωmin)^curv, length=Nω).^(1/curv)
+	ωgrid0	= ωgrid0 .+ ωmin
+	ωgrid 	= ωgrid0
+
+	ωgrid_fine	= range(0.0, (ωmax-ωmin)^curv, length=Nω_fine).^(1/curv)
+	ωgrid_fine	= ωgrid_fine .+ ωmin
+
+
+	Jagg = gridmake(1:Nb, 1:Nμ, 1:Nσ, 1:Nξ, 1:Nζ, 1:Nz)
+
+	μ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	for (jμ, μv) in enumerate(μgrid)
+		μ[:,jμ,:,:,:,:,:] .= μv + 0.5 * ( mean(μgrid) - μv )
 	end
+	μ = reshape(μ, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	σ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	for (jσ, σv) in enumerate(σgrid)
+		σ[:,:,jσ,:,:,:,:] .= σv + 0.5 * ( mean(σgrid) - σv )
+	end
+	σ = reshape(σ, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	μ′ = Array{Vector{Float64}}(undef, Nb*Nμ*Nσ*Nξ*Nζ*Nz, Nξ, Nz)
+	σ′ = Array{Vector{Float64}}(undef, Nb*Nμ*Nσ*Nξ*Nζ*Nz, Nξ, Nz)
+	for js = 1:size(Jagg,1), jξ = 1:Nξ, jz = 1:Nz
+		μ′[js, jξ, jz] = [μ[js] for jj in 1:2]
+		σ′[js, jξ, jz] = [σ[js] for jj in 1:2]
+	end
+	w′ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	for (jw, wv) in enumerate(ξgrid)
+		w′[:,:,:,jw,:,:] .= wv
+	end
+	w′ = reshape(w′, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 
-	return y
+	Ld = ones(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	T  = ones(Nb*Nμ*Nσ*Nξ*Nζ*Nz) * 0.05
+	qʰ = ones(Nb*Nμ*Nσ*Nξ*Nζ*Nz) / (1.0+r_star)
+	qᵍ = ones(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	spread = zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+
+	pN 		  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	wage 	  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	spending  =	Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	issuance  =	Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	output	  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+	repay 	  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz, Nξ, Nz)
+	for (jz, zv) in enumerate(zgrid)
+		pN[:,:,:,:,:,jz] .= mean(pngrid) - 0.1 * zv
+		output[:,:,:,:,:,jz] .= exp(zv)
+		spending[:,:,:,:,:,jz] .= 0.1 - 0.25 * zv
+		for (jb, bv) in enumerate(bgrid)
+			issuance[jb,:,:,:,1,jz] .= bv - 0.25 * zv + 0.1 * (Bbar-bv)
+			issuance[jb,:,:,:,2,jz] .= bv
+		end
+		for (jζ, ζv) in enumerate(ζgrid)
+			def = (ζv != 1.0)
+			wage[:,:,:,:,jζ,jz] .= max(exp(zv) * (1.0 - Δ * def), wbar)
+		end
+		repay[:,:,:,:,:,:,:,jz] .= 1.0 - (zv <= zgrid[1])
+	end
+	pN	 		= reshape(pN, 	 	 Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	repay	 	= reshape(repay, 	 Nb*Nμ*Nσ*Nξ*Nζ*Nz*Nz*Nξ)
+	if nodef
+		repay = ones(repay)
+	end
+	wage	 	= reshape(wage, 	 Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	spending 	= reshape(spending,	 Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	issuance 	= min.(max.(reshape(issuance,  Nb*Nμ*Nσ*Nξ*Nζ*Nz), minimum(bgrid)), maximum(bgrid))
+	output 		= reshape(output, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	profits 	= output - wage .* Ld
+	welfare   	= zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+	C 			= zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+
+	pars = Dict(:β=>β, :γ=>γ, :ψ=>ψ, :wbar=>wbar, :ρ=>ρ, :κ=>κ, :r_star=>r_star, :τ=>τ, :η=>η, :ϖ=>ϖ, :α_T=>α_T, :α_N=>α_N, :ϑ=>ϑ, :ρϵ=>ρϵ, :σϵ=>σϵ, :ρξ=>ρξ, :σξ=>σξ, :ρz=>ρz, :σz=>σz, :ℏ=>ℏ, :θ=>θ, :Δ=>Δ, :ωmin=>ωmin, :ωmax=>ωmax)
+	opt = Dict(:EpsteinZin=>EpsteinZin, :nodef=>nodef, :noΔ=>noΔ, :rep_agent=>rep_agent, :nob=>nob)
+	gr = Dict(:ω=>ωgrid, :ϵ=>ϵgrid, :b=>bgrid, :μ=>μgrid, :σ=>σgrid, :ξ=>ξgrid, :ζ=>ζgrid, :z=>zgrid, :pN=>pngrid, :ωf => ωgrid_fine)
+	prob = Dict(:ϵ => Pϵ, :ξ => Pξ, :z => Pz)
+
+	ϕ = Dict(sym => zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz) for sym in [:a, :b, :c, :s, :θ])
+	ϕ[:c] .+= 1
+	v = Dict(sym => ones(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz) * 1e-2 for sym in [:v, :w])
+
+	eq = Dict(:Ld=>Ld, :T=>T,:qʰ=>qʰ,:qᵍ=>qᵍ,:spread=>spread,:pN=>pN,:wage=>wage,:spending=>spending,:issuance=>issuance,:output=>output,:welfare=>welfare,:C=>C)
+	gov = Dict(:repay => repay)
+	LoM = Dict(:μ => μ′, :σ => σ′)
+
+	Ktot = length(size(ϕ[:c]))
+	Kshocks = length(size(μ′))
+
+	return SOEdef{Ktot, Kshocks}(pars, opt, gr, prob, ϕ, v, eq, gov, LoM)
 end
 
+ergodic_ϵ(sd::SOEdef) = first(stationary_distributions(MarkovChain(sd.prob[:ϵ], sd.gr[:ϵ])))
+N(sd::SOEdef, sym) = length(sd.gr[sym])
+
+agg_grid(sd::SOEdef) = gridmake(1:N(sd,:b), 1:N(sd,:μ), 1:N(sd,:σ), 1:N(sd,:ξ), 1:N(sd,:ζ), 1:N(sd,:z))
+
+price_index(sd::SOEdef, pN) = price_index(sd.pars, pN)
+price_index(p::Dict{Symbol,Float64}, pN) = (p[:ϖ] * pN.^(1.0-p[:η]) .+ (1.0-p[:ϖ])).^(1.0/(1.0-p[:η]))
 
 function make_logN(meanX, varX)
 	""" Takes mean and variance and returns μ and σ parameters for logNormal dist"""
-	Eσ2 = 1.0 + varX / ( meanX^2 )
+	Eσ2 = 1 + varX / ( meanX^2 )
 
-	if Eσ2 > 1. 
+	if Eσ2 > 1
 		σ2 = log( Eσ2 )
 	else
 		# print_save("\n1 + vω / Eω² = $(Eσ2)")

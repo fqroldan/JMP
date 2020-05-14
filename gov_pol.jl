@@ -1,168 +1,131 @@
-function integrate_itp(h::Hank, bv, μv, σv, ξv, jζ, jz, itp_obj)
+function integrate_itp(sd::SOEdef, bv, μv, σv, ξv, ζv, zv, itp_obj)
+	pars, gr = sd.pars, sd.gr
 
-	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ h.ωmin
-	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
-	ωmin_int = h.ωmin
-	W, sum_prob = 0.0, 0.0
+	λϵ = ergodic_ϵ(sd)
+
+	ωmin_int, ωmax_int = quantile.(LogNormal(μv, σv), [1e-6; 1-1e-6]) .+ pars[:ωmin]
+	ωmax_int = min(ωmax_int, maximum(gr[:ω]))
+	# ωmin_int = min(ωmin_int, maximum(gr[:ω]) - 1)
+	# ωmin_int = pars[:ωmin]
 	# itp_obj = extrapolate(itp_obj, Interpolations.Line())
-	for (jϵ, ϵv) in enumerate(h.ϵgrid)
-		f_pdf(ω) = pdf(LogNormal(μv, σv), ω.-h.ωmin)
+	W, sum_prob = 0.0, 0.0
+	for (jϵ, ϵv) in enumerate(gr[:ϵ])
+		f_pdf(ω) = pdf(LogNormal(μv, σv), ω.-pars[:ωmin])
 		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
-		sum_prob += val_pdf * h.λϵ[jϵ]
+		sum_prob += val_pdf * λϵ[jϵ]
 
-	    f(ω) = f_pdf(ω) * itp_obj(ω, jϵ, bv, μv, σv, ξv, jζ, jz)
+	    f(ω) = f_pdf(ω) * itp_obj(ω, ϵv, bv, μv, σv, ξv, ζv, zv)
 	    (val, err) = hquadrature(f, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
-	    W += val * h.λϵ[jϵ]
+	    W += val * λϵ[jϵ]
 	end
 	W = W / sum_prob
 
-	# val, sum_prob = 0., 0.
-	# for (jϵ, ϵv) in enumerate(h.ϵgrid)
-	# 	for jω = 1:length(h.ωgrid_fine)-1
-	# 		ωv  = h.ωgrid_fine[jω]
-	# 		ω1v = h.ωgrid_fine[jω+1]
-	# 		ωmv = 0.5*(ωv+ω1v)
-
-	# 		prob = pdf(LogNormal(μv, σv), ωmv-h.ωmin) * h.λϵ[jϵ] * (ω1v - ωv)
-
-	# 		Y = itp_obj[ωmv, jϵ, bv, μv, σv, wv, jζ, jz]
-
-	# 		val  += prob * Y
-	# 		sum_prob += prob
-	# 	end
-	# end
-	# W = val / sum_prob
 	return W
 end
 
-function update_govpol(h::Hank)
-	# itp_vf = make_itp(h, h.vf; agg=false)
+function update_govpol(sd::SOEdef)
+	B′ = sd.eq[:issuance]	
 
-	B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
-	μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz, 2)
-	σ′_mat = reshape(h.σ′, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz, 2)
-	
-	itp_W = make_itp(h, h.welfare; agg=true)
+	itp_W = make_itp(sd, sd.eq[:welfare]; agg=true)
 
 	# More μ means default more often
 	μ_gov = 0.001 * 0.0
 	σ_gov = 0.004
 
-	# repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
-	# diff_W = Array{Float64}(undef, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
-	# diff_R = Array{Float64}(undef, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
-	rep_prob = zeros(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
-	for js in 1:size(h.Jgrid, 1)
-		jb = h.Jgrid[js, 1]
-		jμ = h.Jgrid[js, 2]
-		jσ = h.Jgrid[js, 3]
-		jξ = h.Jgrid[js, 4]
-		jζ = h.Jgrid[js, 5]
-		jz = h.Jgrid[js, 6]
+	Jgrid = agg_grid(sd);
+	rep_prob = zeros(N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z), N(sd,:ξ), N(sd,:z))
+	for js in 1:size(Jgrid, 1)
+		μ′_arr = sd.LoM[:μ][js,:,:]
+		σ′_arr = sd.LoM[:σ][js,:,:]
 
-		bvp = B′_mat[jb, jμ, jσ, jξ, jζ, jz]
-		for (jξp, ξpv) in enumerate(h.ξgrid), jzp in 1:h.Nz
-			if jζ == 1
-				μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 1]
-				σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 1]
-				Wr = itp_W(bvp, μvp, σvp, ξpv, 1, jzp)
+		jb, jμ, jσ, jξ, jζ, jz = Jgrid[js, :]
 
-				μvp = μ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
-				σvp = σ′_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp, 2]
-				Wd = itp_W((1.0-h.ℏ)*bvp, μvp, σvp, ξpv, 2, jzp)
+		ζv = sd.gr[:ζ][Jgrid[js, 5]]
+		
+		bpv = B′[js]
+		for (jξp, ξpv) in enumerate(sd.gr[:ξ]), (jzp, zpv) in enumerate(sd.gr[:z])
+			if ζv == 0 # Default at t
+				jζp = 1 # Default at t+1
+				ζpv = sd.gr[:ζ][jζp]
+				μpv = μ′_arr[jξp, jzp][jζp]
+				σpv = σ′_arr[jξp, jzp][jζp]
+				Wd = itp_W((1.0-sd.pars[:ℏ])*bpv, μpv, σpv, ξpv, ζpv, zpv)
 
-				# diff_W[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = Wr - Wd
-				# if Wr > Wd && repay[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] < 0.5
-				# 	diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 1.
-				# elseif Wr < Wd && repay[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] > 0.5
-				# 	diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = -1.
-				# end
+				jζp = 2 # No default at t+1
+				ζpv = sd.gr[:ζ][jζp]
+				μpv = μ′_arr[jξp, jzp][jζp]
+				σpv = σ′_arr[jξp, jzp][jζp]
+				Wr = itp_W(bpv, μpv, σpv, ξpv, ζpv, zpv)
+
 				rep_prob[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 1.0 - cdf(Normal(μ_gov, σ_gov), Wd-Wr)
 			else
-				# diff_W[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
-				# diff_R[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
 				rep_prob[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
 			end
 		end
 	end
 
-	# if maximum(diff_R) == 1.
-	# 	threshold = quantile(diff_W[diff_R .== 1.], 1.0-η_rep)
-	# 	ind_change = (diff_W .> threshold) .& (diff_R .== 1.)
-
-	# 	repay[ind_change] .= 1.
-	# end
-
-	# if minimum(diff_R) == -1.
-	# 	threshold = quantile(diff_W[diff_R .== -1.], η_rep)
-	# 	ind_change = (diff_W .< threshold) .& (diff_R .== -1.)
-		
-	# 	repay[ind_change] .= 0.
-	# end
-	
-	# rep_new = reshape(repay, length(repay))
 	rep_new = reshape(rep_prob, length(rep_prob))
 
 	return rep_new
 end
 
-function update_W(h::Hank)
-	itp_vf = make_itp(h, h.vf; agg=false)
+function update_W(sd::SOEdef)
+	itp_vf = make_itp(sd, sd.v[:v]; agg=false)
 
-	W = zeros(size(h.Jgrid, 1))
-	for js in 1:size(h.Jgrid, 1)
-		bv = h.bgrid[h.Jgrid[js, 1]]
-		μv = h.μgrid[h.Jgrid[js, 2]]
-		σv = h.σgrid[h.Jgrid[js, 3]]
-		ξv = h.ξgrid[h.Jgrid[js, 4]]
-		jζ = h.Jgrid[js, 5]
-		jz = h.Jgrid[js, 6]
+	Jgrid = agg_grid(sd)
+	W = zeros(size(Jgrid, 1))
+	for js in 1:size(Jgrid, 1)
+		bv = sd.gr[:b][Jgrid[js, 1]]
+		μv = sd.gr[:μ][Jgrid[js, 2]]
+		σv = sd.gr[:σ][Jgrid[js, 3]]
+		ξv = sd.gr[:ξ][Jgrid[js, 4]]
+		ζv = sd.gr[:ζ][Jgrid[js, 5]]
+		zv = sd.gr[:z][Jgrid[js, 6]]
 		
-		W[js] = integrate_itp(h, bv, μv, σv, ξv, jζ, jz, itp_vf)
+		W[js] = integrate_itp(sd, bv, μv, σv, ξv, ζv, zv, itp_vf)
 	end
 
 	return W
 end
 
 
-function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=250, tol::Float64=25e-4, nodef::Bool=false, noΔ::Bool=false, rep_agent::Bool=false, run_number::Int64=1, save_copies::Bool=true, nob::Bool=false)
+function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bool=sd.opt[:nodef], noΔ::Bool=sd.opt[:noΔ], rep_agent::Bool=sd.opt[:rep_agent], run_number::Int64=1, save_copies::Bool=true, nob::Bool=false)
 	print_save("\nIterating on the government's policy: ")
 	time_init = time()
 	t_old = time_init
-	out_iter = 1
-	dist = 10.
+	iter = 0
+	dist = 1+tol
 
 	upd_η = 1.
 	upd_ηR = 0.12
-	tol_vfi = 5e-2
-	h.upd_tol = max(h.upd_tol, 1e-3)
+	tol_eqm = 5e-2
+	maxiter_CE = 200
 
-	while dist > tol && out_iter < maxiter
-		print_save("\n\nOuter Iteration $out_iter (run $(run_number)) with upd_ηR = $(@sprintf("%0.3g",upd_ηR))\n")
-		vfi!(h, verbose = true, remote = remote, tol = tol_vfi, maxiter = 15, nob=nob)
-		h.upd_tol = max(min(h.upd_tol*0.95, tol_vfi/10), 1e-6)
+	while dist > tol && iter < maxiter
+		iter += 1
+		print_save("\n\nOuter Iteration $iter (run $(run_number)) with upd_ηR = $(@sprintf("%0.3g",upd_ηR))\n")
+		comp_eqm!(sd, verbose = false, tol = tol_eqm, maxiter = maxiter_CE)
 		
-		W_new = update_W(h)
+		W_new = update_W(sd)
 
-		h.welfare = upd_η * W_new + (1.0-upd_η) * h.welfare
-		# upd_η = 0.5
+		sd.eq[:welfare] = upd_η * W_new + (1.0-upd_η) * sd.eq[:welfare]
 
-		if isnan.(sum(h.welfare))
+		if isnan.(sum(sd.eq[:welfare]))
 			print_save("\nWARNING: ||welf|| = NaN")
 		end
 
-		old_rep = copy(h.repay)
+		old_rep = copy(sd.gov[:repay])
 
 		if nodef
 			# Make sure the government never defaults
-			h.repay = ones(size(h.repay))
+			sd.gov[:repay] = ones(size(sd.gov[:repay]))
 			dist = 0.0
 		elseif noΔ || nob
 			# Keep the same default policy
 			dist = 0.0
 		else
 			# Update the default policy
-			new_rep = update_govpol(h)
+			new_rep = update_govpol(sd)
 			old_norm = sqrt.(sum(old_rep.^2))
 			print_save("\n||rep₀|| = $(old_norm)")
 			if isapprox(old_norm, 0.0)
@@ -171,35 +134,35 @@ function mpe_iter!(h::Hank; remote::Bool=false, maxiter::Int64=250, tol::Float64
 			new_norm = sqrt.(sum(new_rep.^2))
 			print_save("\n||repₜ|| = $(new_norm)")
 			dist = sqrt.(sum( (new_rep - old_rep).^2 )) / old_norm
-			h.repay = upd_ηR * new_rep + (1.0-upd_ηR) * old_rep
+			sd.gov[:repay] = upd_ηR * new_rep + (1.0-upd_ηR) * old_rep
 		end
 
-		if save_copies
-			save(pwd() * "/../Output/hank.jld", "h", h)
-		end
+		# if save_copies
+		# 	save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
+		# end
 
-		dist = max(dist, tol_vfi)
+		dist = max(dist, tol_eqm)
 		
-		push!(h.outer_dists, dist)
+		# push!(h.outer_dists, dist)
 		# plot_outerdists(h; remote = remote)
 
-		tol_vfi = max(max(exp(0.875*log(1+tol_vfi))-1, dist/10, 1e-6))
+		tol_eqm = max(max(exp(0.875*log(1+tol_eqm))-1, dist/10, 1e-5))
 		upd_ηR = max(upd_ηR * 0.99, 5e-3)
 		t_new = time()
-		print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $out_iter iterations. New tol = $(@sprintf("%0.3g",tol_vfi))")
+		print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations. New tol = $(@sprintf("%0.3g",tol_eqm))")
 
-		if out_iter % 100 == 0 && out_iter != maxiter-1
+		if iter % 100 == 0 && iter != maxiter-1
 			t_sim = time()
 			print_save("\nSimulating")
-			make_simulated_path(h, run_number, 1000)
+			# make_simulated_path(h, run_number, 1000)
 			print_save(": done in $(time_print(time()-t_sim))")
 		end
 
-		out_iter += 1
 		time_old = time()
+		# maxiter_CE = 20
 	end
 	if dist <= tol
-		print_save("\nConverged in $out_iter iterations. ")
+		print_save("\nConverged in $iter iterations. ")
 	else
 		print_save("\nStopping at distance $(@sprintf("%0.3g",dist)). ")
 	end
