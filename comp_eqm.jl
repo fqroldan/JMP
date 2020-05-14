@@ -586,8 +586,9 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		iter += 1
 		if iter % iter_show == 0
 			print_save("\nIteration $iter")
-			!verbose || print_save("(vfi update tolerance = $(@sprintf("%0.3g",tol_vfi)))")
+			print_save("(vfi update tolerance = $(@sprintf("%0.3g",tol_vfi)))")
 			print_save(". upd_η = $(@sprintf("%0.3g", upd_η))")
+			print_save(Dates.format(now(), "HH:MM"))
 		end
 
 		iterate_qᵍ!(sd, verbose = verbose)
@@ -599,7 +600,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		!verbose || print_save(" (spread between $(floor(Int,10000*minimum(sd.eq[:spread]))) bps and $(floor(Int,10000*maximum(sd.eq[:spread][Jgrid[:,5].==1]))) bps)")
 
 		""" SOLVE INCOME FLUCTUATIONS PROBLEM """
-		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = verbose);
+		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = false);
 		flag = (dist_v < tol_vfi)
 		if flag && iter % iter_show == 0
 			print_save(" ✓")

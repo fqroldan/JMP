@@ -380,12 +380,10 @@ function vfi!(sd::SOEdef; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=
 
 		dist = maximum([sqrt.(sum( (v_new[key] - v_old[key]).^2 )) / sqrt.(sum(v_old[key].^2)) for key in keys(sd.v)])
 		norm_v = Dict(key => sqrt.(sum(v_old[key].^2)) for key in keys(sd.v))
-		if verbose 
-			if dist < tol || iter % 20 == 0
-				t_new = time()
-				print_save("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v,w‖ = ($(@sprintf("%0.3g",norm_v[:v])), $(@sprintf("%0.3g",norm_v[:w]))) after $(time_print(t_new-t_old)) and $iter iterations ")
-				print_save(Dates.format(now(), "HH:MM"))
-			end
+		if iter % 50 == 0 || (verbose && dist < tol)
+			t_new = time()
+			print_save("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v,w‖ = ($(@sprintf("%0.3g",norm_v[:v])), $(@sprintf("%0.3g",norm_v[:w]))) after $(time_print(t_new-t_old)) and $iter iterations ")
+			print_save(Dates.format(now(), "HH:MM"))
 		end
 	end
 	return warnc0, dist
