@@ -4,7 +4,7 @@ function integrate_itp(h::Hank, bv, μv, σv, ξv, jζ, jz, itp_obj)
 	ωmax_int = min(ωmax_int, maximum(h.ωgrid))
 	ωmin_int = h.ωmin
 	W, sum_prob = 0.0, 0.0
-	itp_obj = extrapolate(itp_obj, Interpolations.Line())
+	# itp_obj = extrapolate(itp_obj, Interpolations.Line())
 	for (jϵ, ϵv) in enumerate(h.ϵgrid)
 		f_pdf(ω) = pdf(LogNormal(μv, σv), ω.-h.ωmin)
 		(val_pdf, err) = hquadrature(f_pdf, ωmin_int, ωmax_int, rtol=1e-10, atol=1e-12, maxevals=0)
@@ -36,7 +36,7 @@ function integrate_itp(h::Hank, bv, μv, σv, ξv, jζ, jz, itp_obj)
 end
 
 function update_govpol(h::Hank)
-	itp_vf = make_itp(h, h.vf; agg=false)
+	# itp_vf = make_itp(h, h.vf; agg=false)
 
 	B′_mat = reshape(h.issuance, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
 	μ′_mat = reshape(h.μ′, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz, 2)
@@ -48,9 +48,9 @@ function update_govpol(h::Hank)
 	μ_gov = 0.001 * 0.0
 	σ_gov = 0.004
 
-	repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
-	diff_W = Array{Float64}(undef, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
-	diff_R = Array{Float64}(undef, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+	# repay = reshape(h.repay, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+	# diff_W = Array{Float64}(undef, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
+	# diff_R = Array{Float64}(undef, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	rep_prob = zeros(h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz, h.Nξ, h.Nz)
 	for js in 1:size(h.Jgrid, 1)
 		jb = h.Jgrid[js, 1]

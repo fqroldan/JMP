@@ -13,7 +13,7 @@ include("plotting_routines.jl")
 
 #				r_loc,   tax, RRA,     τ,    ρz,    σz,    ρξ,   σξ,  wbar
 # params_center = [0.09; 0.002;  10; 0.092; 0.970; 0.003; 0.995; 1e-6; 0.883]
-params_center = [0.09; 0.002; 15.03; 0.092; 0.97; 0.003; 0.995; 0.001; 0.883]
+params_center = [0.09; 0.002; 15.03; 0.092; 0.97; 0.003; 0.995; 0.002; 0.883]
 
 
 function load_params(run_number)

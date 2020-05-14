@@ -109,6 +109,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s, jϵ, jξ, jz, exp_r
 							Ev += prob * h.θ * 1e-32
 						else
 							ωpv = min(h.ωmax, ωpv)
+							""" THIS!!!!! """
 							v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 1)
 							Ev += EZ_G(h, v) * prob * h.θ
 						end
@@ -137,7 +138,6 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s, jϵ, jξ, jz, exp_r
 				if agg_prob > 1e-4
 					for (jϵp, ϵpv) in enumerate(h.ϵgrid)
 						prob = agg_prob * h.Pϵ[jϵ, jϵp]
-						sum_prob += prob
 
 						# Repayment
 						ζpv = 1
@@ -163,6 +163,7 @@ function value(h::Hank, sp::Float64, θa::Float64, itp_vf_s, jϵ, jξ, jz, exp_r
 							v = eval_itp_vf(itp_vf_s, ωpv, jϵp, jξp, jzp, 2)
 							Ev += EZ_G(h, v) * prob * (1. - exp_rep[jξp, jzp])
 						end
+						sum_prob += prob
 					end
 				end
 			end
@@ -210,6 +211,10 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jξ, jz, exp_rep,
 		optim_type = "multivariate"
 	end
 
+	# minθ = 1e-4
+	# maxθ = 1 - 1e-4
+	# guess[2] = max(min(guess[2], maxθ), minθ)
+
 	minθ = min(max(0.1, guess[2]-0.2), 0.8)
 	maxθ = max(min(0.9, guess[2]+0.2), 0.2)
 
@@ -222,10 +227,16 @@ function solve_optvalue(h::Hank, guess::Vector, itp_vf_s, jϵ, jξ, jz, exp_rep,
 	# 	minθ = min(minθ, 0.7)
 	# end
 
+	# minω = qʰv*h.ωmin + 1e-4
+	# maxω = ωmax - 1e-4
+	# if maxω - minω < 1e-4
+	# 	maxω = minω + 1e-4
+	# end
+	# guess[1] = max(min(guess[1], maxω), minω)
+
 	ωspace = ωmax - qʰv*h.ωmin
 	minω = min(max(qʰv*h.ωmin, guess[1] - 0.2*ωspace), qʰv*h.ωmin + 0.8 * ωspace)
 	maxω = max(min(ωmax,       guess[1] + 0.2*ωspace), qʰv*h.ωmin + 0.2 * ωspace)
-
 	if maxω - minω < 1e-4
 		maxω = minω + 1e-4
 	end
@@ -364,23 +375,23 @@ function opt_value(h::Hank, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, it
 						qᵍp[jξp, jzp, 2] = itp_qᵍ((1.0 - h.ℏ)*bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp)
 					end
 
-					vf_mat = Array{Float64}(undef, h.Nω, h.Nϵ, 3)
+					vf_mat = Array{Float64}(undef, h.Nω, h.Nϵ, 2)
 					for (jϵp, ϵpv) in enumerate(h.ϵgrid)
 						for (jωp, ωpv) in enumerate(h.ωgrid)
 							vf_mat[jωp, jϵp, 1] = itp_vf(ωpv, jϵp, bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 1, jzp)
 							if jdef
 								vf_mat[jωp, jϵp, 2] = itp_vf(ωpv, jϵp, bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp)
 							else
-								vf_mat[jωp, jϵp, 2] = itp_vf(ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jξp, jzp, 1], σpv[jξp, jzp, 1], ξpv, 2, jzp)
+								vf_mat[jωp, jϵp, 2] = itp_vf(ωpv, jϵp, (1.0-h.ℏ)*bpv, μpv[jξp, jzp, 2], σpv[jξp, jzp, 2], ξpv, 2, jzp)
 							end
 						end
 
-						knots = (h.ωgrid, 1:h.Nϵ)
-						for jj in 1:2
-							itp_vf_s[jξp, jzp, jj] = interpolate(knots, vf_mat[:,:,jj], (Gridded(Linear()), NoInterp()))
-							# unscaled = interpolate(vf_mat[:,:,jj], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
-							# itp_vf_s[jξp, jzp, jj] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
-						end
+					end
+					knots = (h.ωgrid, 1:h.Nϵ)
+					for jj in 1:2
+						itp_vf_s[jξp, jzp, jj] = interpolate(knots, vf_mat[:,:,jj], (Gridded(Linear()), NoInterp()))
+						# unscaled = interpolate(vf_mat[:,:,jj], (BSpline(Quadratic(Line())), NoInterp()), OnGrid())
+						# itp_vf_s[jξp, jzp, jj] = Interpolations.scale(unscaled, linspace(h.ωgrid[1], h.ωgrid[end], h.Nω), 1:h.Nϵ)
 					end
 				end
 			end
