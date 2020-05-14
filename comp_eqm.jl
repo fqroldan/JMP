@@ -574,7 +574,7 @@ function update_grids!(sd::SOEdef; new_μgrid::Vector=[], new_σgrid::Vector=[],
 	nothing
 end
 
-function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false)
+function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false, iter_show::Int64 = 5)
 	dist = 1+tol
 	iter = 0
 
@@ -584,7 +584,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 	t0 = time()
 	while dist > tol && iter < maxiter
 		iter += 1
-		if iter % 20 == 0
+		if iter % iter_show == 0
 			print_save("\nIteration $iter")
 			!verbose || print_save("(vfi update tolerance = $(@sprintf("%0.3g",tol_vfi)))")
 			print_save(". upd_η = $(@sprintf("%0.3g", upd_η))")
@@ -599,9 +599,9 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		!verbose || print_save(" (spread between $(floor(Int,10000*minimum(sd.eq[:spread]))) bps and $(floor(Int,10000*maximum(sd.eq[:spread][Jgrid[:,5].==1]))) bps)")
 
 		""" SOLVE INCOME FLUCTUATIONS PROBLEM """
-		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = true);
+		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = false);
 		flag = (dist_v < tol_vfi)
-		if flag && iter % 20 == 0
+		if flag && iter % iter_show == 0
 			print_save(" ✓")
 		end
 
@@ -637,7 +637,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		!verbose || print_save("\nGrids and expectations updated in $(time_print(time()-t1))")
 
 		dist_exp = maximum(dist_exp)
-		if iter % 20 == 0
+		if iter % iter_show == 0
 			print_save("\nDistances: (10dv, dLoM, dp) = ($(@sprintf("%0.3g",minimum(10*dist_v))), $(@sprintf("%0.3g",minimum(dist_exp))), $(@sprintf("%0.3g",minimum(dist_s))))")
 		end
 		dist_s = max(dist_s, dist_exp)
