@@ -1,3 +1,5 @@
+using QuantEcon, Distributions
+
 mutable struct SOEdef{Ktot, Kshocks}
 	pars::Dict{Symbol, Float64}
 	opt::Dict{Symbol, Bool}
@@ -96,12 +98,12 @@ function SOEdef(;
 	order = 3,
 	Nω_fine = 1000,
 	Nω = 7,
-	Nϵ = 7,
+	Nϵ = 5,
 	Nμ = 4,
 	Nσ = 4,
 	Nb = 7,
 	Nξ = 2,
-	Nz = 9,
+	Nz = 7,
 	ρz = 0.9,
 	σz = 0.025,
 	ρξ = 0.95,
