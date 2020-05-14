@@ -9,16 +9,4 @@ include("gov_pol.jl")
 include("reporting_routines.jl")
 include("simul.jl")
 
-
-
-function solve_opt_value(sd::SOEdef)
-	qᵍ_mat = reshape_long(sd, sd.eq[:qᵍ])
-	ϕ = similar(qᵍ_mat)
-
-	obj_f(x) = first(x)^2 - 2*first(x) + 1
-
-	res = Optim.optimize(obj_f, -1, 1, GoldenSection())
-
-	return size(ϕ)
-end
-
+print("mpe_iter!(sd)")
