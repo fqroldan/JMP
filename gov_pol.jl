@@ -104,10 +104,12 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 	while dist > tol && iter < maxiter
 		iter += 1
 		print_save("\n\nOuter Iteration $iter (run $(run_number)) with upd_ηR = $(@sprintf("%0.3g",upd_ηR))\n")
-		comp_eqm!(sd, verbose = false, tol = tol_eqm, maxiter = maxiter_CE)
-		
-		W_new = update_W(sd)
 
+		""" RUN COMP_EQM LOOP """
+		comp_eqm!(sd, verbose = false, tol = tol_eqm, maxiter = maxiter_CE)
+
+		""" UPDATES """
+		W_new = update_W(sd)
 		sd.eq[:welfare] = upd_η * W_new + (1.0-upd_η) * sd.eq[:welfare]
 
 		if isnan.(sum(sd.eq[:welfare]))
@@ -142,9 +144,6 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 		# end
 
 		dist = max(dist, tol_eqm)
-		
-		# push!(h.outer_dists, dist)
-		# plot_outerdists(h; remote = remote)
 
 		tol_eqm = max(max(exp(0.875*log(1+tol_eqm))-1, dist/10, 1e-5))
 		upd_ηR = max(upd_ηR * 0.99, 5e-3)
@@ -152,14 +151,14 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 		print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations. New tol = $(@sprintf("%0.3g",tol_eqm))")
 
 		if iter % 100 == 0 && iter != maxiter-1
-			t_sim = time()
-			print_save("\nSimulating")
+			# t_sim = time()
+			# print_save("\nSimulating")
 			# make_simulated_path(h, run_number, 1000)
-			print_save(": done in $(time_print(time()-t_sim))")
+			# print_save(": done in $(time_print(time()-t_sim))")
 		end
 
 		time_old = time()
-		# maxiter_CE = 20
+		maxiter_CE = 100
 	end
 	if dist <= tol
 		print_save("\nConverged in $iter iterations. ")
