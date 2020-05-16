@@ -282,7 +282,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 end
 
 
-function simul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=0)
+function simul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=1)
 	gr = sd.gr
 	Random.seed!(1)
 
@@ -331,4 +331,70 @@ function simul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=0)
 	jz_series = jz_series[burn_in+1:end]
 
 	return trim_path(p, burn_in), jz_series, Ndefs
+end
+
+function get_AR1(y::Vector)
+	y_lag = y[1:end-1]
+	y = y[2:end]
+
+	data = DataFrame(yt = y, ylag = y_lag)
+	OLS = glm(@formula(yt ~ ylag - 1), data, Normal(), IdentityLink())
+
+	ρ = coef(OLS)[1]
+
+	ϵ = y - ρ * y_lag
+
+	σ = var(ϵ)^0.5
+
+	return ρ, σ
+end
+
+get_MV(y::Vector) = mean(y), var(y)^0.5
+
+function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[])
+	T = periods(path)
+	
+	if ζ_vec == []
+		ζ_vec = series(path,:ζ)
+	end
+
+	conditional = (ζ_vec .> -Inf)
+	if nodef
+		conditional = (ζ_vec .== 1)
+	end
+
+	B_vec = series(path,:B)[conditional]
+	μ_vec = series(path,:μ)[conditional]
+	σ_vec = series(path,:σ)[conditional]
+	w_vec = series(path,:w)[conditional]
+	z_vec = exp.(series(path,:z)[conditional])
+	Y_vec = series(path,:Y)[conditional]
+	C_vec = series(path,:C)[conditional]
+	G_vec = series(path,:G)[conditional]
+	π_vec = series(path,:π)[conditional]
+	ψ_vec = series(path,:ψ)[conditional]
+	u_vec = 100.0 * (1.0 .- series(path, :L)[conditional])
+	spr_vec = 1.0./series(path, :qg)[conditional] .- (1.04)^0.25
+
+	print("\nT = $T")
+
+	m_vec, sd_vec = unmake_logN(μ_vec, σ_vec)
+	mean_wealth = 100*mean(m_vec./(4*Y_vec))
+
+	ρy, σy = get_AR1(log.(Y_vec.+1e-8))
+	ρc, σc = get_AR1(log.(C_vec.+1e-8))
+	if var(spr_vec) > 1e-6
+		ρs, σs = get_AR1(spr_vec)
+	else
+		ρs, σs = 1.0, 0.0
+	end
+	m_unemp, sd_unemp = get_MV(u_vec)
+	m_debt, sd_debt = get_MV(100*B_vec./(4*Y_vec))
+	m_gspend, sd_gspend = get_MV(100*G_vec./Y_vec)
+	ψ_mean = 100 * median(ψ_vec)
+	spr_mean = mean(spr_vec)
+
+	v_m = [ρy; σy; ρc; σc; ρs; σs; m_debt; sd_debt; m_unemp; sd_unemp; ψ_mean; mean_wealth]
+
+	return v_m
 end

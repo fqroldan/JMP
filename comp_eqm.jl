@@ -574,7 +574,7 @@ function update_grids!(sd::SOEdef; new_μgrid::Vector=[], new_σgrid::Vector=[],
 	nothing
 end
 
-function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false, iter_show::Int64 = 5)
+function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false, iter_show::Int64 = 50)
 	dist = 1+tol
 	iter = 0
 

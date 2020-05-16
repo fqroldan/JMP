@@ -91,7 +91,7 @@ function SOEdef(;
 	r_star = 1.04^0.25 - 1.0,
 	tax = 0.1,
 	ωmax = 20,
-	wbar = 1.175,
+	wbar = 0.89,
 	curv = .4,
 	income_process = "Mendoza-D'Erasmo",
 	EpsteinZin = true,

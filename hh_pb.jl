@@ -370,8 +370,10 @@ function vfi!(sd::SOEdef; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=
 		iter += 1
 		qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat = _unpackstatefs(sd);
 
-		for jj in 1:0
-			bellman_iteration!(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=false)
+		if iter > 5
+			for jj in 1:5
+				bellman_iteration!(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=false)
+			end
 		end
 		
 		v_old = copy(sd.v)

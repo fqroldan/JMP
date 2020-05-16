@@ -1,47 +1,46 @@
 function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number)
 
 	print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,digits=3)), $(round(RRA,digits=3)), $(round(τ,digits=3)), $(round(wbar,digits=3)), $(round(ρz,digits=3)), $(round(σz,digits=3)), $(round(tax,digits=3)), $(round(ρξ,digits=3)), $(round(σξ,digits=3))")
-	h = Hank(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
+	sd = SOEdef(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
 		# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
 		);
 	try
 		# h2 = load(pwd() * "/../Output/hank_backup.jld", "h")
-		h2 = load(pwd() * "/../Output/hank.jld", "h")
+		sd_old = load(pwd() * "/../Output/SOEdef.jld", "sd")
 		print_save("\nFound generic JLD file")
 		try
-			h2 = load(pwd() * "/../Output/run$(max(1,run_number-1))/hank.jld", "h") # set max(1, ...) to use run1 in first go
+			sd_old = load(pwd() * "/../Output/run$(max(1,run_number-1))/SOEdef.jld", "sd") # set max(1, ...) to use run1 in first go
 			print_save("\nFound JLD file from last run")
 		catch
 		end
-		if h.Nω == h2.Nω && h.Nϵ == h2.Nϵ
+		if N(sd,:ω) == N(sd_old,:ω) && N(sd,:ϵ) == N(sd_old,:ϵ)
 			print_save(": loading previous results")
-			h.μgrid = h2.μgrid
-			h.σgrid = h2.σgrid
-			update_grids!(h2, new_μgrid = h.μgrid, new_σgrid = h.σgrid, new_zgrid = h.zgrid)
+			sd.gr[:μ] = sd_old.gr[:μ]
+			sd.gr[:σ] = sd_old.gr[:σ]
+			sd.gr[:pN] = sd_old.gr[:pN]
 			print_save("...")
-			h.ϕa = h2.ϕa
-			h.ϕb = h2.ϕb
-			h.ϕa_ext = h2.ϕa_ext
-			h.ϕb_ext = h2.ϕb_ext
-			h.ϕc = h2.ϕc
-			h.vf = h2.vf
-			h.pngrid = h2.pngrid
-			h.pN = h2.pN
-			h.μ′ = h2.μ′
-			h.σ′ = h2.σ′
-			# h.output = h2.output
-			# h.issuance = h2.issuance
-			# h.spending = h2.spending
-			# h.profits = h2.profits
-			h.T = h2.T
-			h.qᵍ = h2.qᵍ
-			h.wage = h2.wage
-			h.Ld = h2.Ld
-			if !nodef
-				h.repay = h2.repay
-				h.welfare = h2.welfare
-			else
+			sd.ϕ = sd_old.ϕ
+			sd.v = sd_old.v
+
+			for (key, val) in sd_old.eq
+				if haskey(sd.eq, key)
+					sd.eq[:key] = val
+				end
+			end
+			for (key, val) in sd_old.LoM
+				if haskey(sd.LoM, key)
+					sd.LoM[:key] = val
+				end
+			end
+			
+			if nodef
 				print_save(" Not loading default policy.")
+			else
+				for (key, val) in sd_old.gov
+					if haskey(sd.gov, key)
+						sd.gov[:key] = val
+					end
+				end
 			end
 			print_save(" ✓")
 		end
@@ -51,17 +50,22 @@ function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ,
 	return h
 end
 
-function make_simulated_path(h::Hank, run_number, years=100)
-	path, jz_series, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
-	Tyears = floor(Int64,size(path.data, 1)*0.25)
+function make_simulated_path(sd::SOEdef, run_number, years=100)
+	pp, jz_series, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
+	Tyears = floor(Int64,periods(pp)*0.25)
 	def_freq = Ndefs/Tyears
 	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(floor(100*def_freq))%")
-	trim_path!(path, 4*25)
-	v_m = 0
-	g = 0
+	v_m = [0.]
+	g = 0.0
 
+	v_m = simul_stats(pp)
+	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
+	return v_m, targets
+end
+
+function make_something_else()
 	savedir = pwd() * "/../Output/run$(run_number)/"
-	save(savedir * "path.jld", "path", path)
+	save(savedir * "path.jld", "pp", pp)
 	
 	pl = plot_simul(path)
 	savejson(pl, savedir * "path.json")	
@@ -91,7 +95,6 @@ function make_simulated_path(h::Hank, run_number, years=100)
 
 	try
 		v_m = simul_stats(path)
-		targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
 		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons) / σ(Output)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "median Dom Holdings"; "mean wealth/Y" ]
 		targets[4] = targets[4] / targets[2]
 		v_m[4] = v_m[4] / v_m[2]
@@ -137,7 +140,7 @@ function make_simulated_path(h::Hank, run_number, years=100)
 end
 
 
-function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres, savedir)
+function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres, savedir)
 
 	old_Δ = copy(h.Δ)
 	try 
@@ -197,7 +200,7 @@ function make_comparison_simul(h::Hank, noΔ, rep_agent, run_number, years, p_be
 	return v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob
 end
 
-pars(h::Hank) = [(1/h.β)^4-1; h.γ; h.τ; h.wbar; h.ρz; h.σz; h.tax; h.ρξ; h.σξ]
+# pars(h::Hank) = [(1/h.β)^4-1; h.γ; h.τ; h.wbar; h.ρz; h.σz; h.tax; h.ρξ; h.σξ]
 
 function make_center(params::Vector)
 

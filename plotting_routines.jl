@@ -1,5 +1,5 @@
-using Interpolations, PlotlyJS, GLM, DataFrames
-#include("comp_eqm.jl")
+using PlotlyJS, ColorSchemes, ORCA
+
 col = [	"#1f77b4",  # muted blue
 		"#ff7f0e",  # safety orange
 		"#2ca02c",  # cooked asparagus green
@@ -12,282 +12,79 @@ col = [	"#1f77b4",  # muted blue
 		"#17becf"   # blue-teal
 		]
 
-function style_contour(p, n=2; slides::Bool=false)
-	slides ? height = 600 : height = 450
-	slides ? width = 1000 : width = 900
-	slides ? font = "Fira Sans Light" : font = "STIX Two Text"
-	slides ? fontsize = 16 : fontsize = 16
+function plot_hh_policies(sd::SOEdef; slides=false)
+	jb, jμ, jσ, jξ, jζ, jz = N(sd,:b), floor(Int, N(sd,:μ)*0.5), floor(Int, N(sd,:σ)*0.5), 1, 2, floor(Int, N(sd,:z)*0.5)
+	μv, σv = sd.gr[:μ][jμ], sd.gr[:σ][jσ]
 
-	relayout!(p, width=width, height=height, font_family=font, font_size=fontsize, colorbar_xanchor="right")
+	ϕ = Dict(key => [sd.ϕ[key][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] for jω in 1:N(sd,:ω), jϵ in 1:N(sd,:ϵ)] for key in keys(sd.ϕ))
+	ϕ[:v] = [sd.v[:v][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] for jω in 1:N(sd,:ω), jϵ in 1:N(sd,:ϵ)]
+
+	colpal = ColorSchemes.lajolla
+
+	l = Array{PlotlyBase.GenericTrace}(undef, N(sd,:ϵ), 4)
+	for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])
+		colv = get(colpal, 0.8*jϵ/N(sd,:ϵ))
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:c][:,jϵ], line_shape="spline", name="ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=colv)
+		l[jϵ,1] = l_new
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:v][:,jϵ], line_shape="spline", name="ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=colv)
+		l[jϵ,2] = l_new
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:s][:,jϵ], showlegend=false, name="ϵ = $(round(exp(ϵv),digits=4))", marker_color=colv)
+		l[jϵ,3] = l_new
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:θ][:,jϵ], showlegend=false, name="ϵ = $(round(exp(ϵv),digits=4))", marker_color=colv)
+		l[jϵ,4] = l_new
+	end
+
+	ωmax_show = min(sd.pars[:ωmax], quantile(LogNormal(μv, σv), 0.999)+sd.pars[:ωmin])
+
+	pc = plot([l[jϵ, 1] for jϵ in 1:N(sd,:ϵ)], Layout(xaxis=attr(zeroline=false, range=[sd.pars[:ωmin], ωmax_show]), font_size=16, title="<i>Consumption"))
+	pv = plot([l[jϵ, 2] for jϵ in 1:N(sd,:ϵ)], Layout(xaxis=attr(zeroline=false, range=[sd.pars[:ωmin], ωmax_show]), font_size=16, title="<i>Value function"))
+	ps = plot([l[jϵ, 3] for jϵ in 1:N(sd,:ϵ)], Layout(xaxis=attr(zeroline=false, range=[sd.pars[:ωmin], ωmax_show]), font_size=16, title="<i>Savings"))
+	pθ = plot([l[jϵ, 4] for jϵ in 1:N(sd,:ϵ)], Layout(xaxis=attr(zeroline=false, range=[sd.pars[:ωmin], ωmax_show]), font_size=16, title="<i>Proportion risk-free debt"))
+
 	if slides
-		relayout!(p, plot_bgcolor = "rgba(250, 250, 250, 1.0)", paper_bgcolor = "rgba(250, 250, 250, 1.0)")
+		font = "Lato"
+		width = 800
 	else
-		relayout!(p, title="")
+		font = "Linux Libertine"
+		width = 900
 	end
-	return p
-end
 
-function style_lines(p, w::Int=0, h::Int=0; slides::Bool=false)
-	!(w==0 || h==0) || throw(error("Must specify w and h"))
-	slides ? height = 250 : height = 250
-	width = height
-	width *= w
-	height *= h
-	slides ? font = "Fira Sans Light" : font = "STIX Two Text"
-	fontsize = 16
-	p.plot.layout["line_width"] = 3
-	p.plot.layout["width"] = width
-	p.plot.layout["height"] = height
-	p.plot.layout["font_family"] = font
-	p.plot.layout["font_size"] = fontsize
+	p1 = [pc pv; ps pθ]
+	relayout!(p1, xlabel = "<i>ω", width = width, height = 600, font_family = font, font_size = 16)
+	return p1
+end	
+
+function makecontour(sd::SOEdef, y, dim1::Symbol, dim2::Symbol, f1::Function=identity, f2::Function=identity; divergent::Bool=true, slides::Bool=true, title="", xtitle=string(dim1), ytitle=string(dim2))
+	max_z, min_z = maximum(y), minimum(y)
+
+	if divergent
+		colpal = ColorSchemes.broc
+		AC = false
+	else
+		colpal = ColorSchemes.lajolla
+		AC = true
+	end
+	colscale = [[vv, get(colpal, vv)] for vv in range(0,1,length=100)]
+
 	if slides
-		p.plot.layout["plot_bgcolor"] = "rgba(250, 250, 250, 1.0)"
-		p.plot.layout["paper_bgcolor"] = "rgba(250, 250, 250, 1.0)"
+		font = "Lato"
+		height = 700
 	else
-		p.plot.layout["title"] = ""
-	end
-	return p
-end
-	
-
-function plot_hh_policies(h::Hank; run_number::Int64=0)
-	# leg = Array{LaTeXStrings.LaTeXString}(1, h.Nϵ)
-	leg = Array{String}(undef, 1, h.Nϵ)
-	for jϵ in 1:h.Nϵ
-		# leg[jϵ] = latexstring("\\epsilon = $(round(h.ϵgrid[jϵ],2))")
-		leg[jϵ] = "ϵ = $(round(h.ϵgrid[jϵ],digits=2))"
+		font = "Linux Libertine"
+		height = 600
 	end
 
-	show_b, show_μ, show_σ, show_ξ, show_ζ, show_z = h.bgrid[9], h.μgrid[end], h.σgrid[1], h.ξgrid[1], h.ζgrid[1], h.zgrid[2]
+	layout = Layout(title=title, font_family = font, font_size=16, width=900, height=height,
+		xaxis = attr(title=xtitle, zeroline=false),
+		yaxis = attr(title=ytitle, zeroline=false)
+		)
 
-	function hh_pol(h::Hank, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
-		knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid)
-		itp_ϕa  = interpolate(knots, h.ϕa, Gridded(Linear()))
-		itp_ϕb  = interpolate(knots, h.ϕb, Gridded(Linear()))
-		itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
-		itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
+	p1 = plot(contour(;x = f1.(sd.gr[dim1]), y = f2(sd.gr[dim2]), z=y, autocontour=AC, contours=Dict(:start=>min_z,:end=>max_z)), layout)
 
-		qᵍ_mat  = reshape(h.qᵍ, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
-		pN_mat  = reshape(h.pN, h.Nb, h.Nμ, h.Nσ, h.Nξ, h.Nζ, h.Nz)
-		agg_knots = (h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid)
-		itp_qᵍ  = interpolate(agg_knots, qᵍ_mat, Gridded(Linear()))
-		itp_pN  = interpolate(agg_knots, pN_mat, Gridded(Linear()))
-
-
-		ϕc_mat = itp_ϕc(h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
-		ϕa_mat = itp_ϕa(h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
-		ϕb_mat = itp_ϕb(h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
-		vf_mat = itp_vf(h.ωgrid, h.ϵgrid, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
-		qᵍ_mat = itp_qᵍ(show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
-
-		qᵍ_all = zeros(size(vf_mat))
-		for jω in 1:h.Nω
-			for jϵ in 1:h.Nϵ
-				qᵍ_all[jω, jϵ, :,:,:,:,:,:] .= qᵍ_mat
-			end
-		end
-
-		ωg_mat = 1.0/(1.0+h.r_star) * ϕa_mat + qᵍ_all .* ϕb_mat
-		θg_mat = 1.0/(1.0+h.r_star) * (ϕa_mat .- h.ωmin) ./ (ωg_mat .- 1.0/(1.0+h.r_star)*h.ωmin)
-		θg_mat[isapprox.(ωg_mat, h.ωmin)] .= 1.0
-
-		l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(undef, h.Nϵ, 4)
-		for (jϵ, ϵv) in enumerate(h.ϵgrid)
-			l_new = scatter(;x=h.ωgrid, y=ϕc_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", name = "ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=col[jϵ])
-			l[jϵ,1] = l_new
-			l_new = scatter(;x=h.ωgrid, y=vf_mat[:,jϵ,1,1,1,1,1,1], line_shape="spline", name = "ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=col[jϵ])
-			l[jϵ,2] = l_new
-			l_new = scatter(;x=h.ωgrid, y=ωg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, name = "ϵ = $(round(exp(ϵv),digits=4))", marker_color=col[jϵ])
-			l[jϵ,3] = l_new
-			# l_new = scatter(;x=h.ωgrid, y=ϕb_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, marker_color=col[jϵ])
-			l_new = scatter(;x=h.ωgrid, y=θg_mat[:,jϵ,1,1,1,1,1,1], showlegend=false, name = "ϵ = $(round(exp(ϵv),digits=4))", marker_color=col[jϵ])
-			l[jϵ,4] = l_new
-		end
-
-		ωmax_show = min(h.ωmax, quantile(LogNormal(show_μ, show_σ), 0.999)+h.ωmin)
-
-		pc = plot([l[jϵ, 1] for jϵ in 1:h.Nϵ], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Consumption"))
-		pv = plot([l[jϵ, 2] for jϵ in 1:h.Nϵ], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Value function"))
-		pb = plot([l[jϵ, 3] for jϵ in 1:h.Nϵ], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Savings"))
-		pθ = plot([l[jϵ, 4] for jϵ in 1:h.Nϵ], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Proportion risk-free debt"))
-
-		p = [pc pv; pb pθ]
-		relayout!(p, xlabel = "ω", width = 800, height = 600, font_family = "Fira Sans Light")
-
-		return p
-	end
-
-	p = hh_pol(h, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
-
-	path = pwd() * "/../Output/run$(run_number)/"
-	savejson(p, path * "p_hh.json")
-
-	# show_b, show_μ, show_σ, show_ξ, show_ζ, show_z = mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), h.ξgrid[1], h.ζgrid[2], h.zgrid[1]
-
-	# # p = hh_pol(h, show_b, show_μ, show_σ, show_ξ, show_ζ, show_z)
-
-	# if remote
-	# 	path = pwd() * "/../../Graphs/"
-	# 	save(path * "p_hh_def.jld", "p", p)
-	# else
-	# 	path = pwd() * "/../Graphs/"
-	# 	# savefig(p, path * "hh_def.pdf")
-	# 	return p
-	# end
-
-	nothing
+	return p1
 end
 
-function plot_hh_policies_z(h::Hank; remote::Bool=false)
-	show_ϵ, show_b, show_μ, show_σ, show_ξ, show_ζ = mean(h.ϵgrid), mean(h.bgrid), mean(h.μgrid), mean(h.σgrid), h.ξgrid[1], h.ζgrid[1]
 
-	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid)
-	itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
-	itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
-	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid, h.pngrid)
-	itp_ϕc_ext  = interpolate(knots, h.ϕc_ext, Gridded(Linear()))
-
-	itp_pN = make_itp(h, h.pN, agg=true)
-
-
-	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(undef, h.Nz, 4)
-	Cz = Vector{Float64}(undef, h.Nz)
-	Cz_fix = Vector{Float64}(undef, h.Nz)
-	for (jz, zv) in enumerate(h.zgrid)
-		ϕc_vec = zeros(h.Nω)
-		ϕce_vec = zeros(h.Nω)
-		ϕce_vecfix = zeros(h.Nω)
-		vf_vec = zeros(h.Nω)
-		show_pN = itp_pN[show_b, show_μ, show_σ, show_ξ, 1., jz]
-		for (jω, ωv) in enumerate(h.ωgrid)
-			ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, show_b, show_μ, show_σ, show_ξ, show_ζ, zv]
-			ϕce_vec[jω] = itp_ϕc_ext[ωv, show_ϵ, show_b, show_μ, show_σ, show_ξ, show_ζ, zv, show_pN]
-			ϕce_vecfix[jω] = itp_ϕc_ext[ωv, show_ϵ, show_b, show_μ, show_σ, show_ξ, show_ζ, zv, mean(h.pngrid)]
-			vf_vec[jω] = itp_vf[ωv, show_ϵ, show_b, show_μ, show_σ, show_ξ, show_ζ, zv]
-		end
-		l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="z = $(round(exp(zv),digits=2))", marker_color=col[ceil(Int,10*jz/h.Nz)])
-		l[jz,1] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕce_vec, line_shape="spline", name="z = $(round(exp(zv),digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
-		l[jz,2] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕce_vecfix, line_shape="spline", name="z = $(round(exp(zv),digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
-		l[jz,3] = l_new
-		l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="z = $(round(exp(zv),digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jz/h.Nz)])
-		l[jz,4] = l_new
-
-		ωmin_int, ωmax_int = quantile.(LogNormal(show_μ, show_σ), [.005; .995]) + h.ωmin
-		val_int_C, val_int_Cfix = 0., 0.
-		for (jϵ, ϵv) in enumerate(h.ϵgrid)
-			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * itp_ϕc_ext[ω, ϵv, show_b, show_μ, show_σ, show_ξ, show_ζ, zv, show_pN]
-			ffix(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * itp_ϕc_ext[ω, ϵv, show_b, show_μ, show_σ, show_ξ, show_ζ, zv, mean(h.pngrid)]
-			(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-			(valfix, err) = hquadrature(ffix, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-			val_int_C += val * h.λϵ[jϵ] 
-			val_int_Cfix += valfix * h.λϵ[jϵ] 
-		end
-
-		Cz[jz], Cz_fix[jz] = val_int_C, val_int_Cfix
-	end
-
-	ωmax_show = min(h.ωmax, quantile(LogNormal(show_μ, show_σ), 0.999)+h.ωmin)
-
-	pc = plot([l[jz, 1] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Consumption"))
-	pce = plot([l[jz, 2] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ"))
-	pcef = plot([l[jz, 3] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Cons from ext ϕ, fixed pN"))
-	pv = plot([l[jz, 4] for jz in 1:h.Nz], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Value function"))
-
-	pC = plot(scatter(;x=h.zgrid, y=Cz, showlegend=false), Layout(;xaxis_title="Z", font_size=16, title="Agg Consumption"))
-	pCf = plot(scatter(;x=h.zgrid, y=Cz_fix, showlegend=false), Layout(;xaxis_title="Z", font_size=16, title="Agg Consumption with fixed pN"))
-
-	p = [pc pv; pce pcef; pC pCf]
-	p.plot.layout["xlabel"] = "ω"
-	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 1200
-	p.plot.layout["font_family"] = "Fira Sans Light"
-	if remote
-		path = pwd() * "/../../Graphs/"
-		save(path * "p_hh_z.jld", "p", p)
-	else
-		path = pwd() * "/../Graphs/"
-		# savefig(p, path * "hh_z.pdf")
-		return p
-	end
-	Void
-end
-
-function plot_hh_policies_b(h::Hank; remote::Bool=false)
-	show_ϵ, show_μ, show_σ, show_ξ, show_ζ, show_z = mean(h.ϵgrid), mean(h.μgrid), mean(h.σgrid), h.ξgrid[1], h.ζgrid[1], mean(h.zgrid)
-
-	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid)
-	itp_ϕc  = interpolate(knots, h.ϕc, Gridded(Linear()))
-	itp_vf  = interpolate(knots, h.vf, Gridded(Linear()))
-	knots = (h.ωgrid, h.ϵgrid, h.bgrid, h.μgrid, h.σgrid, h.ξgrid, h.ζgrid, h.zgrid, h.pngrid)
-	itp_ϕc_ext  = interpolate(knots, h.ϕc_ext, Gridded(Linear()))
-
-	itp_pN = make_itp(h, h.pN, agg=true)
-
-	l = Array{PlotlyBase.GenericTrace{Dict{Symbol,Any}}}(undef, h.Nb, 4)
-	Cb = Vector{Float64}(undef, h.Nb)
-	Cb_fix = Vector{Float64}(undef, h.Nb)
-	for (jb, bv) in enumerate(h.bgrid)
-		ϕc_vec = zeros(h.Nω)
-		ϕce_vec = zeros(h.Nω)
-		ϕce_vecfix = zeros(h.Nω)
-		vf_vec = zeros(h.Nω)
-		show_pN = itp_pN[bv, show_μ, show_σ, show_ξ, 1., ceil(Int, h.Nz/2)]
-		for (jω, ωv) in enumerate(h.ωgrid)
-			ϕc_vec[jω] = itp_ϕc[ωv, show_ϵ, bv, show_μ, show_σ, show_ξ, show_ζ, show_z]
-			ϕce_vec[jω] = itp_ϕc_ext[ωv, show_ϵ, bv, show_μ, show_σ, show_ξ, show_ζ, show_z, show_pN]
-			ϕce_vecfix[jω] = itp_ϕc_ext[ωv, show_ϵ, bv, show_μ, show_σ, show_ξ, show_ζ, show_z, mean(h.pngrid)]
-			vf_vec[jω] = itp_vf[ωv, show_ϵ, bv, show_μ, show_σ, show_ξ, show_ζ, show_z]
-		end
-		l_new = scatter(;x=h.ωgrid, y=ϕc_vec, line_shape="spline", name="b = $(round(bv,digits=2))", marker_color=col[ceil(Int,10*jb/h.Nb)])
-		l[jb,1] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕce_vec, line_shape="spline", name="b = $(round(bv,digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
-		l[jb,2] = l_new
-		l_new = scatter(;x=h.ωgrid, y=ϕce_vecfix, line_shape="spline", name="b = $(round(bv,digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
-		l[jb,3] = l_new
-		l_new = scatter(;x=h.ωgrid, y=vf_vec, line_shape="spline", name="b = $(round(bv,digits=2))", showlegend=false, marker_color=col[ceil(Int,10*jb/h.Nb)])
-		l[jb,4] = l_new
-
-		ωmin_int, ωmax_int = quantile.(LogNormal(show_μ, show_σ), [.005; .995]) + h.ωmin
-		val_int_C, val_int_Cfix = 0., 0.
-		for (jϵ, ϵv) in enumerate(h.ϵgrid)
-			f(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * itp_ϕc_ext[ω, ϵv, bv, show_μ, show_σ, show_ξ, show_ζ, show_z, show_pN]
-			ffix(ω) = pdf(LogNormal(show_μ, show_σ), ω-h.ωmin) * itp_ϕc_ext[ω, ϵv, bv, show_μ, show_σ, show_ξ, show_ζ, show_z, mean(h.pngrid)]
-			(val, err) = hquadrature(f, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-			(valfix, err) = hquadrature(ffix, ωmin_int, ωmax_int, reltol=1e-12, abstol=0, maxevals=0)
-			val_int_C += val * h.λϵ[jϵ] 
-			val_int_Cfix += valfix * h.λϵ[jϵ] 
-		end
-
-		Cb[jb], Cb_fix[jb] = val_int_C, val_int_Cfix
-	end
-	ωmax_show = min(h.ωmax, quantile(LogNormal(show_μ, show_σ), 0.999)+h.ωmin)
-
-	pc = plot([l[jb, 1] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Consumption"))
-	pce = plot([l[jb, 2] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true), font_size=16, title="Cons from ext ϕ"))
-	pcef = plot([l[jb, 3] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Cons from ext ϕ, fixed pN"))
-	pv = plot([l[jb, 4] for jb in 1:h.Nb], Layout(; xaxis=attr(title="ω", zeroline=true, range=[h.ωmin, ωmax_show]), font_size=16, title="Value function"))
-
-	pC = plot(scatter(;x=h.bgrid, y=Cb, showlegend=false), Layout(;xaxis_title="B", font_size=16, title="Agg Consumption"))
-	pCf = plot(scatter(;x=h.bgrid, y=Cb_fix, showlegend=false), Layout(;xaxis_title="B", font_size=16, title="Agg Consumption with fixed pN"))
-
-	p = [pc pv; pce pcef; pC pCf]
-	p.plot.layout["xlabel"] = "ω"
-	p.plot.layout["width"] = 800
-	p.plot.layout["height"] = 1200
-	p.plot.layout["font_family"] = "Fira Sans Light"
-
-	if remote
-		path = pwd() * "/../../Graphs/"
-		save(path * "p_hh_b.jld", "p", p)
-	else
-		path = pwd() * "/../Graphs/"
-		# savefig(p, path * "hh_b.pdf")
-		return p
-	end
-	Void
-end
 
 function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)
 	jshow_b, jshow_μ, jshow_σ, jshow_ξ, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), 2, 1, ceil(Int, h.Nz/2)
