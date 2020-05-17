@@ -279,6 +279,18 @@ function SOEdef(;
 	return SOEdef{Ktot, Kshocks}(pars, opt, gr, prob, ϕ, v, eq, gov, LoM)
 end
 
+function update_prob_z!(sd::SOEdef, ρ::Real=sd.pars[:ρz], σ::Real=sd.pars[:σz])
+	
+	Ns = N(sd, :z)
+	zgrid, Pz = tauchen_fun(Ns, ρ, σ, m=1.5)
+
+	sd.gr[:z] = zgrid
+	sd.prob[:z] = Pz
+
+	nothing
+end
+
+
 ergodic_ϵ(sd::SOEdef) = first(stationary_distributions(MarkovChain(sd.prob[:ϵ], sd.gr[:ϵ])))
 N(sd::SOEdef, sym) = length(sd.gr[sym])
 
