@@ -340,12 +340,12 @@ function bellman_iteration!(sd::SOEdef, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat
 	# Let know if anything is wrong
 	for key in keys(vf)
 		if sum(isnan.(vf[key])) > 0
-			print_save("$(sum(isnan.(vf[:a]))) NaNs found in vf[$(key)]")
+			print_save("$(sum(isnan.(vf[key]))) NaNs found in vf[$(key)]")
 		end
 	end
 	for key in keys(ϕ)
 		if sum(isnan.(ϕ[key])) > 0
-			print_save("$(sum(isnan.(ϕ[:a]))) NaNs found in ϕ$(key)")
+			print_save("$(sum(isnan.(ϕ[key]))) NaNs found in ϕ$(key)")
 		end
 	end
 
