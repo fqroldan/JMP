@@ -50,72 +50,22 @@ function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ,
 	return h
 end
 
-function make_simulated_path(sd::SOEdef, run_number, years=100)
-	pp, jz_series, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
-	Tyears = floor(Int64,periods(pp)*0.25)
-	def_freq = Ndefs/Tyears
-	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(floor(100*def_freq))%")
-	v_m = [0.]
-	g = 0.0
+function eval_GMM(v_o, target_o; show_res::Bool=true)
+	v_m = copy(v_o)
+	targets = copy(target_o)
 
-	v_m = simul_stats(pp)
-	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
-	return v_m, targets
-end
+	targets[4] = targets[4] / targets[2]
+	v_m[4] = v_m[4] / v_m[2]
+	print("\nTargets ✓")
 
-function make_something_else()
-	savedir = pwd() * "/../Output/run$(run_number)/"
-	save(savedir * "path.jld", "pp", pp)
-	
-	pl = plot_simul(path)
-	savejson(pl, savedir * "path.json")	
-	try
-		savefig(savedir * "path.pdf")
-	catch
-	end
+	W = diagm([1.0/targets[jj] for jj in 1:length(targets)])
+	W[2,2] *= 100
+	W[4,4] *= 50
 
-	pl, πthres = plot_episodes(path; episode_type="onlyspread", slides=true, πthres=0.95)
-	savejson(pl, savedir * "onlyspread_slides.json")
-	try
-		savefig(savedir * "onlyspread_slides.pdf")
-	catch
-	end
+	g = (v_m - targets)'*W*(v_m-targets)
 
-	# pl = plot_episodes(path; episode_type="onlyspread", slides=false, πthres=0.975)
-	# savejson(pl, savedir * "onlyspread_paper.json")
-
-	for resp in ["C"; "Y"]
-		try
-			make_IRF_plots(path; slides = true, create_plots = true, response = resp, savedir=savedir)
-		catch
-		end
-	end
-
-	params = pars(h)
-
-	try
-		v_m = simul_stats(path)
+	if show_res
 		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons) / σ(Output)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "median Dom Holdings"; "mean wealth/Y" ]
-		targets[4] = targets[4] / targets[2]
-		v_m[4] = v_m[4] / v_m[2]
-		print("\nTargets ✓")
-
-		W = zeros(length(v_m),length(v_m))
-		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
-		W[2,2] *= 100
-		W[4,4] *= 50
-
-		print("\nW ✓")
-		g = (v_m - targets)'*W*(v_m-targets)
-		print_save("\nObjective function = $(@sprintf("%0.3g",g))")
-		print_save("\n")
-		for jj in 1:length(targets)
-			print_save("$(@sprintf("%0.3g",v_m[jj]))  ")
-		end
-		print_save("\nParams: ")
-		for jj in 1:length(params)
-			print_save("$(@sprintf("%0.3g",params[jj]))  ")
-		end
 		res = [targetnames v_m targets (targets-v_m)./targets]
 		for jj in 1:size(res,1)
 		    print_save("\n")
@@ -125,19 +75,108 @@ function make_something_else()
 		    	print_save("$(@sprintf("%0.3g",res[jj,ii]))")
 		    end
 		end
-	catch
-		print_save("\nWARNING: Found problems computing simulation statistics")
 	end
+	print_save("\n")
+	return g
+end
 
-	v_m[4] = v_m[4] * v_m[2]
-	# save(savedir * "v_m.jld", "v_m", v_m)
-	# write(savedir * "stats.txt", "$(v_m)")
+function make_simulated_path(sd::SOEdef, run_number, years=100)
+	pp, jz_series, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
+	Tyears = floor(Int64,periods(pp)*0.25)
+	def_freq = Ndefs/Tyears
+	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(floor(100*def_freq))%")
 	
+	# pl = plot_simul(path)
+
+	# pl, πthres = plot_episodes(path; episode_type="onlyspread", slides=true, πthres=0.95) # Also here need to make it so there are at least 10 episodes
+
+	# make_IRF_plots(path; slides = true, create_plots = true, response = resp, savedir=savedir) # for resp = Y, C
+
+	v_m = simul_stats(pp)
+	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
+	
+	g = eval_GMM(v_m, targets)
 	calib_table = make_calib_table(v_m)
 	write(savedir * "calib_table.txt", calib_table)
 
 	return g, path, πthres, v_m, def_freq
 end
+
+# function make_something_else()
+# 	savedir = pwd() * "/../Output/run$(run_number)/"
+# 	save(savedir * "path.jld", "pp", pp)
+	
+# 	pl = plot_simul(path)
+# 	savejson(pl, savedir * "path.json")	
+# 	try
+# 		savefig(savedir * "path.pdf")
+# 	catch
+# 	end
+
+# 	pl, πthres = plot_episodes(path; episode_type="onlyspread", slides=true, πthres=0.95)
+# 	savejson(pl, savedir * "onlyspread_slides.json")
+# 	try
+# 		savefig(savedir * "onlyspread_slides.pdf")
+# 	catch
+# 	end
+
+# 	# pl = plot_episodes(path; episode_type="onlyspread", slides=false, πthres=0.975)
+# 	# savejson(pl, savedir * "onlyspread_paper.json")
+
+# 	for resp in ["C"; "Y"]
+# 		try
+# 			make_IRF_plots(path; slides = true, create_plots = true, response = resp, savedir=savedir)
+# 		catch
+# 		end
+# 	end
+
+# 	params = pars(h)
+
+# 	try
+# 		v_m = simul_stats(path)
+# 		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons) / σ(Output)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "median Dom Holdings"; "mean wealth/Y" ]
+# 		targets[4] = targets[4] / targets[2]
+# 		v_m[4] = v_m[4] / v_m[2]
+# 		print("\nTargets ✓")
+
+# 		W = zeros(length(v_m),length(v_m))
+# 		[W[jj,jj] = 1.0/targets[jj] for jj in 1:length(targets)]
+# 		W[2,2] *= 100
+# 		W[4,4] *= 50
+
+# 		print("\nW ✓")
+# 		g = (v_m - targets)'*W*(v_m-targets)
+# 		print_save("\nObjective function = $(@sprintf("%0.3g",g))")
+# 		print_save("\n")
+# 		for jj in 1:length(targets)
+# 			print_save("$(@sprintf("%0.3g",v_m[jj]))  ")
+# 		end
+# 		print_save("\nParams: ")
+# 		for jj in 1:length(params)
+# 			print_save("$(@sprintf("%0.3g",params[jj]))  ")
+# 		end
+# 		res = [targetnames v_m targets (targets-v_m)./targets]
+# 		for jj in 1:size(res,1)
+# 		    print_save("\n")
+# 		    print_save(res[jj,1])
+# 		    for ii in 2:size(res,2)
+# 		    	print_save("     ")
+# 		    	print_save("$(@sprintf("%0.3g",res[jj,ii]))")
+# 		    end
+# 		end
+# 	catch
+# 		print_save("\nWARNING: Found problems computing simulation statistics")
+# 	end
+
+# 	v_m[4] = v_m[4] * v_m[2]
+# 	# save(savedir * "v_m.jld", "v_m", v_m)
+# 	# write(savedir * "stats.txt", "$(v_m)")
+	
+# 	calib_table = make_calib_table(v_m)
+# 	write(savedir * "calib_table.txt", calib_table)
+
+# 	return g, path, πthres, v_m, def_freq
+# end
 
 
 function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres, savedir)

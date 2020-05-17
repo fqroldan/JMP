@@ -12,8 +12,10 @@ col = [	"#1f77b4",  # muted blue
 		"#17becf"   # blue-teal
 		]
 
+default_eval_points(sd::SOEdef) = N(sd,:b), floor(Int, N(sd,:μ)*0.5), floor(Int, N(sd,:σ)*0.5), 1, 2, floor(Int, N(sd,:z)*0.5)
+
 function plot_hh_policies(sd::SOEdef; slides=false)
-	jb, jμ, jσ, jξ, jζ, jz = N(sd,:b), floor(Int, N(sd,:μ)*0.5), floor(Int, N(sd,:σ)*0.5), 1, 2, floor(Int, N(sd,:z)*0.5)
+	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
 	μv, σv = sd.gr[:μ][jμ], sd.gr[:σ][jσ]
 
 	ϕ = Dict(key => [sd.ϕ[key][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] for jω in 1:N(sd,:ω), jϵ in 1:N(sd,:ϵ)] for key in keys(sd.ϕ))
@@ -54,7 +56,7 @@ function plot_hh_policies(sd::SOEdef; slides=false)
 	return p1
 end	
 
-function makecontour(sd::SOEdef, y, dim1::Symbol, dim2::Symbol, f1::Function=identity, f2::Function=identity; divergent::Bool=true, slides::Bool=true, title="", xtitle=string(dim1), ytitle=string(dim2))
+function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol; f1::Function=identity, f2::Function=identity, divergent::Bool=false, slides::Bool=true, title="", xtitle="<i>"*string(dim1), ytitle="<i>"*string(dim2))
 	max_z, min_z = maximum(y), minimum(y)
 
 	if divergent
@@ -79,11 +81,27 @@ function makecontour(sd::SOEdef, y, dim1::Symbol, dim2::Symbol, f1::Function=ide
 		yaxis = attr(title=ytitle, zeroline=false)
 		)
 
-	p1 = plot(contour(;x = f1.(sd.gr[dim1]), y = f2(sd.gr[dim2]), z=y, autocontour=AC, contours=Dict(:start=>min_z,:end=>max_z)), layout)
-
+	p1 = plot(contour(;x = f1.(sd.gr[dim1]), y = f2.(sd.gr[dim2]), z=y, colorscale = colscale, autocontour=AC, contours=Dict(:start=>min_z,:end=>max_z)), layout)
 	return p1
 end
 
+function make_unemp(sd::SOEdef; slides::Bool=true)
+	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
+
+	unemp = (1 .- reshape_long(sd, sd.eq[:Ld])) * 100
+
+	U_mat = [unemp[jb, jμ, jσ, jξ, jζ, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
+
+	p1 = makecontour(sd, U_mat, :b, :z, f2=exp, slides=slides)
+end
+
+function make_debtprice(sd::SOEdef; slides::Bool=true)
+	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
+
+	qg_mat = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
+
+	p1 = makecontour(sd, qg_mat, :b, :z, f2=exp, slides=slides)
+end
 
 
 function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)
