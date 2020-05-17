@@ -97,7 +97,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 	dist = 1+tol
 
 	upd_η = 1.
-	upd_ηR = 0.12
+	upd_ηR = 0.25
 	tol_eqm = 5e-2
 	maxiter_CE = 200
 
