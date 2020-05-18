@@ -654,6 +654,6 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		print_save("\nStopping at distance $(@sprintf("%0.3g",dist)), target was $(@sprintf("%0.3g",tol)).")
 	end
 
-	print_save("\nTotal time: $(time_print(time()-t0))\n")
+	print_save("\nTime: $(time_print(time()-t0))")
 	nothing
 end

@@ -80,11 +80,12 @@ function eval_GMM(v_o, target_o; show_res::Bool=true)
 	return g
 end
 
-function make_simulated_path(sd::SOEdef, run_number, years=100)
+function make_simulated_path(sd::SOEdef, savedir, years=100)
 	pp, jz_series, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
 	Tyears = floor(Int64,periods(pp)*0.25)
 	def_freq = Ndefs/Tyears
 	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(floor(100*def_freq))%")
+	save(savedir*"p_bench.jld", "pp", pp, "Ndefs", Ndefs)
 	
 	# pl = plot_simul(path)
 
@@ -101,6 +102,83 @@ function make_simulated_path(sd::SOEdef, run_number, years=100)
 
 	return g, path, πthres, v_m, def_freq
 end
+
+function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres, savedir)
+
+	old_Δ = copy(sd.pars[:Δ])
+	sim_mat = [ji==jj for ji in 1:3, jj in 1:3]
+	sim_names = ["nodelta", "nodef", "nob"]
+
+	freq, v = zeros(3)
+	for (js, sim_name) in enumerate(sim_names)
+		nodelta, nodef, nob = sim_mat[js, :]
+		if sim_name == "nodelta"
+			sd.pars[:Δ] = 0
+		end
+		try 
+			pp, Ndefs = load("../Output/run$(run_number)/p_$(sim_name).jld", "pp", "Ndefs")
+			print_save("\nFound $(sim_name) simul")
+		catch
+			print_save("\nSolving $(sim_name) version")
+			mpe_iter!(sd; nodef = nodef, noΔ = nodelta, nob = nob, rep_agent = rep_agent, run_number=run_number, save_copies=false)
+			pp, _, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
+			save("../Output/run$(run_number)/p_$(sim_name).jld", "pp", pp, "Ndefs", Ndefs)
+			print_save(" ✓")
+		end
+		sd.pars[:Δ] = old_Δ
+		Tyears = floor(Int64,size(pp.data, 1)*0.25)
+		freq[js] = Ndefs/Tyears
+		v[js] = simul_stats(pp)
+	end
+
+	freq_nodelta, freq_nodef, freq_nob = freq
+	v_nodelta, v_nodef, v_nob = v
+
+	for (jj, slides) in enumerate([true; false])
+		pcomp = plot_comparison_episodes(p_bench, p_nodef; episode_type = episode_type, slides = slides, πthres=πthres)
+		savejson(pcomp, savedir * "comparison_crisis_nodef$(jj).json")
+	end
+
+	return v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob
+end
+# 	pp, Ndefs = load("../Output/run$(run_number)/p_nodelta.jld", "pp", "Ndefs")
+
+# 	h.Δ = old_Δ
+# 	try 
+# 		pp, Ndefs = load("../Output/run$(run_number)/p_nodef.jld", "pp", "Ndefs")
+# 		print_save("\nFound nodef simul")
+# 	catch
+# 		print_save("\nSolving nodef version")
+# 		h = load(savedir * "hank.jld", "h")
+# 		mpe_iter!(h; nodef = true, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
+# 		pp, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
+# 		save("../Output/run$(run_number)/p_nodef.jld", "pp", pp, "Ndefs", Ndefs)
+# 		print_save(" ✓")
+# 	end
+# 	pp, Ndefs = load("../Output/run$(run_number)/p_nodef.jld", "pp", "Ndefs")
+# 	freq_nodef = Ndefs/Tyears
+
+# 	v_nodef = simul_stats(p_nodef)
+
+# 	h.Δ = old_Δ
+# 	try
+# 		p_nob, Ndefs = load("../Output/run$(run_number)/p_nob.jld", "p_nob", "Ndefs")
+# 		print_save("\nFound nob simul")
+# 	catch
+# 		print_save("\nSolving nob version")
+# 		h = load(savedir * "hank.jld", "h")
+# 		mpe_iter!(h; nodef = false, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false, nob=true)
+# 		p_nob, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
+# 		save("../Output/run$(run_number)/p_nob.jld", "p_nob", p_nob, "Ndefs", Ndefs)
+# 		print_save(" ✓")
+# 	end
+# 	p_nob, Ndefs = load("../Output/run$(run_number)/p_nob.jld", "p_nob", "Ndefs")
+# 	freq_nob = Ndefs/Tyears
+
+# 	v_nob = simul_stats(p_nob)
+
+# end
+
 
 # function make_something_else()
 # 	savedir = pwd() * "/../Output/run$(run_number)/"
@@ -179,65 +257,6 @@ end
 # end
 
 
-function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres, savedir)
-
-	old_Δ = copy(h.Δ)
-	try 
-		p_noΔ, Ndefs = load("../Output/run$(run_number)/p_nodelta.jld", "p_noΔ", "Ndefs")
-		print_save("\nFound noΔ simul")
-	catch
-		h.Δ = 0
-		print_save("\nSolving noΔ version")
-		mpe_iter!(h; nodef = false, noΔ = true, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
-		p_noΔ, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
-		save("../Output/run$(run_number)/p_nodelta.jld", "p_noΔ", p_noΔ, "Ndefs", Ndefs)
-		print_save(" ✓")
-	end
-	p_noΔ, Ndefs = load("../Output/run$(run_number)/p_nodelta.jld", "p_noΔ", "Ndefs")
-	Tyears = floor(Int64,size(p_noΔ.data, 1)*0.25)
-	freq_noΔ = Ndefs/Tyears
-	v_noΔ = simul_stats(p_noΔ)
-
-	h.Δ = old_Δ
-	try 
-		p_nodef, Ndefs = load("../Output/run$(run_number)/p_nodef.jld", "p_nodef", "Ndefs")
-		print_save("\nFound nodef simul")
-	catch
-		print_save("\nSolving nodef version")
-		h = load(savedir * "hank.jld", "h")
-		mpe_iter!(h; nodef = true, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false)
-		p_nodef, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
-		save("../Output/run$(run_number)/p_nodef.jld", "p_nodef", p_nodef, "Ndefs", Ndefs)
-		print_save(" ✓")
-	end
-	p_nodef, Ndefs = load("../Output/run$(run_number)/p_nodef.jld", "p_nodef", "Ndefs")
-	freq_nodef = Ndefs/Tyears
-
-	for (jj, slides) in enumerate([true; false])
-		pcomp = plot_comparison_episodes(p_bench, p_nodef; episode_type = episode_type, slides = slides, πthres=πthres)
-		savejson(pcomp, savedir * "comparison_crisis_nodef$(jj).json")
-	end
-	v_nodef = simul_stats(p_nodef)
-
-	h.Δ = old_Δ
-	try
-		p_nob, Ndefs = load("../Output/run$(run_number)/p_nob.jld", "p_nob", "Ndefs")
-		print_save("\nFound nob simul")
-	catch
-		print_save("\nSolving nob version")
-		h = load(savedir * "hank.jld", "h")
-		mpe_iter!(h; nodef = false, noΔ = false, rep_agent = rep_agent, run_number=run_number, maxiter = 21, save_copies=false, nob=true)
-		p_nob, _, Ndefs = simul(h; simul_length=4*(years+25), only_def_end=false)
-		save("../Output/run$(run_number)/p_nob.jld", "p_nob", p_nob, "Ndefs", Ndefs)
-		print_save(" ✓")
-	end
-	p_nob, Ndefs = load("../Output/run$(run_number)/p_nob.jld", "p_nob", "Ndefs")
-	freq_nob = Ndefs/Tyears
-
-	v_nob = simul_stats(p_nob)
-
-	return v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob
-end
 
 # pars(h::Hank) = [(1/h.β)^4-1; h.γ; h.τ; h.wbar; h.ρz; h.σz; h.tax; h.ρξ; h.σξ]
 

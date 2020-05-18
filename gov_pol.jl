@@ -130,12 +130,12 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 			# Update the default policy
 			new_rep = update_govpol(sd)
 			old_norm = sqrt.(sum(old_rep.^2))
-			print_save("\n||rep₀, repₜ|| = $(@sprintf("%0.3g",old_norm))")
+			# print_save("\n||rep₀, repₜ|| = $(@sprintf("%0.3g",old_norm))")
 			if isapprox(old_norm, 0.0)
 				old_norm = 1.0
 			end
 			new_norm = sqrt.(sum(new_rep.^2))
-			print_save(", $((@sprintf("%0.3g",new_norm)))")
+			# print_save(", $((@sprintf("%0.3g",new_norm)))")
 			dist = sqrt.(sum( (new_rep - old_rep).^2 )) / old_norm
 			sd.gov[:repay] = upd_ηR * new_rep + (1.0-upd_ηR) * old_rep
 		end
@@ -149,7 +149,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 		tol_eqm = max(max(exp(0.875*log(1+tol_eqm))-1, dist/10, 1e-5))
 		upd_ηR = max(upd_ηR * 0.99, 5e-2)
 		t_new = time()
-		print_save("\n$(Dates.format(now(), "HH:MM")) Distance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations. New tol = $(@sprintf("%0.3g",tol_eqm))")
+		print_save("\nDistance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations. New tol = $(@sprintf("%0.3g",tol_eqm))")
 
 		if iter % 100 == 0 && iter != maxiter-1
 			# t_sim = time()

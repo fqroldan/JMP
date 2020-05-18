@@ -104,8 +104,8 @@ function SOEdef(;
 	Nb = 7,
 	Nξ = 2,
 	Nz = 7,
-	ρz = 0.9,
-	σz = 0.025,
+	ρz = 0.97,
+	σz = 0.003,
 	ρξ = 0.95,
 	σξ = 0.0025,
 	ℏ = 0.45,
@@ -260,7 +260,7 @@ function SOEdef(;
 	welfare   	= zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 	C 			= zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
 
-	pars = Dict(:β=>β, :γ=>γ, :ψ=>ψ, :wbar=>wbar, :ρ=>ρ, :κ=>κ, :r_star=>r_star, :τ=>τ, :η=>η, :ϖ=>ϖ, :α_T=>α_T, :α_N=>α_N, :ϑ=>ϑ, :ρϵ=>ρϵ, :σϵ=>σϵ, :ρξ=>ρξ, :σξ=>σξ, :ρz=>ρz, :σz=>σz, :ℏ=>ℏ, :θ=>θ, :Δ=>Δ, :ωmin=>ωmin, :ωmax=>ωmax)
+	pars = Dict(:β=>β, :γ=>γ, :ψ=>ψ, :wbar=>wbar, :ρ=>ρ, :κ=>κ, :r_star=>r_star, :τ=>τ, :η=>η, :ϖ=>ϖ, :α_T=>α_T, :α_N=>α_N, :ϑ=>ϑ, :ρϵ=>ρϵ, :σϵ=>σϵ, :ρξ=>ρξ, :σξ=>σξ, :ρz=>ρz, :σz=>σz, :ℏ=>ℏ, :θ=>θ, :Δ=>Δ, :ωmin=>ωmin, :ωmax=>ωmax, :meanξ=>meanξ)
 	opt = Dict(:EpsteinZin=>EpsteinZin, :nodef=>nodef, :noΔ=>noΔ, :rep_agent=>rep_agent, :nob=>nob)
 	gr = Dict(:ω=>ωgrid, :ϵ=>ϵgrid, :b=>bgrid, :μ=>μgrid, :σ=>σgrid, :ξ=>ξgrid, :ζ=>ζgrid, :z=>zgrid, :pN=>pngrid, :ωf => ωgrid_fine)
 	prob = Dict(:ϵ => Pϵ, :ξ => Pξ, :z => Pz)
