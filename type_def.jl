@@ -279,13 +279,31 @@ function SOEdef(;
 	return SOEdef{Ktot, Kshocks}(pars, opt, gr, prob, ϕ, v, eq, gov, LoM)
 end
 
+function update_probs!(sd::SOEdef)
+	update_prob_z!(sd)
+	update_prob_ξ!(sd)
+	nothing
+end
+
 function update_prob_z!(sd::SOEdef, ρ::Real=sd.pars[:ρz], σ::Real=sd.pars[:σz])
-	
 	Ns = N(sd, :z)
+	
 	zgrid, Pz = tauchen_fun(Ns, ρ, σ, m=1.5)
 
 	sd.gr[:z] = zgrid
 	sd.prob[:z] = Pz
+
+	nothing
+end
+
+function update_prob_ξ!(sd::SOEdef, ρ::Real=sd.pars[:ρξ], σ::Real=sd.pars[:σξ], meanξ::Real=sd.pars[:meanξ])
+	Ns = N(sd, :ξ)
+
+	ξgrid, Pξ = tauchen_fun(Ns, ρ, σ, m=0.5)
+	ξgrid = ξgrid .+ meanξ
+
+	sd.gr[:ξ] = ξgrid
+	sd.prob[:ξ] = Pξ
 
 	nothing
 end
