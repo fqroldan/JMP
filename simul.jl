@@ -107,7 +107,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	
 	if t % 100 == 0
 		print_save("\npN = $(@sprintf("%0.3g",pN)), pN^e = $(@sprintf("%0.3g",pNg)), u = $(ceil(100*(1-Ld))) at t = $t")
-		print_save("\nDiscrepancy in ∫ϕC, pN = $(@sprintf("%0.3g", discrepancy)), $(@sprintf("%0.3g", log(pN) - log(pNg)))")
+		print_save("\nDiscrepancy in ∫ϕcdμ, pN = $(@sprintf("%0.3g", discrepancy)), $(@sprintf("%0.3g", log(pN) - log(pNg)))")
 	end
 
 	def_prob = 0.
