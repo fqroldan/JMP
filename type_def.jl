@@ -84,7 +84,7 @@ function quarterlize_AR1(ρ, σ)
 end
 
 function SOEdef(;
-	β = (1.0/1.05)^0.25,
+	β = (1.0/1.09)^0.25,
 	IES = 1.0,
 	RRA = 10,
 	τ = 0.2,
