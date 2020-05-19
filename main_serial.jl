@@ -2,6 +2,7 @@ using QuantEcon, BasisMatrices, Interpolations, Optim, LaTeXStrings, Distributio
 using ORCA, JSON
 
 include("type_def.jl")
+include("handle_guesses.jl")
 include("handle_itps.jl")
 include("fiscal.jl")
 include("hh_pb.jl")
