@@ -145,7 +145,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 		yd = (wt*Ld*(1.0-sd.pars[:τ]) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
 		
 		sg = max(sd.pars[:ωmin], itp_ϕs(ωv, ϵv, Bt, μt, σt, ξt, ζt, zt))
-		θg = min(max(0.0, itp_ϕθ(ωv, ϵv, Bt, μt, σt, ξt, ζt, zt)), 1.0)
+		θg = min(max(0.0, itp_ϕθ(sg, ϵv, Bt, μt, σt, ξt, ζt, zt)), 1.0)
 
 		abc = get_abc(yd, sd.pars[:ωmin], qhv, qg, pCt, sg, θg)
 		ap, bp, cc = abc[:a], abc[:b], abc[:c]

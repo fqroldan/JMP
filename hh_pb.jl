@@ -218,7 +218,7 @@ function eval_value(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz, ex
 	return Dict(:v => vt, :w => wt)
 end
 
-function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf; resolve::Bool = true, verbose::Bool=true, autodiff::Bool=false) where {Ktot,Kshocks}
+function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf, itp_θ; resolve::Bool = true, verbose::Bool=true, autodiff::Bool=false) where {Ktot,Kshocks}
 	v = Dict{Symbol, Array{Float64,Ktot}}(key=>similar(val) for (key, val) in sd.v)
 	ϕ = Dict{Symbol, Array{Float64,Ktot}}(key=>similar(val) for (key, val) in sd.ϕ)
 	warnc0 = zeros(size(qᵍ_mat))
@@ -236,6 +236,13 @@ function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, p
 		jξ = Jgrid[js, 4]
 		jζ = Jgrid[js, 5]
 		jz = Jgrid[js, 6]
+
+		bt = sd.gr[:b][jb]
+		μt = sd.gr[:μ][jμ]
+		σt = sd.gr[:σ][jσ]
+		ξt = sd.gr[:ξ][jξ]
+		ζt = sd.gr[:ζ][jζ]
+		zt = sd.gr[:z][jz]
 
 		# jdef = (gr[:ζ][jζ] .== 0)
 		jdef = (jζ == 1)
@@ -321,6 +328,15 @@ function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, p
 			for (key, val) in fmax
 				v[key][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = val
 			end
+
+			""" Finally figure out a and b """
+			sv = ϕmax[:s]
+			θv = min(max(0.0, itp_θ(sv, ϵv, bt, μt, σt, ξt, ζt, zt)), 1.0)
+
+			others = get_abc(RHS, sd.pars[:ωmin], qʰv, qᵍv, pCv, sv, θv)
+
+			ϕ[:a][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = others[:a]
+			ϕ[:b][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = others[:b]
 		end
 	end
 
@@ -333,9 +349,10 @@ function bellman_iteration!(sd::SOEdef, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat
 	itp_vf = make_itp(sd, sd.v[:v]; agg=false);
 	itp_wf = make_itp(sd, sd.v[:w]; agg=false);
 	itp_qᵍ = make_itp(sd, sd.eq[:qᵍ]; agg=true);
+	itp_θ  = make_itp(sd, sd.ϕ[:θ]; agg=false);
 
 	# Compute values
-	vf, ϕ, warnc0 = opt_value(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf, resolve = resolve, verbose = verbose, autodiff=autodiff)
+	vf, ϕ, warnc0 = opt_value(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf, itp_θ, resolve = resolve, verbose = verbose, autodiff=autodiff)
 
 	# Let know if anything is wrong
 	for key in keys(vf)
