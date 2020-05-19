@@ -89,7 +89,7 @@ function SOEdef(;
 	RRA = 10,
 	τ = 0.2,
 	r_star = 1.04^0.25 - 1.0,
-	tax = 0.1,
+	tax = 0.02,
 	ωmax = 20,
 	wbar = 0.89,
 	curv = .4,
