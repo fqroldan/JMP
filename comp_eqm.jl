@@ -584,7 +584,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 	t0 = time()
 	while dist > tol && iter < maxiter
 		iter += 1
-		if iter % iter_show == 0
+		if verbose
 			print_save("\nIteration $iter")
 			print_save("(vfi update tolerance = $(@sprintf("%0.3g",tol_vfi)))")
 			print_save(". (upd_η = $(@sprintf("%0.3g", upd_η)))")
@@ -645,7 +645,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		dist = max(10*dist_v, dist_s)
 		tol_vfi = max(exp(0.95*log(1+tol_vfi))-1, tol/10)
 
-		upd_η = max(0.98*upd_η, 5e-2)
+		upd_η = max(0.9*upd_η, 5e-2)
 	end
 
 	if dist <= tol
