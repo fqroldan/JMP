@@ -44,7 +44,7 @@ function update_govpol(sd::SOEdef)
 		
 		bpv = B′[js]
 		for (jξp, ξpv) in enumerate(sd.gr[:ξ]), (jzp, zpv) in enumerate(sd.gr[:z])
-			if ζv == 0 # Default at t
+			if ζv == 1 # NO default at t
 				jζp = 1 # Default at t+1
 				ζpv = sd.gr[:ζ][jζp]
 				μpv = μ′_arr[jξp, jzp][jζp]
@@ -58,7 +58,7 @@ function update_govpol(sd::SOEdef)
 				Wr = itp_W(bpv, μpv, σpv, ξpv, ζpv, zpv)
 
 				rep_prob[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 1.0 - cdf(Normal(μ_gov, σ_gov), Wd-Wr)
-			else
+			else # If default at t, no decision to be made
 				rep_prob[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
 			end
 		end
@@ -97,7 +97,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 	dist = 1+tol
 
 	upd_η = 1.
-	upd_ηR = 0.2
+	upd_ηR = 0.15
 
 	tol_eqm = 5e-2
 	maxiter_CE = 100
@@ -159,7 +159,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 		end
 
 		time_old = time()
-		maxiter_CE = 25
+		maxiter_CE = 20
 	end
 	if dist <= tol
 		print_save("\nConverged in $iter iterations. ")
