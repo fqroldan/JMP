@@ -247,7 +247,10 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 		repay_prime = (rand() <= exp_rep[jξp,jzp])
 		if repay_prime
 			jζp = 2
-			R = sd.pars[:κ] + (1.0-sd.pars[:ρ]) * qprime
+			μpv = μprime[jζp]
+			σpv = σprime[jζp]
+			qpv = qprime[jζp]
+			R = sd.pars[:κ] + (1.0-sd.pars[:ρ]) * qpv
 		else
 			jζp = 1
 			Bpv = (1.0 - sd.pars[:ℏ]) * Bpv
