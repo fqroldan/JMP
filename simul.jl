@@ -224,8 +224,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 		Wr = itp_W(Bpv, μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv)
 		Wd = itp_W(Bpv, μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv)
 		# Now draw reentry
-		prob_reentry = sd.pars[:θ]
-		reentry = (rand() <= prob_reentry)
+		reentry = (rand() <= sd.pars[:θ])
 		if reentry
 			jζp = 2
 			μpv = μprime[jζp]

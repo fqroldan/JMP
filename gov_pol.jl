@@ -58,7 +58,7 @@ function update_govpol(sd::SOEdef)
 				Wr = itp_W(bpv, μpv, σpv, ξpv, ζpv, zpv)
 
 				rep_prob[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 1.0 - cdf(Normal(μ_gov, σ_gov), Wd-Wr)
-			else # If default at t, no decision to be made
+			else # If default at t, no decision to make
 				rep_prob[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp] = 0.
 			end
 		end
