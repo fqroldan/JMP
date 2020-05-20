@@ -1,5 +1,5 @@
-TFP_N(z, Δ, ζv) = 1.0    * max(0, (1.0 - Δ*(ζv==1)))
-TFP_T(z, Δ, ζv) = exp(z) * max(0, (1.0 - Δ*(ζv==1)))
+TFP_N(z, Δ, ζv) = 1.0    * max(0, (1.0 - Δ*(ζv==0)))
+TFP_T(z, Δ, ζv) = exp(z) * max(0, (1.0 - Δ*(ζv==0)))
 
 function labor_demand(sd::SOEdef, w, z, ζ, pN)
 	pars = sd.pars
