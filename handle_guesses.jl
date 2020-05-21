@@ -75,6 +75,7 @@ function eval_GMM(v_o, target_o; show_res::Bool=true)
 		    	print_save("$(@sprintf("%0.3g",res[jj,ii]))")
 		    end
 		end
+		print_save("\ng = $(@sprintf("%0.3g", g))")
 	end
 	print_save("\n")
 	return g
