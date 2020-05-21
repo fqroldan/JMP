@@ -47,7 +47,7 @@ function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ,
 	catch
 		print_save(": JLD file incompatible")
 	end
-	return h
+	return sd
 end
 
 function eval_GMM(v_o, target_o; show_res::Bool=true)
@@ -90,7 +90,7 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 	# pl = plot_simul(path)
 
 	# pl, πthres = plot_episodes(path; episode_type="onlyspread", slides=true, πthres=0.95) # Also here need to make it so there are at least 10 episodes
-
+	πthres = 1.0
 	# make_IRF_plots(path; slides = true, create_plots = true, response = resp, savedir=savedir) # for resp = Y, C
 
 	v_m = simul_stats(pp)
@@ -100,7 +100,7 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 	calib_table = make_calib_table(v_m)
 	write(savedir * "calib_table.txt", calib_table)
 
-	return g, path, πthres, v_m, def_freq
+	return g, pp, πthres, v_m, def_freq
 end
 
 function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres, savedir)
@@ -119,6 +119,7 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p
 			pp, Ndefs = load("../Output/run$(run_number)/p_$(sim_name).jld", "pp", "Ndefs")
 			print_save("\nFound $(sim_name) simul")
 		catch
+			sd = load("../Output/run$(run_number)/SOEdef.jld", "sd")
 			print_save("\nSolving $(sim_name) version")
 			mpe_iter!(sd; nodef = nodef, noΔ = nodelta, nob = nob, rep_agent = rep_agent, run_number=run_number, save_copies=false)
 			pp, _, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
@@ -134,10 +135,10 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p
 	freq_nodelta, freq_nodef, freq_nob = freq
 	v_nodelta, v_nodef, v_nob = v
 
-	for (jj, slides) in enumerate([true; false])
-		pcomp = plot_comparison_episodes(p_bench, p_nodef; episode_type = episode_type, slides = slides, πthres=πthres)
-		savejson(pcomp, savedir * "comparison_crisis_nodef$(jj).json")
-	end
+	# for (jj, slides) in enumerate([true; false])
+	# 	pcomp = plot_comparison_episodes(p_bench, p_nodef; episode_type = episode_type, slides = slides, πthres=πthres)
+	# 	savejson(pcomp, savedir * "comparison_crisis_nodef$(jj).json")
+	# end
 
 	return v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob
 end
@@ -257,8 +258,7 @@ end
 # end
 
 
-
-# pars(h::Hank) = [(1/h.β)^4-1; h.γ; h.τ; h.wbar; h.ρz; h.σz; h.tax; h.ρξ; h.σξ]
+pars(sd::SOEdef) = [(1/sd.pars[:β])^4-1; sd.pars[:γ]; sd.pars[:τ]; sd.pars[:wbar]; sd.pars[:ρz]; sd.pars[:σz]; sd.pars[:meanξ]; sd.pars[:ρξ]; sd.pars[:σξ]]
 
 function make_center(params::Vector)
 

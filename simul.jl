@@ -324,11 +324,14 @@ function simul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=1)
 	Qϵ = kron(sd.prob[:ϵ], ones(N(sd,:ωf),1))
 
 	# Simulate
+	t0 = time()
 	Ndefs = 0
 	for t in 1:T
 		λ, new_def = iter_simul!(sd, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ)
 		Ndefs += new_def
 	end
+
+	print_save("\nTime in simulation: $(time_print(time()-t0))")
 
 	jz_series = jz_series[burn_in+1:end]
 
