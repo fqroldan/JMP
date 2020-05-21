@@ -1,18 +1,18 @@
 TFP_N(z, Δ, ζv) = 1.0    * max(0, (1.0 - Δ*(ζv==0)))
 TFP_T(z, Δ, ζv) = exp(z) * max(0, (1.0 - Δ*(ζv==0)))
 
-function labor_demand(sd::SOEdef, w, z, ζ, pN)
+function labor_demand(sd::SOEdef, w, z, ζv, pNv)
 	pars = sd.pars
 
-	Ld_nontradables = (pars[:α_N] * pN * TFP_N(z,pars[:Δ],ζ) / w).^(1.0/(1.0-pars[:α_N]))
-	Ld_tradables    = (pars[:α_T] * 1  * TFP_T(z,pars[:Δ],ζ) / w).^(1.0/(1.0-pars[:α_T]))
+	Ld_nontradables = (pars[:α_N] * pNv * TFP_N(z,pars[:Δ],ζv) / w).^(1.0/(1.0-pars[:α_N]))
+	Ld_tradables    = (pars[:α_T] *  1  * TFP_T(z,pars[:Δ],ζv) / w).^(1.0/(1.0-pars[:α_T]))
 
 	return Ld_nontradables, Ld_tradables
 end
 
 
 function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv, zv)
-	pars = sd.pars
+ 	ϖ, η, ϑ, Δ, α_N, α_T, wbar = [sd.pars[key] for key in [:ϖ, :η, :ϑ, :Δ, :α_N, :α_T, :wbar]]
 	Ls = 1.0
 	
 	# Step 1: Find unconstrained wage
@@ -22,17 +22,16 @@ function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv
 		)
 
 	# Step 2: Apply constraint
-	wv = max(res.minimizer, pars[:wbar])
+	wv = max(res.minimizer, wbar)
 
 	# Step 3: Compute labor demand in nontradables and supply
 	Ld_N, Ld_T = labor_demand(sd, wv, zv, ζv, pN)
 	Ld = Ld_N + Ld_T
-	supply_N = TFP_N(zv,pars[:Δ],ζv) * Ld_N^pars[:α_N]
-	supply_T = TFP_T(zv,pars[:Δ],ζv) * Ld_T^pars[:α_T]
+	supply_N = TFP_N(zv,Δ,ζv) * Ld_N^α_N
+	supply_T = TFP_T(zv,Δ,ζv) * Ld_T^α_T
 
 	# Step 4: Get nontraded demand
  	# Recover traded demand from total consumption
- 	ϖ, η, ϑ = [pars[key] for key in [:ϖ, :η, :ϑ]]
 	pC = price_index(sd, pN)
 	cT = val_int_C * (1-ϖ) * (1.0/pC)^(-η)
 	cN = val_int_C * ( ϖ ) * (pN/pC)^(-η)
