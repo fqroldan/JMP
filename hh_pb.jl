@@ -141,7 +141,6 @@ function solve_optvalue(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz
 		smax -= 1e-6
 		smin += 1e-6
 	else
-		
 	end
 
 	θmin, θmax = 0.0, 1.0
@@ -218,7 +217,7 @@ function eval_value(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz, ex
 	return Dict(:v => vt, :w => wt)
 end
 
-function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf, itp_θ; resolve::Bool = true, verbose::Bool=true, autodiff::Bool=false) where {Ktot,Kshocks}
+function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf; resolve::Bool = true, verbose::Bool=true, autodiff::Bool=false) where {Ktot,Kshocks}
 	v = Dict{Symbol, Array{Float64,Ktot}}(key=>similar(val) for (key, val) in sd.v)
 	ϕ = Dict{Symbol, Array{Float64,Ktot}}(key=>similar(val) for (key, val) in sd.ϕ)
 	warnc0 = zeros(size(qᵍ_mat))
@@ -237,16 +236,8 @@ function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, p
 		jζ = Jgrid[js, 5]
 		jz = Jgrid[js, 6]
 
-		bt = sd.gr[:b][jb]
-		μt = sd.gr[:μ][jμ]
-		σt = sd.gr[:σ][jσ]
-		ξt = sd.gr[:ξ][jξ]
-		ζt = sd.gr[:ζ][jζ]
-		zt = sd.gr[:z][jz]
-
 		# jdef = (gr[:ζ][jζ] .== 0)
 		jdef = (jζ == 1)
-
 
 		qʰv = qʰ_mat[jb, jμ, jσ, jξ, jζ, jz]
 		qᵍv = qᵍ_mat[jb, jμ, jσ, jξ, jζ, jz]
@@ -328,21 +319,41 @@ function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, p
 			for (key, val) in fmax
 				v[key][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = val
 			end
-
-			""" Finally figure out a and b """
-			sv = ϕmax[:s]
-			θv = min(max(0.0, itp_θ(sv, ϵv, bt, μt, σt, ξt, ζt, zt)), 1.0)
-
-			others = get_abc(RHS, sd.pars[:ωmin], qʰv, qᵍv, pCv, sv, θv)
-
-			ϕ[:a][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = others[:a]
-			ϕ[:b][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = others[:b]
 		end
 	end
 
 	return v, ϕ, warnc0
 end
 
+function update_policy!(sd::SOEdef, itp_θ, qʰ_mat, qᵍ_mat)
+	Jgrid = agg_grid(sd)
+
+	for js in 1:size(Jgrid, 1)
+		jb, jμ, jσ, jξ, jζ, jz = Jgrid[js, :]
+
+		bt = sd.gr[:b][jb]
+		μt = sd.gr[:μ][jμ]
+		σt = sd.gr[:σ][jσ]
+		ξt = sd.gr[:ξ][jξ]
+		ζt = sd.gr[:ζ][jζ]
+		zt = sd.gr[:z][jz]
+
+		qʰv = qʰ_mat[js]
+		qᵍv = qᵍ_mat[js]
+
+		for (jϵ, ϵv) in enumerate(sd.gr[:ϵ]), (jω, ωv) in enumerate(sd.gr[:ω])
+			sv = min(sd.pars[:ωmax], max(sd.pars[:ωmin], sd.ϕ[:s][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]))
+			θv = min(max(0.0, itp_θ(sv, ϵv, bt, μt, σt, ξt, ζt, zt)), 1.0)
+
+			""" RHS, pCv irrelevant because I only want :a and :b """
+			others = get_abc(1.0, sd.pars[:ωmin], qʰv, qᵍv, 1.0, sv, θv)
+
+			sd.ϕ[:a][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = others[:a]
+			sd.ϕ[:b][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = others[:b]
+		end
+	end
+	nothing
+end
 
 function bellman_iteration!(sd::SOEdef, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve::Bool=true, verbose::Bool=true, autodiff::Bool=false)
 	# Interpolate the value function
@@ -352,7 +363,9 @@ function bellman_iteration!(sd::SOEdef, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat
 	itp_θ  = make_itp(sd, sd.ϕ[:θ]; agg=false);
 
 	# Compute values
-	vf, ϕ, warnc0 = opt_value(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf, itp_θ, resolve = resolve, verbose = verbose, autodiff=autodiff)
+	vf, ϕ, warnc0 = opt_value(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf, resolve = resolve, verbose = verbose, autodiff=autodiff)
+
+	update_policy!(sd, itp_θ, qʰ_mat, qᵍ_mat)
 
 	# Let know if anything is wrong
 	for key in keys(vf)
