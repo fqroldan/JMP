@@ -128,7 +128,7 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p
 			print_save(" ✓")
 		end
 		sd.pars[:Δ] = old_Δ
-		Tyears = floor(Int64,size(pp.data, 1)*0.25)
+		Tyears = floor(Int64,periods(pp)*0.25)
 		freq[js] = Ndefs/Tyears
 		v[js] = simul_stats(pp)
 	end

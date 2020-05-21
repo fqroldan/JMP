@@ -13,7 +13,7 @@ include("simul.jl")
 
 # print("mpe_iter!(sd)")
 #				r_loc, meanξ, RRA,   τ,   ρz,     σz,   ρξ,     σξ,  wbar
-params_center = [0.09; 0.01; 12.0; 0.2; 0.97; 0.0027; 0.95; 0.0025; 0.897]
+params_center = [0.09; 0.01; 12.0; 0.2; 0.97; 0.0026; 0.95; 0.0025; 0.897]
 
 function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 

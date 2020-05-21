@@ -48,7 +48,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	abs(zt - sd.gr[:z][jz]) < 1e-8 || throw(error("something wrong with ztv and jzt"))
 
 	# print("\n$(t), μ = $μt")
-	if t % 1000 == 0
+	if t % 10000 == 0
 		print_save("\n[Bt, μt, σt, ξt, ζt, zt]\n")
 		print_save("$(@sprintf("%0.3g",Bt)), ")
 		print_save("$(@sprintf("%0.3g",μt)), ")
@@ -104,7 +104,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	lumpsumT = coupons + Gt - sd.pars[:τ]*wt*Ld - qg*new_debt
 
 	
-	if t % 1000 == 0
+	if t % 10000 == 0
 		print_save("\npN = $(@sprintf("%0.3g",pN)), pN^e = $(@sprintf("%0.3g",pNg)), u = $(ceil(100*(1-Ld))) at t = $t")
 		print_save("\nDiscrepancy in ∫ϕcdμ, pN = $(@sprintf("%0.3g", discrepancy)), $(@sprintf("%0.3g", log(pN) - log(pNg)))")
 	end
