@@ -89,7 +89,7 @@ function update_W(sd::SOEdef)
 end
 
 
-function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bool=sd.opt[:nodef], noΔ::Bool=sd.opt[:noΔ], rep_agent::Bool=sd.opt[:rep_agent], run_number::Int64=1, save_copies::Bool=true, nob::Bool=false, verbose::Bool=false)
+function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bool=sd.opt[:nodef], noΔ::Bool=sd.opt[:noΔ], rep_agent::Bool=sd.opt[:rep_agent], run_number::Int64=1, save_copies::Bool=false, nob::Bool=false, verbose::Bool=false)
 	print_save("\nIterating on the government's policy: ")
 	time_init = time()
 	t_old = time_init
@@ -101,6 +101,11 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 
 	tol_eqm = 5e-2
 	maxiter_CE = 100
+
+	if nodef
+		# Make sure the government never defaults
+		sd.gov[:repay] = ones(size(sd.gov[:repay]))
+	end
 
 	while dist > tol && iter < maxiter
 		iter += 1
@@ -119,11 +124,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 
 		old_rep = copy(sd.gov[:repay])
 
-		if nodef
-			# Make sure the government never defaults
-			sd.gov[:repay] = ones(size(sd.gov[:repay]))
-			dist = 0.0
-		elseif noΔ || nob
+		if nodef || noΔ || nob
 			# Keep the same default policy
 			dist = 0.0
 		else
@@ -140,9 +141,9 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=250, tol::Float64=25e-4, nodef::Bo
 			sd.gov[:repay] = upd_ηR * new_rep + (1.0-upd_ηR) * old_rep
 		end
 
-		# if save_copies
-		# 	save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
-		# end
+		if save_copies
+			save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
+		end
 
 		dist = max(dist, tol_eqm)
 
