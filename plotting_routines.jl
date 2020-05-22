@@ -12,6 +12,41 @@ col = [	"#1f77b4",  # muted blue
 		"#17becf"   # blue-teal
 		]
 
+ggplot = let
+    axis = attr(showgrid=true, gridcolor="white", linewidth=1.0,
+                linecolor="white", titlefont_color="#555555",
+                titlefont_size=14, ticks="outside",
+                tickcolor="#555555"
+                )
+    layout = Layout(plot_bgcolor="#E5E5E5",
+                    paper_bgcolor="white",
+                    font_size=10,
+                    xaxis=axis,
+                    yaxis=axis,
+                    titlefont_size=14)
+
+    colors = Cycler([
+        "#E24A33", "#348ABD", "#988ED5", "#777777", "#FBC15E",
+        "#8EBA42", "#FFB5B8"
+    ])
+    gta = attr(
+        marker_line_width=0.5, marker_line_color="#348ABD", marker_color=colors
+    )
+    Style(layout=layout, global_trace=gta)
+end
+
+slides_def = let
+	axis = attr(showgrid = true, zeroline=false)
+	layout = Layout(plot_bgcolor="#fafafa", paper_bgcolor="#fafafa", font_size=18, xaxis=axis, yaxis=axis, width=900, height=500)
+	Style(layout=layout)
+end
+dark_bg = let
+	axis = attr(showgrid = true, zeroline=false)
+	layout = Layout(plot_bgcolor="#000003", paper_bgcolor="#000003", font_size=18, xaxis=axis, yaxis=axis, width=900, height=500)
+	Style(layout=layout)
+end
+slides_dark = Style(slides_def, dark_bg)
+
 default_eval_points(sd::SOEdef) = N(sd,:b), floor(Int, N(sd,:μ)*0.5), floor(Int, N(sd,:σ)*0.5), 1, 2, floor(Int, N(sd,:z)*0.5)
 
 function plot_hh_policies(sd::SOEdef; slides=false)
