@@ -36,13 +36,14 @@ ggplot = let
 end
 
 slides_def = let
-	axis = attr(showgrid = true, zeroline=false)
-	layout = Layout(plot_bgcolor="#fafafa", paper_bgcolor="#fafafa", font_size=18, xaxis=axis, yaxis=axis, width=900, height=500)
+	axis = attr(zeroline=false)
+	layout = Layout(plot_bgcolor="#fafafa", paper_bgcolor="#fafafa",
+		xaxis=axis, yaxis=axis, width=1920*0.5, height=1080*0.5, font_size=20, font_family="Lato")
 	Style(layout=layout)
 end
 dark_bg = let
-	axis = attr(showgrid = true, zeroline=false)
-	layout = Layout(plot_bgcolor="#000003", paper_bgcolor="#000003", font_size=18, xaxis=axis, yaxis=axis, width=900, height=500)
+	axis = attr(showgrid = true, gridcolor="#3d3d3d", line_width = 0.5)
+	layout = Layout(plot_bgcolor="#020202", paper_bgcolor="#020202")
 	Style(layout=layout)
 end
 slides_dark = Style(slides_def, dark_bg)
@@ -61,22 +62,22 @@ function plot_hh_policies(sd::SOEdef; slides=false)
 	l = Array{PlotlyBase.GenericTrace}(undef, N(sd,:ϵ), 4)
 	for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])
 		colv = get(colpal, 0.8*jϵ/N(sd,:ϵ))
-		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:c][:,jϵ], line_shape="spline", name="ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=colv)
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:c][:,jϵ], xaxis="x3", yaxis="y2", line_shape="spline", name="ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=colv)
 		l[jϵ,1] = l_new
-		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:v][:,jϵ], line_shape="spline", name="ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=colv)
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:v][:,jϵ], xaxis="x4", yaxis="y4", line_shape="spline", name="ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=colv)
 		l[jϵ,2] = l_new
-		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:s][:,jϵ], showlegend=false, name="ϵ = $(round(exp(ϵv),digits=4))", marker_color=colv)
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:s][:,jϵ], xaxis="x1", yaxis="y1", showlegend=false, name="ϵ = $(round(exp(ϵv),digits=4))", marker_color=colv)
 		l[jϵ,3] = l_new
-		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:θ][:,jϵ], showlegend=false, name="ϵ = $(round(exp(ϵv),digits=4))", marker_color=colv)
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:θ][:,jϵ], xaxis="x2", yaxis="y3", showlegend=false, name="ϵ = $(round(exp(ϵv),digits=4))", marker_color=colv)
 		l[jϵ,4] = l_new
 	end
 
 	ωmax_show = min(sd.pars[:ωmax], quantile(LogNormal(μv, σv), 0.999)+sd.pars[:ωmin])
 
-	pc = plot([l[jϵ, 1] for jϵ in 1:N(sd,:ϵ)], Layout(xaxis=attr(zeroline=false, range=[sd.pars[:ωmin], ωmax_show]), font_size=16, title="<i>Consumption"))
-	pv = plot([l[jϵ, 2] for jϵ in 1:N(sd,:ϵ)], Layout(xaxis=attr(zeroline=false, range=[sd.pars[:ωmin], ωmax_show]), font_size=16, title="<i>Value function"))
-	ps = plot([l[jϵ, 3] for jϵ in 1:N(sd,:ϵ)], Layout(xaxis=attr(zeroline=false, range=[sd.pars[:ωmin], ωmax_show]), font_size=16, title="<i>Savings"))
-	pθ = plot([l[jϵ, 4] for jϵ in 1:N(sd,:ϵ)], Layout(xaxis=attr(zeroline=false, range=[sd.pars[:ωmin], ωmax_show]), font_size=16, title="<i>Proportion risk-free debt"))
+	pc = plot([l[jϵ, 1] for jϵ in 1:N(sd,:ϵ)], style=Style(slides_def, layout=Layout(title="<i>Consumption")))
+	pv = plot([l[jϵ, 2] for jϵ in 1:N(sd,:ϵ)], style=Style(slides_def, layout=Layout(title="<i>Value function")))
+	ps = plot([l[jϵ, 3] for jϵ in 1:N(sd,:ϵ)], style=Style(slides_def, layout=Layout(title="<i>Savings")))
+	pθ = plot([l[jϵ, 4] for jϵ in 1:N(sd,:ϵ)], style=Style(slides_def, layout=Layout(title="<i>Proportion risk-free debt")))
 
 	if slides
 		font = "Lato"
@@ -87,7 +88,6 @@ function plot_hh_policies(sd::SOEdef; slides=false)
 	end
 
 	p1 = [pc pv; ps pθ]
-	relayout!(p1, xlabel = "<i>ω", width = width, height = 600, font_family = font, font_size = 16)
 	return p1
 end	
 
