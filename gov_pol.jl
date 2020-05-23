@@ -106,6 +106,9 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 		# Make sure the government never defaults
 		sd.gov[:repay] = ones(size(sd.gov[:repay]))
 	end
+	if nob
+		sd.opt[:nob] = true
+	end
 
 	while dist > tol && iter < maxiter
 		iter += 1
