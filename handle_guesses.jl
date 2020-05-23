@@ -1,9 +1,9 @@
-make_guess(nodef, noΔ, rep_agent, p_dict, run_number) = make_guess(nodef, noΔ, rep_agent, p_dict[:r_loc], p_dict[:meanξ], p_dict[:γ], p_dict[:τ], p_dict[:ρz], p_dict[:σz], p_dict[:ρξ], p_dict[:σξ], p_dict[:wbar], run_number)
+make_guess(nodef, noΔ, rep_agent, p_dict, run_number) = make_guess(nodef, noΔ, rep_agent, p_dict[:β], p_dict[:meanξ], p_dict[:γ], p_dict[:τ], p_dict[:ρz], p_dict[:σz], p_dict[:ρξ], p_dict[:σξ], p_dict[:wbar], run_number)
 
-function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number)
+function make_guess(nodef, noΔ, rep_agent, β, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number)
 
-	print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,digits=3)), $(round(RRA,digits=3)), $(round(τ,digits=3)), $(round(wbar,digits=3)), $(round(ρz,digits=3)), $(round(σz,digits=3)), $(round(tax,digits=3)), $(round(ρξ,digits=3)), $(round(σξ,digits=3))")
-	sd = SOEdef(; β=(1.0/(1.0+r_loc))^0.25, tax = tax, RRA=RRA, τ=τ, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
+	print_save("\nRun with β, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(100*round(β^-4-1,digits=3))%, $(round(RRA,digits=3)), $(round(τ,digits=3)), $(round(wbar,digits=3)), $(round(ρz,digits=3)), $(round(σz,digits=3)), $(round(tax,digits=3)), $(round(ρξ,digits=3)), $(round(σξ,digits=3))")
+	sd = SOEdef(; β=β, tax = tax, RRA=RRA, τ=τ, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
 		# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
 		);
 	try
@@ -270,7 +270,7 @@ end
 # pars(sd::SOEdef) = [(1/sd.pars[:β])^4-1; sd.pars[:γ]; sd.pars[:τ]; sd.pars[:wbar]; sd.pars[:ρz]; sd.pars[:σz]; sd.pars[:meanξ]; sd.pars[:ρξ]; sd.pars[:σξ]]
 
 pars(sd::SOEdef) = Dict(
-	:r_loc 	=> (1/sd.pars[:β])^4-1,
+	:β 		=> sd.pars[:β],
 	:γ		=> sd.pars[:γ],
 	:τ		=> sd.pars[:τ],
 	:wbar	=> sd.pars[:wbar],

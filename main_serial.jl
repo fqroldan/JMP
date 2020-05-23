@@ -13,7 +13,7 @@ include("simul.jl")
 
 # print("mpe_iter!(sd)")
 params_center = Dict(
-	:r_loc	=> 0.09,
+	:β		=> 1.09^(-0.25),
 	:γ		=> 12.0,
 	:τ		=> 0.2,
 	:wbar	=> 0.897,
@@ -26,7 +26,7 @@ params_center = Dict(
 
 function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	params = Dict(
-		:r_loc	=> par_vec[1],
+		:β		=> par_vec[1],
 		:γ		=> par_vec[2],
 		:τ		=> par_vec[3],
 		:wbar	=> par_vec[4],
@@ -146,16 +146,16 @@ end
 
 function SMM(p_dict; do_all::Bool=true)
 	write("../Output/big_output.txt", "")
-	params_center = [p_dict[:r_loc], p_dict[:γ], p_dict[:τ], p_dict[:wbar], p_dict[:ρz], p_dict[:σz], p_dict[:meanξ], p_dict[:ρξ], p_dict[:σξ]]
+	params_center = [p_dict[:β], p_dict[:γ], p_dict[:τ], p_dict[:wbar], p_dict[:ρz], p_dict[:σz], p_dict[:meanξ], p_dict[:ρξ], p_dict[:σξ]]
 	#				 
 	# params_center = [0.094; 0.02 ; 12.032; 0.092; 0.970; 0.005; 0.995; 0.002; 0.91]
 	if do_all
-		mins = 	      [0.05 ; 5   ; 0.05 ; 0.82 ; 0.85 ; 0.0001; 0.0001; 0.92 ; 1e-8 ]
-		maxs = 		  [0.15 ; 20  ; 0.35 ; 1.00 ; 0.99 ; 0.012 ; 0.05  ; 0.999; 0.003]
+		mins = 	      [1.15^(-0.25) ; 5   ; 0.05 ; 0.82 ; 0.85 ; 0.0001; 0.0001; 0.92 ; 1e-8 ]
+		maxs = 		  [1.05^(-0.25) ; 20  ; 0.35 ; 1.00 ; 0.99 ; 0.012 ; 0.05  ; 0.999; 0.003]
 	else
-		mins = 	      [0.05 ; 5   ;      ; 0.82 ;      ; 0.0001; 0.0001;      ;      ]
-		maxs = 		  [0.15 ; 20  ;      ; 1.00 ;      ; 0.012 ; 0.05  ;      ;      ]
-		params_center = [p_dict[:r_loc], p_dict[:γ], p_dict[:wbar], p_dict[:σz], p_dict[:meanξ]]
+		mins = 	      [1.15^(-0.25) ; 5   ;      ; 0.82 ;      ; 0.0001; 0.0001;      ;      ]
+		maxs = 		  [1.05^(-0.25) ; 20  ;      ; 1.00 ;      ; 0.012 ; 0.05  ;      ;      ]
+		params_center = [p_dict[:β], p_dict[:γ], p_dict[:wbar], p_dict[:σz], p_dict[:meanξ]]
 	end
 
 	L = Vector{Int64}(undef, 0)
