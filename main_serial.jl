@@ -12,17 +12,38 @@ include("reporting_routines.jl")
 include("simul.jl")
 
 # print("mpe_iter!(sd)")
-#				r_loc, meanξ, RRA,   τ,   ρz,     σz,   ρξ,     σξ,  wbar
-params_center = [0.09; 0.01; 12.0; 0.2; 0.97; 0.0026; 0.95; 0.0025; 0.897]
+params_center = Dict(
+	:r_loc	=> 0.09,
+	:γ		=> 12.0,
+	:τ		=> 0.2,
+	:wbar	=> 0.897,
+	:ρz		=> 0.97,
+	:σz		=> 0.0026,
+	:meanξ	=> 0.01,
+	:ρξ		=> 0.95,
+	:σξ		=> 0.0025,
+)
 
-function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
+function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
+	params = Dict(
+		:r_loc	=> par_vec[1],
+		:γ		=> par_vec[2],
+		:τ		=> par_vec[3],
+		:wbar	=> par_vec[4],
+		:ρz		=> par_vec[5],
+		:σz		=> par_vec[6],
+		:meanξ	=> par_vec[7],
+		:ρξ		=> par_vec[8],
+		:σξ		=> par_vec[9],
+	)
 
 	time_init = time()
 	
-	ρξ, σξ = 0.995, 0.002
-	τ, ρz = 0.092, 0.970
 	if !do_all
-		params = [params[1:3]; τ; ρz; params[4]; ρξ; σξ; params[5]]
+		params[:ρξ] = 0.995
+		params[:σξ] = 0.002
+		params[:τ]  = 0.092
+		params[:ρz] = 0.970
 	end
 	push!(L, length(L)+1)
 	run_number = L[end]
@@ -37,8 +58,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	print_save("\nStarting run number $(run_number) on $(nprocs()) cores and $(Threads.nthreads()) threads at $(Dates.format(now(),"HH:MM")) on $(Dates.monthname(now())) $(Dates.day(now()))")
 
 
-	r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar = params
-	sd = make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number);
+	sd = make_guess(nodef, noΔ, rep_agent, params, run_number);
 
 	already_done = false
 	try
@@ -124,9 +144,10 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	return g
 end
 
-function SMM(params_center; do_all::Bool=true)
+function SMM(p_dict; do_all::Bool=true)
 	write("../Output/big_output.txt", "")
-	#				 r_loc,   tax,    RRA,     τ,    ρz,    σz,    ρξ,    σξ,    wbar
+	params_center = [p_dict[:r_loc], p_dict[:γ], p_dict[:τ], p_dict[:wbar], p_dict[:ρz], p_dict[:σz], p_dict[:meanξ], p_dict[:ρξ], p_dict[:σξ]]
+	#				 
 	# params_center = [0.094; 0.02 ; 12.032; 0.092; 0.970; 0.005; 0.995; 0.002; 0.91]
 	if do_all
 		mins = 	      [0.05 ; 0.0001; 5     ; 0.05 ;  0.85; 0.0001; 0.92; 1e-8; 0.82]

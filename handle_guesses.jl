@@ -1,3 +1,5 @@
+make_guess(nodef, noΔ, rep_agent, p_dict, run_number) = make_guess(nodef, noΔ, rep_agent, p_dict[:r_loc], p_dict[:meanξ], p_dict[:γ], p_dict[:τ], p_dict[:ρz], p_dict[:σz], p_dict[:ρξ], p_dict[:σξ], p_dict[:wbar], run_number)
+
 function make_guess(nodef, noΔ, rep_agent, r_loc, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number)
 
 	print_save("\nRun with r_loc, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(r_loc,digits=3)), $(round(RRA,digits=3)), $(round(τ,digits=3)), $(round(wbar,digits=3)), $(round(ρz,digits=3)), $(round(σz,digits=3)), $(round(tax,digits=3)), $(round(ρξ,digits=3)), $(round(σξ,digits=3))")
