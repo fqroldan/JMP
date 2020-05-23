@@ -106,7 +106,7 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 	return g, pp, πthres, v_m, def_freq
 end
 
-function try_simul(run_number, sim_name, nodef, nodelta, nob, rep_agent)
+function try_simul(run_number, sim_name, nodef, nodelta, nob, rep_agent, years)
 	try 
 		pp, Ndefs = load("../Output/run$(run_number)/p_$(sim_name).jld", "pp", "Ndefs")
 		print_save("\nFound $(sim_name) simul")
@@ -135,7 +135,7 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p
 	freq, v = [zeros(3) for jj in 1:2]
 	for (js, sim_name) in enumerate(sim_names)
 		nodelta, nodef, nob = sim_mat[js, :]
-		pp, Ndefs = try_simul(run_number, sim_name, nodef, nodelta, nob, rep_agent)
+		pp, Ndefs = try_simul(run_number, sim_name, nodef, nodelta, nob, rep_agent, years)
 		Tyears = floor(Int64,periods(pp)*0.25)
 		freq[js] = Ndefs/Tyears
 		v[js] = simul_stats(pp)
