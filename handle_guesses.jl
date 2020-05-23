@@ -104,6 +104,26 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 	return g, pp, πthres, v_m, def_freq
 end
 
+function try_simul(run_number, sim_name, nodef, nodelta, nob, rep_agent)
+	try 
+		pp, Ndefs = load("../Output/run$(run_number)/p_$(sim_name).jld", "pp", "Ndefs")
+		print_save("\nFound $(sim_name) simul")
+		return pp, Ndefs
+	catch
+		sd = load("../Output/run$(run_number)/SOEdef.jld", "sd")
+		if sim_name == "nodelta"
+			sd.pars[:Δ] = 0
+		end
+		print_save("\nSolving $(sim_name) version")
+		mpe_iter!(sd; nodef = nodef, noΔ = nodelta, nob = nob, rep_agent = rep_agent, run_number=run_number, save_copies=false)
+		pp, _, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
+		save("../Output/run$(run_number)/p_$(sim_name).jld", "pp", pp, "Ndefs", Ndefs)
+		print_save(" ✓")
+		return pp, Ndefs
+	end
+	nothing
+end
+
 function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres, savedir)
 
 	old_Δ = copy(sd.pars[:Δ])
@@ -113,20 +133,7 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p
 	freq, v = [zeros(3) for jj in 1:2]
 	for (js, sim_name) in enumerate(sim_names)
 		nodelta, nodef, nob = sim_mat[js, :]
-		if sim_name == "nodelta"
-			sd.pars[:Δ] = 0
-		end
-		try 
-			pp, Ndefs = load("../Output/run$(run_number)/p_$(sim_name).jld", "pp", "Ndefs")
-			print_save("\nFound $(sim_name) simul")
-		catch
-			sd = load("../Output/run$(run_number)/SOEdef.jld", "sd")
-			print_save("\nSolving $(sim_name) version")
-			mpe_iter!(sd; nodef = nodef, noΔ = nodelta, nob = nob, rep_agent = rep_agent, run_number=run_number, save_copies=false)
-			pp, _, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
-			save("../Output/run$(run_number)/p_$(sim_name).jld", "pp", pp, "Ndefs", Ndefs)
-			print_save(" ✓")
-		end
+		pp, Ndefs = try_simul(run_number, sim_name, nodef, nodelta, nob, rep_agent)
 		Tyears = floor(Int64,periods(pp)*0.25)
 		freq[js] = Ndefs/Tyears
 		v[js] = simul_stats(pp)
@@ -258,12 +265,16 @@ end
 # 	return g, path, πthres, v_m, def_freq
 # end
 
+# pars(sd::SOEdef) = [(1/sd.pars[:β])^4-1; sd.pars[:γ]; sd.pars[:τ]; sd.pars[:wbar]; sd.pars[:ρz]; sd.pars[:σz]; sd.pars[:meanξ]; sd.pars[:ρξ]; sd.pars[:σξ]]
 
-pars(sd::SOEdef) = [(1/sd.pars[:β])^4-1; sd.pars[:γ]; sd.pars[:τ]; sd.pars[:wbar]; sd.pars[:ρz]; sd.pars[:σz]; sd.pars[:meanξ]; sd.pars[:ρξ]; sd.pars[:σξ]]
-
-function make_center(params::Vector)
-
-	rloc, RRA, τ, wbar, ρz,σz, tax, ρξ,σξ = params
-
-	return [rloc; tax; RRA; τ; ρz; σz; ρξ; σξ; wbar]
-end
+pars(sd::SOEdef) = Dict(
+	:r_loc 	=> (1/sd.pars[:β])^4-1,
+	:γ		=> sd.pars[:γ],
+	:τ		=> sd.pars[:τ],
+	:wbar	=> sd.pars[:wbar],
+	:ρz		=> sd.pars[:ρz],
+	:σz		=> sd.pars[:σz],
+	:meanξ	=> sd.pars[:meanξ],
+	:ρξ		=> sd.pars[:ρξ],
+	:σξ		=> sd.pars[:σξ],
+	)
