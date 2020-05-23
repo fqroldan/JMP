@@ -79,6 +79,7 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		
 		years = 10000
 		g, p_bench, πthres, v_m, def_freq = make_simulated_path(sd, savedir, years)
+		save(savedir * "g.jld", "g", g)
 		run(`cp ../Output/SOEdef.jld ../Output/run$(run_number)/SOEdef.jld`)
 	else
 		p_bench = load("../Output/run$(run_number)/p_bench.jld", "pp")
@@ -117,7 +118,6 @@ function wrapper_run(params, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	# s = read("../Output/output.txt", String)
 	# write(savedir * "output.txt", s)
 
-	save(savedir * "g.jld", "g", g)
 	params = pars(h)
 	save(savedir * "params.jld", "params", params)
 	
