@@ -62,9 +62,9 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
 	already_done = false
 	try
-		params = load(pwd() * "/../Output/run$(run_number)/params.jld", "params")
+		pars_new = load(pwd() * "/../Output/run$(run_number)/params.jld", "params")
 		print_save("\nFound params file for run $(run_number).")
-		if params == pars(sd)
+		if pars_new == pars(sd)
 			print_save(" Parameters correct. Looking for g value.")
 			try
 				g = load(pwd() * "/../Output/run$(run_number)/g.jld", "g")
