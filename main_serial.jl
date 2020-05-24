@@ -127,7 +127,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	end
 
 	if !already_done
-		run(`cp ../Output/run$(run_number)/hank.jld ../Output/hank.jld`)
+		run(`cp ../Output/run$(run_number)/SOEdef.jld ../Output/SOEdef.jld`)
 		run(`cp ../Output/output.txt ../Output/run$(run_number)/output.txt`)
 	end
 
