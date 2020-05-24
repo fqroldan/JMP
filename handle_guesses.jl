@@ -21,27 +21,26 @@ function make_guess(nodef, noΔ, rep_agent, β, tax, RRA, τ, ρz, σz, ρξ, σ
 			sd.gr[:σ] = sd_old.gr[:σ]
 			sd.gr[:pN] = sd_old.gr[:pN]
 			print_save("...")
-			sd.ϕ = sd_old.ϕ
-			sd.v = sd_old.v
+
+			for (key, val) in sd_old.ϕ
+				sd.ϕ[key] = val
+			end
+			for (key, val) in sd_old.v
+				sd.v[key] = val
+			end
 
 			for (key, val) in sd_old.eq
-				if haskey(sd.eq, key)
-					sd.eq[:key] = val
-				end
+				sd.eq[key] = val
 			end
 			for (key, val) in sd_old.LoM
-				if haskey(sd.LoM, key)
-					sd.LoM[:key] = val
-				end
+				sd.LoM[key] = val
 			end
 			
 			if nodef
 				print_save(" Not loading default policy.")
 			else
 				for (key, val) in sd_old.gov
-					if haskey(sd.gov, key)
-						sd.gov[:key] = val
-					end
+					sd.gov[key] = val
 				end
 			end
 			print_save(" ✓")
