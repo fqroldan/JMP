@@ -132,7 +132,8 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p
 	sim_mat = [ji==jj for ji in 1:3, jj in 1:3]
 	sim_names = ["nodelta", "nodef", "nob"]
 
-	freq, v = [zeros(3) for jj in 1:2]
+	freq = [0.0 for jj in 1:3]
+	v = [zeros(12) for jj in 1:3]
 	for (js, sim_name) in enumerate(sim_names)
 		nodelta, nodef, nob = sim_mat[js, :]
 		pp, Ndefs = try_simul(run_number, sim_name, nodef, nodelta, nob, rep_agent, years)
