@@ -88,7 +88,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		run(`rm $savedir -rf`)
 		run(`mkdir -p $savedir`)
 
-		save(savedir * "params.jld", "params", params)
+		save(savedir * "params.jld", "params", pars(sd))
 		params_table = make_params_table(sd)
 		write(savedir * "params_table.txt", params_table)
 
