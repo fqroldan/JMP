@@ -654,5 +654,5 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 	end
 
 	print_save("\nTime: $(time_print(time()-t0))")
-	nothing
+	return dist
 end
