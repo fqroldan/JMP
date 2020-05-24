@@ -111,6 +111,8 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		# _, πthres = plot_episodes(p_bench; episode_type="onlyspread", slides=true, πthres=0.95)
 	end
 
+	πthres = 1.0
+
 	s = read("../Output/big_output.txt", String)
 	s *= "g = $(@sprintf("%0.3g",g)) in $(time_print(time()-time_init))"
 	push!(gs, g)
