@@ -140,7 +140,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	# s = read("../Output/output.txt", String)
 	# write(savedir * "output.txt", s)
 
-	params = pars(h)
+	params = pars(sd)
 	save(savedir * "params.jld", "params", params)
 	
 	return g
