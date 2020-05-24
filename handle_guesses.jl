@@ -151,7 +151,7 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p
 	# 	savejson(pcomp, savedir * "comparison_crisis_nodef$(jj).json")
 	# end
 
-	return v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob
+	return v_nodelta, v_nodef, v_nob, freq_nodelta, freq_nodef, freq_nob
 end
 # 	pp, Ndefs = load("../Output/run$(run_number)/p_nodelta.jld", "pp", "Ndefs")
 
