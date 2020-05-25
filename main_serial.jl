@@ -57,7 +57,6 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
 	print_save("\nStarting run number $(run_number) on $(nprocs()) cores and $(Threads.nthreads()) threads at $(Dates.format(now(),"HH:MM")) on $(Dates.monthname(now())) $(Dates.day(now()))")
 
-
 	sd = make_guess(nodef, noΔ, rep_agent, params, run_number);
 
 	already_done = false
@@ -120,7 +119,13 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		print_save("Minimum g for now. Computing no-def comparison")
 		s *= " ✓"
 
-		v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob = make_comparison_simul(sd, noΔ, rep_agent, run_number, years, p_bench, "onlyspread", πthres, savedir)
+		if length(gs) > 1
+			current_best = findmin(gs[1:end-1])[1]
+		else
+			current_best = 1
+		end
+
+		v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob = make_comparison_simul(sd, noΔ, rep_agent, run_number, current_best, years, p_bench, "onlyspread", πthres, savedir)
 
 		calib_table_comp = make_calib_table_comp([v_m; 100*def_freq], [v_nodef; 100*freq_nodef], [v_noΔ; 100*freq_noΔ], [v_nob; 100*freq_nob])
 		write(savedir * "calib_table_comp.txt", calib_table_comp)

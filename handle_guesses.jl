@@ -105,19 +105,25 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 	return g, pp, πthres, v_m, def_freq
 end
 
-function try_simul(run_number, sim_name, nodef, nodelta, nob, rep_agent, years)
+function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years)
 	try 
 		pp, Ndefs = load("../Output/run$(run_number)/p_$(sim_name).jld", "pp", "Ndefs")
 		print_save("\nFound $(sim_name) simul")
 		return pp, Ndefs
 	catch
 		sd = load("../Output/run$(run_number)/SOEdef.jld", "sd")
+		try
+			sd = load("../Output/run$(current_best)/SOEdef_$(sim_name).jld", "sd")
+			print_save("\nFound old $(sim_name) results")
+		catch
+		end
 		if sim_name == "nodelta"
 			sd.pars[:Δ] = 0
 		end
 		print_save("\nSolving $(sim_name) version")
 		mpe_iter!(sd; nodef = nodef, noΔ = nodelta, nob = nob, rep_agent = rep_agent, run_number=run_number, save_copies=false)
 		pp, _, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
+		save("../Output/run$(run_number)/SOEdef_$(sim_name).jld", "sd", sd)
 		save("../Output/run$(run_number)/p_$(sim_name).jld", "pp", pp, "Ndefs", Ndefs)
 		print_save(" ✓")
 		return pp, Ndefs
@@ -125,7 +131,7 @@ function try_simul(run_number, sim_name, nodef, nodelta, nob, rep_agent, years)
 	nothing
 end
 
-function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p_bench::Path, episode_type, πthres, savedir)
+function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_best, years, p_bench::Path, episode_type, πthres, savedir)
 
 	old_Δ = copy(sd.pars[:Δ])
 	sim_mat = [ji==jj for ji in 1:3, jj in 1:3]
@@ -135,7 +141,7 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, years, p
 	v = [zeros(12) for jj in 1:3]
 	for (js, sim_name) in enumerate(sim_names)
 		nodelta, nodef, nob = sim_mat[js, :]
-		pp, Ndefs = try_simul(run_number, sim_name, nodef, nodelta, nob, rep_agent, years)
+		pp, Ndefs = try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years)
 		Tyears = floor(Int64,periods(pp)*0.25)
 		freq[js] = Ndefs/Tyears
 		v[js] = simul_stats(pp)
