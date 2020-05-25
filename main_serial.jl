@@ -120,7 +120,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		s *= " ✓"
 
 		if length(gs) > 1
-			current_best = findmin(gs[1:end-1])[1]
+			current_best = findmin(gs[1:end-1])[2]
 		else
 			current_best = 1
 		end

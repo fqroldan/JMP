@@ -113,8 +113,9 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 	catch
 		sd = load("../Output/run$(run_number)/SOEdef.jld", "sd")
 		try
+			print_save("\nLoading results from run $(current_best): ")
 			sd = load("../Output/run$(current_best)/SOEdef_$(sim_name).jld", "sd")
-			print_save("\nFound old $(sim_name) results")
+			print_save("found old $(sim_name) results")
 		catch
 		end
 		if sim_name == "nodelta"
