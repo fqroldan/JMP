@@ -365,8 +365,6 @@ function bellman_iteration!(sd::SOEdef, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat
 	# Compute values
 	vf, ϕ, warnc0 = opt_value(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf, resolve = resolve, verbose = verbose, autodiff=autodiff)
 
-	update_policy!(sd, itp_θ, qʰ_mat, qᵍ_mat)
-
 	# Let know if anything is wrong
 	for key in keys(vf)
 		if sum(isnan.(vf[key])) > 0
@@ -382,6 +380,10 @@ function bellman_iteration!(sd::SOEdef, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat
 	# Store results in the type
 	sd.v = vf
 	sd.ϕ = ϕ
+
+	# Store results for policy in :a and :b
+	update_policy!(sd, itp_θ, qʰ_mat, qᵍ_mat)
+
 	return warnc0
 end
 
@@ -407,15 +409,19 @@ function vfi!(sd::SOEdef; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=
 		end
 		
 		v_old = copy(sd.v)
+		ϕ_old = copy(sd.ϕ)
 		warnc0 = bellman_iteration!(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=true, autodiff=false)
 		v_new = copy(sd.v)
+		ϕ_new = copy(sd.ϕ)
 
-		dist = maximum([sqrt.(sum( (v_new[key] - v_old[key]).^2 )) / sqrt.(sum(v_old[key].^2)) for key in keys(sd.v)])
+		dist_v = maximum([sqrt.(sum( (v_new[key] - v_old[key]).^2 )) / sqrt.(sum(v_old[key].^2)) for key in keys(sd.v)])
 		norm_v = Dict(key => sqrt.(sum(v_old[key].^2)) for key in keys(sd.v))
+		dist_ϕ = maximum([sqrt.(sum( (ϕ_new[key] - ϕ_old[key]).^2 )) / sqrt.(sum(ϕ_old[key].^2)) for key in keys(sd.ϕ)])
+		dist = max(dist_v, dist_ϕ)
 		if iter % 50 == 0 || (verbose && dist < tol)
 			t_new = time()
-			print_save("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v,w‖ = ($(@sprintf("%0.3g",norm_v[:v])), $(@sprintf("%0.3g",norm_v[:w]))) after $(time_print(t_new-t_old)) and $iter iterations ")
-			print_save(Dates.format(now(), "HH:MM"))
+			print("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v,w‖ = ($(@sprintf("%0.3g",norm_v[:v])), $(@sprintf("%0.3g",norm_v[:w]))) after $(time_print(t_new-t_old)) and $iter iterations ")
+			print(Dates.format(now(), "HH:MM"))
 		end
 	end
 	return warnc0, dist
