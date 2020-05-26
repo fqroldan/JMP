@@ -145,32 +145,25 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 			sd.gov[:repay] = upd_ηR * new_rep + (1.0-upd_ηR) * old_rep
 		end
 
-		if save_copies
-			save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
-		end
-
 		dist = max(dist, dist_CE)
 
 		tol_eqm = max(max(exp(0.85*log(1+tol_eqm))-1, dist/10, 1e-5))
 		upd_ηR = max(upd_ηR * 0.99, 5e-2)
 		t_new = time()
 		print_save("\nDistance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations. New tol = $(@sprintf("%0.3g",tol_eqm))")
-
-		if iter % 100 == 0 && iter != maxiter-1
-			# t_sim = time()
-			# print_save("\nSimulating")
-			# make_simulated_path(h, run_number, 1000)
-			# print_save(": done in $(time_print(time()-t_sim))")
-		end
-
+		
 		time_old = time()
 		maxiter_CE = 20
+	end
+	if save_copies
+		save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
 	end
 	if dist <= tol
 		print_save("\nConverged in $iter iterations. ")
 	else
 		print_save("\nStopping at distance $(@sprintf("%0.3g",dist)). ")
 	end
+
 
 	print_save("\nTotal time: $(time_print(time()-time_init))\n")
 end
