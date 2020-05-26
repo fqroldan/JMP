@@ -641,7 +641,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 			print_save("\nDistances: (10dv, dLoM, dp) = ($(@sprintf("%0.3g",minimum(10*dist_v))), $(@sprintf("%0.3g",minimum(dist_exp))), $(@sprintf("%0.3g",minimum(dist_s))))")
 		end
 		dist_s = max(dist_s, dist_exp)
-		dist = max(10*dist_v, dist_s)
+		dist = max(5*dist_v, dist_s)
 		tol_vfi = max(exp(0.95*log(1+tol_vfi))-1, tol/10)
 
 		upd_η = max(0.9*upd_η, 5e-2)

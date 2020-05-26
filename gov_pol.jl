@@ -116,7 +116,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 
 		""" RUN COMP_EQM LOOP """
 		dist_CE = comp_eqm!(sd, verbose = verbose, tol = tol_eqm, maxiter = maxiter_CE)
-		dist_CE = min(10*dist_CE, tol_eqm)
+		dist_CE = min(2*dist_CE, tol_eqm)
 
 		""" UPDATES """
 		W_new = update_W(sd)
