@@ -151,7 +151,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 		upd_ηR = max(upd_ηR * 0.99, 5e-2)
 		t_new = time()
 		print_save("\nDistance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations. New tol = $(@sprintf("%0.3g",tol_eqm))")
-		
+
 		time_old = time()
 		maxiter_CE = 20
 	end
