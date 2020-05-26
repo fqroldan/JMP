@@ -417,7 +417,7 @@ function vfi!(sd::SOEdef; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=
 		dist_v = maximum([sqrt.(sum( (v_new[key] - v_old[key]).^2 )) / sqrt.(sum(v_old[key].^2)) for key in keys(sd.v)])
 		norm_v = Dict(key => sqrt.(sum(v_old[key].^2)) for key in keys(sd.v))
 		dist_ϕ = maximum([sqrt.(sum( (ϕ_new[key] - ϕ_old[key]).^2 )) / sqrt.(sum(ϕ_old[key].^2)) for key in keys(sd.ϕ)])
-		dist = max(dist_v, 10*dist_ϕ)
+		dist = max(dist_v, 0.1*dist_ϕ)
 		if iter % 50 == 0 || (verbose && dist < tol)
 			t_new = time()
 			print("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v,w‖ = ($(@sprintf("%0.3g",norm_v[:v])), $(@sprintf("%0.3g",norm_v[:w]))) after $(time_print(t_new-t_old)) and $iter iterations ")
