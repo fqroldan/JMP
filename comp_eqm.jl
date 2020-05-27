@@ -576,7 +576,7 @@ end
 function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false, iter_show::Int64 = 50)
 	dist = 1+tol
 	iter = 0
-	upd_η = 0.5
+	upd_η = 0.4
 
 	dist_v, dist_exp, dist_s = zeros(3)
 

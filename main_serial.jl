@@ -19,9 +19,9 @@ params_center = Dict(
 	:wbar	=> 0.897,
 	:ρz		=> 0.97,
 	:σz		=> 0.0025,
-	:meanξ	=> 0.009,
+	:meanξ	=> 0.008,
 	:ρξ		=> 0.95,
-	:σξ		=> 0.0025,
+	:σξ		=> 0.002,
 )
 
 function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)

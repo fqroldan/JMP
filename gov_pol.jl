@@ -154,7 +154,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 		dist = max(dist, dist_CE)
 
 		time_old = time()
-		maxiter_CE = 25
+		maxiter_CE = 20
 	end
 	if save_copies
 		save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
