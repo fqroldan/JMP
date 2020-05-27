@@ -573,13 +573,14 @@ function update_grids!(sd::SOEdef; new_μgrid::Vector=[], new_σgrid::Vector=[],
 	nothing
 end
 
-function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false, iter_show::Int64 = 50)
+function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false, iter_show::Int64 = 1)
 	dist = 1+tol
 	iter = 0
-
 	upd_η = 0.5
 
-	tol_vfi = 1e-2
+	dist_v, dist_exp, dist_s = zeros(3)
+
+	tol_vfi = tol
 	t0 = time()
 	while dist > tol && iter < maxiter
 		iter += 1
@@ -590,6 +591,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 			print_save(Dates.format(now(), "HH:MM"))
 		end
 
+		""" NEW DEBT PRICES + FISCAL """
 		iterate_qᵍ!(sd, verbose = verbose)
 		update_fiscalrules!(sd)
 
@@ -599,7 +601,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		!verbose || print_save(" (spread between $(floor(Int,10000*minimum(sd.eq[:spread]))) bps and $(floor(Int,10000*maximum(sd.eq[:spread][Jgrid[:,5].==1]))) bps)")
 
 		""" SOLVE INCOME FLUCTUATIONS PROBLEM """
-		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = false);
+		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = true);
 		flag = (dist_v < tol_vfi)
 		if flag && iter % iter_show == 0
 			print_save(" ✓")
@@ -640,17 +642,19 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		if iter % iter_show == 0
 			print_save("\nDistances: (10dv, dLoM, dp) = ($(@sprintf("%0.3g",minimum(10*dist_v))), $(@sprintf("%0.3g",minimum(dist_exp))), $(@sprintf("%0.3g",minimum(dist_s))))")
 		end
-		dist_s = max(dist_s, dist_exp)
-		dist = max(5*dist_v, dist_s)
-		tol_vfi = max(exp(0.95*log(1+tol_vfi))-1, tol/10)
+		dist = max(dist_s, dist_exp)
+		dist = max(5*dist_v, dist)
+		tol_vfi = max(exp(0.95*log(1+min(tol/5,tol_vfi)))-1, tol/10)
 
 		upd_η = max(0.9*upd_η, 5e-2)
 	end
 
 	if dist <= tol
-		print_save("\nConverged in $iter iterations. ")
+		print_save("\nConverged in $iter iterations to distance $(@sprintf("%0.3g",dist)). ")
 	else
 		print_save("\nStopping at distance $(@sprintf("%0.3g",dist)), target was $(@sprintf("%0.3g",tol)).")
+		print_save("Distances: (5dv, dLoM, dp) = ($(@sprintf("%0.3g",minimum(5*dist_v))), $(@sprintf("%0.3g",minimum(dist_exp))), $(@sprintf("%0.3g",minimum(dist_s))))")
+
 	end
 
 	print_save("\nTime: $(time_print(time()-t0))")

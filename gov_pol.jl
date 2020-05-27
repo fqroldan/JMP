@@ -110,13 +110,13 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 		sd.opt[:nob] = true
 	end
 
-	while dist > tol && iter < maxiter
+	while dist > tol && iter < maxiter && iter < 3
 		iter += 1
 		print_save("\n\nOuter Iteration $iter (run $(run_number)) with upd_ηR = $(@sprintf("%0.3g",upd_ηR)) at $(Dates.format(now(), "HH:MM"))")
 
 		""" RUN COMP_EQM LOOP """
-		dist_CE = comp_eqm!(sd, verbose = verbose, tol = tol_eqm, maxiter = maxiter_CE)
-		dist_CE = min(2*dist_CE, tol_eqm)
+		dist_CE1 = comp_eqm!(sd, verbose = verbose, tol = tol_eqm, maxiter = maxiter_CE)
+		dist_CE = min(2*dist_CE1, tol_eqm)
 
 		""" UPDATES """
 		W_new = update_W(sd)
@@ -145,15 +145,16 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 			sd.gov[:repay] = upd_ηR * new_rep + (1.0-upd_ηR) * old_rep
 		end
 
-		dist = max(dist, dist_CE)
 
-		tol_eqm = max(max(exp(0.85*log(1+tol_eqm))-1, dist/10, 1e-5))
+		tol_eqm = max(max(exp(0.85*log(1+min(dist_CE1,tol_eqm)))-1, dist/10, 1e-5))
 		upd_ηR = max(upd_ηR * 0.99, 5e-2)
 		t_new = time()
 		print_save("\nDistance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations. New tol = $(@sprintf("%0.3g",tol_eqm))")
 
+		dist = max(dist, dist_CE)
+
 		time_old = time()
-		maxiter_CE = 20
+		maxiter_CE = 25
 	end
 	if save_copies
 		save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
