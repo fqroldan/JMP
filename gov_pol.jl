@@ -146,7 +146,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 		end
 
 
-		tol_eqm = max(max(exp(0.85*log(1+min(dist_CE1,tol_eqm)))-1, dist/10, 1e-5))
+		tol_eqm = max(max(exp(0.9*log(1+min(dist_CE1,tol_eqm)))-1, dist, 1e-5))
 		upd_ηR = max(upd_ηR * 0.99, 5e-2)
 		t_new = time()
 		print_save("\nDistance = $(@sprintf("%0.3g",dist)) after $(time_print(t_new-t_old)) and $iter iterations. New tol = $(@sprintf("%0.3g",tol_eqm))")
@@ -154,7 +154,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 		dist = max(dist, dist_CE)
 
 		time_old = time()
-		maxiter_CE = 20
+		maxiter_CE = 15
 	end
 	if save_copies
 		save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
