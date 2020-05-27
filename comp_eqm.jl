@@ -573,7 +573,7 @@ function update_grids!(sd::SOEdef; new_μgrid::Vector=[], new_σgrid::Vector=[],
 	nothing
 end
 
-function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false, iter_show::Int64 = 1)
+function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false, iter_show::Int64 = 50)
 	dist = 1+tol
 	iter = 0
 	upd_η = 0.5
@@ -601,7 +601,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		!verbose || print_save(" (spread between $(floor(Int,10000*minimum(sd.eq[:spread]))) bps and $(floor(Int,10000*maximum(sd.eq[:spread][Jgrid[:,5].==1]))) bps)")
 
 		""" SOLVE INCOME FLUCTUATIONS PROBLEM """
-		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = true);
+		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = false);
 		flag = (dist_v < tol_vfi)
 		if flag && iter % iter_show == 0
 			print_save(" ✓")

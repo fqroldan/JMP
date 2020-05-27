@@ -110,7 +110,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 		sd.opt[:nob] = true
 	end
 
-	while dist > tol && iter < maxiter && iter < 3
+	while iter < 2 || (dist > tol && iter < maxiter)
 		iter += 1
 		print_save("\n\nOuter Iteration $iter (run $(run_number)) with upd_ηR = $(@sprintf("%0.3g",upd_ηR)) at $(Dates.format(now(), "HH:MM"))")
 
@@ -160,9 +160,9 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 		save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
 	end
 	if dist <= tol
-		print_save("\nConverged in $iter iterations. ")
+		print_save("\n\nConverged in $iter iterations. ")
 	else
-		print_save("\nStopping at distance $(@sprintf("%0.3g",dist)). ")
+		print_save("\n\nStopping at distance $(@sprintf("%0.3g",dist)). ")
 	end
 
 
