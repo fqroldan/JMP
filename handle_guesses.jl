@@ -51,7 +51,7 @@ function make_guess(nodef, noΔ, rep_agent, β, tax, RRA, τ, ρz, σz, ρξ, σ
 	return sd
 end
 
-function eval_GMM(v_o, target_o; show_res::Bool=true)
+function eval_GMM(v_o, target_o = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167]); show_res::Bool=true)
 	v_m = copy(v_o)
 	targets = copy(target_o)
 
@@ -151,7 +151,10 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_
 		pp, Ndefs = try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years, already_done)
 		Tyears = floor(Int64,periods(pp)*0.25)
 		freq[js] = Ndefs/Tyears
-		v[js] = simul_stats(pp)
+		vsim = simul_stats(pp)
+		v[js] = vsim
+
+		eval_GMM(vsim)
 		sd.pars[:Δ] = old_Δ
 	end
 
