@@ -12,9 +12,9 @@ include("reporting_routines.jl")
 include("simul.jl")
 
 # print("mpe_iter!(sd)")
-params_center = Dict(
+params_center = Dict{Symbol, Float64}(
 	:β		=> 1.097^(-0.25),
-	:γ		=> 12.5,
+	:γ		=> 12,
 	:τ		=> 0.2,
 	:wbar	=> 0.897,
 	:ρz		=> 0.97,
@@ -25,7 +25,7 @@ params_center = Dict(
 )
 
 function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
-	params = Dict(
+	params = Dict{Symbol, Float64}(
 		:β		=> par_vec[1],
 		:γ		=> par_vec[2],
 		:τ		=> par_vec[3],
