@@ -13,7 +13,7 @@ include("simul.jl")
 
 # print("mpe_iter!(sd)")
 params_center = Dict(
-	:β		=> 1.10^(-0.25),
+	:β		=> 1.095^(-0.25),
 	:γ		=> 12.0,
 	:τ		=> 0.2,
 	:wbar	=> 0.897,
