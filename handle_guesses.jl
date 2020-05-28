@@ -105,9 +105,15 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 	return g, pp, πthres, v_m, def_freq
 end
 
-function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years)
+function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years, already_done)
+
 	try 
-		pp, Ndefs = load("../Output/run$(run_number)/p_$(sim_name).jld", "pp", "Ndefs")
+		if already_done
+			dir = "Output/run$(run_number)"
+		else
+			dir = "Output"
+		end
+		pp, Ndefs = load("../$(dir)/p_$(sim_name).jld", "pp", "Ndefs")
 		print_save("\nFound $(sim_name) simul")
 		return pp, Ndefs
 	catch
@@ -132,7 +138,7 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 	nothing
 end
 
-function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_best, years, p_bench::Path, episode_type, πthres, savedir)
+function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_best, years, p_bench::Path, episode_type, πthres, savedir, already_done)
 
 	old_Δ = copy(sd.pars[:Δ])
 	sim_mat = [ji==jj for ji in 1:3, jj in 1:3]
@@ -142,7 +148,7 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_
 	v = [zeros(12) for jj in 1:3]
 	for (js, sim_name) in enumerate(sim_names)
 		nodelta, nodef, nob = sim_mat[js, :]
-		pp, Ndefs = try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years)
+		pp, Ndefs = try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years, already_done)
 		Tyears = floor(Int64,periods(pp)*0.25)
 		freq[js] = Ndefs/Tyears
 		v[js] = simul_stats(pp)

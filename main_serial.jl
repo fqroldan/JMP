@@ -13,12 +13,12 @@ include("simul.jl")
 
 # print("mpe_iter!(sd)")
 params_center = Dict{Symbol, Float64}(
-	:β		=> 1.097^(-0.25),
+	:β		=> 1.098^(-0.25),
 	:γ		=> 13,
 	:τ		=> 0.2,
 	:wbar	=> 0.897,
 	:ρz		=> 0.97,
-	:σz		=> 0.0025,
+	:σz		=> 0.0022,
 	:meanξ	=> 0.003,
 	:ρξ		=> 0.95,
 	:σξ		=> 0.001,
@@ -125,7 +125,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 			current_best = 1
 		end
 
-		v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob = make_comparison_simul(sd, noΔ, rep_agent, run_number, current_best, years, p_bench, "onlyspread", πthres, savedir)
+		v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob = make_comparison_simul(sd, noΔ, rep_agent, run_number, current_best, years, p_bench, "onlyspread", πthres, savedir, already_done)
 
 		calib_table_comp = make_calib_table_comp([v_m; 100*def_freq], [v_nodef; 100*freq_nodef], [v_noΔ; 100*freq_noΔ], [v_nob; 100*freq_nob])
 		write(savedir * "calib_table_comp.txt", calib_table_comp)
