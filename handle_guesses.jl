@@ -2,7 +2,7 @@ make_guess(nodef, noΔ, rep_agent, p_dict, run_number) = make_guess(nodef, noΔ,
 
 function make_guess(nodef, noΔ, rep_agent, β, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number)
 
-	print_save("\nRun with β, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(100*round(β^-4-1,digits=3))%, $(round(RRA,digits=3)), $(round(τ,digits=3)), $(round(wbar,digits=3)), $(round(ρz,digits=3)), $(round(σz,digits=3)), $(round(tax,digits=3)), $(round(ρξ,digits=3)), $(round(σξ,digits=3))")
+	print_save("\nRun with β, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(100*(β^-4-1),digits=4))%, $(round(RRA,digits=4)), $(round(τ,digits=4)), $(round(wbar,digits=4)), $(round(ρz,digits=4)), $(round(σz,digits=4)), $(round(tax,digits=4)), $(round(ρξ,digits=4)), $(round(σξ,digits=4))")
 	sd = SOEdef(; β=β, tax = tax, RRA=RRA, τ=τ, nodef = nodef, noΔ = noΔ, rep_agent = rep_agent, ρz=ρz, σz=σz, ρξ=ρξ, σξ=σξ, wbar=wbar
 		# , Nω=2,Nϵ=3,Nb=2,Nμ=2,Nσ=2,Nξ=2,Nz=3
 		);
@@ -86,7 +86,7 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 	pp, jz_series, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
 	Tyears = floor(Int64,periods(pp)*0.25)
 	def_freq = Ndefs/Tyears
-	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(floor(100*def_freq))%")
+	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(round(1000*def_freq)/10)%")
 	save(savedir*"p_bench.jld", "pp", pp, "Ndefs", Ndefs)
 	
 	# pl = plot_simul(path)
@@ -104,6 +104,25 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 
 	return g, pp, πthres, v_m, def_freq
 end
+function pass_CE!(sd::SOEdef, sdg::SOEdef)
+	sd.gr[:μ] = sdg.gr[:μ]
+	sd.gr[:σ] = sdg.gr[:σ]
+	sd.gr[:pN] = sdg.gr[:pN]
+
+	for (key, val) in sdg.ϕ
+		sd.ϕ[key] = val
+	end
+	for (key, val) in sdg.v
+		sd.v[key] = val
+	end
+
+	for (key, val) in sdg.eq
+		sd.eq[key] = val
+	end
+	for (key, val) in sdg.LoM
+		sd.LoM[key] = val
+	end
+end
 
 function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years, already_done)
 
@@ -120,12 +139,19 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 		sd = load("../Output/run$(run_number)/SOEdef.jld", "sd")
 		try
 			print_save("\nLoading results from run $(current_best): ")
-			sd = load("../Output/run$(current_best)/SOEdef_$(sim_name).jld", "sd")
+			sdg = load("../Output/run$(current_best)/SOEdef_$(sim_name).jld", "sd")
 			print_save("found old $(sim_name) results")
+			pass_CE!(sd, sdg)
+			print_save(" ✓")
 		catch
-			print_save("\nLoading generic results: ")
-			sd = load("../Output/SOEdef_$(sim_name).jld", "sd")
-			print_save("found old $(sim_name) results")
+			try
+				print_save("\nLoading generic results: ")
+				sdg = load("../Output/SOEdef_$(sim_name).jld", "sd")
+				print_save("found old $(sim_name) results")
+				pass_CE!(sd, sdg)
+				print_save(" ✓")
+			catch
+			end
 		end
 		if sim_name == "nodelta"
 			sd.pars[:Δ] = 0
