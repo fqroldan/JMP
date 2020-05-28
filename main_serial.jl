@@ -14,14 +14,14 @@ include("simul.jl")
 # print("mpe_iter!(sd)")
 params_center = Dict{Symbol, Float64}(
 	:β		=> 1.097^(-0.25),
-	:γ		=> 12,
+	:γ		=> 13,
 	:τ		=> 0.2,
 	:wbar	=> 0.897,
 	:ρz		=> 0.97,
 	:σz		=> 0.0025,
-	:meanξ	=> 0.005,
+	:meanξ	=> 0.003,
 	:ρξ		=> 0.95,
-	:σξ		=> 0.002,
+	:σξ		=> 0.001,
 )
 
 function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
