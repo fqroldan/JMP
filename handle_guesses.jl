@@ -123,6 +123,9 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 			sd = load("../Output/run$(current_best)/SOEdef_$(sim_name).jld", "sd")
 			print_save("found old $(sim_name) results")
 		catch
+			print_save("\nLoading generic results: ")
+			sd = load("../Output/SOEdef_$(sim_name).jld", "sd")
+			print_save("found old $(sim_name) results")
 		end
 		if sim_name == "nodelta"
 			sd.pars[:Δ] = 0
@@ -131,6 +134,7 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 		mpe_iter!(sd; nodef = nodef, noΔ = nodelta, nob = nob, rep_agent = rep_agent, run_number=run_number, save_copies=false)
 		pp, _, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
 		save("../Output/run$(run_number)/SOEdef_$(sim_name).jld", "sd", sd)
+		save("../Output/SOEdef_$(sim_name).jld", "sd", sd)
 		save("../Output/run$(run_number)/p_$(sim_name).jld", "pp", pp, "Ndefs", Ndefs)
 		print_save(" ✓")
 		return pp, Ndefs
