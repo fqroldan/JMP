@@ -211,7 +211,10 @@ function solve_optvalue(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz
 end
 
 function eval_value(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
-	vt = value(sd, guess[:s], itp_wf_s, jϵ, RHS, qʰv, qᵍv, pCv)
+
+	sguess = max(sd.pars[:ωmin], guess[:s])
+
+	vt = value(sd, sguess, itp_wf_s, jϵ, RHS, qʰv, qᵍv, pCv)
 	wt = walue(sd, guess[:θ], itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 
 	return Dict(:v => vt, :w => wt)
