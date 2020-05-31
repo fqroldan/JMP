@@ -199,14 +199,14 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_
 	return v_nodelta, v_nodef, v_nob, freq_nodelta, freq_nodef, freq_nob
 end
 
-function determine_done(run_number, sd::SOEdef)
+function determine_done(run_number, params)
 
 	already_done = false
 	g = zeros(12)
 	try
 		pars_new = load(pwd() * "/../Output/run$(run_number)/params.jld", "params")
 		print_save("\nFound params file for run $(run_number).")
-		if pars_new == pars(sd)
+		if pars_new == params
 			print_save(" Parameters correct. Looking for g value.")
 			try
 				g = load(pwd() * "/../Output/run$(run_number)/g.jld", "g")

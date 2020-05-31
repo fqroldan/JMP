@@ -57,9 +57,12 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
 	print_save("\nStarting run number $(run_number) on $(nprocs()) cores and $(Threads.nthreads()) threads at $(Dates.format(now(),"HH:MM")) on $(Dates.monthname(now())) $(Dates.day(now()))")
 
-	sd = make_guess(nodef, noΔ, rep_agent, params, run_number);
+	already_done, g = determine_done(run_number, params)
+	if already_done
+		return g
+	end
 
-	already_done, g = determine_done(run_number, sd)
+	sd = make_guess(nodef, noΔ, rep_agent, params, run_number);
 
 	if !already_done
 		run(`rm $savedir -rf`)
@@ -76,7 +79,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		
 		years = 10000
 		g, p_bench, πthres, v_m, def_freq = make_simulated_path(sd, savedir, years)
-		save(savedir * "g.jld", "g", g)
+		save("..Output/g.jld", "g", g)
 		run(`cp ../Output/SOEdef.jld ../Output/run$(run_number)/SOEdef.jld`)
 	else
 		p_bench = load("../Output/run$(run_number)/p_bench.jld", "pp")
@@ -125,7 +128,8 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
 	params = pars(sd)
 	save(savedir * "params.jld", "params", params)
-	
+	run(`cp ../Output/g.jld ../Output/run$(run_number)/g.jld`)
+
 	return g
 end
 
