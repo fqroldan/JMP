@@ -59,29 +59,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
 	sd = make_guess(nodef, noΔ, rep_agent, params, run_number);
 
-	already_done = false
-	try
-		pars_new = load(pwd() * "/../Output/run$(run_number)/params.jld", "params")
-		print_save("\nFound params file for run $(run_number).")
-		if pars_new == pars(sd)
-			print_save(" Parameters correct. Looking for g value.")
-			try
-				g = load(pwd() * "/../Output/run$(run_number)/g.jld", "g")
-				print_save(" Found g.")
-				print_save("\ng = $(g)")
-				print_save("\nLooking for path")
-				path = load("../Output/run$(run_number)/p_bench.jld", "pp")
-				print_save(": ✓")
-				already_done = true
-			catch
-				print_save(" Couldn't find g.")
-			end
-		else
-			print_save(" Found different parameters, rewriting.")
-		end
-	catch
-		print_save("\nNo previous file found.")
-	end
+	already_done, g = determine_done(run_number, sd)
 
 	if !already_done
 		run(`rm $savedir -rf`)
