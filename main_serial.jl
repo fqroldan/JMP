@@ -59,6 +59,12 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
 	already_done, g = determine_done(run_number, params)
 	if already_done
+		s = read("../Output/big_output.txt", String)
+		s *= "g = $(@sprintf("%0.3g",g)) in $(time_print(time()-time_init))"
+		push!(gs, g)
+
+		s *= "\n"
+		write("../Output/big_output.txt", s)
 		return g
 	end
 
@@ -79,7 +85,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		
 		years = 10000
 		g, p_bench, πthres, v_m, def_freq = make_simulated_path(sd, savedir, years)
-		save("..Output/g.jld", "g", g)
+		save(pwd() * "/../Output/g.jld", "g", g)
 		run(`cp ../Output/SOEdef.jld ../Output/run$(run_number)/SOEdef.jld`)
 	else
 		p_bench = load("../Output/run$(run_number)/p_bench.jld", "pp")
