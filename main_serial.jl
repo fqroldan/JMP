@@ -62,6 +62,9 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		s = read("../Output/big_output.txt", String)
 		s *= "g = $(@sprintf("%0.3g",g)) in $(time_print(time()-time_init))"
 		push!(gs, g)
+		if g == minimum(gs)
+			s *= " ✓"
+		end
 
 		s *= "\n"
 		write("../Output/big_output.txt", s)
@@ -105,7 +108,8 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 	if g == minimum(gs)
 		print_save("Minimum g for now. Computing no-def comparison")
 		s *= " ✓"
-
+		write("../Output/big_output.txt", s)
+		
 		if length(gs) > 1
 			current_best = findmin(gs[1:end-1])[2]
 		else
