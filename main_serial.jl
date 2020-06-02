@@ -173,5 +173,3 @@ function SMM(p_dict; do_all::Bool=true)
 
 	nothing
 end
-
-SMM(params_center, do_all=true)
