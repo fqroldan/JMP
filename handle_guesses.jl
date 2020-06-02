@@ -124,48 +124,56 @@ function pass_CE!(sd::SOEdef, sdg::SOEdef)
 	end
 end
 
-function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years, already_done)
-
-	try 
-		if already_done
-			dir = "Output/run$(run_number)"
-		else
-			dir = "Output"
-		end
-		pp, Ndefs = load("../$(dir)/p_$(sim_name).jld", "pp", "Ndefs")
-		print_save("\nFound $(sim_name) simul")
-		return pp, Ndefs
+function try_load(run_number, current_best, sim_name)
+	sd = load("../Output/run$(run_number)/SOEdef.jld", "sd")
+	try
+		print_save("\nLoading results from run $(current_best): ")
+		sdg = load("../Output/run$(current_best)/SOEdef_$(sim_name).jld", "sd")
+		print_save("found old $(sim_name) results")
+		pass_CE!(sd, sdg)
+		print_save(" ✓")
 	catch
-		sd = load("../Output/run$(run_number)/SOEdef.jld", "sd")
 		try
-			print_save("\nLoading results from run $(current_best): ")
-			sdg = load("../Output/run$(current_best)/SOEdef_$(sim_name).jld", "sd")
+			print_save("\nLoading generic results: ")
+			sdg = load("../Output/SOEdef_$(sim_name).jld", "sd")
 			print_save("found old $(sim_name) results")
 			pass_CE!(sd, sdg)
 			print_save(" ✓")
 		catch
-			try
-				print_save("\nLoading generic results: ")
-				sdg = load("../Output/SOEdef_$(sim_name).jld", "sd")
-				print_save("found old $(sim_name) results")
-				pass_CE!(sd, sdg)
-				print_save(" ✓")
-			catch
-			end
 		end
-		if sim_name == "nodelta"
-			sd.pars[:Δ] = 0
-		end
-		print_save("\nSolving $(sim_name) version")
-		mpe_iter!(sd; nodef = nodef, noΔ = nodelta, nob = nob, rep_agent = rep_agent, run_number=run_number, save_copies=false)
-		pp, _, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
-		save("../Output/run$(run_number)/SOEdef_$(sim_name).jld", "sd", sd)
-		save("../Output/SOEdef_$(sim_name).jld", "sd", sd)
-		save("../Output/run$(run_number)/p_$(sim_name).jld", "pp", pp, "Ndefs", Ndefs)
-		print_save(" ✓")
-		return pp, Ndefs
 	end
-	nothing
+	return sd
+end
+
+function simul_done(run_number, sim_name)
+	dir = "Output/run$(run_number)"
+	pp, Ndefs = load("../$(dir)/p_$(sim_name).jld", "pp", "Ndefs")
+	print_save("\nFound $(sim_name) simul")
+	return pp, Ndefs
+end
+
+function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years, already_done)
+
+	if already_done
+		try
+			pp, Ndefs = simul_done(run_number, sim_name)
+			return pp, Ndefs
+		catch
+		end
+	end
+
+	sd = try_load(run_number, current_best, sim_name)
+	if sim_name == "nodelta"
+		sd.pars[:Δ] = 0
+	end
+	print_save("\nSolving $(sim_name) version")
+	mpe_iter!(sd; nodef = nodef, noΔ = nodelta, nob = nob, rep_agent = rep_agent, run_number=run_number, save_copies=false)
+	pp, _, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
+	save("../Output/run$(run_number)/SOEdef_$(sim_name).jld", "sd", sd)
+	save("../Output/SOEdef_$(sim_name).jld", "sd", sd)
+	save("../Output/run$(run_number)/p_$(sim_name).jld", "pp", pp, "Ndefs", Ndefs)
+	print_save(" ✓")
+	return pp, Ndefs
 end
 
 function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_best, years, p_bench::Path, episode_type, πthres, savedir, already_done)
