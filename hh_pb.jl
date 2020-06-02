@@ -212,7 +212,7 @@ end
 
 function eval_value(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 
-	sguess = max(sd.pars[:ωmin], guess[:s])
+	sguess = min(sd.pars[:ωmax],max(sd.pars[:ωmin], guess[:s]))
 
 	vt = value(sd, sguess, itp_wf_s, jϵ, RHS, qʰv, qᵍv, pCv)
 	wt = walue(sd, guess[:θ], itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
