@@ -159,12 +159,12 @@ function solve_optvalue(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz
 
 			res = Optim.optimize(od, [smin], [smax], [sguess], Fminbox(BFGS()))
 			ϕp[:s] = first(res.minimizer)
-			vp[:v] = first(-res.minimum)
+			vp[:v] = first(-od(res.minimizer))
 		else
 			# res = Optim.optimize(obj_v, [smin], [smax], [sguess], Fminbox(BFGS()))
 			res = Optim.optimize(obj_v, smin, smax, GoldenSection())
 			ϕp[:s] = first(res.minimizer)
-			vp[:v] = first(-res.minimum)
+			vp[:v] = first(-obj_v(res.minimizer))
 		end
 	else
 		ϕp[:s] = sd.pars[:ωmin]
@@ -184,11 +184,11 @@ function solve_optvalue(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz
 
 			res = Optim.optimize(od, [θmin], [θmax], [θguess], Fminbox(BFGS()))
 			ϕp[:θ] = first(res.minimizer)
-			vp[:w] = first(-res.minimum)
+			vp[:w] = first(-od(res.minimizer))
 		else
 			res = Optim.optimize(obj_w, θmin, θmax, GoldenSection())
 			ϕp[:θ] = first(res.minimizer)
-			vp[:w] = first(-res.minimum)
+			vp[:w] = first(-obj_v(res.minimizer))
 		end
 	end
 
