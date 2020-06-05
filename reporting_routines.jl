@@ -151,7 +151,7 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 	table *= "\\\\ \\midrule \n"
 
 
-	for jj in 1:length(rownames)-1
+	for jj in 1:length(rownames)
 		table *= rpad(rownames[jj],pad_n," ") * "& " * rpad(vs[jj], pad_v, " ")
 		if length(v_m_noΔ) > 0
 			table *= "& " * rpad(v_noΔ[jj], pad_Δ, " ")
