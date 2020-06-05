@@ -188,7 +188,7 @@ function solve_optvalue(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz
 		else
 			res = Optim.optimize(obj_w, θmin, θmax, GoldenSection())
 			ϕp[:θ] = first(res.minimizer)
-			vp[:w] = first(-obj_v(res.minimizer))
+			vp[:w] = first(-obj_w(res.minimizer))
 		end
 	end
 
