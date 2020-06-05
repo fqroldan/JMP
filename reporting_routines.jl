@@ -92,7 +92,7 @@ function make_calib_table(v_m)
 
 	table *= rpad(colnames[1],pad_n, " ") *  "& " * rpad(colnames[2], pad_v, " ") * "& " *	rpad(colnames[3], pad_d, " ") * "\\\\ \\midrule \n"
 	for jj in 1:length(data_stats)
-		table *= * rpad(rownames[jj],pad_n," ") * "& " * rpad(vs[jj], pad_v, " ") * "& "* rpad(ds[jj], pad_d, " ") * "\\\\\n"
+		table *= rpad(rownames[jj],pad_n," ") * "& " * rpad(vs[jj], pad_v, " ") * "& "* rpad(ds[jj], pad_d, " ") * "\\\\\n"
 	end
 	table *= "\\bottomrule"
 
