@@ -282,9 +282,9 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 end
 
 
-function simul(sd::SOEdef, simul_length::Int64=1, burn_in::Int64=1; verbose::Bool=false)
+function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; verbose::Bool=false)
 	gr = sd.gr
-	Random.seed!(1)
+	Random.seed!(jk)
 
 	# Setup
 	T = burn_in + simul_length
@@ -343,13 +343,15 @@ function parsimul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=1)
 	pv = Vector{Path}(undef, K)
 	Ndefs = Vector{Int64}(undef, K)
 
+	print_save("\nStarting $K simulations of $(floor(Int, simul_length/4)) years.")
+
 	t0 = time()
 	Threads.@threads for jk in 1:K
-		pp, jzs, N = simul(sd, simul_length, burn_in; verbose=(jk==1))
+		pp, jzs, N = simul(sd, jk, simul_length, burn_in; verbose=(jk==1))
 		pv[jk] = pp
 		Ndefs[jk] = N
 	end
-	print_save("\nTime in simulation: $(time_print(time()-t0))")
+	print_save(" Time in simulation: $(time_print(time()-t0))")
 
 	N = sum(Ndefs)
 	return pv, N
@@ -375,7 +377,7 @@ get_MV(y::Vector) = mean(y), var(y)^0.5
 
 function simul_stats(pv::Vector{T}) where T <: AbstractPath
 	K = length(pv)
-	v_m = simul_stats(first(pv))
+	v_m = simul_stats(first(pv), verbose=true)
 	
 	for jp in 2:K
 		v_new = simul_stats(pv[jp])
@@ -385,7 +387,7 @@ function simul_stats(pv::Vector{T}) where T <: AbstractPath
 	return v_m
 end
 
-function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[])
+function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::Bool=false)
 	T = periods(path)
 	
 	if ζ_vec == []
@@ -410,7 +412,7 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[])
 	u_vec = 100.0 * (1.0 .- series(path, :L)[conditional])
 	spr_vec = 1.0./series(path, :qg)[conditional] .- (1.04)^0.25
 
-	print("\nT = $T")
+	verbose && print("T = $T\n")
 
 	m_vec, sd_vec = unmake_logN(μ_vec, σ_vec)
 	mean_wealth = 100*mean(m_vec./(4*Y_vec))
