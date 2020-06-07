@@ -13,16 +13,17 @@ mutable struct SOEdef{Ktot, Kshocks}
 	gov::Dict{Symbol, Vector{Float64}}
 	LoM::Dict{Symbol, Array{Vector{Float64}, Kshocks}}
 end
-
-mutable struct Path{T}
+abstract type AbstractPath
+end
+mutable struct Path{T} <: AbstractPath
 	data::Dict{Symbol, Vector{Float64}}
 end
 function Path(; T::Int64 = 1)
 	data = Dict( key => Vector{Float64}(undef, T) for key in [:B,:μ,:σ,:w,:ζ,:z,:π,:Y,:L,:ψ,:P,:A,:Bh,:Bf,:Pe,:Wr,:Wd,:qg,:G,:mean,:var,:CoY,:C,:CoYd,:T,:NX,:ξ,:p25,:p90,:avgω])
 	return Path{T}(data)
 end
-periods(pv::Vector{Path{T}}) where T = sum([periods(pp) for pp in pv])
-periods(pv::Vector{Path}) = sum([periods(pp) for pp in pv])
+
+periods(pv::Vector{T}) where T <: AbstractPath = sum([periods(pp) for pp in pv])
 periods(p::Path{T}) where T = T
 
 function check_periods(p::Path, t::Int64)

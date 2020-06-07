@@ -373,7 +373,7 @@ end
 
 get_MV(y::Vector) = mean(y), var(y)^0.5
 
-function simul_stats(pv::Vector{Path{T}}) where T
+function simul_stats(pv::Vector{T}) where T <: AbstractPath
 	K = length(pv)
 	v_m = simul_stats(first(pv))
 	
@@ -457,7 +457,7 @@ function find_crises(pp::Path, πthres::Float64, k::Int64=7)
 	return Nc, tvec
 end
 
-function get_crises(pv::Vector{Path}, πthres::Float64, k::Int64=7)
+function get_crises(pv::Vector{T}, πthres::Float64, k::Int64=7) where T <: AbstractPath
 	Nc = 0
 	tmat = Vector{Vector{Int64}}(undef,0)
 	for (jp, pp) in enumerate(pv)
