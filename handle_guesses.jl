@@ -83,7 +83,7 @@ function eval_GMM(v_o, target_o = vec([0.96580506  0.01294576  0.96172496  0.016
 end
 
 function make_simulated_path(sd::SOEdef, savedir, years=100)
-	pp, jz_series, Ndefs = simul(sd; simul_length=4*(years+25), burn_in=1+4*25)
+	pp, Ndefs = parsimul(sd; simul_length=4*(years+25), burn_in=1+4*25)
 	Tyears = floor(Int64,periods(pp)*0.25)
 	def_freq = Ndefs/Tyears
 	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(round(1000*def_freq)/10)%")

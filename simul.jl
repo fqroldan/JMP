@@ -28,8 +28,7 @@ function integrate_C(sd::SOEdef, Bt, μt, σt, ξt, ζt, zt, λt, itp_ϕc, itp_C
 	return C_from_λ, log(C_from_interp) - log(C_from_λ)
 end
 
-function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ)
-
+function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ, verbose::Bool=false)
 
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal getfrompath(p, t, :z)
@@ -48,7 +47,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	abs(zt - sd.gr[:z][jz]) < 1e-8 || throw(error("something wrong with ztv and jzt"))
 
 	# print("\n$(t), μ = $μt")
-	if t % 10000 == 0
+	if verbose && t % 10000 == 0
 		print_save("\n[Bt, μt, σt, ξt, ζt, zt]\n")
 		print_save("$(@sprintf("%0.3g",Bt)), ")
 		print_save("$(@sprintf("%0.3g",μt)), ")
@@ -104,9 +103,9 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	lumpsumT = coupons + Gt - sd.pars[:τ]*wt*Ld - qg*new_debt
 
 	
-	if t % 10000 == 0
-		print_save("\npN = $(@sprintf("%0.3g",pN)), pN^e = $(@sprintf("%0.3g",pNg)), u = $(ceil(100*(1-Ld))) at t = $t")
-		print_save("\nDiscrepancy in ∫ϕcdμ, pN = $(@sprintf("%0.3g", discrepancy)), $(@sprintf("%0.3g", log(pN) - log(pNg)))")
+	if verbose && t % 10000 == 0
+		verbose && print_save("\npN = $(@sprintf("%0.3g",pN)), pN^e = $(@sprintf("%0.3g",pNg)), u = $(ceil(100*(1-Ld))) at t = $t")
+		verbose && print_save("\nDiscrepancy in ∫ϕcdμ, pN = $(@sprintf("%0.3g", discrepancy)), $(@sprintf("%0.3g", log(pN) - log(pNg)))")
 	end
 
 	def_prob = 0.
@@ -283,7 +282,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 end
 
 
-function simul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=1)
+function simul(sd::SOEdef, simul_length::Int64=1, burn_in::Int64=1; verbose::Bool=false)
 	gr = sd.gr
 	Random.seed!(1)
 
@@ -326,15 +325,34 @@ function simul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=1)
 	t0 = time()
 	Ndefs = 0
 	for t in 1:T
-		λ, new_def = iter_simul!(sd, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ)
+		λ, new_def = iter_simul!(sd, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ, verbose)
 		Ndefs += new_def
 	end
 
-	print_save("\nTime in simulation: $(time_print(time()-t0))")
+	# verbose && print_save("\nTime in simulation: $(time_print(time()-t0))")
 
 	jz_series = jz_series[burn_in+1:end]
 
 	return trim_path(p, burn_in), jz_series, Ndefs
+end
+
+function parsimul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=1)
+	K = Threads.nthreads()
+	simul_length = ceil(Int, simul_length/K)
+
+	pv = Vector{Path}(undef, K)
+	Ndefs = Vector{Int64}(undef, K)
+
+	t0 = time()
+	Threads.@threads for jk in 1:K
+		pp, jzs, N = simul(sd, simul_length, burn_in; verbose=(jk==1))
+		pv[jk] = pp
+		Ndefs[jk] = N
+	end
+	print_save("\nTime in simulation: $(time_print(time()-t0))")
+
+	N = sum(Ndefs)
+	return pv, N
 end
 
 function get_AR1(y::Vector)
@@ -354,6 +372,18 @@ function get_AR1(y::Vector)
 end
 
 get_MV(y::Vector) = mean(y), var(y)^0.5
+
+function simul_stats(pv::Vector{Path{T}}) where T
+	K = length(pv)
+	v_m = simul_stats(first(pv))
+	
+	for jp in 2:K
+		v_new = simul_stats(pv[jp])
+
+		v_m = (v_m * (jp-1) + v_new) / jp # Recursive average
+	end
+	return v_m
+end
 
 function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[])
 	T = periods(path)
@@ -402,3 +432,42 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[])
 
 	return v_m
 end
+
+function find_crises(pp::Path, πthres::Float64, k::Int64=7)
+	π_vec = series(pp,:π)
+	ζ_vec = series(pp,:ζ)
+
+	T = periods(pp)
+
+	# println(findall(π_vec .>= πthres))
+
+	Nc = 0
+	jt = k
+	tvec = Int64[]
+	while jt < T - k
+		# println(jt)
+		jt += 1
+		if minimum(π_vec[jt-k:jt+k]) >= πthres && minimum(ζ_vec[jt-k:jt+k]) == 1 # Not default
+			Nc += 1
+			push!(tvec, jt)
+			jt += k
+		end
+	end
+
+	return Nc, tvec
+end
+
+function get_crises(pv::Vector{Path}, πthres::Float64, k::Int64=7)
+	Nc = 0
+	tmat = Vector{Vector{Int64}}(undef,0)
+	for (jp, pp) in enumerate(pv)
+		N_new, tvec = find_crises(pp, πthres, k)
+		Nc += N_new
+
+		tmat = push!(tmat, tvec)
+	end
+
+	return Nc, tmat
+end
+
+get_crises(pp::Path, πthres::Float64, k::Int64=7) = get_crises([pp], πthres, k)

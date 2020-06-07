@@ -22,6 +22,7 @@ function Path(; T::Int64 = 1)
 	return Path{T}(data)
 end
 # periods(p::Path) = length(p.data[first(keys(p.data))])
+periods(pv::Vector{Path{T}}) where T = sum([periods(pp) for pp in pv])
 periods(p::Path{T}) where T = T
 
 function check_periods(p::Path, t::Int64)
