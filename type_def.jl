@@ -36,6 +36,8 @@ getfrompath(p::Path, t::AbstractArray, sym::Symbol) = [p.data[sym][tv] for tv in
 getfrompath(p::Path, t::Int) = Dict(key => p.data[key][t] for key in keys(p.data))
 getfrompath(p::Path, sym::Symbol) = p.data[sym]
 series(p::Path, sym::Symbol) = getfrompath(p,sym)
+getmean(p::Path, sym::Symbol) = getmean([p], sym)
+getmean(pv::Vector{T}, sym::Symbol) where T <: AbstractPath = mean(vcat([series(pp, sym) for pp in pv]...))
 
 function fill_path!(p::Path, t::Int64, d::Dict=Dict())
 	check_periods(p,t)

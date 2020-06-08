@@ -1,3 +1,6 @@
+abstract type Hank
+end
+
 using PlotlyJS, ColorSchemes, ORCA
 
 col = [	"#1f77b4",  # muted blue
@@ -12,41 +15,40 @@ col = [	"#1f77b4",  # muted blue
 		"#17becf"   # blue-teal
 		]
 
-ggplot = let
-    axis = attr(showgrid=true, gridcolor="white", linewidth=1.0,
-                linecolor="white", titlefont_color="#555555",
-                titlefont_size=14, ticks="outside",
-                tickcolor="#555555"
-                )
-    layout = Layout(plot_bgcolor="#E5E5E5",
-                    paper_bgcolor="white",
-                    font_size=10,
-                    xaxis=axis,
-                    yaxis=axis,
-                    titlefont_size=14)
+""" Define styles """
 
-    colors = Cycler([
-        "#E24A33", "#348ABD", "#988ED5", "#777777", "#FBC15E",
-        "#8EBA42", "#FFB5B8"
-    ])
-    gta = attr(
-        marker_line_width=0.5, marker_line_color="#348ABD", marker_color=colors
-    )
-    Style(layout=layout, global_trace=gta)
+def_style = let
+	axis = attr(showgrid = true, gridcolor="#e2e2e2", gridwidth=0.5, zeroline=false)
+	layout = Layout(xaxis = axis, yaxis=axis)
+	Style(layout=layout)
 end
 
 slides_def = let
-	axis = attr(zeroline=false)
 	layout = Layout(plot_bgcolor="#fafafa", paper_bgcolor="#fafafa",
-		xaxis=axis, yaxis=axis, width=1920*0.5, height=1080*0.5, font_size=20, font_family="Lato")
-	Style(layout=layout)
+		width=1920*0.45, height=1080*0.45, font_size=16, font_family="Lato",
+		legend = attr(orientation = "h", x=0.05))
+	Style(def_style, layout=layout)
 end
+
 dark_bg = let
-	axis = attr(showgrid = true, gridcolor="#3d3d3d", line_width = 0.5)
-	layout = Layout(plot_bgcolor="#020202", paper_bgcolor="#020202")
+	axis = attr(gridcolor="#1b1b1b")
+	layout = Layout(plot_bgcolor="#020202", paper_bgcolor="#020202", font_color="white", xaxis=axis,yaxis=axis)
 	Style(layout=layout)
 end
 slides_dark = Style(slides_def, dark_bg)
+
+paper = let
+	layout = Layout(width = 1920 * 0.5, height = 1080 * 0.35, font_size=16, font_family = "Linux Libertine",
+		legend = attr(orientation = "h", x=0.05))
+	Style(def_style, layout=layout)
+end
+
+contsty(;div::Bool=false) = let
+	colpal = ifelse(div, ColorSchemes.oleron, ColorSchemes.lajolla)
+	colscale = [[vv, get(colpal, vv)] for vv in range(0,1,length=100)]
+	c_att = attr(colorscale=colscale, autocontour=false)
+	Style(trace=Dict(:contour=>c_att))
+end
 
 default_eval_points(sd::SOEdef) = N(sd,:b), floor(Int, N(sd,:μ)*0.5), floor(Int, N(sd,:σ)*0.5), 1, 2, floor(Int, N(sd,:z)*0.5)
 
@@ -137,6 +139,60 @@ function make_debtprice(sd::SOEdef; slides::Bool=true)
 
 	p1 = makecontour(sd, qg_mat, :b, :z, f2=exp, slides=slides)
 end
+
+
+function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol) where T <: AbstractPath
+	Nc, tvv = get_crises(pv, πthres, 7)
+	plot_crises(pv, tvv, key)
+end
+
+function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol) where T <: AbstractPath
+
+	k = 8
+	ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k)
+
+	line_up = scatter(x=(-k:k)/4, y=y_up,hover="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)", width=0.1))
+	line_lo = scatter(x=(-k:k)/4, y=y_lo,hover="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)",width=0.1), fill="tonexty", fillcolor="rgba(31,119,180,0.25)")
+	line_me = scatter(x=(-k:k)/4, y=y_me, showlegend=false, mode="lines", line=attr(color=col[4]))
+	line_av = scatter(x=(-k:k)/4, y=y_av, showlegend=false, mode="lines", line=attr(color=col[4], dash="dash"))
+
+	[
+		[scatter(x=(-k:k)/4, y=ymat[:,jc], mode="lines", line_color="rgb(31,119,180)", opacity=0.75, line_width=0.5, showlegend=false) for jc in 1:size(ymat,2)]
+		line_up
+		line_lo
+		line_me
+		line_av]
+end
+
+scats_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64) where T <: AbstractPath = scats_comp(pv_bench, pv_nodef, tvv, key, x->x/x1, x->x/x2)
+function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1) where T <: AbstractPath
+	k = 8
+	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k)
+	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k)
+
+	line_bench = scatter(x=(-k:k)/4, y=f1.(bench_me), name="Benchmark")
+	line_nodef = scatter(x=(-k:k)/4, y=f2.(nodef_me), name="No default")
+
+	[line_bench, line_nodef]
+end
+
+full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64, x3::Float64, x4::Float64) where T <: AbstractPath = full_scats_comp(pv_bench, pv_noΔ, pv_nob, pv_nodef, tvv, key, x->x/x1, x->x/x2, x->x/x3, x->x/x4)
+function full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1, f3::Function=f1, f4::Function=f1) where T <: AbstractPath
+	k = 8
+	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pv_bench, tvv, key, k)
+	ynoΔ, noΔ_up, noΔ_me, noΔ_lo, noΔ_av = series_crises(pv_noΔ, tvv, key, k)
+	ynob, nob_up, nob_me, nob_lo, nob_av = series_crises(pv_nob, tvv, key, k)
+	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pv_nodef, tvv, key, k)
+
+	line_bench = scatter(x=(-k:k)/4, y=f1.(bench_me), name="Benchmark")
+	line_noΔ = scatter(x=(-k:k)/4, y=f2.(noΔ_me), name="Δ = 0")
+	line_nob = scatter(x=(-k:k)/4, y=f3.(nob_me), name="No dom. holdings")
+	line_nodef = scatter(x=(-k:k)/4, y=f4.(nodef_me), name="No default")
+
+	[line_bench, line_noΔ, line_nob, line_nodef]
+end
+
+
 
 
 function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)

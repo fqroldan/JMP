@@ -10,6 +10,7 @@ include("comp_eqm.jl")
 include("gov_pol.jl")
 include("reporting_routines.jl")
 include("simul.jl")
+include("plotting_routines.jl")
 
 # print("mpe_iter!(sd)")
 params_center = Dict{Symbol, Float64}(
