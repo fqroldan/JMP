@@ -195,6 +195,20 @@ end
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function lines(h::Hank, y, x_dim, name=""; custom_w::Int=0)
 	jshow_b, jshow_μ, jshow_σ, jshow_ξ, jshow_ζ, jshow_z = ceil(Int, h.Nb/2), ceil(Int, h.Nμ/2), ceil(Int, h.Nσ/2), 2, 1, ceil(Int, h.Nz/2)
 
