@@ -473,3 +473,31 @@ function get_crises(pv::Vector{T}, πthres::Float64, k::Int64=7) where T <: Abst
 end
 
 get_crises(pp::Path, πthres::Float64, k::Int64=7) = get_crises([pp], πthres, k)
+
+series_crises(pp::Path, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9) = series_crises([pp], tvv, key, k)
+function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9) where T <: AbstractPath
+	
+	Nc = sum([length(tv) for tv in tvv])
+	ymat = Matrix{Float64}(undef, 2k+1, Nc)
+
+	jc = 0
+	for (jv,tv) in enumerate(tvv)
+		if length(tv) > 0
+			Y = series(pv[jv], key)
+			for (jt, tt) in enumerate(tv)
+				jc += 1
+				ymat[:, jc] = Y[tt-k:tt+k]
+			end
+		end
+	end
+
+	y_up = [quantile(ymat[jt,:], 0.75) for jt in 1:size(ymat,1)]
+	y_me = [quantile(ymat[jt,:], 0.50) for jt in 1:size(ymat,1)]
+	y_lo = [quantile(ymat[jt,:], 0.25) for jt in 1:size(ymat,1)]
+	y_av = mean(ymat, dims=2)[:]
+
+	return ymat, y_up, y_me, y_lo, y_av
+end
+
+
+
