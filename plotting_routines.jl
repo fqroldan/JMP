@@ -52,7 +52,7 @@ end
 
 default_eval_points(sd::SOEdef) = N(sd,:b), floor(Int, N(sd,:μ)*0.5), floor(Int, N(sd,:σ)*0.5), 1, 2, floor(Int, N(sd,:z)*0.5)
 
-function plot_hh_policies(sd::SOEdef; slides=false)
+function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
 	μv, σv = sd.gr[:μ][jμ], sd.gr[:σ][jσ]
 
@@ -76,24 +76,17 @@ function plot_hh_policies(sd::SOEdef; slides=false)
 
 	ωmax_show = min(sd.pars[:ωmax], quantile(LogNormal(μv, σv), 0.999)+sd.pars[:ωmin])
 
-	pc = plot([l[jϵ, 1] for jϵ in 1:N(sd,:ϵ)], style=Style(slides_def, layout=Layout(title="<i>Consumption")))
-	pv = plot([l[jϵ, 2] for jϵ in 1:N(sd,:ϵ)], style=Style(slides_def, layout=Layout(title="<i>Value function")))
-	ps = plot([l[jϵ, 3] for jϵ in 1:N(sd,:ϵ)], style=Style(slides_def, layout=Layout(title="<i>Savings")))
-	pθ = plot([l[jϵ, 4] for jϵ in 1:N(sd,:ϵ)], style=Style(slides_def, layout=Layout(title="<i>Proportion risk-free debt")))
+	pc = plot([l[jϵ, 1] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Consumption"))
+	pv = plot([l[jϵ, 2] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Value function"))
+	ps = plot([l[jϵ, 3] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Savings"))
+	pθ = plot([l[jϵ, 4] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Proportion risk-free debt"))
 
-	if slides
-		font = "Lato"
-		width = 800
-	else
-		font = "Linux Libertine"
-		width = 900
-	end
 
 	p1 = [pc pv; ps pθ]
 	return p1
 end	
 
-function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol; f1::Function=identity, f2::Function=identity, divergent::Bool=false, slides::Bool=true, title="", xtitle="<i>"*string(dim1), ytitle="<i>"*string(dim2))
+function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol; f1::Function=identity, f2::Function=identity, divergent::Bool=false, style::Style=slides_def, title="", xtitle="<i>"*string(dim1), ytitle="<i>"*string(dim2), reversescale::Bool=false)
 	max_z, min_z = maximum(y), minimum(y)
 
 	if divergent
@@ -103,53 +96,43 @@ function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol; f1::Func
 		colpal = ColorSchemes.lajolla
 		AC = true
 	end
+
 	colscale = [[vv, get(colpal, vv)] for vv in range(0,1,length=100)]
 
-	if slides
-		font = "Lato"
-		height = 700
-	else
-		font = "Linux Libertine"
-		height = 600
-	end
+	layout = Layout(title=title, xaxis_title=xtitle, yaxis_title=ytitle)
 
-	layout = Layout(title=title, font_family = font, font_size=16, width=900, height=height,
-		xaxis = attr(title=xtitle, zeroline=false),
-		yaxis = attr(title=ytitle, zeroline=false)
-		)
-
-	p1 = plot(contour(;x = f1.(sd.gr[dim1]), y = f2.(sd.gr[dim2]), z=y, colorscale = colscale, autocontour=AC, contours=Dict(:start=>min_z,:end=>max_z)), layout)
+	p1 = plot(contour(;x = f1.(sd.gr[dim1]), y = f2.(sd.gr[dim2]), z=y, colorscale = colscale, reversescale=reversescale, autocontour=AC, contours=Dict(:start=>min_z,:end=>max_z)), style=style, layout)
 	return p1
 end
 
-function make_unemp(sd::SOEdef; slides::Bool=true)
+function make_unemp(sd::SOEdef; style::Style=slides_def)
 	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
 
 	unemp = (1 .- reshape_long(sd, sd.eq[:Ld])) * 100
 
 	U_mat = [unemp[jb, jμ, jσ, jξ, jζ, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
 
-	p1 = makecontour(sd, U_mat, :b, :z, f2=exp, slides=slides)
+	p1 = makecontour(sd, U_mat, :b, :z, f2=exp, style=style, title="<i>Unemployment")
 end
 
-function make_debtprice(sd::SOEdef; slides::Bool=true)
+function make_debtprice(sd::SOEdef; style::Style=slides_def)
 	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
 
 	qg_mat = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
 
-	p1 = makecontour(sd, qg_mat, :b, :z, f2=exp, slides=slides)
+	p1 = makecontour(sd, qg_mat, :b, :z, f2=exp, style=style, title="<i>Price of Debt", reversescale=true)
 end
 
 
-function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol) where T <: AbstractPath
+function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol, f::Function=identity) where T <: AbstractPath
 	Nc, tvv = get_crises(pv, πthres, 7)
-	plot_crises(pv, tvv, key)
+	plot(scats_crises(pv, tvv, key, f))
 end
 
 scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, X::Float64) where T <: AbstractPath = scats_crises(pv, tvv, key, x->x/X)
 function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f::Function=identity) where T <: AbstractPath
 
-	k = 8
+	k = 7
 	ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k)
 
 	line_up = scatter(x=(-k:k)/4, y=f.(y_up),hoverinfo="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)", width=0.1))
