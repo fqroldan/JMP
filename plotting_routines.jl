@@ -50,7 +50,7 @@ contsty(;div::Bool=false) = let
 	Style(trace=Dict(:contour=>c_att))
 end
 
-default_eval_points(sd::SOEdef) = N(sd,:b), floor(Int, N(sd,:μ)*0.5), floor(Int, N(sd,:σ)*0.5), 1, 2, floor(Int, N(sd,:z)*0.5)
+default_eval_points(sd::SOEdef) = floor(Int, N(sd,:b)*0.9), floor(Int, N(sd,:μ)*0.95), max(1,floor(Int, N(sd,:σ)*0.8)), 1, 2, floor(Int, N(sd,:z)*0.15)
 
 function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
@@ -207,11 +207,203 @@ function full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector
 	s1
 end
 
+function twisted_π(sd::SOEdef, jϵ=floor(Int, N(sd,:ϵ)/2), eval_points::Vector{Int64}=[default_eval_points(sd)...])
+	itp_qᵍ = make_itp(sd, sd.eq[:qᵍ], agg=true)
+	itp_vf = make_itp(sd, sd.v[:v])
+	rep_mat = reshape_long_shocks(sd, sd.gov[:repay])
+
+	jb, jμ, jσ, jξ, jζ, jz = eval_points
+
+	js = find_points(sd, [jb, jμ, jσ, jξ, jζ, jz])
+	pϵ = sd.prob[:ϵ][jϵ,:]
+
+	Tπ = zeros(N(sd,:ω))
+	Tv = zeros(N(sd,:ω))
+	actual_prob = 0.0
+	Jgrid = agg_grid(sd)
+	for (jω, ωv) in enumerate(sd.gr[:ω])
+		ζv = sd.gr[:ζ][jζ]
+		jdef = (ζv == 0)
+
+		pz = sd.prob[:z][jz,:]
+		pξ = sd.prob[:ξ][jξ,:]
+
+		ϕa = sd.ϕ[:a][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
+		ϕb = sd.ϕ[:b][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz]
+
+		for (jξp, ξpv) in enumerate(sd.gr[:ξ]), (jζp, ζpv) in enumerate(sd.gr[:ζ]), (jzp, zpv) in enumerate(sd.gr[:z])
+			bpv = sd.eq[:issuance][js]
+			μpv = sd.LoM[:μ][js, jξp, jzp][jζp]
+			σpv = sd.LoM[:σ][js, jξp, jzp][jζp]
+
+			prob = pz[jzp] * pξ[jξp]
+			jdefp = (ζpv == 0)
+			if jdefp && jdef # Default in both
+				prob *= 1-sd.pars[:θ]
+				rep = itp_qᵍ(bpv, μpv, σpv, ξpv, ζpv, zpv)
+			elseif jdef # Reentering markets
+				prob *= sd.pars[:θ]
+				rep = sd.pars[:κ] + (1-sd.pars[:ρ]) * itp_qᵍ(bpv, μpv, σpv, ξpv, ζpv, zpv)
+			elseif jdefp # Default at t+1
+				bpv *= (1-sd.pars[:ℏ])
+				prob *= 1-rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp]
+				rep = (1-sd.pars[:ℏ]) * itp_qᵍ(bpv, μpv, σpv, ξpv, ζpv, zpv)
+			else # repayment
+				prob *= rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp]
+				rep = sd.pars[:κ] + (1-sd.pars[:ρ]) * itp_qᵍ(bpv, μpv, σpv, ξpv, ζpv, zpv)
+			end
+
+			ωpv = ϕa + rep * ϕb
+
+			rep_prob = rep_mat[jb, jμ, jσ, jξ, jζ, jz, jξp, jzp]
+
+			for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])
+				Tπ[jω] += prob * pϵ[jϵp] * itp_vf(ωpv, ϵpv, bpv, μpv, σpv, ξpv, ζpv, zpv)^(1-sd.pars[:γ]) * jdefp
+				Tv[jω] += prob * pϵ[jϵp] * itp_vf(ωpv, ϵpv, bpv, μpv, σpv, ξpv, ζpv, zpv)^(1-sd.pars[:γ])
+				actual_prob += prob * pϵ[jϵp] * jdefp * (jω==1)
+			end
+		end
+	end
+
+	Tπ = Tπ ./ Tv
+
+	return Tπ, actual_prob
+end
+
+function make_twisted(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(sd)...]; style::Style=slides_def)
+
+	Tπ = zeros(N(sd,:ω), N(sd,:ϵ))
+
+	for jϵ in 1:N(sd,:ϵ)
+		Tπ[:,jϵ], _ = twisted_π(sd, jϵ, eval_points)
+	end
+	_, actual_prob = twisted_π(sd, 1, eval_points)
+
+	plot([
+		[scatter(x=sd.gr[:ω], y=100*Tπ[:,jϵ], name="<i>ϵ = $(@sprintf("%0.3g", ϵv))", showlegend=false, line_color=get(ColorSchemes.lajolla, 1-(jϵ-1)/N(sd,:ϵ))) for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])]
+		scatter(x=extrema(sd.gr[:ω]), y=ones(2) * 100*actual_prob, line_dash="dash", mode="lines", line_color=col[3], name="Actual")
+		], style=style, Layout(xaxis_title="<i>ω", yaxis_title="<i>%", title="Perceived default probability"))
+end
 
 
 
 
+function earnings_default(sd::SOEdef)
 
+	rep_mat = reshape_long_shocks(sd, sd.gov[:repay])
+	itp_wL = make_itp(sd, sd.eq[:wage] .* sd.eq[:Ld], agg=true)
+	itp_qᵍ = make_itp(sd, sd.eq[:qᵍ], agg=true)
+
+	Ey = zeros(size(sd.eq[:wage])..., N(sd,:z))
+	Eret = zeros(size(sd.eq[:wage])..., N(sd,:z))
+
+	Jgrid = agg_grid(sd)
+
+	for js in 1:size(Jgrid,1)
+		jξ = Jgrid[js, 4]
+		jζ = Jgrid[js, 5]
+		jz = Jgrid[js, 6]
+
+		ζv = sd.gr[:ζ][jζ]
+		jdef = (ζv == 0)
+
+		pz = sd.prob[:z][jz,:]
+		pξ = sd.prob[:ξ][jξ,:]
+
+		sumprob = 0.0
+		for (jξp, ξpv) in enumerate(sd.gr[:ξ]), (jzp, zpv) in enumerate(sd.gr[:z]), (jζp, ζpv) in enumerate(sd.gr[:ζ])
+			prob = pξ[jξp]
+			jdefp = (ζpv == 0)
+			μpv = sd.LoM[:μ][js, jξp, jzp][jζp]
+			σpv = sd.LoM[:σ][js, jξp, jzp][jζp]
+
+			bpv = sd.eq[:issuance][js]
+			
+			if jdefp && jdef # Default in both
+				prob *= 1-sd.pars[:θ]
+				rep = itp_qᵍ(bpv, μpv, σpv, ξpv, ζpv, zpv)
+			elseif jdef # Reentering markets
+				prob *= sd.pars[:θ]
+				rep = sd.pars[:κ] + (1-sd.pars[:ρ]) * itp_qᵍ(bpv, μpv, σpv, ξpv, ζpv, zpv)
+			elseif jdefp # Default at t+1
+				bpv *= (1-sd.pars[:ℏ])
+				prob *= 1-rep_mat[Jgrid[js,:]..., jξp, jzp]
+				rep = (1-sd.pars[:ℏ]) * itp_qᵍ(bpv, μpv, σpv, ξpv, ζpv, zpv)
+			else # repayment
+				prob *= rep_mat[Jgrid[js,:]..., jξp, jzp]
+				rep = sd.pars[:κ] + (1-sd.pars[:ρ]) * itp_qᵍ(bpv, μpv, σpv, ξpv, ζpv, zpv)
+			end
+
+			Ey[js, jzp] += prob * itp_wL(bpv, μpv, σpv, ξpv, ζpv, zpv)
+			Eret[js, jzp] += prob * rep / sd.eq[:qᵍ][js]
+		end
+		# !isapprox(sumprob, 1) && println("WARNING: SUM OF PROBS = $sumprob")
+	end
+
+	return Ey, Eret
+end
+
+function find_points(sd::SOEdef, jlong)
+	Jgrid = agg_grid(sd)
+
+	js = findfirst([Jgrid[jjs, :] == jlong for jjs in 1:size(Jgrid,1)])
+end
+
+function get_earnings_default(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(sd)...])
+	Ey, Eret = earnings_default(sd)
+	Jgrid = agg_grid(sd)
+
+	jb, jμ, jσ, jξ, jζ, jz = eval_points
+
+	js = find_points(sd, [jb, jμ, jσ, jξ, jζ, jz])
+	co = [cov(Ey[js, :][:], Eret[js, :][:]) / (std(Ey[js,:][:])*std(Eret[js,:][:])) for js in 1:size(Jgrid,1)]
+	println("Corr(y,ret) = $(mean(co))")
+
+	return Ey[js,:], Eret[js,:]
+end
+
+function make_panel_ED(sd::SOEdef; style::Style=slides_def)
+
+	jbv = [1, floor(Int, N(sd,:b)/2), N(sd,:b)]
+	_, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
+
+	Eyv = Vector{Vector{Float64}}(undef, 0)
+	Ey2 = Vector{Vector{Float64}}(undef, 0)
+	Erv = Vector{Vector{Float64}}(undef, 0)
+	Er2 = Vector{Vector{Float64}}(undef, 0)
+	for (jj,jb) in enumerate(jbv)
+		Ey, Er = get_earnings_default(sd, [jb,jμ, jσ, 1, jζ, jz])
+		Eyy, Err = get_earnings_default(sd, [jb,jμ, jσ, 2, jζ, jz])
+		push!(Eyv, Ey)
+		push!(Erv, Er)
+		push!(Ey2, Eyy)
+		push!(Er2, Err)
+	end
+
+	data = [
+		[scatter(x=sd.gr[:z], y=Eyv[jb], xaxis="x$jb", yaxis="y$jb", line_color=col[1], name="Exp. Income", showlegend=(jb==1)) for jb in 1:length(Eyv)]
+		[scatter(x=sd.gr[:z], y=Erv[jb], xaxis="x$jb", yaxis="y$jb", line_color=col[2], name="Exp. Return", showlegend=(jb==1)) for jb in 1:length(Eyv)]
+		[scatter(x=sd.gr[:z], y=Ey2[jb], xaxis="x$(jb+3)", yaxis="y$(jb+3)", line_color=col[1], name="Exp. Income", showlegend=false) for jb in 1:length(Ey2)]
+		[scatter(x=sd.gr[:z], y=Er2[jb], xaxis="x$(jb+3)", yaxis="y$(jb+3)", line_color=col[2], name="Exp. Return", showlegend=false) for jb in 1:length(Ey2)]
+	]
+
+	layout = Layout(
+		yaxis1=attr(anchor="x1", domain = [0.55,1]),
+		yaxis2=attr(anchor="x2", domain = [0.55,1]),
+		yaxis3=attr(anchor="x3", domain = [0.55,1]),
+		yaxis4=attr(anchor="x4", domain = [0,0.45]),
+		yaxis5=attr(anchor="x5", domain = [0,0.45]),
+		yaxis6=attr(anchor="x6", domain = [0,0.45]),
+		xaxis1=attr(zeroline=true, domain=[0,0.3], anchor="y1"),
+		xaxis2=attr(zeroline=true, domain=[0.33, 0.67], anchor="y2"),
+		xaxis3=attr(zeroline=true, domain=[0.7, 1], anchor="y3"),
+		xaxis4=attr(title="<i>z′", zeroline=true, domain=[0,0.3], anchor="y4"),
+		xaxis5=attr(title="<i>z′", zeroline=true, domain=[0.33, 0.67], anchor="y5"),
+		xaxis6=attr(title="<i>z′", zeroline=true, domain=[0.7, 1], anchor="y6"),
+		title="Income and returns on government debt"
+		)
+	plot(data, layout, style=style)
+end
 
 
 
