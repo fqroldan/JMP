@@ -146,50 +146,82 @@ function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol) where T <: Ab
 	plot_crises(pv, tvv, key)
 end
 
-function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol) where T <: AbstractPath
+scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, X::Float64) where T <: AbstractPath = scats_crises(pv, tvv, key, x->x/X)
+function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f::Function=identity) where T <: AbstractPath
 
 	k = 8
 	ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k)
 
-	line_up = scatter(x=(-k:k)/4, y=y_up,hover="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)", width=0.1))
-	line_lo = scatter(x=(-k:k)/4, y=y_lo,hover="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)",width=0.1), fill="tonexty", fillcolor="rgba(31,119,180,0.25)")
-	line_me = scatter(x=(-k:k)/4, y=y_me, showlegend=false, mode="lines", line=attr(color=col[4]))
-	line_av = scatter(x=(-k:k)/4, y=y_av, showlegend=false, mode="lines", line=attr(color=col[4], dash="dash"))
+	line_up = scatter(x=(-k:k)/4, y=f.(y_up),hoverinfo="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)", width=0.1))
+	line_lo = scatter(x=(-k:k)/4, y=f.(y_lo),hoverinfo="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)",width=0.1), fill="tonexty", fillcolor="rgba(31,119,180,0.25)")
+	line_me = scatter(x=(-k:k)/4, y=f.(y_me), showlegend=false, mode="lines", line=attr(color=col[4]))
+	line_av = scatter(x=(-k:k)/4, y=f.(y_av), showlegend=false, mode="lines", line=attr(color=col[4], dash="dash"))
 
 	[
-		[scatter(x=(-k:k)/4, y=ymat[:,jc], mode="lines", line_color="rgb(31,119,180)", opacity=0.75, line_width=0.5, showlegend=false) for jc in 1:size(ymat,2)]
+		[scatter(x=(-k:k)/4, y=f.(ymat)[:,jc], mode="lines", line_color="rgb(31,119,180)", opacity=0.75, line_width=0.5, showlegend=false) for jc in 1:size(ymat,2)]
 		line_up
 		line_lo
 		line_me
 		line_av]
 end
 
-scats_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64) where T <: AbstractPath = scats_comp(pv_bench, pv_nodef, tvv, key, x->x/x1, x->x/x2)
-function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1) where T <: AbstractPath
-	k = 8
+scats_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64=x1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath = scats_comp(pv_bench, pv_nodef, tvv, key, x->x/x1, x->x/x2, CI=CI, avg=avg)
+function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath
+	k = 7
 	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k)
 	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k)
 
-	line_bench = scatter(x=(-k:k)/4, y=f1.(bench_me), name="Benchmark")
-	line_nodef = scatter(x=(-k:k)/4, y=f2.(nodef_me), name="No default")
+	line_bench = scatter(x=(-k:k)/4, y=f1.(bench_me), name="Benchmark", line_color=col[1])
+	lb_avg = scatter(x=(-k:k)/4, y=f1.(bench_av), name="Benchmark", line_color=col[1])
+	lb_up = scatter(x=(-k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[1])
+	lb_lo = scatter(x=(-k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[1], fill="tonexty")
+	line_nodef = scatter(x=(-k:k)/4, y=f2.(nodef_me), name="No default", line_color=col[2])
+	ln_avg = scatter(x=(-k:k)/4, y=f2.(nodef_av), name="No default", line_color=col[2])
+	ln_up = scatter(x=(-k:k)/4, y=f2.(nodef_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[2])
+	ln_lo = scatter(x=(-k:k)/4, y=f2.(nodef_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[2], fill="tonexty")
 
-	[line_bench, line_nodef]
+	s1 = [line_bench, line_nodef]
+	if avg
+		s1 = [lb_avg, ln_avg]
+	elseif CI
+		s1 = [line_bench, lb_up, lb_lo, line_nodef, ln_up, ln_lo]
+	end
+	s1
 end
 
-full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64, x3::Float64, x4::Float64) where T <: AbstractPath = full_scats_comp(pv_bench, pv_noΔ, pv_nob, pv_nodef, tvv, key, x->x/x1, x->x/x2, x->x/x3, x->x/x4)
-function full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1, f3::Function=f1, f4::Function=f1) where T <: AbstractPath
+full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64=x1, x3::Float64=x1, x4::Float64=x1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath = full_scats_comp(pv_bench, pv_noΔ, pv_nob, pv_nodef, tvv, key, x->x/x1, x->x/x2, x->x/x3, x->x/x4, CI=CI, avg=avg)
+function full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1, f3::Function=f1, f4::Function=f1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath
 	k = 8
 	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pv_bench, tvv, key, k)
 	ynoΔ, noΔ_up, noΔ_me, noΔ_lo, noΔ_av = series_crises(pv_noΔ, tvv, key, k)
 	ynob, nob_up, nob_me, nob_lo, nob_av = series_crises(pv_nob, tvv, key, k)
 	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pv_nodef, tvv, key, k)
 
-	line_bench = scatter(x=(-k:k)/4, y=f1.(bench_me), name="Benchmark")
-	line_noΔ = scatter(x=(-k:k)/4, y=f2.(noΔ_me), name="Δ = 0")
-	line_nob = scatter(x=(-k:k)/4, y=f3.(nob_me), name="No dom. holdings")
-	line_nodef = scatter(x=(-k:k)/4, y=f4.(nodef_me), name="No default")
+	line_bench = scatter(x=(-k:k)/4, y=f1.(bench_me), name="Benchmark", line_color=col[1])
+	lbench_avg = scatter(x=(-k:k)/4, y=f1.(bench_av), name="Benchmark", line_color=col[1])
+	lb_up = scatter(x=(-k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[1])
+	lb_lo = scatter(x=(-k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[1], fill="tonexty")
+	line_noΔ = scatter(x=(-k:k)/4, y=f2.(noΔ_me), name="Δ = 0", line_color=col[2])
+	lnoΔ_avg = scatter(x=(-k:k)/4, y=f2.(noΔ_av), name="Δ = 0", line_color=col[2])
+	lΔ_up = scatter(x=(-k:k)/4, y=f2.(noΔ_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[2])
+	lΔ_lo = scatter(x=(-k:k)/4, y=f2.(noΔ_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[2], fill="tonexty")
+	line_nob = scatter(x=(-k:k)/4, y=f3.(nob_me), name="No dom. holdings", line_color=col[3])
+	lnob_avg = scatter(x=(-k:k)/4, y=f3.(nob_av), name="No dom. holdings", line_color=col[3])
+	lnob_up = scatter(x=(-k:k)/4, y=f3.(nob_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[3])
+	lnob_lo = scatter(x=(-k:k)/4, y=f3.(nob_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[3], fill="tonexty")
+	line_nodef = scatter(x=(-k:k)/4, y=f4.(nodef_me), name="No default", line_color=col[4])
+	lnodef_avg = scatter(x=(-k:k)/4, y=f4.(nodef_av), name="No default", line_color=col[4])
+	ln_up = scatter(x=(-k:k)/4, y=f4.(nodef_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[4])
+	ln_lo = scatter(x=(-k:k)/4, y=f4.(nodef_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.01, line_color=col[4], fill="tonexty")
 
-	[line_bench, line_noΔ, line_nob, line_nodef]
+
+	s1 = [line_bench, line_noΔ, line_nob, line_nodef]
+	if avg
+		s1 = [lbench_avg, lnoΔ_avg, lnob_avg, lnodef_avg]
+	elseif CI
+		s1 = [line_bench, lb_up, lb_lo, line_noΔ, lΔ_up, lΔ_lo, line_nob, lnob_up, lnob_lo, line_nodef, ln_up, ln_lo]
+	end
+	s1
 end
 
 
