@@ -264,7 +264,7 @@ function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, p
 
 		""" DECIDE IF WE ARE KEEPING THE PREINTERPOLATION """
 		qᵍp = Array{Float64}(undef, N(sd,:ξ), N(sd,:z), 2)
-		itp_vf_s = Arr_itp_VF{3,2}(undef, N(sd,:ξ), N(sd,:z), 2)
+		itp_vf_s = Arr_ext_VF{3,2}(undef, N(sd,:ξ), N(sd,:z), 2)
 		for (jξp, ξpv) in enumerate(gr[:ξ])
 			for (jzp, zpv) in enumerate(gr[:z])
 				agg_prob = sd.prob[:z][jz, jzp] * sd.prob[:ξ][jξ, jξp]

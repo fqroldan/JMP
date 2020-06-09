@@ -24,12 +24,15 @@ function make_itp(sd::SOEdef, y::Array; agg::Bool=false)
 		knots = (sd.gr[:ω], sd.gr[:ϵ], sd.gr[:b], sd.gr[:μ], sd.gr[:σ], sd.gr[:ξ], sd.gr[:ζ], sd.gr[:z])
 	end
 	itp_obj = interpolate(knots, y, Gridded(Linear()))
+	itp_obj = extrapolate(itp_obj, Interpolations.Line())
 	return itp_obj
 
 end
 
 # N = dimensions of array; K = dimension of interpolation object
 const Arr_itp_VF{N,K} = Array{Interpolations.GriddedInterpolation{Float64,K,Float64,Gridded{Linear},NTuple{K,Array{Float64,1}}},N}
+const Arr_ext_vf{N,K} = Array{Interpolations.Extrapolation{Float64,K,Interpolations.GriddedInterpolation{Float64,K,Float64,Gridded{Linear},NTuple{K,Array{Float64,1}}},Gridded{Linear},Line{Nothing}},N}
+
 function integrate_itp(sd::SOEdef, bv, μv, σv, ξv, ζv, zv, itp_obj)
 	pars, gr = sd.pars, sd.gr
 
