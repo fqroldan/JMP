@@ -264,7 +264,7 @@ function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, p
 
 		""" DECIDE IF WE ARE KEEPING THE PREINTERPOLATION """
 		qᵍp = Array{Float64}(undef, N(sd,:ξ), N(sd,:z), 2)
-		itp_vf_s = Arr_ext_VF{3,2}(undef, N(sd,:ξ), N(sd,:z), 2)
+		itp_vf_s = Arr_ext_vf{3,2}(undef, N(sd,:ξ), N(sd,:z), 2)
 		for (jξp, ξpv) in enumerate(gr[:ξ])
 			for (jzp, zpv) in enumerate(gr[:z])
 				agg_prob = sd.prob[:z][jz, jzp] * sd.prob[:ξ][jξ, jξp]
@@ -289,16 +289,16 @@ function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, p
 					end
 					knots = (gr[:ω], gr[:ϵ])
 					for jj in 1:2
-						itp_vf_s[jξp, jzp, jj] = interpolate(knots, vf_mat[:,:,jj], Gridded(Linear()))
+						itp_vf_s[jξp, jzp, jj] = extrapolate(interpolate(knots, vf_mat[:,:,jj], Gridded(Linear())), Interpolations.Line())
 					end
 				end
 			end
 		end
-		itp_wf_s = Arr_itp_VF{1,1}(undef, N(sd,:ϵ))
+		itp_wf_s = Arr_ext_vf{1,1}(undef, N(sd,:ϵ))
 		knots = (gr[:ω],)
 		for (jϵ, ϵv) in enumerate(gr[:ϵ])
 			wf = sd.v[:w][:,jϵ,jb,jμ,jσ,jξ,jζ,jz]
-			itp_wf_s[jϵ] = interpolate(knots, wf, Gridded(Linear()))
+			itp_wf_s[jϵ] = extrapolate(interpolate(knots, wf, Gridded(Linear())), Interpolations.Line())
 		end
 
 
