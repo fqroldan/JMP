@@ -123,6 +123,19 @@ function make_debtprice(sd::SOEdef; style::Style=slides_def)
 	p1 = makecontour(sd, qg_mat, :b, :z, f2=exp, style=style, title="<i>Price of Debt", reversescale=true)
 end
 
+function make_def_incentive(sd::SOEdef; style::Style=slides_def)
+	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
+	μv = sd.gr[:μ][jμ]
+	σv = sd.gr[:σ][jσ]
+	ξv = sd.gr[:ξ][jξ]
+
+	vR = [reshape_long(sd, sd.eq[:welfare])[jb, jμ, jσ, jξ, 2, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
+	itp_vD = make_itp(sd, sd.eq[:welfare], agg=true)
+	vD = [itp_vD(1-sd.pars[:ℏ]*bv, μv, σv, ξv, 0.0, zv) for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
+
+	p1 = makecontour(sd, vR-vD, :b, :z, f2=exp, style=style, title="<i>V<sup>R</sup> - V<sup>D</sup>", reversescale=false)
+end
+
 
 function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol, f::Function=identity) where T <: AbstractPath
 	Nc, tvv = get_crises(pv, πthres, 7)
