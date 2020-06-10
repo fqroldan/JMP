@@ -248,7 +248,6 @@ function find_q(sd::SOEdef, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv,
 
 	μpv, σpv = make_logN(max(0.0, Eω - pars[:ωmin]), varω)
 
-	itp_qᵍ = extrapolate(itp_qᵍ, Interpolations.Flat())
 	new_q = itp_qᵍ((1.0 - haircut) .* Bpv, μpv, σpv, ξpv, ζpv, zpv)
 
 	return new_q, μpv, σpv
@@ -312,9 +311,6 @@ end
 
 function new_expectations(sd::SOEdef, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, js, jdef)
 	pars, gr = sd.pars, sd.gr
-
-	itp_ϕa = extrapolate(itp_ϕa, Interpolations.Line())
-	itp_ϕb = extrapolate(itp_ϕb, Interpolations.Line())
 
 	Jgrid = agg_grid(sd)
 
