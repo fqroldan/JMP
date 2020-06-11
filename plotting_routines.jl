@@ -307,11 +307,52 @@ function make_twisted(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_point
 		], style=style, Layout(xaxis_title="<i>ω", yaxis_title="<i>%", title="Twisted default probabilities", legend=legattr))
 end
 
+function Wr_Wd(sd::SOEdef)
+	B′ = sd.eq[:issuance]	
 
+	itp_W = make_itp(sd, sd.eq[:welfare]; agg=true)
 
+	# More μ means default more often
+	μ_gov = 0.001 * 0.0
+	σ_gov = 0.004
+
+	Wr = zeros(size(sd.eq[:wage])..., N(sd,:z))
+	Wd = zeros(size(sd.eq[:wage])..., N(sd,:z))
+
+	Jgrid = agg_grid(sd);
+	rep_prob = zeros(N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z), N(sd,:ξ), N(sd,:z))
+	for js in 1:size(Jgrid, 1)
+		μ′_arr = sd.LoM[:μ][js,:,:]
+		σ′_arr = sd.LoM[:σ][js,:,:]
+
+		jb, jμ, jσ, jξ, jζ, jz = Jgrid[js, :]
+
+		ζv = sd.gr[:ζ][Jgrid[js, 5]]
+		
+		bpv = B′[js]
+		for (jzp, zpv) in enumerate(sd.gr[:z])
+			for (jξp, ξpv) in enumerate(sd.gr[:ξ])
+				prob = sd.prob[:ξ][jξ,jξp]
+
+				jζp = 1 # Default at t+1
+				ζpv = sd.gr[:ζ][jζp]
+				μpv = μ′_arr[jξp, jzp][jζp]
+				σpv = σ′_arr[jξp, jzp][jζp]
+				Wd[js, jzp] += prob * itp_W((1.0-sd.pars[:ℏ])*bpv, μpv, σpv, ξpv, ζpv, zpv)
+
+				jζp = 2 # No default at t+1
+				ζpv = sd.gr[:ζ][jζp]
+				μpv = μ′_arr[jξp, jzp][jζp]
+				σpv = σ′_arr[jξp, jzp][jζp]
+				Wr[js, jzp] += prob * itp_W(bpv, μpv, σpv, ξpv, ζpv, zpv)
+			end
+		end
+	end
+
+	return Wr, Wd
+end
 
 function earnings_default(sd::SOEdef)
-
 	rep_mat = reshape_long_shocks(sd, sd.gov[:repay])
 	itp_wL = make_itp(sd, sd.eq[:wage] .* sd.eq[:Ld], agg=true)
 	itp_qᵍ = make_itp(sd, sd.eq[:qᵍ], agg=true)
@@ -373,18 +414,26 @@ end
 
 function get_earnings_default(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(sd)...])
 	Ey, Eret = earnings_default(sd)
-	Jgrid = agg_grid(sd)
 
 	jb, jμ, jσ, jξ, jζ, jz = eval_points
 
 	js = find_points(sd, [jb, jμ, jσ, jξ, jζ, jz])
-	co = [cov(Ey[js, :][:], Eret[js, :][:]) / (std(Ey[js,:][:])*std(Eret[js,:][:])) for js in 1:size(Jgrid,1)]
-	println("Corr(y,ret) = $(mean(co))")
 
 	return Ey[js,:], Eret[js,:]
 end
 
-function make_panel_ED(sd::SOEdef; style::Style=slides_def)
+function get_Wr_Wd(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(sd)...])
+	Wr, Wd = Wr_Wd(sd)
+
+	jb, jμ, jσ, jξ, jζ, jz = eval_points
+
+	js = find_points(sd, [jb, jμ, jσ, jξ, jζ, jz])
+
+	return Wr[js,:], Wd[js,:]
+end
+
+function make_panels(sd::SOEdef, type::String; style::Style=slides_def)
+	Jgrid = agg_grid(sd)
 
 	jbv = [1, floor(Int, N(sd,:b)/2), N(sd,:b)]
 	_, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
@@ -394,35 +443,79 @@ function make_panel_ED(sd::SOEdef; style::Style=slides_def)
 	Erv = Vector{Vector{Float64}}(undef, 0)
 	Er2 = Vector{Vector{Float64}}(undef, 0)
 	for (jj,jb) in enumerate(jbv)
-		Ey, Er = get_earnings_default(sd, [jb,jμ, jσ, 1, jζ, jz])
-		Eyy, Err = get_earnings_default(sd, [jb,jμ, jσ, 2, jζ, jz])
+		if type == "Earnings_Default"
+			Ey, Er = get_earnings_default(sd, [jb,jμ, jσ, 1, jζ, jz])
+			Eyy, Err = get_earnings_default(sd, [jb,jμ, jσ, 2, jζ, jz])
+			cor = "(y,ret)"
+		elseif type == "Wr-Wd"
+			Ey, Er = get_Wr_Wd(sd, [jb,jμ, jσ, 1, jζ, jz])
+			Eyy, Err = get_Wr_Wd(sd, [jb,jμ, jσ, 2, jζ, jz])
+			cor = "(Wr, Wd)"
+		end
+
+		co = [cov(Ey, Er) / (std(Ey)*std(Er)) for js in 1:size(Jgrid,1)]
+		println("Corr"*cor*" = $(mean(co))")
+		co = [cov(Eyy, Err) / (std(Eyy)*std(Err)) for js in 1:size(Jgrid,1)]
+		println("Corr"*cor*" = $(mean(co))")
+
 		push!(Eyv, Ey)
 		push!(Erv, Er)
 		push!(Ey2, Eyy)
 		push!(Er2, Err)
 	end
 
+	if type == "Earnings_Default"
+		title = "Income and returns on government debt"
+		ytitle1 = "𝔼[<i>y</i>]"
+		ytitle2 = "𝔼[<i>R<sup>b</sup></i>]"
+	elseif type == "Wr-Wd"
+		title = "Value of repayment and default"
+		ytitle1 = "<i>W<sup>r"
+		ytitle2 = "<i>W<sup>d"
+	end
+
+
+	minyy, maxyy = extrema(vcat(vcat(Eyv[:]...), vcat(Ey2[:]...)))
+	minyy = minyy - 0.05 * (maxyy-minyy)
+	maxyy = maxyy + 0.05 * (maxyy-minyy)
+
+	minyr, maxyr = extrema(vcat(vcat(Erv[:]...), vcat(Er2[:]...)))
+	minyr = minyr - 0.05 * (maxyr-minyr)
+	maxyr = maxyr + 0.05 * (maxyr-minyr)
+
+	maxy = max(maxyy, maxyr)
+	miny = min(minyy, minyr)
+
+	ξv = sd.gr[:ξ]
+
 	data = [
-		[scatter(x=sd.gr[:z], y=Eyv[jb], xaxis="x$jb", yaxis="y$jb", line_color=col[1], name="Exp. Income", showlegend=(jb==1)) for jb in 1:length(Eyv)]
-		[scatter(x=sd.gr[:z], y=Erv[jb], xaxis="x$jb", yaxis="y$jb", line_color=col[2], name="Exp. Return", showlegend=(jb==1)) for jb in 1:length(Eyv)]
-		[scatter(x=sd.gr[:z], y=Ey2[jb], xaxis="x$(jb+3)", yaxis="y$(jb+3)", line_color=col[1], name="Exp. Income", showlegend=false) for jb in 1:length(Ey2)]
-		[scatter(x=sd.gr[:z], y=Er2[jb], xaxis="x$(jb+3)", yaxis="y$(jb+3)", line_color=col[2], name="Exp. Return", showlegend=false) for jb in 1:length(Ey2)]
+		[scatter(x=sd.gr[:z], y=Eyv[jb], xaxis="x$jb",yaxis="y$jb", line_color=col[1], name=ytitle1, showlegend=(jb==1)) for jb in 1:length(Eyv)]
+		[scatter(x=sd.gr[:z], y=Erv[jb], xaxis="x$jb",yaxis="y$jb", line_color=col[2], name=ytitle2, showlegend=(jb==1)) for jb in 1:length(Eyv)]
+		[scatter(x=sd.gr[:z], y=Ey2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", line_color=col[1], name=ytitle1, showlegend=false) for jb in 1:length(Ey2)]
+		[scatter(x=sd.gr[:z], y=Er2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", line_color=col[2], name=ytitle2, showlegend=false) for jb in 1:length(Ey2)]
 	]
 
+	annotations = [
+		[attr(x=0, xanchor="center", xref="x$jb", y=1.01, yref="paper", yanchor="bottom", text="<i>B = $(bv), ξ = $(@sprintf("%0.3g",100*ξv[1]))%", showarrow=false) for (jb,bv) in enumerate(jbv)]
+		[attr(x=0, xanchor="center", xref="x$jb", y=0.44, yref="paper", yanchor="bottom", text="<i>B = $(bv), ξ = $(@sprintf("%0.3g",100*ξv[2]))%", showarrow=false) for (jb,bv) in enumerate(jbv)]
+		]
+
 	layout = Layout(
-		yaxis1=attr(anchor="x1", domain = [0.55,1]),
-		yaxis2=attr(anchor="x2", domain = [0.55,1]),
-		yaxis3=attr(anchor="x3", domain = [0.55,1]),
-		yaxis4=attr(anchor="x4", domain = [0,0.45]),
-		yaxis5=attr(anchor="x5", domain = [0,0.45]),
-		yaxis6=attr(anchor="x6", domain = [0,0.45]),
-		xaxis1=attr(zeroline=true, domain=[0,0.3], anchor="y1"),
-		xaxis2=attr(zeroline=true, domain=[0.33, 0.67], anchor="y2"),
-		xaxis3=attr(zeroline=true, domain=[0.7, 1], anchor="y3"),
-		xaxis4=attr(title="<i>z′", zeroline=true, domain=[0,0.3], anchor="y4"),
-		xaxis5=attr(title="<i>z′", zeroline=true, domain=[0.33, 0.67], anchor="y5"),
-		xaxis6=attr(title="<i>z′", zeroline=true, domain=[0.7, 1], anchor="y6"),
-		title="Income and returns on government debt"
+		yaxis1=attr(anchor="x1", range=[miny,maxy], domain = [0.55,1]),
+		yaxis2=attr(anchor="x2", range=[miny,maxy], domain = [0.55,1]),
+		yaxis3=attr(anchor="x3", range=[miny,maxy], domain = [0.55,1]),
+		yaxis4=attr(anchor="x4", range=[miny,maxy], domain = [0,0.45]),
+		yaxis5=attr(anchor="x5", range=[miny,maxy], domain = [0,0.45]),
+		yaxis6=attr(anchor="x6", range=[miny,maxy], domain = [0,0.45]),
+		xaxis1=attr(zeroline=false, domain=[0,0.3], anchor="y1"),
+		xaxis2=attr(zeroline=false, domain=[0.33, 0.67], anchor="y2"),
+		xaxis3=attr(zeroline=false, domain=[0.7, 1], anchor="y3"),
+		xaxis4=attr(title="<i>z′", zeroline=false, domain=[0,0.3], anchor="y4"),
+		xaxis5=attr(title="<i>z′", zeroline=false, domain=[0.33, 0.67], anchor="y5"),
+		xaxis6=attr(title="<i>z′", zeroline=false, domain=[0.7, 1], anchor="y6"),
+		title=title,
+		legend = attr(orientation="v", x=0.95, xanchor="right", y=0.85),
+		annotations = annotations
 		)
 	plot(data, layout, style=style)
 end
