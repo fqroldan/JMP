@@ -496,8 +496,8 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def)
 	]
 
 	annotations = [
-		[attr(x=0, xanchor="center", xref="x$jb", y=1.01, yref="paper", yanchor="bottom", text="<i>B = $(bv), ξ = $(@sprintf("%0.3g",100*ξv[1]))%", showarrow=false) for (jb,bv) in enumerate(jbv)]
-		[attr(x=0, xanchor="center", xref="x$jb", y=0.44, yref="paper", yanchor="bottom", text="<i>B = $(bv), ξ = $(@sprintf("%0.3g",100*ξv[2]))%", showarrow=false) for (jb,bv) in enumerate(jbv)]
+		[attr(x=0, xanchor="center", xref="x$jb", y=1.01, yref="paper", yanchor="bottom", text="<i>B = $(@sprintf("%0.3g", sd.gr[:b][bv])), ξ = $(@sprintf("%0.3g",100*ξv[1]))%", showarrow=false) for (jb,bv) in enumerate(jbv)]
+		[attr(x=0, xanchor="center", xref="x$jb", y=0.44, yref="paper", yanchor="bottom", text="<i>B = $(@sprintf("%0.3g", sd.gr[:b][bv])), ξ = $(@sprintf("%0.3g",100*ξv[2]))%", showarrow=false) for (jb,bv) in enumerate(jbv)]
 		]
 
 	layout = Layout(
