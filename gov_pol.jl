@@ -145,6 +145,9 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 			sd.gov[:repay] = upd_ηR * new_rep + (1.0-upd_ηR) * old_rep
 		end
 
+		if save_copies && iter % 100 == 0
+			save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
+		end
 
 		tol_eqm = max(max(exp(0.9*log(1+min(dist_CE1,tol_eqm)))-1, dist, 1e-5))
 		upd_ηR = max(upd_ηR * 0.99, 5e-2)
