@@ -240,7 +240,8 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 	return pp, Ndefs
 end
 
-function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_best, years, p_bench::Path, episode_type, πthres, savedir, already_done)
+make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_best, years, p_bench::Path, πthres, savedir, already_done) = make_comparison_simul(sd, noΔ, rep_agent, run_number, current_best, years, [p_bench], πthres, savedir, already_done)
+function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_best, years, p_bench::Vector{T}, πthres, savedir, already_done) where T <: AbstractPath
 
 	old_Δ = copy(sd.pars[:Δ])
 	sim_mat = [ji==jj for ji in 1:3, jj in 1:3]
