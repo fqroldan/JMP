@@ -490,7 +490,7 @@ function update_grids!(sd::SOEdef; new_μgrid::Vector=[], new_σgrid::Vector=[],
 		new_zgrid = gr[:z]
 	end
 
-	function reinterp(sd::SOEdef, y; agg::Bool=false, ext::Bool=false)
+	function reinterp_μσ(sd::SOEdef, y; agg::Bool=false, ext::Bool=false)
 		gr = sd.gr
 		knots = (gr[:ω], gr[:ϵ], gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z])
 		if agg
@@ -517,13 +517,13 @@ function update_grids!(sd::SOEdef; new_μgrid::Vector=[], new_σgrid::Vector=[],
 	end
 
 	for key in [:a, :b, :c, :s, :θ]
-		sd.ϕ[key] = reinterp(sd, sd.ϕ[key], agg=false)
+		sd.ϕ[key] = reinterp_μσ(sd, sd.ϕ[key], agg=false)
 	end
-	sd.v[:v] = max.(1e-20, reinterp(sd, sd.v[:v], agg=false))
-	sd.v[:w] = max.(1e-20, reinterp(sd, sd.v[:w], agg=false))
+	sd.v[:v] = max.(1e-20, reinterp_μσ(sd, sd.v[:v], agg=false))
+	sd.v[:w] = max.(1e-20, reinterp_μσ(sd, sd.v[:w], agg=false))
 
 	for key in [:Ld, :output, :wage, :spending, :pN, :issuance, :welfare]
-		sd.eq[key] = reinterp(sd, sd.eq[key], agg=true)
+		sd.eq[key] = reinterp_μσ(sd, sd.eq[key], agg=true)
 	end
 	sd.eq[:issuance] = min.(max.(sd.eq[:issuance], minimum(gr[:b])), maximum(gr[:b]))
 
@@ -543,15 +543,15 @@ function update_grids!(sd::SOEdef; new_μgrid::Vector=[], new_σgrid::Vector=[],
 	for (jξp, ξpv) in enumerate(gr[:ξ])
 		for jzp in 1:length(new_zgrid)
 			try
-				mvec = [reinterp(sd, [sd.LoM[:μ][js,jξp,jzp][jre] for js in 1:size(sd.LoM[:μ],1)], agg=true) for jre in 1:2]
-				svec = [reinterp(sd, [sd.LoM[:σ][js,jξp,jzp][jre] for js in 1:size(sd.LoM[:σ],1)], agg=true) for jre in 1:2]
+				mvec = [reinterp_μσ(sd, [sd.LoM[:μ][js,jξp,jzp][jre] for js in 1:size(sd.LoM[:μ],1)], agg=true) for jre in 1:2]
+				svec = [reinterp_μσ(sd, [sd.LoM[:σ][js,jξp,jzp][jre] for js in 1:size(sd.LoM[:σ],1)], agg=true) for jre in 1:2]
 				for js in 1:size(μ′_new,1)
 					μ′_new[js,jξp,jzp] = [max(min(mvec[jre][js], μmax), μmin) for jre in 1:2]
 					σ′_new[js,jξp,jzp] = [max(min(svec[jre][js], σmax), σmin) for jre in 1:2]
 				end
 			catch
-				mvec = [reinterp(sd, [sd.LoM[:μ][js,jξp,N(sd,:z)][jre] for js in 1:size(sd.LoM[:μ],1)], agg=true) for jre in 1:2]
-				svec = [reinterp(sd, [sd.LoM[:σ][js,jξp,N(sd,:z)][jre] for js in 1:size(sd.LoM[:σ],1)], agg=true) for jre in 1:2]
+				mvec = [reinterp_μσ(sd, [sd.LoM[:μ][js,jξp,N(sd,:z)][jre] for js in 1:size(sd.LoM[:μ],1)], agg=true) for jre in 1:2]
+				svec = [reinterp_μσ(sd, [sd.LoM[:σ][js,jξp,N(sd,:z)][jre] for js in 1:size(sd.LoM[:σ],1)], agg=true) for jre in 1:2]
 				for js in 1:size(μ′_new,1)
 					μ′_new[js,jξp,jzp] = [max(min(mvec[jre][js], μmax), μmin) for jre in 1:2]
 					σ′_new[js,jξp,jzp] = [max(min(svec[jre][js], σmax), σmin) for jre in 1:2]

@@ -1,5 +1,62 @@
 make_guess(nodef, noΔ, rep_agent, p_dict, run_number) = make_guess(nodef, noΔ, rep_agent, p_dict[:β], p_dict[:meanξ], p_dict[:γ], p_dict[:τ], p_dict[:ρz], p_dict[:σz], p_dict[:ρξ], p_dict[:σξ], p_dict[:wbar], run_number)
 
+function reinterp_b(sd::SOEdef, y, new_bgrid; agg::Bool=false)
+	gr = sd.gr
+	knots = (gr[:ω], gr[:ϵ], gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z])
+	if agg
+		knots = (gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z])
+		y = reshape(y, N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z))
+	end
+
+	itp_obj_y = interpolate(knots, y, Gridded(Linear()))
+	itp_y = extrapolate(itp_obj_y, Line())
+
+	if agg
+		y_new = itp_y(new_bgrid, gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z])
+		return reshape(y_new, length(y_new))
+	else
+		y_new = itp_y(gr[:ω], gr[:ϵ], new_bgrid, gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z])
+		return y_new
+	end
+end
+
+function reinterp_b!(sd::SOEdef, sd_old::SOEdef, nodef::Bool)
+	for (key, val) in sd_old.ϕ
+		sd.ϕ[key] = reinterp_b(sd_old, val, sd.gr[:b])
+	end
+	for (key, val) in sd_old.v
+		sd.v[key] = reinterp_b(sd_old, val, sd.gr[:b])
+	end
+	for (key, val) in sd_old.eq
+		sd.eq[key] = reinterp_b(sd_old, val, sd.gr[:b], agg=true)
+	end
+
+	μ′_new = similar(sd.LoM[:μ])
+	σ′_new = similar(sd.LoM[:σ])
+
+	for (jξp, ξpv) in enumerate(sd.gr[:ξ]), (jzp, zpv) in enumerate(sd.gr[:z])
+		mvec = [reinterp_b(sd_old, [sd_old.LoM[:μ][js,jξp,jzp][jζp] for js in 1:size(sd_old.LoM[:μ],1)], sd.gr[:b], agg=true) for jζp in 1:2]
+		svec = [reinterp_b(sd_old, [sd_old.LoM[:σ][js,jξp,jzp][jζp] for js in 1:size(sd_old.LoM[:σ],1)], sd.gr[:b], agg=true) for jζp in 1:2]
+		for js in 1:size(μ′_new,1)
+			μ′_new[js,jξp,jzp] = [max(min(mvec[jζp][js], maximum(sd.gr[:μ])), minimum(sd.gr[:μ])) for jζp in 1:2]
+			σ′_new[js,jξp,jzp] = [max(min(svec[jζp][js], maximum(sd.gr[:σ])), minimum(sd.gr[:σ])) for jζp in 1:2]
+		end
+	end
+	sd.LoM[:μ] = μ′_new
+	sd.LoM[:σ] = σ′_new
+
+	if nodef
+		print_save(" Not loading default policy.")
+	else
+		knots 		= (sd_old.gr[:b], sd_old.gr[:μ], sd_old.gr[:σ], sd_old.gr[:ξ], sd_old.gr[:ζ], sd_old.gr[:z], sd_old.gr[:ξ], sd_old.gr[:z])
+		repay_mat 	= reshape(sd_old.gov[:repay], N(sd_old,:b), N(sd_old,:μ), N(sd_old,:σ), N(sd_old,:ξ), N(sd_old,:ζ), N(sd_old,:z), N(sd_old,:ξ), N(sd_old,:z))
+		itp_repay 	= extrapolate(interpolate(knots, repay_mat, Gridded(Linear())), Line())
+		rep_new 	= itp_repay(sd.gr[:b], sd.gr[:μ], sd.gr[:σ], sd.gr[:ξ], sd.gr[:ζ], sd.gr[:z], sd.gr[:ξ], sd.gr[:z])
+		rep_new 	= max.(0, min.(1, rep_new))
+		sd.gov[:repay] 	= reshape(rep_new, length(rep_new))
+	end
+end
+
 function make_guess(nodef, noΔ, rep_agent, β, tax, RRA, τ, ρz, σz, ρξ, σξ, wbar, run_number)
 
 	print_save("\nRun with β, RRA, τ, wbar, ρz, σz, tax, ρξ, σξ = $(round(100*(β^-4-1),digits=4))%, $(round(RRA,digits=4)), $(round(τ,digits=4)), $(round(wbar,digits=4)), $(round(ρz,digits=4)), $(round(σz,digits=4)), $(round(tax,digits=4)), $(round(ρξ,digits=4)), $(round(σξ,digits=4))")
@@ -17,31 +74,38 @@ function make_guess(nodef, noΔ, rep_agent, β, tax, RRA, τ, ρz, σz, ρξ, σ
 		end
 		if N(sd,:ω) == N(sd_old,:ω) && N(sd,:ϵ) == N(sd_old,:ϵ)
 			print_save(": loading previous results")
-			sd.gr[:μ] = sd_old.gr[:μ]
-			sd.gr[:σ] = sd_old.gr[:σ]
-			sd.gr[:pN] = sd_old.gr[:pN]
-			print_save("...")
-
-			for (key, val) in sd_old.ϕ
-				sd.ϕ[key] = val
-			end
-			for (key, val) in sd_old.v
-				sd.v[key] = val
+			if N(sd,:μ) == N(sd_old,:μ) && N(sd,:σ)==N(sd,:σ)
+				sd.gr[:μ] = sd_old.gr[:μ]
+				sd.gr[:σ] = sd_old.gr[:σ]
+				sd.gr[:pN] = sd_old.gr[:pN]
+				print_save("...")
 			end
 
-			for (key, val) in sd_old.eq
-				sd.eq[key] = val
-			end
-			for (key, val) in sd_old.LoM
-				sd.LoM[key] = val
-			end
-			
-			if nodef
-				print_save(" Not loading default policy.")
-			else
-				for (key, val) in sd_old.gov
-					sd.gov[key] = val
+
+			if N(sd_old, :b) == N(sd, :b)
+				for (key, val) in sd_old.ϕ
+					sd.ϕ[key] = val
 				end
+				for (key, val) in sd_old.v
+					sd.v[key] = val
+				end
+
+				for (key, val) in sd_old.eq
+					sd.eq[key] = val
+				end
+				for (key, val) in sd_old.LoM
+					sd.LoM[key] = val
+				end
+				
+				if nodef
+					print_save(" Not loading default policy.")
+				else
+					for (key, val) in sd_old.gov
+						sd.gov[key] = val
+					end
+				end
+			else
+				reinterp_b!(sd, sd_old, nodef)
 			end
 			print_save(" ✓")
 		end
