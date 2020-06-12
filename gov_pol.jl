@@ -92,9 +92,13 @@ end
 function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bool=sd.opt[:nodef], noΔ::Bool=sd.opt[:noΔ], rep_agent::Bool=sd.opt[:rep_agent], run_number::Int64=1, save_copies::Bool=false, nob::Bool=false, verbose::Bool=false)
 
 	init_msg = "\nIterating on the government's policy"
-	nodef && init_msg *= " in nodef"
-	noΔ && init_msg *= " in noΔ"
-	nob && init_msg *= " in nob"
+	if nodef
+		init_msg *= " in nodef"
+	elseif noΔ
+		init_msg *= " in noΔ"
+	elseif nob
+		init_msg *= " in nob"
+	end
 	init_msg*= ":"
 	
 	print_save(init_msg)
