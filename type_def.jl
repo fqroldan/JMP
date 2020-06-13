@@ -105,7 +105,7 @@ function SOEdef(;
 	Nϵ = 5,
 	Nμ = 4,
 	Nσ = 4,
-	Nb = 13,
+	Nb = 17,
 	Nξ = 2,
 	Nz = 7,
 	ρz = 0.97,
