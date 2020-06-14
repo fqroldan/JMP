@@ -156,7 +156,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=25e-4, nodef::Bo
 			sd.gov[:repay] = upd_ηR * new_rep + (1.0-upd_ηR) * old_rep
 		end
 
-		if save_copies && iter % 100 == 0
+		if save_copies && iter % 50 == 0
 			save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
 		end
 
