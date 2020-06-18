@@ -1,6 +1,7 @@
 make_guess(nodef, noΔ, rep_agent, p_dict, run_number) = make_guess(nodef, noΔ, rep_agent, p_dict[:β], p_dict[:meanξ], p_dict[:γ], p_dict[:τ], p_dict[:ρz], p_dict[:σz], p_dict[:ρξ], p_dict[:σξ], p_dict[:wbar], run_number)
 
-function reinterp_b(sd::SOEdef, y, new_bgrid; agg::Bool=false)
+function reinterp_b(sd::SOEdef, y; new_bgrid=sd.gr[:b], new_μgrid=sd.gr[:μ], new_σgrid=sd.gr[:σ], new_zgrid=sd.gr[:z], agg::Bool=false)
+
 	gr = sd.gr
 	knots = (gr[:ω], gr[:ϵ], gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z])
 	if agg
@@ -12,31 +13,31 @@ function reinterp_b(sd::SOEdef, y, new_bgrid; agg::Bool=false)
 	itp_y = extrapolate(itp_obj_y, Line())
 
 	if agg
-		y_new = itp_y(new_bgrid, gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z])
+		y_new = itp_y(new_bgrid, new_μgrid, new_σgrid, gr[:ξ], gr[:ζ], new_zgrid)
 		return reshape(y_new, length(y_new))
 	else
-		y_new = itp_y(gr[:ω], gr[:ϵ], new_bgrid, gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z])
+		y_new = itp_y(gr[:ω], gr[:ϵ], new_bgrid, new_μgrid, new_σgrid, gr[:ξ], gr[:ζ], new_zgrid)
 		return y_new
 	end
 end
 
 function reinterp_b!(sd::SOEdef, sd_old::SOEdef, nodef::Bool)
 	for (key, val) in sd_old.ϕ
-		sd.ϕ[key] = reinterp_b(sd_old, val, sd.gr[:b])
+		sd.ϕ[key] = reinterp_b(sd_old, val)
 	end
 	for (key, val) in sd_old.v
-		sd.v[key] = reinterp_b(sd_old, val, sd.gr[:b])
+		sd.v[key] = reinterp_b(sd_old, val)
 	end
 	for (key, val) in sd_old.eq
-		sd.eq[key] = reinterp_b(sd_old, val, sd.gr[:b], agg=true)
+		sd.eq[key] = reinterp_b(sd_old, val, agg=true)
 	end
 
 	μ′_new = similar(sd.LoM[:μ])
 	σ′_new = similar(sd.LoM[:σ])
 
 	for (jξp, ξpv) in enumerate(sd.gr[:ξ]), (jzp, zpv) in enumerate(sd.gr[:z])
-		mvec = [reinterp_b(sd_old, [sd_old.LoM[:μ][js,jξp,jzp][jζp] for js in 1:size(sd_old.LoM[:μ],1)], sd.gr[:b], agg=true) for jζp in 1:2]
-		svec = [reinterp_b(sd_old, [sd_old.LoM[:σ][js,jξp,jzp][jζp] for js in 1:size(sd_old.LoM[:σ],1)], sd.gr[:b], agg=true) for jζp in 1:2]
+		mvec = [reinterp_b(sd_old, [sd_old.LoM[:μ][js,jξp,jzp][jζp] for js in 1:size(sd_old.LoM[:μ],1)], agg=true) for jζp in 1:2]
+		svec = [reinterp_b(sd_old, [sd_old.LoM[:σ][js,jξp,jzp][jζp] for js in 1:size(sd_old.LoM[:σ],1)], agg=true) for jζp in 1:2]
 		for js in 1:size(μ′_new,1)
 			μ′_new[js,jξp,jzp] = [max(min(mvec[jζp][js], maximum(sd.gr[:μ])), minimum(sd.gr[:μ])) for jζp in 1:2]
 			σ′_new[js,jξp,jzp] = [max(min(svec[jζp][js], maximum(sd.gr[:σ])), minimum(sd.gr[:σ])) for jζp in 1:2]
@@ -82,7 +83,7 @@ function make_guess(nodef, noΔ, rep_agent, β, tax, RRA, τ, ρz, σz, ρξ, σ
 			end
 
 
-			if N(sd_old, :b) == N(sd, :b)
+			if N(sd_old, :b) == N(sd, :b) && N(sd_old, :μ) == N(sd, :μ) && N(sd_old, :σ) == N(sd, :σ) && N(sd_old, :z) == N(sd, :z) && 
 				for (key, val) in sd_old.ϕ
 					sd.ϕ[key] = val
 				end
