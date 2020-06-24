@@ -161,11 +161,10 @@ function SMM(p_dict; do_all::Bool=true)
 	L = Vector{Int64}(undef, 0)
 	gs = Vector{Float64}(undef, 0)
 	# inner_opt = LBFGS(;linesearch=LineSearches.HagerZhang(linesearchmax=200))
-	nlprecon = GradientDescent(alphaguess=Optim.LineSearches.InitialStatic(alpha=1e-4,scaled=true),
-                           linesearch=Optim.LineSearches.Static())
+	nlprecon = GradientDescent(alphaguess=Optim.LineSearches.InitialStatic(alpha=1e-4,scaled=true), linesearch=Optim.LineSearches.Static())
 	inner_opt = OACCEL(nlprecon=nlprecon, wmax=10)
 
-	inner_opt = NelderMead()
+	# inner_opt = NelderMead()
 	res = Optim.optimize(
 		params -> wrapper_run(params, false, false, false, L, gs, do_all=do_all)
 		# , params_center
