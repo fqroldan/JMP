@@ -40,13 +40,13 @@ function make_params_table(sd::SOEdef)
 	table = ""
 
 	td = Dict(
-		:β => ["Discount rate of HHs", "\$ 1 / \\beta - 1 \$		", (sd.pars[:β]^(-4)-1), true],
-		:γ => ["Risk aversion", "\$ \\gamma \$				", sd.pars[:γ], false],
-		:τ => ["Progressivity of tax schedule", "\$ \\tau \$					", sd.pars[:τ], true],
-		:w => ["Wage minimum", "\$ \\bar{w} \$				", sd.pars[:wbar], false],
-		:z => ["TFP process", "\$ \\rho_z, \\sigma_z \$	", [sd.pars[:ρz], sd.pars[:σz]], false],
-		:ξ0=> ["Mean risk premium", "\$\\bar{\\xi}\$				", sd.pars[:meanξ], true],
-		:ξ => ["Risk premium AR(1", "\$\\rho_\\xi, \\sigma_\\xi\$", [sd.pars[:ρξ], sd.pars[:σξ]], false],
+		:β => ["Discount rate of HHs", 			"\$ 1 / \\beta - 1 \$", 		(sd.pars[:β]^(-4)-1), true],
+		:γ => ["Risk aversion", 				"\$ \\gamma \$", 				sd.pars[:γ], false],
+		:τ => ["Progressivity of tax schedule", "\$ \\tau \$", 					sd.pars[:τ], true],
+		:w => ["Wage minimum", 					"\$ \\bar{w} \$", 				sd.pars[:wbar], false],
+		:z => ["TFP process", 					"\$ \\rho_z, \\sigma_z \$", 	[sd.pars[:ρz], sd.pars[:σz]], false],
+		:ξ0=> ["Mean risk premium", 			"\$\\bar{\\xi}\$", 				sd.pars[:meanξ], true],
+		:ξ => ["Risk premium AR(1", 			"\$\\rho_\\xi, \\sigma_\\xi\$", [sd.pars[:ρξ], sd.pars[:σξ]], false],
 		)
 
 	for key in [:β, :γ, :τ, :w, :z, :ξ0, :ξ]
