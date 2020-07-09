@@ -14,8 +14,8 @@ include("plotting_routines.jl")
 
 # print("mpe_iter!(sd)")
 params_center = Dict{Symbol, Float64}(
-	:β		=> 0.985,
-	:γ		=> 8,
+	:β		=> 1.0974^-.25,
+	:γ		=> 13,
 	:τ		=> 0.22,
 	:wbar	=> 0.888,
 	:ρz		=> 0.97,
