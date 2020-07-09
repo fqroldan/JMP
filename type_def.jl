@@ -147,7 +147,7 @@ function SOEdef(;
 
 	## Prepare discretized processes
 	# Aggregate risk
-	zgrid, Pz = tauchen_fun(Nz, ρz, σz, m=1.5)
+	zgrid, Pz = tauchen(Nz, ρz, σz, 0, 2)
 
 	meanξ = tax
 	ξgrid, Pξ = tauchen_fun(Nξ, ρξ, σξ, m=0.5, mu=meanξ)
