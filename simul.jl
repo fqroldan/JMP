@@ -412,7 +412,7 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 	u_vec = 100.0 * (1.0 .- series(path, :L)[conditional])
 	spr_vec = 1.0./series(path, :qg)[conditional] .- (1.04)^0.25
 
-	verbose && print("T = $T\n")
+	# verbose && print("T = $T\n")
 
 	m_vec, sd_vec = unmake_logN(μ_vec, σ_vec)
 	mean_wealth = 100*mean(m_vec./(4*Y_vec))
