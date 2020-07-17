@@ -136,7 +136,7 @@ function eval_GMM(v_o, target_o = vec([0.96580506  0.01294576  0.96172496  0.016
 		    print_save("\n")
 		    print_save(rpad(res[jj,1],20," "))
 		    for ii in 2:size(res,2)
-		    	print_save(rpad("$(@sprintf("%0.3g",res[jj,ii]))",8," "))
+		    	print_save(rpad("$(@sprintf("%0.3g",res[jj,ii]))",9," "))
 		    end
 		end
 		print_save("\ng = $(@sprintf("%0.3g", g))")
