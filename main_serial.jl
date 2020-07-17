@@ -14,15 +14,15 @@ include("plotting_routines.jl")
 
 # print("mpe_iter!(sd)")
 params_center = Dict{Symbol, Float64}(
-	:β		=> 1.0974^-.25,
-	:γ		=> 10,
+	:β		=> 1.087^-.25,
+	:γ		=> 9,
 	:τ		=> 0.22,
-	:wbar	=> 0.8888,
+	:wbar	=> 0.8887,
 	:ρz		=> 0.97,
-	:σz		=> 0.0017,
-	:meanξ	=> 0.002,
+	:σz		=> 0.0015,
+	:meanξ	=> 0.0006,
 	:ρξ		=> 0.95,
-	:σξ		=> 0.001,
+	:σξ		=> 0.00025,
 )
 
 function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
