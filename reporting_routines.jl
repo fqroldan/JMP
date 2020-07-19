@@ -46,7 +46,7 @@ function make_params_table(sd::SOEdef)
 		:w => ["Wage minimum", 					"\$ \\bar{w} \$", 				sd.pars[:wbar], false],
 		:z => ["TFP process", 					"\$ \\rho_z, \\sigma_z \$", 	[sd.pars[:ρz], sd.pars[:σz]], false],
 		:ξ0=> ["Mean risk premium", 			"\$\\bar{\\xi}\$", 				sd.pars[:meanξ], true],
-		:ξ => ["Risk premium AR(1", 			"\$\\rho_\\xi, \\sigma_\\xi\$", [sd.pars[:ρξ], sd.pars[:σξ]], false],
+		:ξ => ["Risk premium AR(1)", 			"\$\\rho_\\xi, \\sigma_\\xi\$", [sd.pars[:ρξ], sd.pars[:σξ]], false],
 		)
 
 	for key in [:β, :γ, :τ, :w, :z, :ξ0, :ξ]
@@ -56,7 +56,7 @@ function make_params_table(sd::SOEdef)
 		elseif td[key][4]
 			table *= "$(@sprintf("%0.3g",(100*td[key][3])))" * "\\%"
 			if key == :β
-				table *= "ann."
+				table *= " ann."
 			end
 		else
 			table *= "$(@sprintf("%0.3g",td[key][3]))"
