@@ -130,20 +130,20 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 
 	jj = 3
 	if length(v_m_noΔ) > 0
-		v_noΔ = [@sprintf("%0.3g",vv)*ifelse(list_perc[jv]==1,"\\%", "") for (jv, vv) in enumerate(v_m_noΔ)]
+		v_noΔ = [@sprintf("%0.3g",round(vv,digits=8))*ifelse(list_perc[jv]==1,"\\%", "") for (jv, vv) in enumerate(v_m_noΔ)]
 		# pad_Δ = max(length(colnames[jj]), maximum(length.( v_noΔ ))) + 3
 		pad_Δ = maximum(length.( v_noΔ )) + 3
 		table *= "& " * rpad(colnames[jj], pad_Δ, " ")
 		jj += 1
 	end
 	if length(v_m_nob) > 0
-		v_nob = [@sprintf("%0.3g",vv)*ifelse(list_perc[jv]==1,"\\%", "") for (jv, vv) in enumerate(v_m_nob)]
+		v_nob = [@sprintf("%0.3g",round(vv,digits=8))*ifelse(list_perc[jv]==1,"\\%", "") for (jv, vv) in enumerate(v_m_nob)]
 		# pad_b = max(length(colnames[jj]), maximum(length.( v_nob ))) + 3
 		pad_b = maximum(length.( v_nob )) + 3
 		table *= "& " * rpad(colnames[jj], pad_b, " ")
 		jj += 1
 	end
-	v_nodef = [@sprintf("%0.3g",vv)*ifelse(list_perc[jv]==1,"\\%", "") for (jv, vv) in enumerate(v_m_nodef)]
+	v_nodef = [@sprintf("%0.3g",round(vv,digits=8))*ifelse(list_perc[jv]==1,"\\%", "") for (jv, vv) in enumerate(v_m_nodef)]
 	# pad_def = max(length(colnames[jj]), maximum(length.( v_nodef ))) + 3
 	pad_def = maximum(length.( v_nodef )) + 3
 	table *= "& " * rpad(colnames[jj], pad_def, " ")
