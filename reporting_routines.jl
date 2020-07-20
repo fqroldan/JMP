@@ -52,14 +52,14 @@ function make_params_table(sd::SOEdef)
 	for key in [:β, :γ, :τ, :w, :z, :ξ0, :ξ]
 		table *= "\n" * rpad(td[key][1],30," ") * "&" * rpad(td[key][2],30," ") * "&"
 		if key == :z || key == :ξ
-			table *= "($(@sprintf("%0.3g",td[key][3][1])), $(@sprintf("%0.3g",(td[key][3][2]))))"
+			table *= "($(@sprintf("%0.4g",td[key][3][1])), $(@sprintf("%0.4g",(td[key][3][2]))))"
 		elseif td[key][4]
-			table *= "$(@sprintf("%0.3g",(100*td[key][3])))" * "\\%"
+			table *= "$(@sprintf("%0.4g",(100*td[key][3])))" * "\\%"
 			if key == :β
 				table *= " ann."
 			end
 		else
-			table *= "$(@sprintf("%0.3g",td[key][3]))"
+			table *= "$(@sprintf("%0.4g",td[key][3]))"
 		end
 
 		table *= " & Moments in Table \\ref{tab:calibration} \\\\"
