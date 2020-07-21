@@ -287,11 +287,11 @@ function make_twisted(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_point
 	Tπ = zeros(N(sd,:ω), N(sd,:ϵ))
 
 	if custom_points
-		eval_points = [6,4,2,2,2,7]
+		eval_points = [15,4,2,2,2,7]
 	end
 
 	if leg
-		legattr = attr(orientation="v", x=0.75, y=0.1)
+		legattr = attr(orientation="v", x=0.75, y=0.0)
 	else
 		legattr = attr()
 	end
@@ -302,8 +302,8 @@ function make_twisted(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_point
 	_, actual_prob = twisted_π(sd, 1, eval_points)
 
 	plot([
-		[scatter(x=sd.gr[:ω], y=100*Tπ[:,jϵ], name="<i>ϵ = $(@sprintf("%0.3g", ϵv))", showlegend=leg, line_color=get(ColorSchemes.lajolla, 1-(jϵ-1)/N(sd,:ϵ))) for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])]
 		scatter(x=extrema(sd.gr[:ω]), y=ones(2) * 100*actual_prob, line_dash="dash", mode="lines", line_color=col[3], name="Actual")
+		[scatter(x=sd.gr[:ω], y=100*Tπ[:,jϵ], name="<i>ϵ = $(@sprintf("%0.3g", ϵv))", showlegend=leg, line_color=get(ColorSchemes.lajolla, 1-(jϵ-1)/N(sd,:ϵ))) for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])]
 		], style=style, Layout(xaxis_title="<i>ω", yaxis_title="<i>%", title="Twisted default probabilities", legend=legattr))
 end
 
