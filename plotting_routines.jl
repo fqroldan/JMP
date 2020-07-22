@@ -112,7 +112,7 @@ function make_unemp(sd::SOEdef; style::Style=slides_def)
 
 	U_mat = [unemp[jb, jμ, jσ, jξ, jζ, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
 
-	p1 = makecontour(sd, U_mat, :b, :z, f2=x->100x, style=style, title="<i>Unemployment", ytitle="<i>%")
+	p1 = makecontour(sd, U_mat, :b, :z, f2=x->100x, style=style, title="<i>Unemployment")
 end
 
 function make_debtprice(sd::SOEdef; style::Style=slides_def)
@@ -133,7 +133,7 @@ function make_def_incentive(sd::SOEdef; style::Style=slides_def)
 	itp_vD = make_itp(sd, sd.eq[:welfare], agg=true)
 	vD = [itp_vD(1-sd.pars[:ℏ]*bv, μv, σv, ξv, 0.0, zv) for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
 
-	p1 = makecontour(sd, vR-vD, :b, :z, f2=x->100x, style=style, title="<i>V<sup>R</sup> - V<sup>D</sup>", reversescale=false, ytitle="<i>%")
+	p1 = makecontour(sd, vR-vD, :b, :z, f2=x->100x, style=style, title="<i>V<sup>R</sup> - V<sup>D</sup>", reversescale=false)
 end
 
 
