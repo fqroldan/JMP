@@ -307,10 +307,14 @@ function make_twisted(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_point
 		], style=style, Layout(xaxis_title="<i>ω", yaxis_title="<i>%", title="Twisted default probabilities", legend=legattr))
 end
 
-function Wr_Wd(sd::SOEdef)
+function Wr_Wd(sd::SOEdef, type::String)
 	B′ = sd.eq[:issuance]	
 
-	itp_W = make_itp(sd, sd.eq[:welfare]; agg=true)
+	if type == "Wr-Wd"
+		itp_obj = make_itp(sd, sd.eq[:welfare]; agg=true)
+	elseif type == "T"
+		itp_obj = make_itp(sd, -sd.eq[:T]; agg=true)
+	end
 
 	# More μ means default more often
 	μ_gov = 0.001 * 0.0
@@ -338,13 +342,13 @@ function Wr_Wd(sd::SOEdef)
 				ζpv = sd.gr[:ζ][jζp]
 				μpv = μ′_arr[jξp, jzp][jζp]
 				σpv = σ′_arr[jξp, jzp][jζp]
-				Wd[js, jzp] += prob * itp_W((1.0-sd.pars[:ℏ])*bpv, μpv, σpv, ξpv, ζpv, zpv)
+				Wd[js, jzp] += prob * itp_obj((1.0-sd.pars[:ℏ])*bpv, μpv, σpv, ξpv, ζpv, zpv)
 
 				jζp = 2 # No default at t+1
 				ζpv = sd.gr[:ζ][jζp]
 				μpv = μ′_arr[jξp, jzp][jζp]
 				σpv = σ′_arr[jξp, jzp][jζp]
-				Wr[js, jzp] += prob * itp_W(bpv, μpv, σpv, ξpv, ζpv, zpv)
+				Wr[js, jzp] += prob * itp_obj(bpv, μpv, σpv, ξpv, ζpv, zpv)
 			end
 		end
 	end
@@ -359,7 +363,7 @@ function earnings_default(sd::SOEdef)
 
 	Ey = zeros(size(sd.eq[:wage])..., N(sd,:z))
 	Eret = zeros(size(sd.eq[:wage])..., N(sd,:z))
-
+	Eyd = zeros(size(sd.eq[:wage])..., N(sd,:z))
 	Jgrid = agg_grid(sd)
 
 	for js in 1:size(Jgrid,1)
@@ -397,13 +401,15 @@ function earnings_default(sd::SOEdef)
 				rep = sd.pars[:κ] + (1-sd.pars[:ρ]) * itp_qᵍ(bpv, μpv, σpv, ξpv, ζpv, zpv)
 			end
 
-			Ey[js, jzp] += prob * itp_wL(bpv, μpv, σpv, ξpv, ζpv, zpv)
+			# Ey[js, jzp] += prob * itp_wL(bpv, μpv, σpv, ξpv, ζpv, zpv)
 			Eret[js, jzp] += prob * rep / sd.eq[:qᵍ][js]
+			Ey[js, jzp] += prob * itp_wL(bpv, μpv, σpv, ξpv, 1, zpv)
+			Eyd[js, jzp] += prob * itp_wL(bpv, μpv, σpv, ξpv, 0, zpv)
 		end
 		# !isapprox(sumprob, 1) && println("WARNING: SUM OF PROBS = $sumprob")
 	end
 
-	return Ey, Eret
+	return Ey, Eret, Eyd
 end
 
 function find_points(sd::SOEdef, jlong)
@@ -413,17 +419,17 @@ function find_points(sd::SOEdef, jlong)
 end
 
 function get_earnings_default(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(sd)...])
-	Ey, Eret = earnings_default(sd)
+	Ey, Eret, Eyd = earnings_default(sd)
 
 	jb, jμ, jσ, jξ, jζ, jz = eval_points
 
 	js = find_points(sd, [jb, jμ, jσ, jξ, jζ, jz])
 
-	return Ey[js,:], Eret[js,:]
+	return Ey[js,:], Eret[js,:], Eyd[js,:]
 end
 
-function get_Wr_Wd(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(sd)...])
-	Wr, Wd = Wr_Wd(sd)
+function get_Wr_Wd(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(sd)...]; type::String="Wr-Wd")
+	Wr, Wd = Wr_Wd(sd, type)
 
 	jb, jμ, jσ, jξ, jζ, jz = eval_points
 
@@ -435,22 +441,32 @@ end
 function make_panels(sd::SOEdef, type::String; style::Style=slides_def)
 	Jgrid = agg_grid(sd)
 
-	jbv = [1, floor(Int, N(sd,:b)/2), N(sd,:b)]
+	jbv = [floor(Int, N(sd,:b)*0.25), 10, N(sd,:b)]
 	_, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
 
 	Eyv = Vector{Vector{Float64}}(undef, 0)
-	Ey2 = Vector{Vector{Float64}}(undef, 0)
+	Eydv = Vector{Vector{Float64}}(undef, 0)
 	Erv = Vector{Vector{Float64}}(undef, 0)
+	Ey2 = Vector{Vector{Float64}}(undef, 0)
+	Eyd2 = Vector{Vector{Float64}}(undef, 0)
 	Er2 = Vector{Vector{Float64}}(undef, 0)
 	for (jj,jb) in enumerate(jbv)
 		if type == "Earnings_Default"
-			Ey, Er = get_earnings_default(sd, [jb,jμ, jσ, 1, jζ, jz])
-			Eyy, Err = get_earnings_default(sd, [jb,jμ, jσ, 2, jζ, jz])
+			Ey, Er, Eyd = get_earnings_default(sd, [jb,jμ, jσ, 1, jζ, jz])
+			Eyy, Err, Eyyd = get_earnings_default(sd, [jb,jμ, jσ, 2, jζ, jz])
 			cor = "(y,ret)"
 		elseif type == "Wr-Wd"
 			Ey, Er = get_Wr_Wd(sd, [jb,jμ, jσ, 1, jζ, jz])
 			Eyy, Err = get_Wr_Wd(sd, [jb,jμ, jσ, 2, jζ, jz])
+			Eyd = Ey.*NaN
+			Eyyd = Ey.*NaN
 			cor = "(Wr, Wd)"
+		elseif type == "T"
+			Ey, Er = get_Wr_Wd(sd, [jb,jμ, jσ, 1, jζ, jz], type="T")
+			Eyy, Err = get_Wr_Wd(sd, [jb,jμ, jσ, 2, jζ, jz], type="T")
+			Eyd = Ey.*NaN
+			Eyyd = Ey.*NaN
+			cor = "(Tr, Td)"
 		end
 
 		co = [cov(Ey, Er) / (std(Ey)*std(Er)) for js in 1:size(Jgrid,1)]
@@ -459,19 +475,34 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def)
 		println("Corr"*cor*" = $(mean(co))")
 
 		push!(Eyv, Ey)
+		push!(Eydv, Eyd)
 		push!(Erv, Er)
 		push!(Ey2, Eyy)
+		push!(Eyd2, Eyyd)
 		push!(Er2, Err)
 	end
 
+	col1 = get(ColorSchemes.romaO, 0.8)
+	col2 = get(ColorSchemes.vikO, 0.75)
+	col3 = get(ColorSchemes.romaO, 0.3)
+
 	if type == "Earnings_Default"
 		title = "Income and returns on government debt"
-		ytitle1 = "𝔼[<i>y</i>]"
+		ytitle1 = "𝔼[<i>y<sup>r</sup></i>]"
+		ytitle1d = "𝔼[<i>y<sup>d</sup></i>]"
 		ytitle2 = "𝔼[<i>R<sup>b</sup></i>]"
 	elseif type == "Wr-Wd"
 		title = "Value of repayment and default"
 		ytitle1 = "<i>W<sup>r"
+		ytitle1d = ""
 		ytitle2 = "<i>W<sup>d"
+		col2, col3 = col3, col2
+	elseif type == "T"
+		title = "Transfers"
+		ytitle1 = "<i>T<sup>r"
+		ytitle1d = ""
+		ytitle2 = "<i>T<sup>d"
+		col2, col3 = col3, col2
 	end
 
 
@@ -486,14 +517,32 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def)
 	maxy = max(maxyy, maxyr)
 	miny = min(minyy, minyr)
 
+	if type == "Earnings_Default"
+		minyd, maxyd = extrema(vcat(vcat(Eydv[:]...), vcat(Eyd2[:]...)))
+		minyd = minyd - 0.05 * (maxyd-minyd)
+		maxyd = maxyd + 0.05 * (maxyd-minyd)
+
+		maxy = max(maxy, maxyd)
+		miny = min(miny, minyd)
+	end
+
 	ξv = sd.gr[:ξ]
 
 	data = [
-		[scatter(x=sd.gr[:z], y=Eyv[jb], xaxis="x$jb",yaxis="y$jb", line_color=col[1], name=ytitle1, showlegend=(jb==1)) for jb in 1:length(Eyv)]
-		[scatter(x=sd.gr[:z], y=Erv[jb], xaxis="x$jb",yaxis="y$jb", line_color=col[2], name=ytitle2, showlegend=(jb==1)) for jb in 1:length(Eyv)]
-		[scatter(x=sd.gr[:z], y=Ey2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", line_color=col[1], name=ytitle1, showlegend=false) for jb in 1:length(Ey2)]
-		[scatter(x=sd.gr[:z], y=Er2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", line_color=col[2], name=ytitle2, showlegend=false) for jb in 1:length(Ey2)]
+		[scatter(x=sd.gr[:z], y=Eyv[jb], xaxis="x$jb",yaxis="y$jb", name=ytitle1, marker_color=col1, showlegend=(jb==1)) for jb in 1:length(Eyv)]
+		[scatter(x=sd.gr[:z], y=Erv[jb], xaxis="x$jb",yaxis="y$jb", name=ytitle2, marker_color=col3, mode="lines", line_dash="dot", showlegend=(jb==1)) for jb in 1:length(Eyv)]
+		[scatter(x=sd.gr[:z], y=Ey2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", name=ytitle1, marker_color=col1, showlegend=false) for jb in 1:length(Ey2)]
+		[scatter(x=sd.gr[:z], y=Er2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", name=ytitle2, marker_color=col3, mode="lines", line_dash="dot", showlegend=false) for jb in 1:length(Ey2)]
 	]
+
+	if type == "Earnings_Default"
+		for jb in 1:length(Eyv)
+			push!(data, scatter(x=sd.gr[:z], y=Eydv[jb], xaxis="x$jb",yaxis="y$jb", name=ytitle1d, marker_color=col2, line_dash="dashdot", showlegend=(jb==1)) )
+		end
+		for jb in 1:length(Ey2)
+			push!(data, scatter(x=sd.gr[:z], y=Eyd2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", name=ytitle1d, marker_color=col2, line_dash="dashdot", showlegend=false))
+		end
+	end
 
 	annotations = [
 		[attr(x=0, xanchor="center", xref="x$jb", y=1.01, yref="paper", yanchor="bottom", text="<i>B = $(@sprintf("%0.3g", sd.gr[:b][bv])), ξ = $(@sprintf("%0.3g",100*ξv[1]))%", showarrow=false) for (jb,bv) in enumerate(jbv)]
@@ -501,20 +550,20 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def)
 		]
 
 	layout = Layout(
-		yaxis1=attr(anchor="x1", range=[miny,maxy], domain = [0.55,1]),
-		yaxis2=attr(anchor="x2", range=[miny,maxy], domain = [0.55,1]),
-		yaxis3=attr(anchor="x3", range=[miny,maxy], domain = [0.55,1]),
-		yaxis4=attr(anchor="x4", range=[miny,maxy], domain = [0,0.45]),
-		yaxis5=attr(anchor="x5", range=[miny,maxy], domain = [0,0.45]),
-		yaxis6=attr(anchor="x6", range=[miny,maxy], domain = [0,0.45]),
+		yaxis1=attr(anchor="x1", range=[miny,maxy], domain = [0.575,1]),
+		yaxis2=attr(anchor="x2", range=[miny,maxy], domain = [0.575,1]),
+		yaxis3=attr(anchor="x3", range=[miny,maxy], domain = [0.575,1]),
+		yaxis4=attr(anchor="x4", range=[miny,maxy], domain = [0,0.425]),
+		yaxis5=attr(anchor="x5", range=[miny,maxy], domain = [0,0.425]),
+		yaxis6=attr(anchor="x6", range=[miny,maxy], domain = [0,0.425]),
 		xaxis1=attr(zeroline=false, domain=[0,0.3], anchor="y1"),
 		xaxis2=attr(zeroline=false, domain=[0.33, 0.67], anchor="y2"),
 		xaxis3=attr(zeroline=false, domain=[0.7, 1], anchor="y3"),
 		xaxis4=attr(title="<i>z′", zeroline=false, domain=[0,0.3], anchor="y4"),
 		xaxis5=attr(title="<i>z′", zeroline=false, domain=[0.33, 0.67], anchor="y5"),
 		xaxis6=attr(title="<i>z′", zeroline=false, domain=[0.7, 1], anchor="y6"),
-		title=title,
-		legend = attr(orientation="v", x=0.95, xanchor="right", y=0.85),
+		title=title, height = 1080*0.45,
+		legend = attr(orientation="v", x=0.95, xanchor="right", y=0.95),
 		annotations = annotations
 		)
 	plot(data, layout, style=style)

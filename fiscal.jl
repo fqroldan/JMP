@@ -176,8 +176,8 @@ function govt_bc(sd::SOEdef, wage_bill)
 	inc_tax = sd.pars[:τ] * wage_bill
 	net_iss = qᵍ_vec .* (B′ - remaining_debt)
 
-	T_vec = coupons + g - inc_tax - net_iss
-	T_mat = reshape(T_vec, N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z))
+	sd.eq[:T] = coupons + g - inc_tax - net_iss
+	T_mat = reshape(sd.eq[:T], N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z))
 	return T_mat
 end
 
