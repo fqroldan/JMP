@@ -166,6 +166,14 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 			b90[js] += max(0.0, bp)
 		end
 	end
+	# Compute Gini index
+	# S_i = pdf times wealth from 1 to i
+	S = [sum( [mλω[jj]*ωϵv[jj, 1] for jj in 1:i] ) for i in 1:length(mλω)]
+
+	# S_0 = 0
+	S = [0;S]
+
+	Gini = 1 - (sum( [ mλω[jj] * (S[jj] + S[jj+1]) for jj in 1:length(mλω)]))/S[end]
 
 	C = dot(λt, ϕc)
 	CoY = C / output
@@ -179,7 +187,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 
 	Eω_fromb = dot(λt, avgω_fromb) / dot(λt, ϕb)
 
-	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :avgω => Eω_fromb))
+	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :avgω => Eω_fromb, :Gini => Gini))
 
 	a  = dot(λt, ϕa)
 	a2 = dot(λt, ϕa.^2)
