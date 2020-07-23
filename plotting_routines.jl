@@ -136,30 +136,124 @@ function make_def_incentive(sd::SOEdef; style::Style=slides_def)
 	p1 = makecontour(sd, vR-vD, :b, :z, f2=x->100x, style=style, title="<i>V<sup>R</sup> - V<sup>D</sup>", reversescale=false)
 end
 
-
-function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol, f::Function=identity) where T <: AbstractPath
-	Nc, tvv = get_crises(pv, πthres, 7)
-	plot(scats_crises(pv, tvv, key, f))
-end
-
 scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, X::Float64) where T <: AbstractPath = scats_crises(pv, tvv, key, x->x/X)
-function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f::Function=identity) where T <: AbstractPath
+function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f::Function=identity; axis::Int64=1) where T <: AbstractPath
 
-	k = 7
+	k = 8
 	ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k)
 
-	line_up = scatter(x=(-k:k)/4, y=f.(y_up),hoverinfo="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)", width=0.1))
-	line_lo = scatter(x=(-k:k)/4, y=f.(y_lo),hoverinfo="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)",width=0.1), fill="tonexty", fillcolor="rgba(31,119,180,0.25)")
-	line_me = scatter(x=(-k:k)/4, y=f.(y_me), showlegend=false, mode="lines", line=attr(color=col[4]))
-	line_av = scatter(x=(-k:k)/4, y=f.(y_av), showlegend=false, mode="lines", line=attr(color=col[4], dash="dash"))
+	line_up = scatter(x=(-k:k)/4, y=f(y_up),hoverinfo="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)", width=0.1), xaxis="x$axis", yaxis="y$axis")
+	line_lo = scatter(x=(-k:k)/4, y=f(y_lo),hoverinfo="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)",width=0.1), fill="tonexty", fillcolor="rgba(31,119,180,0.25)", xaxis="x$axis", yaxis="y$axis")
+	line_me = scatter(x=(-k:k)/4, y=f(y_me), showlegend=false, mode="lines", line=attr(color=col[4]), xaxis="x$axis", yaxis="y$axis")
+	line_av = scatter(x=(-k:k)/4, y=f(y_av), showlegend=false, mode="lines", line=attr(color=col[4], dash="dash"), xaxis="x$axis", yaxis="y$axis")
 
 	[
-		[scatter(x=(-k:k)/4, y=f.(ymat)[:,jc], mode="lines", line_color="rgb(31,119,180)", opacity=0.75, line_width=0.5, showlegend=false) for jc in 1:size(ymat,2)]
+		[scatter(x=(-k:k)/4, y=f.(ymat)[:,jc], mode="lines", line_color="rgb(31,119,180)", opacity=0.75, line_width=0.5, showlegend=false, xaxis="x$axis", yaxis="y$axis") for jc in 1:size(ymat,2)]
 		line_up
 		line_lo
 		line_me
 		line_av]
 end
+
+function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol, f::Function=identity; style::Style=slides_def) where T <: AbstractPath
+	Nc, tvv = get_crises(pv, πthres, 7)
+	shapes = [vline(0, line_width=1, marker_color="black")]
+	scats_crises(pv, tvv, key, f)
+	plot(scats_crises(pv, tvv, key, f), style=style, Layout(shapes=shapes))
+end
+
+
+function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65) where T<:AbstractPath
+	Nc, tvv = get_crises(pv, πthres, 7)
+	println("Suggested yh=0.8 for style=paper")
+	keyvec = [:z, :Y, :C, :CoY, :B, :ψ, :qg, :π, :L, :mean, :var, :P, :avgω, :p90, :G, :T]
+
+	titlevec = ["TFP", "Output", "Consumption", "<i>C/Y<sup>d</sup>", "Bonds", "Proportion Domestic", "Price of new debt", "Default prob", "Unemployment", "Wealth Dist Mean", "Wealth Dist Variance", "Price of nontradables", "Bondholdings-weighted avg wealth", "top 10% holdings", "Govt spending", "Lump-sum taxes"]
+
+	meanY = mean([mean(series(p, :Y)) for p in pv])
+	meanC = mean([mean(series(p, :C)) for p in pv])
+	
+	funcvec = Vector{Function}(undef, length(keyvec))
+	funcvec .= identity
+	ytitle = ["" for jj in 1:length(keyvec)]
+
+	funcvec[[2, 15, 16]] .= (x->100*x/meanY)
+	funcvec[3] = (x->100*x/meanC)
+	funcvec[[5, 10, 13]] .= (x->25 * x/meanY)
+	funcvec[[4, 6, 8]] .= (x->100*x)
+	funcvec[9] = (x->100*(1 .- x))
+	ytitle[[15, 16]] .= "% dev from mean GDP"
+	ytitle[[5, 10, 13]] .= "% dev from ann GDP"
+	ytitle[[2, 3]] .= "% dev from mean"
+	ytitle[[4,6,8,9]] .= "%"
+
+	if haskey(first(pv).data, :Gini)
+		titlevec[keyvec.==:var] .= "Wealth Gini"
+		funcvec[keyvec.==:var] .= x->100*x
+		keyvec[keyvec.==:var] .= :Gini
+	end
+
+	
+	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+	for (jj, key) in enumerate(keyvec)
+		for scat in scats_crises(pv, tvv, key, funcvec[jj], axis=jj)
+			push!(data, scat)
+		end
+	end
+
+	a = 1/4
+	b = 1/20
+	bx = 1/30
+	shapes = [
+		# vline(0, line_width=1, marker_color="black")
+		]
+
+	ys = [1, 0.75, 0.475, 0.21]
+	annotations = [
+		attr(text=titlevec[jj], x = 0, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/4)], showarrow=false, yref="paper") for jj in 1:length(titlevec)
+		]
+
+	layout = Layout(shapes=shapes, annotations = annotations,
+		height = 1080*yh, width = 1920*0.65,
+		xaxis1 = attr(domain = [0a+bx, a-bx]),
+		xaxis2 = attr(domain = [1a+bx, 2a-bx]),
+		xaxis3 = attr(domain = [2a+bx, 3a-bx]),
+		xaxis4 = attr(domain = [3a+bx, 4a-bx]),
+		yaxis1 = attr(anchor = "x1", domain = [3a+b, 4a-b], titlefont_size = 14, title=ytitle[1]),
+		yaxis2 = attr(anchor = "x2", domain = [3a+b, 4a-b], titlefont_size = 14, title=ytitle[2]),
+		yaxis3 = attr(anchor = "x3", domain = [3a+b, 4a-b], titlefont_size = 14, title=ytitle[3]),
+		yaxis4 = attr(anchor = "x4", domain = [3a+b, 4a-b], titlefont_size = 14, title=ytitle[4]),
+		xaxis5 = attr(domain = [0a+bx, a-bx], anchor="y5"),
+		xaxis6 = attr(domain = [1a+bx, 2a-bx], anchor="y6"),
+		xaxis7 = attr(domain = [2a+bx, 3a-bx], anchor="y7"),
+		xaxis8 = attr(domain = [3a+bx, 4a-bx], anchor="y8"),
+		yaxis5 = attr(anchor = "x5", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[5]),
+		yaxis6 = attr(anchor = "x6", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[6]),
+		yaxis7 = attr(anchor = "x7", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[7]),
+		yaxis8 = attr(anchor = "x8", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[8]),
+		xaxis9 = attr(domain = [0a+bx, a-bx], anchor="y9"),
+		xaxis10 = attr(domain = [1a+bx, 2a-bx], anchor="y10"),
+		xaxis11 = attr(domain = [2a+bx, 3a-bx], anchor="y11"),
+		xaxis12 = attr(domain = [3a+bx, 4a-bx], anchor="y12"),
+		yaxis9 = attr(anchor = "x9", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[9]),
+		yaxis10 = attr(anchor = "x10", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[10]),
+		yaxis11 = attr(anchor = "x11", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[11]),
+		yaxis12 = attr(anchor = "x12", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[12]),
+		xaxis13 = attr(domain = [0a+bx, a-bx], anchor="y13"),
+		xaxis14 = attr(domain = [1a+bx, 2a-bx], anchor="y14"),
+		xaxis15 = attr(domain = [2a+bx, 3a-bx], anchor="y15"),
+		xaxis16 = attr(domain = [3a+bx, 4a-bx], anchor="y16"),
+		yaxis13 = attr(anchor = "x13", domain = [0a+b, a-b], titlefont_size = 14, title=ytitle[13]),
+		yaxis14 = attr(anchor = "x14", domain = [0a+b, a-b], titlefont_size = 14, title=ytitle[14]),
+		yaxis15 = attr(anchor = "x15", domain = [0a+b, a-b], titlefont_size = 14, title=ytitle[15]),
+		yaxis16 = attr(anchor = "x16", domain = [0a+b, a-b], titlefont_size = 14, title=ytitle[16]),
+		)
+
+	plot(data, layout, style=style)
+end
+
+
+
 
 scats_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64=x1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath = scats_comp(pv_bench, pv_nodef, tvv, key, x->x/x1, x->x/x2, CI=CI, avg=avg)
 function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath
