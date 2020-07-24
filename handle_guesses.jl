@@ -150,6 +150,7 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 	Tyears = floor(Int64,periods(pp)*0.25)
 	def_freq = Ndefs/Tyears
 	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(round(1000*def_freq)/10)%")
+	print_save("\nAverage Gini coefficient: $(@sprintf("%0.3g",100*mean([mean(series(path,:Gini)) for path in pp])))")
 	save(savedir*"p_bench.jld", "pp", pp, "Ndefs", Ndefs)
 	
 	# pl = plot_simul(path)
