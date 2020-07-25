@@ -216,7 +216,7 @@ function simul_done(run_number, sim_name)
 	return pp, Ndefs
 end
 
-function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years, already_done)
+function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years, already_done, pars)
 
 	if already_done
 		try
@@ -227,6 +227,9 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 	end
 
 	sd = try_load(run_number, current_best, sim_name)
+	for (key, val) in pars
+		sd.pars[key] = val
+	end
 	if sim_name == "nodelta"
 		sd.pars[:Δ] = 0
 	end
@@ -251,7 +254,8 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_
 	v = [zeros(12) for jj in 1:3]
 	for (js, sim_name) in enumerate(sim_names)
 		nodelta, nodef, nob = sim_mat[js, :]
-		pp, Ndefs = try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years, already_done)
+		pars = sd.pars
+		pp, Ndefs = try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_agent, years, already_done, pars)
 		Tyears = floor(Int64,periods(pp)*0.25)
 		freq[js] = Ndefs/Tyears
 		vsim = simul_stats(pp)
