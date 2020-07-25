@@ -230,6 +230,7 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 	for (key, val) in pars
 		sd.pars[key] = val
 	end
+	update_probs!(sd)
 	if sim_name == "nodelta"
 		sd.pars[:Δ] = 0
 	end
