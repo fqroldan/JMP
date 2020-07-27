@@ -164,7 +164,7 @@ end
 
 
 function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65) where T<:AbstractPath
-	Nc, tvv = get_crises(pv, πthres, 7)
+	Nc, tvv = get_crises(pv, πthres, 8)
 	println("Suggested yh=0.8 for style=paper")
 	keyvec = [:z, :Y, :C, :CoY, :B, :ψ, :qg, :π, :L, :mean, :var, :P, :avgω, :p90, :G, :T]
 
@@ -257,7 +257,7 @@ end
 
 scats_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64=x1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath = scats_comp(pv_bench, pv_nodef, tvv, key, x->x/x1, x->x/x2, CI=CI, avg=avg)
 function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath
-	k = 7
+	k = 8
 	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k)
 	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k)
 
