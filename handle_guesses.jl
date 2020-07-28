@@ -239,7 +239,7 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 	end
 	print_save("\nSolving $(sim_name) version")
 	mpe_iter!(sd; nodef = nodef, noΔ = nodelta, nob = nob, rep_agent = rep_agent, run_number=run_number, save_copies=false)
-	pp, Ndefs = parsimul(sd; simul_length=4*years, burn_in=1+4*25)
+	pp, Ndefs = parsimul(sd; simul_length=4*years, burn_in=1+4*100)
 	save("../Output/run$(run_number)/SOEdef_$(sim_name).jld", "sd", sd)
 	save("../Output/SOEdef_$(sim_name).jld", "sd", sd)
 	save("../Output/run$(run_number)/p_$(sim_name).jld", "pp", pp, "Ndefs", Ndefs)
