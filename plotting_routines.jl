@@ -186,8 +186,9 @@ function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, 
 	s1
 end
 
-function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65) where T<:AbstractPath
-	Nc, tvv = get_crises(pv, πthres, 8)
+panels_defaults(pv::Vector{T}; style::Style=slides_def, yh = 0.65) where T<:AbstractPath = panels_crises(pv, 0.0, style=style, yh=yh, type="default")
+function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads") where T<:AbstractPath
+	Nc, tvv = get_crises(pv, πthres, 8, type=type)
 	println("Suggested yh=0.8 for style=paper")
 	keyvec = [:z, :Y, :C, :CoY, :B, :ψ, :qg, :π, :L, :mean, :var, :P, :avgω, :p90, :G, :T]
 

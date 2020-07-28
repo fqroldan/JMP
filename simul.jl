@@ -467,11 +467,36 @@ function find_crises(pp::Path, πthres::Float64, k::Int64=7)
 	return Nc, tvec
 end
 
-function get_crises(pv::Vector{T}, πthres::Float64, k::Int64=7) where T <: AbstractPath
+function find_defaults(pp::Path, k::Int64=7)
+	ζ_vec = series(pp,:ζ)
+
+	T = periods(pp)
+
+	Nc = 0
+	jt = k
+	tvec = Int64[]
+	while jt < T
+		jt += 1
+		if ζ_vec[jt-1] == 1 && ζ_vec[jt] == 0 # New default at t
+			Nc += 1
+			push!(tvec, jt)
+			jt += 1
+		end
+	end
+	return Nc, tvec
+end
+
+function get_crises(pv::Vector{T}, πthres::Float64, k::Int64=7; type="highspreads") where T <: AbstractPath
 	Nc = 0
 	tmat = Vector{Vector{Int64}}(undef,0)
 	for (jp, pp) in enumerate(pv)
-		N_new, tvec = find_crises(pp, πthres, k)
+		if type == "highspreads"
+			N_new, tvec = find_crises(pp, πthres, k)
+		elseif type == "default"
+			N_new, tvec = find_defaults(pp)
+		else
+			throw(error("Must choose 'highspreads' or 'default'"))
+		end
 		Nc += N_new
 
 		tmat = push!(tmat, tvec)
