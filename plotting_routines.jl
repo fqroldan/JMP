@@ -204,11 +204,11 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 	funcvec[[2, 15, 16]] .= (x->100*x/meanY)
 	funcvec[3] = (x->100*x/meanC)
 	funcvec[[5, 10, 13]] .= (x->25 * x/meanY)
-	funcvec[[4, 6, 8]] .= (x->100*x)
+	funcvec[[1, 4, 6, 8]] .= (x->100*x)
 	funcvec[9] = (x->100*(1 .- x))
 	ytitle[[5, 10, 13, 15, 16]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
-	ytitle[[4,6,8,9]] .= "%"
+	ytitle[[1,4,6,8,9]] .= "%"
 
 	if haskey(first(pv).data, :Gini)
 		titlevec[keyvec.==:var] .= "Wealth Gini"
@@ -291,13 +291,14 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64;
 	f1vec .= identity
 	ytitle = ["" for jj in 1:length(keyvec)]
 
+	f1vec[1] = x->100*x
 	f1vec[[2, 5, 6]] .= (x->100*x/meanYb)
 	f1vec[3] = (x->100*x/meanCb)
 	f1vec[[4]] .= (x->25 * x/meanYb)
 	f1vec[7] = (x->100*(1 .- x))
 	ytitle[[4,5,6]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
-	ytitle[[7]] .= "%"
+	ytitle[[1,7]] .= "%"
 
 	f2vec = copy(f1vec)
 	f2vec[[2,5,6]] .= (x->100*x/meanYn)
@@ -374,13 +375,14 @@ function panels_full_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vecto
 	f1vec .= identity
 	ytitle = ["" for jj in 1:length(keyvec)]
 
+	f1vec[1] = x->100*x
 	f1vec[[2, 5, 6]] .= (x->100*x/meanYb)
 	f1vec[3] = (x->100*x/meanCb)
 	f1vec[[4]] .= (x->25 * x/meanYb)
 	f1vec[7] = (x->100*(1 .- x))
 	ytitle[[4,5,6]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
-	ytitle[[7]] .= "%"
+	ytitle[[1,7]] .= "%"
 
 	f2vec = copy(f1vec)
 	f2vec[[2,5,6]] .= (x->100*x/meanYΔ)
