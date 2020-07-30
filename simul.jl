@@ -46,7 +46,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	zt == sd.gr[:z][jz] || print("something wrong with ztv and jzt")
 	abs(zt - sd.gr[:z][jz]) < 1e-8 || throw(error("something wrong with ztv and jzt"))
 
-	# print("\n$(t), μ = $μt")
+	# verbose && print("\n$(t), μ = $μt")
 	if verbose && t % 10000 == 0
 		print_save("\n[Bt, μt, σt, ξt, ζt, zt]\n")
 		print_save("$(@sprintf("%0.3g",Bt)), ")
@@ -532,5 +532,73 @@ function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k
 	return ymat, y_up, y_me, y_lo, y_av
 end
 
+function MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4*10, burn_in = 4*100, verbose=false)
+	Random.seed!(1)
+	gr = sd.gr
 
+	μ0, σ0 = [mean(sd.gr[key]) for key in [:μ, :σ]]
+	ζ0 = gr[:ζ][2] # Start from no default
+
+	jξ = ceil(Int, N(sd,:ξ)/2)
+	ξ0 = sd.gr[:ξ][jξ]
+	jz = ceil(Int, N(sd,:z)/2)
+	z0 = sd.gr[:z][jz]
+
+	itp_ϕa = make_itp(sd, sd.ϕ[:a]; agg=false);
+	itp_ϕb = make_itp(sd, sd.ϕ[:b]; agg=false);
+	itp_ϕc = make_itp(sd, sd.ϕ[:c]; agg=false);
+	itp_ϕs = make_itp(sd, sd.ϕ[:s]; agg=false);
+	itp_ϕθ = make_itp(sd, sd.ϕ[:θ]; agg=false);
+	itp_vf = make_itp(sd, sd.v[:v]; agg=false);
+
+	itp_C  = make_itp(sd, sd.eq[:C]; agg=true);
+	itp_B′ = make_itp(sd, sd.eq[:issuance]; agg=true);
+	itp_G  = make_itp(sd, sd.eq[:spending]; agg=true);
+	itp_pN = make_itp(sd, sd.eq[:pN]; agg=true);
+	itp_qᵍ = make_itp(sd, sd.eq[:qᵍ]; agg=true);
+	itp_W  = make_itp(sd, sd.eq[:welfare]; agg=true);
+	rep_mat = reshape_long_shocks(sd, sd.gov[:repay]);
+	knots = (gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z], gr[:ξ], gr[:z]);
+	itp_repay = interpolate(knots, rep_mat, Gridded(Linear()));
+
+	jz_series = Vector{Int64}(undef, burn_in)
+	jz_series[1] = jz
+
+	# Initialize objects for iterating the distribution
+	λ = initial_dist(sd, μ0, σ0)
+	Qϵ = kron(sd.prob[:ϵ], ones(N(sd,:ωf),1))
+
+	p = Path(T=burn_in)
+
+	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
+
+	# Simulate for 'burn_in' periods to initialize the distirbution
+	for t in 1:burn_in
+		λ, new_def = iter_simul!(sd, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ, verbose)
+	end
+
+	μ0, σ0 = [p.data[key][end] for key in [:μ, :σ]]
+	λhigh = copy(λ)
+
+	pv = Vector{Path}(undef, K)
+	pv_high = Vector{Path}(undef, K)
+	Threads.@threads for jk in 1:K
+		Random.seed!(jk)
+		pv[jk] = Path(T=T)
+		fill_path!(pv[jk],1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
+		jz_series = Vector{Int64}(undef, T)
+		jz_series[1] = jz
+		for t in 1:T
+			λ, new_def = iter_simul!(sd, pv[jk], t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ, verbose)
+		end
+		pv_high[jk] = Path(T=T)
+		Bhigh = 1.25*B0
+		fill_path!(pv_high[jk],1, Dict(:B => Bhigh, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
+		for t in 1:T
+			λhigh, new_def = iter_simul!(sd, pv_high[jk], t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λhigh, Qϵ, verbose)
+		end
+	end
+
+	return pv, pv_high
+end
 

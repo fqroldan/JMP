@@ -186,6 +186,77 @@ function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, 
 	s1
 end
 
+
+function scats_MIT(pvb::Vector{T}, pvh::Vector{T}, key::Symbol, f::Function, g::Function; axis=1) where T<:AbstractPath
+	xvec = (1:periods(first(pvb))) / 4
+	ybmat = [g(series(pvb[jk], key)[jt]) for jt in 1:length(xvec), jk in 1:length(pvb)]
+	yhmat = [g(series(pvh[jk], key)[jt]) for jt in 1:length(xvec), jk in 1:length(pvh)]
+
+	ymat = (yhmat ./ ybmat) .- 1
+
+	scatter(x=xvec, y=100*mean(ymat, dims=2), showlegend=false, xaxis="x$axis", yaxis="y$axis", line_color=col[1])
+end
+
+function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4*10, burn_in = 4*100, verbose=false, nodef=true)
+
+	pv, pvh = MIT_shock(sd, B0, ϵb; K=K, T=T, burn_in=burn_in, verbose=verbose)
+
+	if nodef
+		indices = [jj for jj in 1:length(pv) if minimum(series(pv[jj],:ζ))*minimum(series(pvh[jj],:ζ)) == 1]
+
+		pv = pv[indices]
+		pvh = pvh[indices]
+	end
+
+	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :qg, :Wr]
+	titlevec = ["TFP", "Output", "Consumption", "Bonds", "Govt spending", "Lump-sum taxes", "Unemployment", "Price of new debt", "Welfare in repayment"]
+
+	fvec = Vector{Function}(undef, length(keyvec))
+	fvec .= identity
+	gvec = copy(fvec)
+	gvec[7] = x->100*(1-x)
+	ytitle = ["" for jj in 1:length(keyvec)]
+
+	fvec[1] = x->100*x
+	fvec[[2, 5, 6]] .= (x->100*x/meanYb)
+	fvec[3] = (x->100*x/meanCb)
+	fvec[[4]] .= (x->25 * x/meanYb)
+	fvec[7] = (x->100*(1 .- x))
+	ytitle[[4,5,6]] .= "% of mean GDP"
+	ytitle[[2, 3]] .= "% dev from mean"
+	ytitle[[1,7]] .= "%"
+
+	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+	for (jj, key) in enumerate(keyvec)
+		for scat in scats_MIT(pv, pvh, key, fvec[jj], gvec[jj], axis=jj)
+			push!(data, scat)
+		end
+	end
+
+	layout = Layout(#shapes=shapes, annotations = annotations,
+		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
+		xaxis1 = attr(domain = [0a+bx, a-bx], anchor="y1"),
+		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
+		xaxis3 = attr(domain = [2a+bx, 3a-bx], anchor="y3"),
+		yaxis1 = attr(anchor = "x1", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[1]),
+		yaxis2 = attr(anchor = "x2", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[2]),
+		yaxis3 = attr(anchor = "x3", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[3]),
+		xaxis4 = attr(domain = [0a+bx, a-bx], anchor="y4"),
+		xaxis5 = attr(domain = [1a+bx, 2a-bx], anchor="y5"),
+		xaxis6 = attr(domain = [2a+bx, 3a-bx], anchor="y6"),
+		yaxis4 = attr(anchor = "x4", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[4]),
+		yaxis5 = attr(anchor = "x5", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[5]),
+		yaxis6 = attr(anchor = "x6", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[6]),
+		xaxis7 = attr(domain = [0a+bx, a-bx], anchor="y7"),
+		xaxis8 = attr(domain = [1a+bx, 2a-bx], anchor="y8"),
+		xaxis9 = attr(domain = [2a+bx, 3a-bx], anchor="y9"),
+		yaxis7 = attr(anchor = "x7", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[7]),
+		yaxis8 = attr(anchor = "x8", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[8]),
+		yaxis9 = attr(anchor = "x9", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[9]),
+	)
+	plot(data, layout, style=style)
+end
+
 panels_defaults(pv::Vector{T}; style::Style=slides_def, yh = 0.65) where T<:AbstractPath = panels_crises(pv, 0.0, style=style, yh=yh, type="default")
 function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads") where T<:AbstractPath
 	Nc, tvv = get_crises(pv, πthres, 8, type=type)
@@ -826,6 +897,22 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def)
 		)
 	plot(data, layout, style=style)
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
