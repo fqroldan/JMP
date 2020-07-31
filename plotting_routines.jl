@@ -142,13 +142,13 @@ function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f:
 	k = 8
 	ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k)
 
-	line_up = scatter(x=(-k:k)/4, y=f(y_up),hoverinfo="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)", width=0.1), xaxis="x$axis", yaxis="y$axis")
-	line_lo = scatter(x=(-k:k)/4, y=f(y_lo),hoverinfo="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)",width=0.1), fill="tonexty", fillcolor="rgba(31,119,180,0.25)", xaxis="x$axis", yaxis="y$axis")
-	line_me = scatter(x=(-k:k)/4, y=f(y_me), name="Median",legendgroup=1,showlegend=(axis==1), mode="lines", line=attr(color=col[4]), xaxis="x$axis", yaxis="y$axis")
-	line_av = scatter(x=(-k:k)/4, y=f(y_av), name="Mean",legendgroup=2,showlegend=(axis==1), mode="lines", line=attr(color=col[3], dash="dash"), xaxis="x$axis", yaxis="y$axis")
+	line_up = scatter(x=(-2k:k)/4, y=f(y_up),hoverinfo="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)", width=0.1), xaxis="x$axis", yaxis="y$axis")
+	line_lo = scatter(x=(-2k:k)/4, y=f(y_lo),hoverinfo="skip",showlegend=false,mode="lines",line=attr(color="rgb(31,119,180)",width=0.1), fill="tonexty", fillcolor="rgba(31,119,180,0.25)", xaxis="x$axis", yaxis="y$axis")
+	line_me = scatter(x=(-2k:k)/4, y=f(y_me), name="Median",legendgroup=1,showlegend=(axis==1), mode="lines", line=attr(color=col[4]), xaxis="x$axis", yaxis="y$axis")
+	line_av = scatter(x=(-2k:k)/4, y=f(y_av), name="Mean",legendgroup=2,showlegend=(axis==1), mode="lines", line=attr(color=col[3], dash="dash"), xaxis="x$axis", yaxis="y$axis")
 
 	[
-		[scatter(x=(-k:k)/4, y=f.(ymat)[:,jc], name="Individual", legendgroup=3, mode="lines", line_color="rgb(31,119,180)", opacity=0.75, line_width=0.5, showlegend=((axis==1)&(jc==1)), xaxis="x$axis", yaxis="y$axis", hoverinfo="skip") for jc in 1:size(ymat,2)]
+		[scatter(x=(-2k:k)/4, y=f.(ymat)[:,jc], name="Individual", legendgroup=3, mode="lines", line_color="rgb(31,119,180)", opacity=0.75, line_width=0.5, showlegend=((axis==1)&(jc==1)), xaxis="x$axis", yaxis="y$axis", hoverinfo="skip") for jc in 1:size(ymat,2)]
 		line_up
 		line_lo
 		line_me
@@ -168,14 +168,14 @@ function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, 
 	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k)
 	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k)
 
-	line_bench = scatter(x=(-k:k)/4, y=f1.(bench_me), name="Benchmark", mode="lines", line_color=col[1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	# lb_avg = scatter(x=(-k:k)/4, y=f1.(bench_av), name="Benchmark", mode="lines", line_color=col[1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	lb_up = scatter(x=(-k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", line_width=0.01, line_color=col[1], showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	lb_lo = scatter(x=(-k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", line_width=0.01, line_color=col[1], fill="tonexty", showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	line_nodef = scatter(x=(-k:k)/4, y=f2.(nodef_me), name="No default", mode="lines", line_color=col[2], showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	# ln_avg = scatter(x=(-k:k)/4, y=f2.(nodef_av), name="No default", mode="lines", line_color=col[2], showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	ln_up = scatter(x=(-k:k)/4, y=f2.(nodef_up), hoverinfo="skip", mode="lines", line_width=0.01, line_color=col[2], showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	ln_lo = scatter(x=(-k:k)/4, y=f2.(nodef_lo), hoverinfo="skip", mode="lines", line_width=0.01, line_color=col[2], fill="tonexty", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	line_bench = scatter(x=(-2k:k)/4, y=f1.(bench_me), name="Benchmark", mode="lines", line_color=col[1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	# lb_avg = scatter(x=(-2k:k)/4, y=f1.(bench_av), name="Benchmark", mode="lines", line_color=col[1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	lb_up = scatter(x=(-2k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", line_width=0.01, line_color=col[1], showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	lb_lo = scatter(x=(-2k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", line_width=0.01, line_color=col[1], fill="tonexty", showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	line_nodef = scatter(x=(-2k:k)/4, y=f2.(nodef_me), name="No default", mode="lines", line_color=col[2], showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	# ln_avg = scatter(x=(-2k:k)/4, y=f2.(nodef_av), name="No default", mode="lines", line_color=col[2], showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	ln_up = scatter(x=(-2k:k)/4, y=f2.(nodef_up), hoverinfo="skip", mode="lines", line_width=0.01, line_color=col[2], showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	ln_lo = scatter(x=(-2k:k)/4, y=f2.(nodef_lo), hoverinfo="skip", mode="lines", line_width=0.01, line_color=col[2], fill="tonexty", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
 
 	s1 = [line_bench, line_nodef]
 	if avg
@@ -192,48 +192,68 @@ function scats_MIT(pvb::Vector{T}, pvh::Vector{T}, key::Symbol, f::Function, g::
 	ybmat = [g(series(pvb[jk], key)[jt]) for jt in 1:length(xvec), jk in 1:length(pvb)]
 	yhmat = [g(series(pvh[jk], key)[jt]) for jt in 1:length(xvec), jk in 1:length(pvh)]
 
-	ymat = (yhmat ./ ybmat) .- 1
+	ymat = [f(ybmat[jt,jk], yhmat[jt,jk]) for jt in 1:length(xvec), jk in 1:length(pvh)]
 
-	scatter(x=xvec, y=100*mean(ymat, dims=2), showlegend=false, xaxis="x$axis", yaxis="y$axis", line_color=col[1])
+	[
+	scatter(x=xvec, y=[quantile(ybmat[jt,:], 0.75) for jt in 1:length(xvec)], name="Benchmark", legendgroup=1, line_color=col[1], showlegend=false, xaxis="x$axis", yaxis="y$axis", hoverinfo="skip", line_dash="dash")
+	scatter(x=xvec, y=[quantile(ybmat[jt,:], 0.25) for jt in 1:length(xvec)], name="Benchmark", legendgroup=1, line_color=col[1], showlegend=false, xaxis="x$axis", yaxis="y$axis", hoverinfo="skip", line_dash="dash")
+	scatter(x=xvec, y=[mean(ybmat[jt,:]) for jt in 1:length(xvec)], name="Benchmark", legendgroup=1, showlegend=(axis==1), xaxis="x$axis", yaxis="y$axis", line_color=col[1])
+
+	scatter(x=xvec, y=[quantile(yhmat[jt,:], 0.75) for jt in 1:length(xvec)], name="Shock", legendgroup=2, line_color=col[2], showlegend=false, xaxis="x$axis", yaxis="y$axis", hoverinfo="skip", line_dash="dash")
+	scatter(x=xvec, y=[quantile(yhmat[jt,:], 0.25) for jt in 1:length(xvec)], name="Shock", legendgroup=2, line_color=col[2], showlegend=false, xaxis="x$axis", yaxis="y$axis", hoverinfo="skip", line_dash="dash")
+	scatter(x=xvec, y=[mean(yhmat[jt,:]) for jt in 1:length(xvec)], name="Shock", legendgroup=2, showlegend=(axis==1), xaxis="x$axis", yaxis="y$axis", line_color=col[2])
+	]
 end
 
-function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4*10, burn_in = 4*100, verbose=false, nodef=true)
+function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4*5, burn_in = 4*100, yh = 0.65, verbose=false, nodef=true, style::Style=slides_def)
 
-	pv, pvh = MIT_shock(sd, B0, ϵb; K=K, T=T, burn_in=burn_in, verbose=verbose)
+	pvb, pvh = MIT_shock(sd, B0, ϵb; K=K, T=T, burn_in=burn_in, verbose=verbose)
 
 	if nodef
-		indices = [jj for jj in 1:length(pv) if minimum(series(pv[jj],:ζ))*minimum(series(pvh[jj],:ζ)) == 1]
+		indices = [jj for jj in 1:length(pvb) if minimum(series(pvb[jj],:ζ))*minimum(series(pvh[jj],:ζ)) == 1]
 
-		pv = pv[indices]
+		pvb = pvb[indices]
 		pvh = pvh[indices]
 	end
 
-	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :qg, :Wr]
-	titlevec = ["TFP", "Output", "Consumption", "Bonds", "Govt spending", "Lump-sum taxes", "Unemployment", "Price of new debt", "Welfare in repayment"]
+	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :π, :Wr]
+	titlevec = ["TFP", "Output", "Consumption", "Bonds", "Govt spending", "Lump-sum taxes", "Unemployment", "Default prob", "Welfare in repayment"]
 
 	fvec = Vector{Function}(undef, length(keyvec))
-	fvec .= identity
-	gvec = copy(fvec)
+	fvec .= ((x,y) -> y/x - 1)
+	gvec = Function[identity for jj in 1:length(keyvec)]
 	gvec[7] = x->100*(1-x)
+	gvec[[1,8]] .= x->100x
 	ytitle = ["" for jj in 1:length(keyvec)]
 
-	fvec[1] = x->100*x
-	fvec[[2, 5, 6]] .= (x->100*x/meanYb)
-	fvec[3] = (x->100*x/meanCb)
-	fvec[[4]] .= (x->25 * x/meanYb)
-	fvec[7] = (x->100*(1 .- x))
-	ytitle[[4,5,6]] .= "% of mean GDP"
-	ytitle[[2, 3]] .= "% dev from mean"
-	ytitle[[1,7]] .= "%"
+	fvec[[1,6,7,8,9]] .= (x,y) -> y-x
+
+	fvec .= (x,y) -> x
+	# fvec[[2, 5, 6]] .= (x->100*x/meanYb)
+	# fvec[3] = (x->100*x/meanCb)
+	# fvec[[4]] .= (x->25 * x/meanYb)
+	# fvec[7] = (x->100*(1 .- x))
+	# ytitle[[4,5,6]] .= "% of mean GDP"
+	# ytitle[[2, 3]] .= "% dev from mean"
+	ytitle[[1,7,8]] .= "%"
 
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
 	for (jj, key) in enumerate(keyvec)
-		for scat in scats_MIT(pv, pvh, key, fvec[jj], gvec[jj], axis=jj)
+		println(key)
+		for scat in scats_MIT(pvb, pvh, key, fvec[jj], gvec[jj], axis=jj)
 			push!(data, scat)
 		end
 	end
 
-	layout = Layout(#shapes=shapes, annotations = annotations,
+	a = 1/3
+	b = 1/20
+	bx = 1/20
+	ys = [1, 0.64, 0.3]
+	annotations = [
+		attr(text=titlevec[jj], x = 2.5, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, yref="paper") for jj in 1:length(titlevec)
+		]
+
+	layout = Layout(annotations = annotations,
 		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		xaxis1 = attr(domain = [0a+bx, a-bx], anchor="y1"),
 		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
@@ -254,6 +274,7 @@ function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4
 		yaxis8 = attr(anchor = "x8", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[8]),
 		yaxis9 = attr(anchor = "x9", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[9]),
 	)
+	data
 	plot(data, layout, style=style)
 end
 
@@ -304,7 +325,7 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 
 	ys = [1, 0.75, 0.475, 0.21]
 	annotations = [
-		attr(text=titlevec[jj], x = 0, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/4)], showarrow=false, yref="paper") for jj in 1:length(titlevec)
+		attr(text=titlevec[jj], x = -1, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/4)], showarrow=false, yref="paper") for jj in 1:length(titlevec)
 		]
 
 	layout = Layout(shapes=shapes, annotations = annotations,

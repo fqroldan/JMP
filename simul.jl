@@ -511,7 +511,7 @@ series_crises(pp::Path, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9) = s
 function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9) where T <: AbstractPath
 	
 	Nc = sum([length(tv) for tv in tvv])
-	ymat = Matrix{Float64}(undef, 2k+1, Nc)
+	ymat = Matrix{Float64}(undef, 3k+1, Nc)
 
 	jc = 0
 	for (jv,tv) in enumerate(tvv)
@@ -519,7 +519,7 @@ function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k
 			Y = series(pv[jv], key)
 			for (jt, tt) in enumerate(tv)
 				jc += 1
-				ymat[:, jc] = Y[tt-k:tt+k]
+				ymat[:, jc] = Y[tt-2k:tt+k]
 			end
 		end
 	end
@@ -592,7 +592,8 @@ function MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4*10, 
 			λ, new_def = iter_simul!(sd, pv[jk], t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ, verbose)
 		end
 		pv_high[jk] = Path(T=T)
-		Bhigh = 1.25*B0
+		Bhigh = (1+ϵb)*B0
+		Random.seed!(jk)
 		fill_path!(pv_high[jk],1, Dict(:B => Bhigh, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
 		for t in 1:T
 			λhigh, new_def = iter_simul!(sd, pv_high[jk], t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λhigh, Qϵ, verbose)
