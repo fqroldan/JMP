@@ -107,7 +107,7 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 	table = "\\begin{tabular*}{.8\\textwidth}{@{\\extracolsep{\\fill}}l*{$k}c@{}} \\toprule \n"
 
 	colnames = ["\\textbf{Moment}", "\\textbf{Benchmark}"]
-	rownames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread"; "Std coef spread	"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"; "Default frequency"]
+	rownames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread"; "Std coef spread	"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"; "Default frequency"; "Equivalent consumption"]
 	pad_n = maximum(length.(rownames)) + 1
 
 	if length(v_m_noΔ) > 0
@@ -119,7 +119,7 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 	push!(colnames, "\\textbf{No default}")
 
 	list_perc = ones(length(v_m))
-	list_perc[1:6] = zeros(6)
+	list_perc[1:6] .= 0.0
 	vs = [@sprintf("%0.3g",vv)*ifelse(list_perc[jv]==1,"\\%", "") for (jv, vv) in enumerate(v_m)]
 	# pad_v = max(length(colnames[2]), maximum(length.( vs ))) + 3
 	pad_v = maximum(length.( vs )) + 3

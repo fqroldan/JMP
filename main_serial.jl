@@ -89,6 +89,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		
 		years = 10000
 		g, p_bench, πthres, v_m, def_freq = make_simulated_path(sd, savedir, years)
+		Wr = mean([mean(series(p, :Wr)) for p in p_bench])
 		save(pwd() * "/../Output/g.jld", "g", g)
 		run(`cp ../Output/SOEdef.jld ../Output/run$(run_number)/SOEdef.jld`)
 	else
@@ -98,6 +99,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		Ndefs = sum([ (ζ_vec[jj] == 0) & (ζ_vec[jj-1] == 1) for jj in 2:length(ζ_vec)])
 		years = floor(Int64,periods(p_bench)*0.25)
 		def_freq = Ndefs / years
+		Wr = mean([mean(series(p, :Wr)) for p in p_bench])
 		# _, πthres = plot_episodes(p_bench; episode_type="onlyspread", slides=true, πthres=0.95)
 	end
 
@@ -117,9 +119,9 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 			current_best = 1
 		end
 
-		v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob = make_comparison_simul(sd, noΔ, rep_agent, run_number, current_best, years, p_bench, πthres, savedir, already_done)
+		v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob, W_noΔ, W_nodef, W_nob = make_comparison_simul(sd, noΔ, rep_agent, run_number, current_best, years, p_bench, πthres, savedir, already_done)
 
-		calib_table_comp = make_calib_table_comp([v_m; 100*def_freq], [v_nodef; 100*freq_nodef], [v_noΔ; 100*freq_noΔ], [v_nob; 100*freq_nob])
+		calib_table_comp = make_calib_table_comp([v_m; 100*def_freq; Wr], [v_nodef; 100*freq_nodef; W_nodef], [v_noΔ; 100*freq_noΔ; W_noΔ], [v_nob; 100*freq_nob; W_nob])
 		write(savedir * "calib_table_comp.txt", calib_table_comp)
 	else
 		print_save("Suboptimal g. Skipping computation of no-def")
