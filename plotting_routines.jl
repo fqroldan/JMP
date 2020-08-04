@@ -642,7 +642,7 @@ function make_twisted(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_point
 	Tπ = zeros(N(sd,:ω), N(sd,:ϵ))
 
 	if custom_points
-		eval_points = [15,4,2,2,2,7]
+		eval_points = [13,4,2,2,2,7]
 	end
 
 	if leg
@@ -793,7 +793,7 @@ function get_Wr_Wd(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(s
 	return Wr[js,:], Wd[js,:]
 end
 
-function make_panels(sd::SOEdef, type::String; style::Style=slides_def)
+function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Bool=true)
 	Jgrid = agg_grid(sd)
 
 	jbv = [floor(Int, N(sd,:b)*0.25), 10, N(sd,:b)]
@@ -846,18 +846,21 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def)
 		ytitle1 = "𝔼[<i>y<sup>r</sup></i>]"
 		ytitle1d = "𝔼[<i>y<sup>d</sup></i>]"
 		ytitle2 = "𝔼[<i>R<sup>b</sup></i>]"
+		modelines = "lines"
 	elseif type == "Wr-Wd"
 		title = "Value of repayment and default"
 		ytitle1 = "<i>W<sup>r"
 		ytitle1d = ""
 		ytitle2 = "<i>W<sup>d"
 		col2, col3 = col3, col2
+		modelines = "lines+markers"
 	elseif type == "T"
 		title = "Transfers"
 		ytitle1 = "<i>T<sup>r"
 		ytitle1d = ""
 		ytitle2 = "<i>T<sup>d"
 		col2, col3 = col3, col2
+		modelines = "lines+markers"
 	end
 
 
@@ -884,18 +887,18 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def)
 	ξv = sd.gr[:ξ]
 
 	data = [
-		[scatter(x=sd.gr[:z], y=Eyv[jb], xaxis="x$jb",yaxis="y$jb", name=ytitle1, marker_color=col1, showlegend=(jb==1)) for jb in 1:length(Eyv)]
-		[scatter(x=sd.gr[:z], y=Erv[jb], xaxis="x$jb",yaxis="y$jb", name=ytitle2, marker_color=col3, mode="lines", line_dash="dot", showlegend=(jb==1)) for jb in 1:length(Eyv)]
-		[scatter(x=sd.gr[:z], y=Ey2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", name=ytitle1, marker_color=col1, showlegend=false) for jb in 1:length(Ey2)]
-		[scatter(x=sd.gr[:z], y=Er2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", name=ytitle2, marker_color=col3, mode="lines", line_dash="dot", showlegend=false) for jb in 1:length(Ey2)]
+		[scatter(x=sd.gr[:z], y=Eyv[jb], xaxis="x$jb",yaxis="y$jb", name=ytitle1, marker_color=col1, showlegend=((jb==1)&(leg)), line_width=2.5) for jb in 1:length(Eyv)]
+		[scatter(x=sd.gr[:z], y=Erv[jb], xaxis="x$jb",yaxis="y$jb", name=ytitle2, marker_color=col3, mode=modelines, line_dash="dot", showlegend=((jb==1)&(leg)), line_width=2.5) for jb in 1:length(Eyv)]
+		[scatter(x=sd.gr[:z], y=Ey2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", name=ytitle1, marker_color=col1, showlegend=false, line_width=2.5) for jb in 1:length(Ey2)]
+		[scatter(x=sd.gr[:z], y=Er2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", name=ytitle2, marker_color=col3, mode=modelines, line_dash="dot", showlegend=false, line_width=2.5) for jb in 1:length(Ey2)]
 	]
 
 	if type == "Earnings_Default"
 		for jb in 1:length(Eyv)
-			push!(data, scatter(x=sd.gr[:z], y=Eydv[jb], xaxis="x$jb",yaxis="y$jb", name=ytitle1d, marker_color=col2, line_dash="dashdot", showlegend=(jb==1)) )
+			push!(data, scatter(x=sd.gr[:z], y=Eydv[jb], xaxis="x$jb",yaxis="y$jb", name=ytitle1d, marker_color=col2, line_dash="dashdot", showlegend=((jb==1)&(leg)), line_width=2.5) )
 		end
 		for jb in 1:length(Ey2)
-			push!(data, scatter(x=sd.gr[:z], y=Eyd2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", name=ytitle1d, marker_color=col2, line_dash="dashdot", showlegend=false))
+			push!(data, scatter(x=sd.gr[:z], y=Eyd2[jb], xaxis="x$(jb+3)",yaxis="y$(jb+3)", name=ytitle1d, marker_color=col2, line_dash="dashdot", showlegend=false, line_width=2.5))
 		end
 	end
 
@@ -905,19 +908,19 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def)
 		]
 
 	layout = Layout(
-		yaxis1=attr(anchor="x1", range=[miny,maxy], domain = [0.575,1]),
-		yaxis2=attr(anchor="x2", range=[miny,maxy], domain = [0.575,1]),
-		yaxis3=attr(anchor="x3", range=[miny,maxy], domain = [0.575,1]),
-		yaxis4=attr(anchor="x4", range=[miny,maxy], domain = [0,0.425]),
-		yaxis5=attr(anchor="x5", range=[miny,maxy], domain = [0,0.425]),
-		yaxis6=attr(anchor="x6", range=[miny,maxy], domain = [0,0.425]),
+		yaxis1=attr(anchor="x1", domain = [0.575,1]),
+		yaxis2=attr(anchor="x2", domain = [0.575,1]),
+		yaxis3=attr(anchor="x3", domain = [0.575,1]),
+		yaxis4=attr(anchor="x4", domain = [0,0.425]),
+		yaxis5=attr(anchor="x5", domain = [0,0.425]),
+		yaxis6=attr(anchor="x6", domain = [0,0.425]),
 		xaxis1=attr(zeroline=false, domain=[0,0.3], anchor="y1"),
 		xaxis2=attr(zeroline=false, domain=[0.33, 0.67], anchor="y2"),
 		xaxis3=attr(zeroline=false, domain=[0.7, 1], anchor="y3"),
 		xaxis4=attr(title="<i>z′", zeroline=false, domain=[0,0.3], anchor="y4"),
 		xaxis5=attr(title="<i>z′", zeroline=false, domain=[0.33, 0.67], anchor="y5"),
 		xaxis6=attr(title="<i>z′", zeroline=false, domain=[0.7, 1], anchor="y6"),
-		title=title, height = 1080*0.45,
+		title=ifelse(leg,title,""), height = 1080*0.45,
 		legend = attr(orientation="v", x=0.95, xanchor="right", y=0.95),
 		annotations = annotations
 		)
