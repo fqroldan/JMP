@@ -48,6 +48,7 @@ function walue(sd::SOEdef, θp, itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv,
 	ωmax = maximum(sd.gr[:ω]) - 1e-6
 
 	Ev, sum_prob = 0.0, 0.0
+	out_bounds = 0
 	if jdef
 		for (jξp, ξpv) in enumerate(gr[:ξ])
 			for (jzp, zpv) in enumerate(gr[:z])
@@ -61,6 +62,7 @@ function walue(sd::SOEdef, θp, itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv,
 						Rb = pars[:κ] + (1-pars[:ρ]) * qᵍp[jξp, jzp, jζp]
 						ωpv = ap + bp * Rb
 						if ωpv < pars[:ωmin]
+							out_bounds += 1
 							Ev += prob * pars[:θ] * 1e-32
 						else
 							ωpv = min(ωmax, ωpv)
@@ -73,6 +75,7 @@ function walue(sd::SOEdef, θp, itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv,
 						Rb = qᵍp[jξp, jzp, jζp]
 						ωpv = ap + bp * Rb
 						if ωpv < pars[:ωmin]
+							out_bounds += 1
 							Ev += prob * (1-pars[:θ]) * 1e-32
 						else
 							ωpv = min(ωmax, ωpv)
@@ -97,6 +100,7 @@ function walue(sd::SOEdef, θp, itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv,
 						Rb = pars[:κ] + (1-pars[:ρ]) * qᵍp[jξp, jzp, jζp]
 						ωpv = ap + bp * Rb
 						if ωpv < pars[:ωmin]
+							out_bounds += 1
 							Ev += prob * exp_rep[jξp, jzp] * 1e-32
 						else
 							ωpv = min(ωmax, ωpv)
@@ -109,6 +113,7 @@ function walue(sd::SOEdef, θp, itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv,
 						Rb = (1-pars[:ρ]) * (1-pars[:ℏ]) * qᵍp[jξp, jzp, jζp]
 						ωpv = ap + bp * Rb
 						if ωpv < pars[:ωmin]
+							out_bounds += 1
 							Ev += prob * (1-exp_rep[jξp, jzp]) * 1e-32
 						else
 							ωpv = min(ωmax, ωpv)
@@ -123,6 +128,8 @@ function walue(sd::SOEdef, θp, itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv,
 	end
 
 	Ev = Ev / sum_prob
+
+	Ev = Ev / (1+out_bounds)
 	if Ev < -1
 		throw(error("Something wrong in the choice of ωpv"))
 	elseif Ev < 0
@@ -178,6 +185,7 @@ function solve_optvalue(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz
 	else
 		# Then resolve the w value function
 		θguess = max(min(guess[:θ], θmax-1e-6), θmin+1e-6)
+		# θguess = 0.5
 		obj_w(x) = -walue(sd, first(x), itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 		if autodiff
 			od = OnceDifferentiable(obj_w, [θguess]; autodiff = :forward)
