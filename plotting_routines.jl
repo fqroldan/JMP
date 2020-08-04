@@ -54,6 +54,7 @@ default_eval_points(sd::SOEdef) = floor(Int, N(sd,:b)*0.9), floor(Int, N(sd,:μ)
 
 function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
+	# jb, jμ, jσ, jξ, jζ, jz = 1, 3, 3, 1, 2, 7
 	μv, σv = sd.gr[:μ][jμ], sd.gr[:σ][jσ]
 
 	ϕ = Dict(key => [sd.ϕ[key][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] for jω in 1:N(sd,:ω), jϵ in 1:N(sd,:ϵ)] for key in keys(sd.ϕ))
@@ -64,13 +65,13 @@ function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 	l = Array{PlotlyBase.GenericTrace}(undef, N(sd,:ϵ), 4)
 	for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])
 		colv = get(colpal, 0.8*jϵ/N(sd,:ϵ))
-		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:c][:,jϵ], xaxis="x3", yaxis="y2", line_shape="spline", name="ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=colv)
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:c][:,jϵ], xaxis="x1", yaxis="y1", line_shape="spline", name="ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=colv)
 		l[jϵ,1] = l_new
-		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:v][:,jϵ], xaxis="x4", yaxis="y4", line_shape="spline", name="ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=colv)
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:v][:,jϵ], xaxis="x2", yaxis="y2", line_shape="spline", name="ϵ = $(round(exp(ϵv),digits=4))", showlegend=false, marker_color=colv)
 		l[jϵ,2] = l_new
-		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:s][:,jϵ], xaxis="x1", yaxis="y1", showlegend=false, name="ϵ = $(round(exp(ϵv),digits=4))", marker_color=colv)
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:s][:,jϵ], xaxis="x3", yaxis="y3", showlegend=false, name="ϵ = $(round(exp(ϵv),digits=4))", marker_color=colv)
 		l[jϵ,3] = l_new
-		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:θ][:,jϵ], xaxis="x2", yaxis="y3", showlegend=false, name="ϵ = $(round(exp(ϵv),digits=4))", marker_color=colv)
+		l_new = scatter(;x=sd.gr[:ω], y=ϕ[:θ][:,jϵ], xaxis="x4", yaxis="y4", showlegend=false, name="ϵ = $(round(exp(ϵv),digits=4))", marker_color=colv)
 		l[jϵ,4] = l_new
 	end
 
@@ -79,48 +80,123 @@ function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 	pc = plot([l[jϵ, 1] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Consumption"))
 	pv = plot([l[jϵ, 2] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Value function"))
 	ps = plot([l[jϵ, 3] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Savings"))
-	pθ = plot([l[jϵ, 4] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Proportion risk-free debt"))
+	pθ = plot([l[jϵ, 4] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Proportion risk-free"))
 
 
 	p1 = [pc pv; ps pθ]
 	return p1
 end	
 
-function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol; f1::Function=identity, f2::Function=identity, divergent::Bool=false, style::Style=slides_def, title="", xtitle="<i>"*string(dim1), ytitle="<i>"*string(dim2), reversescale::Bool=false)
-	max_z, min_z = maximum(y), minimum(y)
+function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol, min_z, max_z; f1::Function=identity, f2::Function=identity, divergent::Bool=false, reversescale::Bool=false, suffix="")
 
 	if divergent
 		colpal = ColorSchemes.broc
-		AC = false
 	else
 		colpal = ColorSchemes.lajolla
-		AC = true
 	end
 
 	colscale = [[vv, get(colpal, vv)] for vv in range(0,1,length=100)]
 
-	layout = Layout(title=title, xaxis_title=xtitle, yaxis_title=ytitle)
-
-	p1 = plot(contour(;x = f1.(sd.gr[dim1]), y = f2.(sd.gr[dim2]), z=y, colorscale = colscale, reversescale=reversescale, autocontour=AC, contours=Dict(:start=>min_z,:end=>max_z)), style=style, layout)
-	return p1
+	contour(;x = f1.(sd.gr[dim1]), y = f2.(sd.gr[dim2]), z=y, colorscale = colscale, reversescale=reversescale, autocontour=false, colorbar_ticksuffix=suffix, colorbar_showticksuffix="all", contours=Dict(:start=>min_z,:end=>max_z), xaxis="x1", yaxis="y1")
 end
 
-function make_unemp(sd::SOEdef; style::Style=slides_def)
-	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
+function makecontour_μσ(sd::SOEdef, y::Matrix, min_z, max_z; divergent::Bool=false, reversescale::Bool=false, fz::Function=identity, suffix="")
+	knots = (sd.gr[:μ], sd.gr[:σ])
+	itp_y = extrapolate(interpolate(knots, y, Gridded(Linear())), Interpolations.Line())
+
+	y_mat, xgrid, ygrid = reeval_mat_MV(sd, itp_y, lb = 0)
+	xax, yax = "Mean", "Variance"
+
+	if divergent
+		colpal = ColorSchemes.broc
+	else
+		colpal = ColorSchemes.lajolla
+	end
+	colscale = [[vv, get(colpal, vv)] for vv in range(0,1,length=100)]
+
+	ctμσ = contour(;
+	x = xgrid, y = ygrid,
+	z = fz.(y_mat), xaxis="x2", yaxis="y2",
+	colorscale = colscale, reversescale=reversescale, colorbar_ticksuffix=suffix, colorbar_showticksuffix="all", autocontour=false, contours=Dict(:start=>min_z,:end=>max_z))
+end
+
+function reeval_mat_MV(sd::SOEdef, itp_obj; lb=-Inf, ub=Inf)
+	lb < ub || throw(error("Must specify upper bound greater than lower bound"))
+	m_min, v_min = unmake_logN(sd.gr[:μ][1], sd.gr[:σ][1])
+	m_max, v_max = unmake_logN(sd.gr[:μ][3], sd.gr[:σ][4])
+
+	# itp_obj = extrapolate(itp_obj, Interpolations.Flat())
+	
+	Nm = max(4*N(sd,:μ), 4*N(sd,:σ))
+
+	mgrid = range(m_min, m_max, length=Nm)
+	vgrid = range(v_min, v_max, length=Nm)
+	
+	mat = zeros(Nm, Nm)
+	for (jm, m) in enumerate(mgrid)
+		for (jv, v) in enumerate(vgrid)
+			μv, σv = make_logN(m, v)
+			Y = itp_obj(μv, σv)
+			mat[jm, jv] = max(lb, min(ub, Y))
+		end
+	end
+	
+	return mat, mgrid, vgrid
+end
+
+
+function make_unemp(sd::SOEdef; style::Style=slides_def, leg=true)
+	jb, jμ, jσ, jξ, jζ, jz = [10, 3,2,1,2,5]
 
 	unemp = (1 .- reshape_long(sd, sd.eq[:Ld])) * 100
 
-	U_mat = [unemp[jb, jμ, jσ, jξ, jζ, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
+	U_matbz = [unemp[jb1, jμ, jσ, jξ, jζ, jz1] for (jb1, bv) in enumerate(sd.gr[:b]), (jz1,zv) in enumerate(sd.gr[:z])]
 
-	p1 = makecontour(sd, U_mat, :b, :z, f2=x->100x, style=style, title="<i>Unemployment")
+	U_matμσ = [unemp[jb, jμ, jσ, jξ, jζ, jz] for (jμ, μv) in enumerate(sd.gr[:μ]), (jσ,σv) in enumerate(sd.gr[:σ])]
+
+	min_z1, max_z1 = extrema(U_matbz)
+	min_z2, max_z2 = extrema(U_matμσ)
+	min_z = min(min_z1, min_z2)
+	max_z = max(max_z1, max_z2)
+
+	data1 = makecontour(sd, U_matbz, :b, :z, min_z, max_z, f2=x->100x, suffix="%")
+
+	data2 = makecontour_μσ(sd, U_matμσ, min_z, max_z, suffix="%")
+
+	data = [data1, data2]
+	# data = data1
+
+	layout = Layout(title=ifelse(leg,"<i>Unemployment", ""),
+		xaxis1 = attr(domain=[0, 0.45], anchor="y1", title="<i>B"),
+		xaxis2 = attr(domain=[0.55, 1], anchor="y2", title="<i>Mean"),
+		yaxis1 = attr(anchor="x1", title="<i>z"),
+		yaxis2 = attr(anchor="x2", title="<i>Variance"),
+		)
+	plot(data, layout, style=style)
+	# data1
 end
 
-function make_debtprice(sd::SOEdef; style::Style=slides_def)
-	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
+function make_debtprice(sd::SOEdef; style::Style=slides_def, leg=true)
+	jb, jμ, jσ, jξ, jζ, jz = [7, 4,3,1,2,5]
 
-	qg_mat = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
+	qg_matbz = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
+	qg_matμσ = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jμ, μv) in enumerate(sd.gr[:μ]), (jσ,σv) in enumerate(sd.gr[:σ])]
+	
 
-	p1 = makecontour(sd, qg_mat, :b, :z, f2=x->100x, style=style, title="<i>Price of Debt", reversescale=true, ytitle="<i>%")
+	data1 = makecontour(sd, qg_matbz, :b, :z, 0.5, 1, f2=x->100x, reversescale=true)
+	data2 = makecontour_μσ(sd, qg_matμσ, 0.5, 1, reversescale=true)
+
+	data = [data1, data2]
+	# data = data1
+
+	layout = Layout(title=ifelse(leg,"<i>Price of Debt", ""),
+		xaxis1 = attr(domain=[0, 0.45], anchor="y1", title="<i>B"),
+		xaxis2 = attr(domain=[0.55, 1], anchor="y2", title="<i>Mean"),
+		yaxis1 = attr(anchor="x1", title="<i>z"),
+		yaxis2 = attr(anchor="x2", title="<i>Variance"),
+		)
+
+	plot(data, layout, style=style)
 end
 
 function make_def_incentive(sd::SOEdef; style::Style=slides_def)
