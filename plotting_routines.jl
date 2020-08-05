@@ -54,7 +54,7 @@ default_eval_points(sd::SOEdef) = floor(Int, N(sd,:b)*0.9), floor(Int, N(sd,:μ)
 
 function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
-	# jb, jμ, jσ, jξ, jζ, jz = 1, 3, 3, 1, 2, 7
+	jb, jμ, jσ, jξ, jζ, jz = 1, 3, 2, 2, 2, 3
 	μv, σv = sd.gr[:μ][jμ], sd.gr[:σ][jσ]
 
 	ϕ = Dict(key => [sd.ϕ[key][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] for jω in 1:N(sd,:ω), jϵ in 1:N(sd,:ϵ)] for key in keys(sd.ϕ))
@@ -77,14 +77,34 @@ function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 
 	ωmax_show = min(sd.pars[:ωmax], quantile(LogNormal(μv, σv), 0.999)+sd.pars[:ωmin])
 
-	pc = plot([l[jϵ, 1] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Consumption"))
-	pv = plot([l[jϵ, 2] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Value function"))
-	ps = plot([l[jϵ, 3] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Savings"))
-	pθ = plot([l[jϵ, 4] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Proportion risk-free"))
+	# pc = plot([l[jϵ, 1] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Consumption"))
+	# pv = plot([l[jϵ, 2] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Value function"))
+	# ps = plot([l[jϵ, 3] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Savings"))
+	# pθ = plot([l[jϵ, 4] for jϵ in 1:N(sd,:ϵ)], style=style, Layout(title="<i>Proportion risk-free"))
+	# p1 = [pc pv; ps pθ]
+	# return p1
 
+	shapes = []
+	annotations = [
+		attr(text = "<i>Consumption", x = 0.45/2, xanchor="center", xref="paper", y = 1, yref="paper", showarrow=false, font_size=18)
+		attr(text = "<i>Value function", x = 0.55 + 0.45/2, xanchor="center", xref="paper", y = 1, yref="paper", showarrow=false, font_size=18)
+		attr(text = "<i>Savings", x = 0.45/2, xanchor="center", xref="paper", y = 0.435, yref="paper", showarrow=false, font_size=18)
+		attr(text = "<i>Proportion risk-free", x = 0.55 + 0.45/2, xanchor="center", xref="paper", y = 0.435, yref="paper", showarrow=false, font_size=18)
+		]
 
-	p1 = [pc pv; ps pθ]
-	return p1
+	layout = Layout(shapes = shapes, annotations=annotations,
+		height = 1080*0.55,
+		xaxis1 = attr(domain=[0, 0.425], anchor="y1", zeroline=false),
+		xaxis2 = attr(domain=[0.525, 0.975], anchor="y2", zeroline=false),
+		xaxis3 = attr(domain=[0, 0.425], anchor="y3", zeroline=false),
+		xaxis4 = attr(domain=[0.525, 0.975], anchor="y4", zeroline=false),
+		yaxis1 = attr(domain=[0.525, 0.975], anchor="x1", zeroline=false),
+		yaxis2 = attr(domain=[0.525, 0.975], anchor="x2", zeroline=false),
+		yaxis3 = attr(domain=[0, 0.425], anchor="x3", zeroline=false),
+		yaxis4 = attr(domain=[0, 0.425], anchor="x4", zeroline=false),
+		)
+
+	plot(l[:], layout, style=style)
 end	
 
 function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol, min_z, max_z; f1::Function=identity, f2::Function=identity, divergent::Bool=false, reversescale::Bool=false, suffix="")
