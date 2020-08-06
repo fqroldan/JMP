@@ -269,8 +269,8 @@ function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, 
 	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k)
 	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k)
 
-	colbench = get(ColorSchemes.roma, 0.75)
-	colnodef = get(ColorSchemes.roma, 0.22)
+	colbench = get(ColorSchemes.vik, 0.25)
+	colnodef = get(ColorSchemes.vik, 0.75)
 
 	line_bench = scatter(x=(-2k:k)/4, y=f1.(bench_me), name="Benchmark", mode="lines", line_color=colbench, fill="tonexty", showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
 	# lb_avg = scatter(x=(-2k:k)/4, y=f1.(bench_av), name="Benchmark", mode="lines", line_color=col[fill="tonexty", 1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
