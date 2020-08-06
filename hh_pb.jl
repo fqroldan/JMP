@@ -65,7 +65,7 @@ function walue(sd::SOEdef, θp, itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv,
 							out_bounds += 1
 							Ev += prob * pars[:θ] * 1e-32
 						else
-							ωpv = min(ωmax, ωpv)
+							# ωpv = min(ωmax, ωpv)
 							v = itp_vf_s[jξp, jzp, jζp](ωpv, ϵpv)
 							Ev += EZ_G(v, pars[:γ]) * prob * pars[:θ]
 						end
@@ -78,7 +78,7 @@ function walue(sd::SOEdef, θp, itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv,
 							out_bounds += 1
 							Ev += prob * (1-pars[:θ]) * 1e-32
 						else
-							ωpv = min(ωmax, ωpv)
+							# ωpv = min(ωmax, ωpv)
 							v = itp_vf_s[jξp, jzp, jζp](ωpv, ϵpv)
 							Ev += EZ_G(v, pars[:γ]) * prob * (1-pars[:θ])
 						end
@@ -103,7 +103,7 @@ function walue(sd::SOEdef, θp, itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv,
 							out_bounds += 1
 							Ev += prob * exp_rep[jξp, jzp] * 1e-32
 						else
-							ωpv = min(ωmax, ωpv)
+							# ωpv = min(ωmax, ωpv)
 							v = itp_vf_s[jξp, jzp, jζp](ωpv, ϵpv)
 							Ev += EZ_G(v, pars[:γ]) * prob * exp_rep[jξp, jzp]
 						end
@@ -116,7 +116,7 @@ function walue(sd::SOEdef, θp, itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv,
 							out_bounds += 1
 							Ev += prob * (1-exp_rep[jξp, jzp]) * 1e-32
 						else
-							ωpv = min(ωmax, ωpv)
+							# ωpv = min(ωmax, ωpv)
 							v = itp_vf_s[jξp, jzp, jζp](ωpv, ϵpv)
 							Ev += EZ_G(v, pars[:γ]) * prob * (1. - exp_rep[jξp, jzp])
 						end
@@ -185,7 +185,7 @@ function solve_optvalue(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz
 	else
 		# Then resolve the w value function
 		θguess = max(min(guess[:θ], θmax-1e-6), θmin+1e-6)
-		# θguess = 0.5
+		θguess = 0.5
 		obj_w(x) = -walue(sd, first(x), itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv, qᵍv, qᵍp, profits, pCv, jdef)
 		if autodiff
 			od = OnceDifferentiable(obj_w, [θguess]; autodiff = :forward)
