@@ -604,33 +604,33 @@ function panels_full_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vecto
 
 	a = 1/3
 	b = 1/20
-	bx = 1/20
+	bx = 1/30
 	shapes = [
 		# vline(0, line_width=1, marker_color="black")
 		]
 
 	ys = [1, 0.64, 0.3]
 	annotations = [
-		attr(text=titlevec[jj], x = -1, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, yref="paper") for jj in 1:length(titlevec)
+		attr(text=titlevec[jj], x = -1, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in 1:length(titlevec)
 		]
 
 	layout = Layout(shapes=shapes, annotations = annotations,
-		height = 1080*yh, width = 1920*0.65, legend = attr(orientation="h", y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
-		xaxis1 = attr(domain = [0a+bx, a-bx], anchor="y1"),
+		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
+		xaxis1 = attr(domain = [0a, a-2bx], anchor="y1"),
 		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
-		xaxis3 = attr(domain = [2a+bx, 3a-bx], anchor="y3"),
+		xaxis3 = attr(domain = [2a+2bx, 3a], anchor="y3"),
 		yaxis1 = attr(anchor = "x1", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[1]),
 		yaxis2 = attr(anchor = "x2", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[2]),
 		yaxis3 = attr(anchor = "x3", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[3]),
-		xaxis4 = attr(domain = [0a+bx, a-bx], anchor="y4"),
+		xaxis4 = attr(domain = [0a, a-2bx], anchor="y4"),
 		xaxis5 = attr(domain = [1a+bx, 2a-bx], anchor="y5"),
-		xaxis6 = attr(domain = [2a+bx, 3a-bx], anchor="y6"),
+		xaxis6 = attr(domain = [2a+2bx, 3a], anchor="y6"),
 		yaxis4 = attr(anchor = "x4", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[4]),
 		yaxis5 = attr(anchor = "x5", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[5]),
 		yaxis6 = attr(anchor = "x6", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[6]),
-		xaxis7 = attr(domain = [0a+bx, a-bx], anchor="y7"),
+		xaxis7 = attr(domain = [0a, a-2bx], anchor="y7"),
 		xaxis8 = attr(domain = [1a+bx, 2a-bx], anchor="y8"),
-		xaxis9 = attr(domain = [2a+bx, 3a-bx], anchor="y9"),
+		xaxis9 = attr(domain = [2a+2bx, 3a], anchor="y9"),
 		yaxis7 = attr(anchor = "x7", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[7]),
 		yaxis8 = attr(anchor = "x8", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[8]),
 		yaxis9 = attr(anchor = "x9", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[9]),
@@ -647,25 +647,31 @@ function full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector
 	ynob, nob_up, nob_me, nob_lo, nob_av = series_crises(pv_nob, tvv, key, k)
 	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pv_nodef, tvv, key, k)
 
-	line_bench = scatter(x=(-2k:k)/4, y=f1.(bench_me), name="Benchmark",  mode="lines", line_color=col[1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	colbench = get(ColorSchemes.vik, 0.25)
+	colnodef = get(ColorSchemes.vik, 0.75)
+	colnoΔ   = get(ColorSchemes.cork, 1)
+	colnob   = get(ColorSchemes.vikO, 1)
+
+	line_bench = scatter(x=(-2k:k)/4, y=f1.(bench_me), name="Benchmark",  mode="lines", line_color=colbench, showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
 	# lbench_avg = scatter(x=(-2k:k)/4, y=f1.(bench_av), name="Benchmark", line_color=col[1])
 	# lb_up = scatter(x=(-2k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[1])
 	# lb_lo = scatter(x=(-2k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[1], fill="tonexty")
-	line_noΔ = scatter(x=(-2k:k)/4, y=f2.(noΔ_me), name="Δ = 0", line_color=col[3], mode="lines", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	line_noΔ = scatter(x=(-2k:k)/4, y=f2.(noΔ_me), name="Δ = 0", line_color=colnoΔ, mode="lines", marker_symbol = "diamond", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	markers_noΔ = scatter(x=((-2k:k)/4)[1:4:end], y=f2.(noΔ_me)[1:4:end], name="Δ = 0", line_color=colnoΔ, mode="markers", marker_symbol = "diamond", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
 	# lnoΔ_avg = scatter(x=(-2k:k)/4, y=f2.(noΔ_av), name="Δ = 0", line_color=col[2])
 	# lΔ_up = scatter(x=(-2k:k)/4, y=f2.(noΔ_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[2])
 	# lΔ_lo = scatter(x=(-2k:k)/4, y=f2.(noΔ_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[2], fill="tonexty")
-	line_nob = scatter(x=(-2k:k)/4, y=f3.(nob_me), name="No dom. holdings", line_color=col[4], mode="lines", showlegend=(axis==1), legendgroup = 3, xaxis="x$axis", yaxis="y$axis")
+	line_nob = scatter(x=(-2k:k)/4, y=f3.(nob_me), name="No dom. holdings", line_color=colnob, mode="lines", line_dash="dash", marker_symbol = "circle", showlegend=(axis==1), legendgroup = 3, xaxis="x$axis", yaxis="y$axis")
+	markers_nob = scatter(x=((-2k:k)/4)[1:4:end], y=f3.(nob_me)[1:4:end], name="No dom. holdings", marker_color=colnob, mode="markers", marker_symbol = "circle", showlegend=false, legendgroup = 3, xaxis="x$axis", yaxis="y$axis")
 	# lnob_avg = scatter(x=(-2k:k)/4, y=f3.(nob_av), name="No dom. holdings", line_color=col[3])
 	# lnob_up = scatter(x=(-2k:k)/4, y=f3.(nob_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[3])
 	# lnob_lo = scatter(x=(-2k:k)/4, y=f3.(nob_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[3], fill="tonexty")
-	line_nodef = scatter(x=(-2k:k)/4, y=f4.(nodef_me), name="No default", line_color=col[2], mode="lines", showlegend=(axis==1), legendgroup = 4, xaxis="x$axis", yaxis="y$axis")
+	line_nodef = scatter(x=(-2k:k)/4, y=f4.(nodef_me), name="No default", line_color=colnodef, mode="lines", showlegend=(axis==1), legendgroup = 4, xaxis="x$axis", yaxis="y$axis", line_dash="dashdot")
 	# lnodef_avg = scatter(x=(-k:k)/4, y=f4.(nodef_av), name="No default", line_color=col[4])
 	# ln_up = scatter(x=(-k:k)/4, y=f4.(nodef_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[4])
 	# ln_lo = scatter(x=(-k:k)/4, y=f4.(nodef_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[4], fill="tonexty")
 
-
-	s1 = [line_bench, line_noΔ, line_nob, line_nodef]
+	s1 = [line_bench, line_noΔ, line_nob, line_nodef, markers_noΔ, markers_nob]
 	if avg
 		s1 = [lbench_avg, lnoΔ_avg, lnob_avg, lnodef_avg]
 	elseif CI
