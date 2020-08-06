@@ -54,7 +54,7 @@ default_eval_points(sd::SOEdef) = floor(Int, N(sd,:b)*0.9), floor(Int, N(sd,:μ)
 
 function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
-	jb, jμ, jσ, jξ, jζ, jz = 1, 3, 2, 2, 2, 3
+	jb, jμ, jσ, jξ, jζ, jz = 1, 4, 2, 2, 2, 7
 	μv, σv = sd.gr[:μ][jμ], sd.gr[:σ][jσ]
 
 	ϕ = Dict(key => [sd.ϕ[key][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] for jω in 1:N(sd,:ω), jϵ in 1:N(sd,:ϵ)] for key in keys(sd.ϕ))
@@ -269,20 +269,23 @@ function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, 
 	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k)
 	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k)
 
-	line_bench = scatter(x=(-2k:k)/4, y=f1.(bench_me), name="Benchmark", mode="lines", line_color=col[1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	# lb_avg = scatter(x=(-2k:k)/4, y=f1.(bench_av), name="Benchmark", mode="lines", line_color=col[1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	lb_up = scatter(x=(-2k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", line_width=0.001, line_color=col[1], showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	lb_lo = scatter(x=(-2k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", line_width=0.001, line_color=col[1], fill="tonexty", showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	line_nodef = scatter(x=(-2k:k)/4, y=f2.(nodef_me), name="No default", mode="lines", line_color=col[2], showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	# ln_avg = scatter(x=(-2k:k)/4, y=f2.(nodef_av), name="No default", mode="lines", line_color=col[2], showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	ln_up = scatter(x=(-2k:k)/4, y=f2.(nodef_up), hoverinfo="skip", mode="lines", line_width=0.001, line_color=col[2], showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	ln_lo = scatter(x=(-2k:k)/4, y=f2.(nodef_lo), hoverinfo="skip", mode="lines", line_width=0.001, line_color=col[2], fill="tonexty", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	colbench = get(ColorSchemes.roma, 0.75)
+	colnodef = get(ColorSchemes.roma, 0.22)
+
+	line_bench = scatter(x=(-2k:k)/4, y=f1.(bench_me), name="Benchmark", mode="lines", line_color=colbench, fill="tonexty", showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	# lb_avg = scatter(x=(-2k:k)/4, y=f1.(bench_av), name="Benchmark", mode="lines", line_color=col[fill="tonexty", 1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	lb_up = scatter(x=(-2k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", line_width=0.001, line_color=colbench, showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	lb_lo = scatter(x=(-2k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", line_width=0.001, line_color=colbench, fill="tonexty", showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	line_nodef = scatter(x=(-2k:k)/4, y=f2.(nodef_me), name="No default", line_dash="dashdot", mode="lines", line_color=colnodef, fill="tonexty", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	# ln_avg = scatter(x=(-2k:k)/4, y=f2.(nodef_av), name="No default", mode="lines", line_color=colnodef, fill="tonexty", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	ln_up = scatter(x=(-2k:k)/4, y=f2.(nodef_up), hoverinfo="skip", mode="lines", line_width=0.001, line_color=colnodef, showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	ln_lo = scatter(x=(-2k:k)/4, y=f2.(nodef_lo), hoverinfo="skip", mode="lines", line_width=0.001, line_color=colnodef, fill="tonexty", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
 
 	s1 = [line_bench, line_nodef]
 	if avg
 		s1 = [lb_avg, ln_avg]
 	elseif CI
-		s1 = [lb_up, lb_lo, line_bench, ln_up, ln_lo, line_nodef]
+		s1 = [lb_up, line_bench, lb_lo, ln_up, line_nodef, ln_lo]
 	end
 	s1
 end
