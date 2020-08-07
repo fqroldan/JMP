@@ -514,7 +514,7 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64;
 
 	ys = [1, 0.64, 0.3]
 	annotations = [
-		attr(text=titlevec[jj], x = -1, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in 1:length(titlevec)
+		attr(text=titlevec[jj], x = -k/2 + 3k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in 1:length(titlevec)
 		]
 
 	layout = Layout(shapes=shapes, annotations = annotations,
