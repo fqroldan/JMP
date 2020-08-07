@@ -379,7 +379,7 @@ function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4
 	plot(data, layout, style=style)
 end
 
-panels_defaults(pv::Vector{T}; style::Style=slides_def, yh = 0.65, indiv=false) where T<:AbstractPath = panels_crises(pv, 0.0, style=style, yh=yh, type="default", indiv=indiv)
+panels_defaults(pv::Vector{T}; k=8, style::Style=slides_def, yh = 0.65, indiv=false) where T<:AbstractPath = panels_crises(pv, 0.0, style=style, yh=yh, type="default", indiv=indiv, k=k)
 function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, πthres, k, type=type)
 	println("Suggested yh=0.7 for style=paper")
@@ -426,7 +426,7 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 
 	ys = [1, 0.75, 0.475, 0.21]
 	annotations = [
-		attr(text=titlevec[jj], x = -1, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/4)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
+		attr(text=titlevec[jj], x = -k/2+(3k)/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/4)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
 		]
 
 	layout = Layout(shapes=shapes, annotations = annotations,
