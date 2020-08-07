@@ -16,7 +16,6 @@ col = [	"#1f77b4",  # muted blue
 		]
 
 """ Define styles """
-
 def_style = let
 	axis = attr(showgrid = true, gridcolor="#e2e2e2", gridwidth=0.5, zeroline=false)
 	layout = Layout(xaxis = axis, yaxis=axis)
@@ -54,7 +53,7 @@ default_eval_points(sd::SOEdef) = floor(Int, N(sd,:b)*0.9), floor(Int, N(sd,:μ)
 
 function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
-	jb, jμ, jσ, jξ, jζ, jz = 1, 4, 2, 2, 2, 7
+	jb, jμ, jσ, jξ, jζ, jz = 2, 3, 3, 2, 2, 7
 	μv, σv = sd.gr[:μ][jμ], sd.gr[:σ][jσ]
 
 	ϕ = Dict(key => [sd.ϕ[key][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] for jω in 1:N(sd,:ω), jϵ in 1:N(sd,:ϵ)] for key in keys(sd.ϕ))
@@ -233,9 +232,8 @@ function make_def_incentive(sd::SOEdef; style::Style=slides_def)
 end
 
 scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, X::Float64) where T <: AbstractPath = scats_crises(pv, tvv, key, x->x/X)
-function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f::Function=identity; axis::Int64=1, indiv=false) where T <: AbstractPath
+function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f::Function=identity; axis::Int64=1, indiv=false, k=8) where T <: AbstractPath
 
-	k = 8
 	ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k)
 
 	line_up = scatter(x=(-2k:k)/4, y=f(y_up),hoverinfo="skip",showlegend=false,legendgroup=3,mode="lines",line=attr(color="rgb(31,119,180)", width=0.001), xaxis="x$axis", yaxis="y$axis")
@@ -264,13 +262,12 @@ function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol, f::Function=i
 end
 
 scats_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64=x1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath = scats_comp(pv_bench, pv_nodef, tvv, key, x->x/x1, x->x/x2, CI=CI, avg=avg)
-function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1; CI::Bool=false, avg::Bool=false, axis::Int64=1) where T <: AbstractPath
-	k = 8
+function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1; CI::Bool=false, avg::Bool=false, axis::Int64=1, k=8) where T <: AbstractPath
 	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k)
 	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k)
 
-	colbench = get(ColorSchemes.vik, 0.25)
-	colnodef = get(ColorSchemes.vik, 0.75)
+	colbench = get(ColorSchemes.vik, 0.3)
+	colnodef = get(ColorSchemes.vik, 0.7)
 
 	line_bench = scatter(x=(-2k:k)/4, y=f1.(bench_me), name="Benchmark", mode="lines", line_color=colbench, fill="tonexty", showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
 	# lb_avg = scatter(x=(-2k:k)/4, y=f1.(bench_av), name="Benchmark", mode="lines", line_color=col[fill="tonexty", 1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
@@ -383,8 +380,8 @@ function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4
 end
 
 panels_defaults(pv::Vector{T}; style::Style=slides_def, yh = 0.65, indiv=false) where T<:AbstractPath = panels_crises(pv, 0.0, style=style, yh=yh, type="default", indiv=indiv)
-function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false) where T<:AbstractPath
-	Nc, tvv = get_crises(pv, πthres, 8, type=type)
+function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8) where T<:AbstractPath
+	Nc, tvv = get_crises(pv, πthres, k, type=type)
 	println("Suggested yh=0.7 for style=paper")
 	keyvec = [:z, :Y, :C, :CoY, :B, :ψ, :qg, :π, :L, :mean, :var, :P, :avgω, :p90, :G, :T]
 
@@ -415,7 +412,7 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 	
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
 	for (jj, key) in enumerate(keyvec)
-		for scat in scats_crises(pv, tvv, key, funcvec[jj], axis=jj, indiv=indiv)
+		for scat in scats_crises(pv, tvv, key, funcvec[jj], axis=jj, indiv=indiv, k=k)
 			push!(data, scat)
 		end
 	end
@@ -434,34 +431,34 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 
 	layout = Layout(shapes=shapes, annotations = annotations,
 		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
-		xaxis1 = attr(domain = [0a, a-2bx]),
-		xaxis2 = attr(domain = [1a+bx, 2a-bx]),
-		xaxis3 = attr(domain = [2a+bx, 3a-bx]),
-		xaxis4 = attr(domain = [3a+2bx, 4a]),
+		xaxis1 = attr(domain = [0a, a-2bx], range=[-k/2, k/4]),
+		xaxis2 = attr(domain = [1a+bx, 2a-bx], range=[-k/2, k/4]),
+		xaxis3 = attr(domain = [2a+bx, 3a-bx], range=[-k/2, k/4]),
+		xaxis4 = attr(domain = [3a+2bx, 4a], range=[-k/2, k/4]),
 		yaxis1 = attr(anchor = "x1", domain = [3a+b, 4a-b], titlefont_size = 16, title=ytitle[1]),
 		yaxis2 = attr(anchor = "x2", domain = [3a+b, 4a-b], titlefont_size = 16, title=ytitle[2]),
 		yaxis3 = attr(anchor = "x3", domain = [3a+b, 4a-b], titlefont_size = 16, title=ytitle[3]),
 		yaxis4 = attr(anchor = "x4", domain = [3a+b, 4a-b], titlefont_size = 16, title=ytitle[4]),
-		xaxis5 = attr(domain = [0a, a-2bx], anchor="y5"),
-		xaxis6 = attr(domain = [1a+bx, 2a-bx], anchor="y6"),
-		xaxis7 = attr(domain = [2a+bx, 3a-bx], anchor="y7"),
-		xaxis8 = attr(domain = [3a+2bx, 4a], anchor="y8"),
+		xaxis5 = attr(domain = [0a, a-2bx], anchor="y5", range=[-k/2, k/4]),
+		xaxis6 = attr(domain = [1a+bx, 2a-bx], anchor="y6", range=[-k/2, k/4]),
+		xaxis7 = attr(domain = [2a+bx, 3a-bx], anchor="y7", range=[-k/2, k/4]),
+		xaxis8 = attr(domain = [3a+2bx, 4a], anchor="y8", range=[-k/2, k/4]),
 		yaxis5 = attr(anchor = "x5", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[5]),
 		yaxis6 = attr(anchor = "x6", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[6]),
 		yaxis7 = attr(anchor = "x7", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[7]),
 		yaxis8 = attr(anchor = "x8", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[8]),
-		xaxis9 = attr(domain = [0a, a-2bx], anchor="y9"),
-		xaxis10 = attr(domain = [1a+bx, 2a-bx], anchor="y10"),
-		xaxis11 = attr(domain = [2a+bx, 3a-bx], anchor="y11"),
-		xaxis12 = attr(domain = [3a+2bx, 4a], anchor="y12"),
+		xaxis9 = attr(domain = [0a, a-2bx], anchor="y9", range=[-k/2, k/4]),
+		xaxis10 = attr(domain = [1a+bx, 2a-bx], anchor="y10", range=[-k/2, k/4]),
+		xaxis11 = attr(domain = [2a+bx, 3a-bx], anchor="y11", range=[-k/2, k/4]),
+		xaxis12 = attr(domain = [3a+2bx, 4a], anchor="y12", range=[-k/2, k/4]),
 		yaxis9 = attr(anchor = "x9", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[9]),
 		yaxis10 = attr(anchor = "x10", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[10]),
 		yaxis11 = attr(anchor = "x11", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[11]),
 		yaxis12 = attr(anchor = "x12", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[12]),
-		xaxis13 = attr(domain = [0a, a-2bx], anchor="y13"),
-		xaxis14 = attr(domain = [1a+bx, 2a-bx], anchor="y14"),
-		xaxis15 = attr(domain = [2a+bx, 3a-bx], anchor="y15"),
-		xaxis16 = attr(domain = [3a+2bx, 4a], anchor="y16"),
+		xaxis13 = attr(domain = [0a, a-2bx], anchor="y13", range=[-k/2, k/4]),
+		xaxis14 = attr(domain = [1a+bx, 2a-bx], anchor="y14", range=[-k/2, k/4]),
+		xaxis15 = attr(domain = [2a+bx, 3a-bx], anchor="y15", range=[-k/2, k/4]),
+		xaxis16 = attr(domain = [3a+2bx, 4a], anchor="y16", range=[-k/2, k/4]),
 		yaxis13 = attr(anchor = "x13", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[13]),
 		yaxis14 = attr(anchor = "x14", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[14]),
 		yaxis15 = attr(anchor = "x15", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[15]),
@@ -471,8 +468,8 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 	plot(data, layout, style=style)
 end
 
-function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65) where T<:AbstractPath
-	Nc, tvv = get_crises(pv_bench, πthres, 8)
+function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, k=8) where T<:AbstractPath
+	Nc, tvv = get_crises(pv_bench, πthres, k)
 	println("Suggested yh=0.7 for style=paper")
 	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :qg, :Wr]
 
@@ -503,7 +500,7 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64;
 
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
 	for (jj, key) in enumerate(keyvec)
-		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, f1vec[jj], f2vec[jj], axis=jj, CI=true)
+		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, f1vec[jj], f2vec[jj], axis=jj, CI=true, k=k)
 			push!(data, scat)
 		end
 	end
@@ -656,13 +653,14 @@ function full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector
 	# lbench_avg = scatter(x=(-2k:k)/4, y=f1.(bench_av), name="Benchmark", line_color=col[1])
 	# lb_up = scatter(x=(-2k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[1])
 	# lb_lo = scatter(x=(-2k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[1], fill="tonexty")
-	line_noΔ = scatter(x=(-2k:k)/4, y=f2.(noΔ_me), name="Δ = 0", line_color=colnoΔ, mode="lines", marker_symbol = "diamond", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	markers_noΔ = scatter(x=((-2k:k)/4)[1:4:end], y=f2.(noΔ_me)[1:4:end], name="Δ = 0", line_color=colnoΔ, mode="markers", marker_symbol = "diamond", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	noΔ2 = scatter(x=-2k/4, y=f2.(noΔ_me)[1], legendgroup=2, name="Δ = 0", mode = "lines+markers", marker_symbol="diamond", showlegend=true)
+	line_noΔ = scatter(x=(-2k:k)/4, y=f2.(noΔ_me), name="Δ = 0", line_color=colnoΔ, mode="lines", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	markers_noΔ = scatter(x=((-2k:k)/4)[1:4:end], y=f2.(noΔ_me)[1:4:end], name="Δ = 0", line_color=colnoΔ, mode="markers", marker_symbol = "diamond", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
 	# lnoΔ_avg = scatter(x=(-2k:k)/4, y=f2.(noΔ_av), name="Δ = 0", line_color=col[2])
 	# lΔ_up = scatter(x=(-2k:k)/4, y=f2.(noΔ_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[2])
 	# lΔ_lo = scatter(x=(-2k:k)/4, y=f2.(noΔ_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[2], fill="tonexty")
-	line_nob = scatter(x=(-2k:k)/4, y=f3.(nob_me), name="No dom. holdings", line_color=colnob, mode="lines", line_dash="dash", marker_symbol = "circle", showlegend=(axis==1), legendgroup = 3, xaxis="x$axis", yaxis="y$axis")
-	markers_nob = scatter(x=((-2k:k)/4)[1:4:end], y=f3.(nob_me)[1:4:end], name="No dom. holdings", marker_color=colnob, mode="markers", marker_symbol = "circle", showlegend=false, legendgroup = 3, xaxis="x$axis", yaxis="y$axis")
+	line_nob = scatter(x=(-2k:k)/4, y=f3.(nob_me), name="No dom. holdings", line_color=colnob, mode="lines", line_dash="dash", marker_symbol = "circle", showlegend=false, legendgroup = 3, xaxis="x$axis", yaxis="y$axis")
+	markers_nob = scatter(x=((-2k:k)/4)[1:4:end], y=f3.(nob_me)[1:4:end], name="No dom. holdings", marker_color=colnob, mode="markers", marker_symbol = "circle", showlegend=(axis==1), legendgroup = 3, xaxis="x$axis", yaxis="y$axis")
 	# lnob_avg = scatter(x=(-2k:k)/4, y=f3.(nob_av), name="No dom. holdings", line_color=col[3])
 	# lnob_up = scatter(x=(-2k:k)/4, y=f3.(nob_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[3])
 	# lnob_lo = scatter(x=(-2k:k)/4, y=f3.(nob_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[3], fill="tonexty")
@@ -671,7 +669,7 @@ function full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector
 	# ln_up = scatter(x=(-k:k)/4, y=f4.(nodef_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[4])
 	# ln_lo = scatter(x=(-k:k)/4, y=f4.(nodef_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[4], fill="tonexty")
 
-	s1 = [line_bench, line_noΔ, line_nob, line_nodef, markers_noΔ, markers_nob]
+	s1 = [line_bench, line_noΔ, line_nob, line_nodef, markers_noΔ, markers_nob, noΔ2]
 	if avg
 		s1 = [lbench_avg, lnoΔ_avg, lnob_avg, lnodef_avg]
 	elseif CI
