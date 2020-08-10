@@ -263,13 +263,13 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 		Rvec = [(1-sd.pars[:ℏ])*(1-sd.pars[:ρ]) * qprime[1], sd.pars[:κ] + (1.0-sd.pars[:ρ]) * qprime[2]]
 	end
 
-	Wr = itp_W(Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv)
-	Wd = itp_W(Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv)
+	Wr = 0.0 # itp_W(Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv)
+	Wd = 0.0 # itp_W(Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv)
 
 	Wr_vec = [sum([itp_vf(sav_a_ω[jq] + Rvec[2]*sav_b_ω[jq], ϵpv, Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])]) for jq in 1:length(quantiles_ω)]
 	Wd_vec = [sum([itp_vf(sav_a_ω[jq] + Rvec[1]*sav_b_ω[jq], ϵpv, Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])]) for jq in 1:length(quantiles_ω)]
 
-	λpd = copy(λt)
+	λpd = zeros(size(λt))
 	for jζp in 1:2
 		savings = ϕa + Rvec[jζp]*ϕb
 		savings = max.(min.(savings, sd.pars[:ωmax]), sd.pars[:ωmin])
