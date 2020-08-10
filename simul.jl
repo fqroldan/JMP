@@ -149,8 +149,8 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 			abc = get_abc(yd, sd.pars[:ωmin], qhv, qg, pCt, sg, θg)
 			ap, bp = abc[:a], abc[:b]
 
-			sav_a += ap * dist_ϵ[jϵ]
-			sav_b += bp * dist_ϵ[jϵ]
+			sav_a += ap * dist_ϵ[jϵ] / sum(dist_ϵ)
+			sav_b += bp * dist_ϵ[jϵ] / sum(dist_ϵ)
 		end
 
 		sav_a_ω[jq] = sav_a
