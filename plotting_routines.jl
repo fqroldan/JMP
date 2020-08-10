@@ -379,6 +379,37 @@ function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4
 	plot(data, layout, style=style)
 end
 
+function distribution_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads", k=6) where T<:AbstractPath
+	Nc, tvv = get_crises(pv, πthres, k, type=type)
+
+	keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr, :Wd10, :Wd25, :Wd50, :Wd75, :Wd90, :Wd]
+
+	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+	for (jj, key) in enumerate(keyvec)
+		for scat in scats_crises(pv, tvv, key, axis=1+(jj-1)%6, k=k)
+			push!(data, scat)
+		end
+	end
+
+	layout = Layout(
+		xaxis1 = attr(domain = [0, 0.3], anchor="y1"),
+		xaxis2 = attr(domain = [0.33, 0.63], anchor="y2"),
+		xaxis3 = attr(domain = [0.66, 0.99], anchor="y3"),
+		xaxis4 = attr(domain = [0, 0.3], anchor="y4"),
+		xaxis5 = attr(domain = [0.33, 0.63], anchor="y5"),
+		xaxis6 = attr(domain = [0.66, 0.99], anchor="y6"),
+		yaxis1 = attr(domain = [0.55, 1], anchor="x1"),
+		yaxis2 = attr(domain = [0.55, 1], anchor="x2"),
+		yaxis3 = attr(domain = [0.55, 1], anchor="x3"),
+		yaxis4 = attr(domain = [0, 0.45], anchor="x4"),
+		yaxis5 = attr(domain = [0, 0.45], anchor="x5"),
+		yaxis6 = attr(domain = [0, 0.45], anchor="x6"),
+		)
+
+	plot(data, layout, style=style)
+end
+
+
 panels_defaults(pv::Vector{T}; k=8, style::Style=slides_def, yh = 0.65, indiv=false) where T<:AbstractPath = panels_crises(pv, 0.0, style=style, yh=yh, type="default", indiv=indiv, k=k)
 function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, πthres, k, type=type)

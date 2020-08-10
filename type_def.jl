@@ -19,7 +19,7 @@ mutable struct Path{T} <: AbstractPath
 	data::Dict{Symbol, Vector{Float64}}
 end
 function Path(; T::Int64 = 1)
-	data = Dict( key => Vector{Float64}(undef, T) for key in [:B,:μ,:σ,:w,:ζ,:z,:π,:Y,:L,:ψ,:P,:A,:Bh,:Bf,:Pe,:Wr,:Wd,:qg,:G,:mean,:var,:CoY,:C,:CoYd,:T,:NX,:ξ,:p25,:p90,:avgω,:Gini])
+	data = Dict( key => Vector{Float64}(undef, T) for key in [:B,:μ,:σ,:w,:ζ,:z,:π,:Y,:L,:ψ,:P,:A,:Bh,:Bf,:Pe,:Wr,:Wd,:qg,:G,:mean,:var,:CoY,:C,:CoYd,:T,:NX,:ξ,:p25,:p90,:avgω,:Gini,:Wr10,:Wr25,:Wr50,:Wr75,:Wr90,:Wd10,:Wd25,:Wd50,:Wd75,:Wd90])
 	return Path{T}(data)
 end
 

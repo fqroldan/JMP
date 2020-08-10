@@ -128,16 +128,44 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	mλω = sum(λ_mat, dims=2)
 	cdf_ω = cumsum(mλω[:])
 
+	quantiles_vec = [0.1, 0.25, 0.5, 0.75, 0.9]
+	quantiles_ω   = [ifelse(cdf_ω[end] > quantile, findfirst(cdf_ω.>=quantile), length(cdf_ω)) for quantile in quantiles_vec]
+
+	sav_a_ω = zeros(length(quantiles_vec))
+	sav_b_ω = zeros(length(quantiles_vec))
+	prob_ϵω = zeros(length(quantiles_vec), N(sd,:ϵ))
+
+	adjustment = sum(ergodic_ϵ(sd).*exp.(sd.gr[:ϵ]))
+	qhv = sd.eq[:qʰ][1]
+	for (jq, quantile) in enumerate(quantiles_ω)
+		dist_ϵ = λ_mat[quantile, :]
+		ωv = sd.gr[:ωf][quantile]
+		sav_a = 0.0
+		sav_b = 0.0
+		for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])
+			yd = (wt*Ld*(1.0-sd.pars[:τ]) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
+			sg = max(sd.pars[:ωmin], itp_ϕs(ωv, ϵv, Bt, μt, σt, ξt, ζt, zt))
+			θg = min(max(0.0, itp_ϕθ(sg, ϵv, Bt, μt, σt, ξt, ζt, zt)), 1.0)
+			abc = get_abc(yd, sd.pars[:ωmin], qhv, qg, pCt, sg, θg)
+			ap, bp = abc[:a], abc[:b]
+
+			sav_a += ap * dist_ϵ[jϵ]
+			sav_b += bp * dist_ϵ[jϵ]
+		end
+
+		sav_a_ω[jq] = sav_a
+		sav_b_ω[jq] = sav_b
+		prob_ϵω[jq,:] = dist_ϵ / sum(dist_ϵ)
+	end
+
 	avgω_fromb = zeros(N(sd,:ωf)*N(sd,:ϵ))
 
 	b25 = zeros(N(sd,:ωf)*N(sd,:ϵ))
 	b90 = zeros(N(sd,:ωf)*N(sd,:ϵ))
 
-	cdf_ω[1] > 0.25  ? q25 = 1 : q25 = findfirst(cdf_ω .<= 0.25)
+	cdf_ω[1] > 0.25  ? q25 = 1 : q25 = findfirst(cdf_ω .>= 0.25)
 	cdf_ω[end] < 0.9 ? q90 = length(cdf_ω) : q90 = findfirst(cdf_ω .>= 0.90)
 
-	qhv = sd.eq[:qʰ][1]
-	adjustment = sum(ergodic_ϵ(sd).*exp.(sd.gr[:ϵ]))
 	for js in 1:size(ωϵv, 1)
 		ωv, ϵv = ωϵv[js, :]
 		yd = (wt*Ld*(1.0-sd.pars[:τ]) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
@@ -226,57 +254,107 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	qprime = max.(min.(q′[jξp,jzp,:], 1.0), minimum(sd.eq[:qᵍ]))
 
 	if jdef
-		# Compute welfare in case of reentry and remain in default
-		Wr = itp_W(Bpv, μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv)
-		Wd = itp_W(Bpv, μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv)
-		# Now draw reentry
-		reentry = (rand() <= sd.pars[:θ])
-		if reentry
-			jζp = 2
-			μpv = μprime[jζp]
-			σpv = σprime[jζp]
-			qpv = qprime[jζp]
-			R = sd.pars[:κ] + (1-sd.pars[:ρ]) * qpv
-		else
-			jζp = 1
-			μpv = μprime[jζp]
-			σpv = σprime[jζp]
-			qpv = qprime[jζp]
-			R = (1-sd.pars[:ρ]) * qpv
-		end
+		Bpvec = [Bpv, Bpv]
+		repay_prime = (rand() <= sd.pars[:θ])
+		Rvec = [(1-sd.pars[:ρ]) * qprime[1], sd.pars[:κ] + (1-sd.pars[:ρ]) * qprime[2]]
 	else
-		# Compute welfare in case repay and default
-		Wr = itp_W(Bpv,					μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv)
-		Wd = itp_W((1-sd.pars[:ℏ])*Bpv, μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv)
-		# Now draw default
+		Bpvec = [(1-sd.pars[:ℏ])*Bpv, Bpv]
 		repay_prime = (rand() <= exp_rep[jξp,jzp])
-		if repay_prime
-			jζp = 2
-			μpv = μprime[jζp]
-			σpv = σprime[jζp]
-			qpv = qprime[jζp]
-			R = sd.pars[:κ] + (1.0-sd.pars[:ρ]) * qpv
+		Rvec = [(1-sd.pars[:ℏ])*(1-sd.pars[:ρ]) * qprime[1], sd.pars[:κ] + (1.0-sd.pars[:ρ]) * qprime[2]]
+	end
+
+	Wr = itp_W(Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv)
+	Wd = itp_W(Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv)
+
+	Wr_vec = [sum([itp_vf(sav_a_ω[jq] + Rvec[2]*sav_b_ω[jq], ϵpv, Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])]) for jq in 1:length(quantiles_ω)]
+	Wd_vec = [sum([itp_vf(sav_a_ω[jq] + Rvec[1]*sav_b_ω[jq], ϵpv, Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])]) for jq in 1:length(quantiles_ω)]
+
+	λpd = copy(λt)
+	for jζp in 1:2
+		savings = ϕa + Rvec[jζp]*ϕb
+		savings = max.(min.(savings, sd.pars[:ωmax]), sd.pars[:ωmin])
+
+		basis = Basis(LinParams(sd.gr[:ωf], 0))
+		Qω = BasisMatrix(basis, Expanded(), savings, 0).vals[1]
+		Q = row_kron(Qϵ, Qω)
+
+		λp = Q' * λt
+		λ_matp = reshape(λp, N(sd,:ωf), N(sd,:ϵ))
+		if jζp == 2 # repayment
+			Wr = sum([itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])])
 		else
-			jζp = 1
-			Bpv = (1.0 - sd.pars[:ℏ]) * Bpv
-			μpv = μprime[jζp]
-			σpv = σprime[jζp]
-			qpv = qprime[jζp]
-			R = (1-sd.pars[:ℏ])*(1-sd.pars[:ρ]) * qpv
+			Wd = sum([itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])])
+		end
+
+		if repay_prime && jζp == 2
+			λpd = copy(λp)
+		elseif !repay_prime && jζp == 1
+			λpd = copy(λp)
 		end
 	end
+
+	if repay_prime
+		jζp = 2
+	else
+		jζp = 1
+	end
+
+	R = Rvec[jζp]
+	μpv = μprime[jζp]
+	σpv = σprime[jζp]
+	qpv = qprime[jζp]
+
+	if !jdef && !repay_prime
+		Bpv = (1.0 - sd.pars[:ℏ]) * Bpv
+	end
+
+
+	# if jdef
+	# 	# Compute welfare in case of reentry and remain in default
+	# 	Wr = itp_W(Bpv, μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv)
+	# 	Wd = itp_W(Bpv, μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv)
+		
+	# 	# Now draw reentry
+	# 	reentry = (rand() <= sd.pars[:θ])
+	# 	if reentry
+	# 		jζp = 2
+	# 		μpv = μprime[jζp]
+	# 		σpv = σprime[jζp]
+	# 		qpv = qprime[jζp]
+	# 		R = sd.pars[:κ] + (1-sd.pars[:ρ]) * qpv
+	# 	else
+	# 		jζp = 1
+	# 		μpv = μprime[jζp]
+	# 		σpv = σprime[jζp]
+	# 		qpv = qprime[jζp]
+	# 		R = (1-sd.pars[:ρ]) * qpv
+	# 	end
+	# else
+	# 	# Compute welfare in case repay and default
+	# 	Wr = itp_W(Bpv,					μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv)
+	# 	Wd = itp_W((1-sd.pars[:ℏ])*Bpv, μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv)
+	# 	# Now draw default
+	# 	repay_prime = (rand() <= exp_rep[jξp,jzp])
+	# 	if repay_prime
+	# 		jζp = 2
+	# 		μpv = μprime[jζp]
+	# 		σpv = σprime[jζp]
+	# 		qpv = qprime[jζp]
+	# 		R = sd.pars[:κ] + (1.0-sd.pars[:ρ]) * qpv
+	# 	else
+	# 		jζp = 1
+	# 		Bpv = (1.0 - sd.pars[:ℏ]) * Bpv
+	# 		μpv = μprime[jζp]
+	# 		σpv = σprime[jζp]
+	# 		qpv = qprime[jζp]
+	# 		R = (1-sd.pars[:ℏ])*(1-sd.pars[:ρ]) * qpv
+	# 	end
+	# end
 	ζpv = sd.gr[:ζ][jζp]
-
-	savings = ϕa + R*ϕb
-	savings = max.(min.(savings, sd.pars[:ωmax]), sd.pars[:ωmin])
-
-	basis = Basis(LinParams(sd.gr[:ωf], 0))
-	Qω = BasisMatrix(basis, Expanded(), savings, 0).vals[1]
-	Q = row_kron(Qϵ, Qω)
 
 	ζt == 1.0 && ζpv == 0.0 ? new_def = 1 : new_def = 0
 
-	λpd = Q' * λt
+	# λpd = Q' * λt
 
 	M, V = unmake_logN(μpv, σpv)
 
@@ -284,6 +362,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
 		fill_path!(p,t+1, Dict(:B => Bpv, :μ => μpv, :σ => σpv, :ζ => ζpv, :ξ => ξpv, :z => zpv, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qpv, :mean => M, :var => V))
+		fill_path!(p, t+1, Dict(:Wr10 => Wr_vec[1], :Wr25 => Wr_vec[2], :Wr50 => Wr_vec[3], :Wr75 => Wr_vec[4], :Wr90 => Wr_vec[5], :Wd10 => Wd_vec[1], :Wd25 => Wd_vec[2], :Wd50 => Wd_vec[3], :Wd75 => Wd_vec[4], :Wd90 => Wd_vec[5]))
 	end
 
 	return λpd, new_def
