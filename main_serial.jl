@@ -123,6 +123,8 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
 		calib_table_comp = make_calib_table_comp([v_m; 100*def_freq; Wr], [v_nodef; 100*freq_nodef; W_nodef], [v_noΔ; 100*freq_noΔ; W_noΔ], [v_nob; 100*freq_nob; W_nob])
 		write(savedir * "calib_table_comp.txt", calib_table_comp)
+
+		v_rep, freq_rep = make_repagent_simul(sd, run_number, years)
 	else
 		print_save("Suboptimal g. Skipping computation of no-def")
 	end

@@ -247,6 +247,26 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 	return pp, Ndefs
 end
 
+function make_repagent_simul(sd::SOEdef, run_number, years) where T <: AbstractPath
+
+	sd_rep = SOEdef(rep_agent = true);
+
+	for (key, val) in pars(sd)
+		sd_rep.pars[key] = val
+	end
+
+	mpe_iter!(sd_rep; rep_agent = true, run_number=run_number, save_copies=false)
+	pp, Ndefs = parsimul(sd_rep; simul_length=4*years, burn_in=1+4*100)
+	
+	Tyears = floor(Int64,periods(pp)*0.25)
+	freq = Ndefs/Tyears
+	
+	vsim = simul_stats(pp)
+
+	return vsim, freq
+end
+
+
 make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_best, years, p_bench::Path, πthres, savedir, already_done) = make_comparison_simul(sd, noΔ, rep_agent, run_number, current_best, years, [p_bench], πthres, savedir, already_done)
 function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_best, years, p_bench::Vector{T}, πthres, savedir, already_done) where T <: AbstractPath
 
