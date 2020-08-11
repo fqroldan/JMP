@@ -382,7 +382,8 @@ end
 function distribution_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads", k=6) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, πthres, k, type=type)
 
-	keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr, :Wd10, :Wd25, :Wd50, :Wd75, :Wd90, :Wd]
+	keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
+	titlevec = ["p10", "p25", "p50", "p75", "p90", "Average"]
 
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
 	for (jj, key) in enumerate(keyvec)
@@ -391,24 +392,28 @@ function distribution_crises(pv::Vector{T}, πthres::Float64; style::Style=slide
 		end
 	end
 
-	layout = Layout(
-		xaxis1 = attr(domain = [0, 0.3], anchor="y1"),
-		xaxis2 = attr(domain = [0.33, 0.63], anchor="y2"),
-		xaxis3 = attr(domain = [0.66, 0.99], anchor="y3"),
+	ys = [1, 0.46]
+	annotations = [
+		attr(text = titlevec[jj], x = -k/2+(3k)/8, xanchor="center", xref = "x$jj",y = ys[ceil(Int, jj/3)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
+	]
+
+	layout = Layout(annotations=annotations,
+		xaxis1 = attr(domain = [0, 0.3]),
+		xaxis2 = attr(domain = [0.33, 0.63]),
+		xaxis3 = attr(domain = [0.66, 0.99]),
 		xaxis4 = attr(domain = [0, 0.3], anchor="y4"),
 		xaxis5 = attr(domain = [0.33, 0.63], anchor="y5"),
 		xaxis6 = attr(domain = [0.66, 0.99], anchor="y6"),
-		yaxis1 = attr(domain = [0.55, 1], anchor="x1"),
-		yaxis2 = attr(domain = [0.55, 1], anchor="x2"),
-		yaxis3 = attr(domain = [0.55, 1], anchor="x3"),
-		yaxis4 = attr(domain = [0, 0.45], anchor="x4"),
-		yaxis5 = attr(domain = [0, 0.45], anchor="x5"),
-		yaxis6 = attr(domain = [0, 0.45], anchor="x6"),
+		yaxis1 = attr(domain = [0.525, 0.95], anchor="x1"),
+		yaxis2 = attr(domain = [0.525, 0.95], anchor="x2"),
+		yaxis3 = attr(domain = [0.525, 0.95], anchor="x3"),
+		yaxis4 = attr(domain = [0, 0.425], anchor="x4"),
+		yaxis5 = attr(domain = [0, 0.425], anchor="x5"),
+		yaxis6 = attr(domain = [0, 0.425], anchor="x6"),
 		)
 
 	plot(data, layout, style=style)
 end
-
 
 panels_defaults(pv::Vector{T}; k=8, style::Style=slides_def, yh = 0.65, indiv=false) where T<:AbstractPath = panels_crises(pv, 0.0, style=style, yh=yh, type="default", indiv=indiv, k=k)
 function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8) where T<:AbstractPath
@@ -494,6 +499,42 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 		yaxis14 = attr(anchor = "x14", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[14]),
 		yaxis15 = attr(anchor = "x15", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[15]),
 		yaxis16 = attr(anchor = "x16", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[16]),
+		)
+
+	plot(data, layout, style=style)
+end
+function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.6, k=8) where T<:AbstractPath
+	Nc, tvv = get_crises(pv_bench, πthres, k)
+	println("Suggested yh=0.7 for style=paper")
+	keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
+	titlevec = ["p10", "p25", "p50", "p75", "p90", "Average"]
+
+	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+	for (jj, key) in enumerate(keyvec)
+		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, axis=1+(jj-1)%6, CI=true, k=k)
+			push!(data, scat)
+		end
+	end
+
+	ys = [1, 0.46]
+	annotations = [
+		attr(text = "<i>"*titlevec[jj], x = -k/2+(3k)/8, xanchor="center", xref = "x$jj",y = ys[ceil(Int, jj/3)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
+	]
+
+	layout = Layout(annotations=annotations,
+		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
+		xaxis1 = attr(domain = [0, 0.3]),
+		xaxis2 = attr(domain = [0.35, 0.65]),
+		xaxis3 = attr(domain = [0.7, 1]),
+		xaxis4 = attr(domain = [0, 0.3], anchor="y4"),
+		xaxis5 = attr(domain = [0.35, 0.65], anchor="y5"),
+		xaxis6 = attr(domain = [0.7, 1], anchor="y6"),
+		yaxis1 = attr(domain = [0.525, 0.95], anchor="x1"),
+		yaxis2 = attr(domain = [0.525, 0.95], anchor="x2"),
+		yaxis3 = attr(domain = [0.525, 0.95], anchor="x3"),
+		yaxis4 = attr(domain = [0.05, 0.425], anchor="x4"),
+		yaxis5 = attr(domain = [0.05, 0.425], anchor="x5"),
+		yaxis6 = attr(domain = [0.05, 0.425], anchor="x6"),
 		)
 
 	plot(data, layout, style=style)
@@ -2586,8 +2627,7 @@ function plot_comparison_episodes(path_bench::Path, path_nodef::Path, path_nodel
 end
 
 
-function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impulse::String="z",
-        verbose::Bool=false, create_plots::Bool=false, savedir::String="")
+function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impulse::String="z", verbose::Bool=false, create_plots::Bool=false, savedir::String="")
     zvec = series(p, :z)
     ξvec = series(p, :ξ)
     Wvec = series(p, :Wr) - series(p, :Wd)
@@ -2600,7 +2640,7 @@ function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impuls
 
     if impulse == "z"
         shock_vec = zvec
-        ρ_shock = 0.9
+        ρ_shock = 0.97
     elseif impulse == "ξ"
         shock_vec = ξvec
         ρ_shock = 0.95
@@ -2614,6 +2654,8 @@ function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impuls
     elseif response == "C"
     	print_save("\nResponse variable C")
         yvec = Cvec
+    elseif response == "z"
+    	yvec = zvec
     else
     	throw(error("No response variable selected"))
     end
@@ -2621,11 +2663,12 @@ function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impuls
     E_shock = shock_vec * ρ_shock
     y = yvec[t0:T]
     X = Bvec[t0:T]
+    ylag = yvec[t0-1:T-1]
 
     eps_z = [shock_vec[jt] - E_shock[jt-1] for jt in t0:T]
 
-    Bmed = quantile(Bvec, 0.9)
-    zlow = quantile(eps_z, 0.1)
+    Bmed = quantile(Bvec, 0.75)
+    zlow = quantile(eps_z, 0.05)
     # eps_z = min.(eps_z, zlow)
     # eps_z = max.(eps_z, quantile(eps_z, 0.9))
 
@@ -2645,14 +2688,15 @@ function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impuls
         # print_save("\n$(yh)")
         Bh = X[1:end-jh+1]
         e_z = eps_z[1:end-jh+1]
+        yl = ylag[1:end-jh+1]
 
         dummy_highB = (Bh.>Bmed)
         dummy_lowz = (e_z.<zlow)
-        data = DataFrame(yh=yh, eps_z=e_z, X = Bh, ind_B = dummy_highB, ind_z = dummy_lowz)
+        data = DataFrame(yh=yh, ylag = yl, eps_z=e_z, X = Bh, ind_B = dummy_highB, ind_z = dummy_lowz)
 
         #data = data[data[:eps_z].<= zlow,:]
         # println(size(data[(data[:eps_z].<=zlow) .* (data[:X].>=Bmed),:]))
-        OLS = glm(@formula(yh ~ eps_z), data, Normal(), IdentityLink())
+        OLS = glm(@formula(yh ~ eps_z + ylag), data, Normal(), IdentityLink())
         if verbose
             println(OLS)
         end
@@ -2661,41 +2705,32 @@ function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impuls
         β[jh,3] = coef(OLS)[2] - stderror(OLS)[2]*1.96
         #data_cond = data[(data[:X].>=Bmed),:]
         #OLS = glm(@formula(yh ~ eps_z), data_cond, Normal(), IdentityLink())    
-        OLS = glm(@formula(yh ~ eps_z + eps_z&ind_B), data, Normal(), IdentityLink())
+        OLS_B = glm(@formula(yh ~ eps_z + eps_z&ind_B + ind_B + ylag), data, Normal(), IdentityLink())
         if verbose
-            println(OLS)
+            println(OLS_B)
         end
-        βhB[jh,1] = coef(OLS)[2]
-        βhB[jh,2] = coef(OLS)[2] + stderror(OLS)[2]*1.96
-        βhB[jh,3] = coef(OLS)[2] - stderror(OLS)[2]*1.96
-        βhB[jh,4] = coef(OLS)[2] + coef(OLS)[3]
-        βhB[jh,5] = coef(OLS)[2] + coef(OLS)[3] + stderror(OLS)[3]*1.96 + stderror(OLS)[2]*1.96
-        βhB[jh,6] = coef(OLS)[2] + coef(OLS)[3] - stderror(OLS)[3]*1.96 - stderror(OLS)[2]*1.96
+        βhB[jh,1] = coef(OLS_B)[2]
+        βhB[jh,2] = coef(OLS_B)[2] + stderror(OLS_B)[2]*1.96
+        βhB[jh,3] = coef(OLS_B)[2] - stderror(OLS_B)[2]*1.96
+        βhB[jh,4] = coef(OLS_B)[2] + coef(OLS_B)[3]
+        βhB[jh,5] = coef(OLS_B)[2] + coef(OLS_B)[3] + stderror(OLS_B)[3]*1.96 + stderror(OLS_B)[2]*1.96
+        βhB[jh,6] = coef(OLS_B)[2] + coef(OLS_B)[3] - stderror(OLS_B)[3]*1.96 - stderror(OLS_B)[2]*1.96
         #data_cond = data[(data[:X].<=Bmed),:]
         #OLS = glm(@formula(yh ~ eps_z), data_cond, Normal(), IdentityLink())    
-        OLS = glm(@formula(yh ~ eps_z + eps_z&ind_z), data, Normal(), IdentityLink())
+        OLS_z = glm(@formula(yh ~ eps_z + eps_z&ind_z + ind_z + ylag), data, Normal(), IdentityLink())
         if verbose
-            println(OLS)
+            println(OLS_z)
         end
-        βlz[jh,1] = coef(OLS)[2]
-        βlz[jh,2] = coef(OLS)[2] + stderror(OLS)[2]*1.96
-        βlz[jh,3] = coef(OLS)[2] - stderror(OLS)[2]*1.96
-        βlz[jh,4] = coef(OLS)[2] + coef(OLS)[3]
-        βlz[jh,5] = coef(OLS)[2] + coef(OLS)[3] + stderror(OLS)[3]*1.96 #+ stderror(OLS)[2]*1.96
-        βlz[jh,6] = coef(OLS)[2] + coef(OLS)[3] - stderror(OLS)[3]*1.96 #- stderror(OLS)[2]*1.96
+        βlz[jh,1] = coef(OLS_z)[2]
+        βlz[jh,2] = coef(OLS_z)[2] + stderror(OLS_z)[2]*1.96
+        βlz[jh,3] = coef(OLS_z)[2] - stderror(OLS_z)[2]*1.96
+        βlz[jh,4] = coef(OLS_z)[2] + coef(OLS_z)[3]
+        βlz[jh,5] = coef(OLS_z)[2] + coef(OLS_z)[3] + stderror(OLS_z)[3]*1.96 #+ stderror(OLS_z)[2]*1.96
+        βlz[jh,6] = coef(OLS_z)[2] + coef(OLS_z)[3] - stderror(OLS_z)[3]*1.96 #- stderror(OLS_z)[2]*1.96
         if verbose
-            println(coef(OLS))
+            println(coef(OLS_z))
             println(βlz[jh,:])
         end
-        #data_cond = data[(data[:eps_z].<zlow) .* (data[:X].>=Bmed),:]
-        #OLS = glm(@formula(yh ~ eps_z), data_cond, Normal(), IdentityLink())    
-        # OLS = glm(@formula(yh ~ eps_z + ind_B + eps_z*ind_B + ind_z + eps_z*ind_z + eps_z*ind_B*ind_z), data, Normal(), IdentityLink())
-        # if verbose
-        #     println(OLS)
-        # end
-        # βboth[jh,1] = coef(OLS)[2]
-        # βboth[jh,2] = coef(OLS)[2] + stderror(OLS)[2]*1.96
-        # βboth[jh,3] = coef(OLS)[2] - stderror(OLS)[2]*1.96
     end
     #β_h *= sqrt(var(zvec))
     
@@ -2703,17 +2738,17 @@ function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impuls
     
     pYz = plot([
             scatter(;x=0:H, y=β[:,1], line_color=col[1], name="βₕ")        
-            scatter(;x=0:H, y=β[:,3], line_width=0, showlegend=false, name="βl")
-            scatter(;x=0:H, y=β[:,2], fill="tonexty", line_color="#bbd6e8", line_width=0, showlegend=false, name="βh")
+            scatter(;x=0:H, y=β[:,3], hoverinfo = "skip", line_width=0, showlegend=false, name="βl")
+            scatter(;x=0:H, y=β[:,2], hoverinfo = "skip", fill="tonexty", line_color="#bbd6e8", line_width=0, showlegend=false, name="βh")
         ], Layout(;xaxis_zeroline=false, yaxis_zeroline=false, xaxis_title="Quarters", yaxis_title=yaxistitle,
             legend_orientation="h", legend_x = 0.1, width = 600, height = 250, font_family = "STIX Two Text",
             shapes=[hline(0, line_dash="dot", line_width=1)]))
 
     pYzz = plot([
-            scatter(;x=0:H, y=βlz[:,3], line_width=0, showlegend=false, name="βl")
-            scatter(;x=0:H, y=βlz[:,2], fill="tonexty", line_color="#bbd6e8", line_width=0, showlegend=false, name="βh")
-            scatter(;x=0:H, y=βlz[:,6], line_width=0, showlegend=false, name="βl")
-            scatter(;x=0:H, y=βlz[:,5], fill="tonexty", line_color="#bfe2bf", line_width=0, showlegend=false, name="βh")
+            scatter(;x=0:H, y=βlz[:,3], hoverinfo = "skip", line_width=0, showlegend=false, name="βl")
+            scatter(;x=0:H, y=βlz[:,2], hoverinfo = "skip", fill="tonexty", line_color="#bbd6e8", line_width=0, showlegend=false, name="βh")
+            scatter(;x=0:H, y=βlz[:,6], hoverinfo = "skip", line_width=0, showlegend=false, name="βl")
+            scatter(;x=0:H, y=βlz[:,5], hoverinfo = "skip", fill="tonexty", line_color="#bfe2bf", line_width=0, showlegend=false, name="βh")
             scatter(;x=0:H, y=βlz[:,4], line_color=col[3], name="βₕ (low z)", line_dash="dashdot")        
             scatter(;x=0:H, y=βlz[:,1], line_color=col[1], name="βₕ")        
         ], Layout(;xaxis_zeroline=false, yaxis_zeroline=false, xaxis_title="Quarters", yaxis_title=yaxistitle,
@@ -2721,10 +2756,10 @@ function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impuls
             shapes=[hline(0, line_dash="dot", line_width=1)]))
 
     pYzB = plot([
-            scatter(;x=0:H, y=β[:,3], line_width=0, showlegend=false, name="βl")
-            scatter(;x=0:H, y=β[:,2], fill="tonexty", line_color="#bbd6e8", line_width=0, showlegend=false, name="βh")
-            scatter(;x=0:H, y=βhB[:,6], line_width=0, showlegend=false, name="βl")
-            scatter(;x=0:H, y=βhB[:,5], fill="tonexty", line_color="#bfe2bf", line_width=0, showlegend=false, name="βh")
+            scatter(;x=0:H, y=β[:,3], hoverinfo = "skip", line_width=0, showlegend=false, name="βl")
+            scatter(;x=0:H, y=β[:,2], hoverinfo = "skip", fill="tonexty", line_color="#bbd6e8", line_width=0, showlegend=false, name="βh")
+            scatter(;x=0:H, y=βhB[:,6], hoverinfo = "skip", line_width=0, showlegend=false, name="βl")
+            scatter(;x=0:H, y=βhB[:,5], hoverinfo = "skip", fill="tonexty", line_color="#bfe2bf", line_width=0, showlegend=false, name="βh")
             scatter(;x=0:H, y=βhB[:,4], line_color=col[3], name="βₕ (high B)", line_dash="dashdot")        
             scatter(;x=0:H, y=β[:,1], line_color=col[1], name="βₕ")        
         ], Layout(;xaxis_zeroline=false, yaxis_zeroline=false, xaxis_title="Quarters", yaxis_title=yaxistitle,
@@ -2755,4 +2790,5 @@ function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impuls
 	    end
     end
     nothing
+    pYz, pYzz, pYzB
 end
