@@ -94,9 +94,9 @@ function make_calib_table(v_m)
 	for jj in 1:length(data_stats)
 		table *= rpad(rownames[jj],pad_n," ") * "& " * rpad(vs[jj], pad_v, " ") * "& "* rpad(ds[jj], pad_d, " ") * "\\\\\n"
 	end
-	table *= "\\bottomrule"
+	table *= "\\bottomrule\n"
 
-	table *= " \\multicolumn{3}{@{}p{.5\\textwidth}@{}}{\\footnotesize All data from Eurostat 2000Q1:2017Q4, except private consumption from OECD 2000Q1:2017Q4, domestic holdings from Banco de España, 2004Q1:2017Q4}\n"
+	# table *= " \\multicolumn{3}{@{}p{.5\\textwidth}@{}}{\\footnotesize All data from Eurostat 2000Q1:2017Q4, except private consumption from OECD 2000Q1:2017Q4, domestic holdings from Banco de España, 2004Q1:2017Q4}\n"
 
 	table *= "\\end{tabular}"
 	return table
@@ -167,3 +167,45 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 	table *= "\\bottomrule \n\\end{tabular*}"
 	return table
 end
+
+
+function make_RH_table(v_m, v_rep)
+	k = 2
+	table = "\\begin{tabular*}{.8\\textwidth}{@{\\extracolsep{\\fill}}l*{$k}c@{}} \\toprule \n"
+	colnames = ["\\textbf{Moment}", "\\textbf{Benchmark}", "\\textbf{Rep.~Agent}"]
+
+	rownames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread"; "Std coef spread	"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"; "Avg Gini"; "Default frequency"; "Value in repayment"]
+
+	pad_n = maximum(length.(rownames)) + 1
+
+	list_perc = ones(length(v_m))
+	list_perc[1:6] .= 0.0
+	vs = [@sprintf("%0.3g",vv)*ifelse(list_perc[jv]==1,"\\%", "") for (jv, vv) in enumerate(v_m)]
+	# pad_v = max(length(colnames[2]), maximum(length.( vs ))) + 3
+	pad_v = maximum(length.( vs )) + 3
+
+	pad_n = max(length(colnames[1]), maximum(length.(rownames))) + 1
+
+	table *= rpad(colnames[1],pad_n, " ") * "& " * rpad(colnames[2], pad_v, " ")
+
+	jj = 3
+	vreps = [@sprintf("%0.3g",round(vv,digits=8))*ifelse(list_perc[jv]==1,"\\%", "") for (jv, vv) in enumerate(v_rep)]
+	# pad_def = max(length(colnames[jj]), maximum(length.( vreps ))) + 3
+	pad_def = maximum(length.( vreps )) + 3
+	table *= "& " * rpad(colnames[jj], pad_def, " ")
+	
+	table *= "\\\\ \\midrule \n"
+
+
+	for jj in 1:length(rownames)
+		table *= rpad(rownames[jj],pad_n," ") * "& " * rpad(vs[jj], pad_v, " ")
+		table *= "& " * rpad(vreps[jj], pad_def, " ")
+		table *= "\\\\\n"
+
+	end
+
+	table *= "\\bottomrule \n\\end{tabular*}"
+	return table
+end
+
+	# [v_m; 100*def_freq; Gini; Wr], [v_rep, freq_rep, Gini_rep, W_rep]

@@ -260,10 +260,13 @@ function make_repagent_simul(sd::SOEdef, run_number, years) where T <: AbstractP
 	
 	Tyears = floor(Int64,periods(pp)*0.25)
 	freq = Ndefs/Tyears
-	
+
+	Gini = mean([mean(series(p, :Gini)) for p in pp])
+	Wr = mean([mean(series(p, :Wr)) for p in pp])
+
 	vsim = simul_stats(pp)
 
-	return vsim, freq
+	return vsim, freq, Wr, Gini
 end
 
 

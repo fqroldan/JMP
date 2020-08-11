@@ -90,6 +90,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		years = 10000
 		g, p_bench, πthres, v_m, def_freq = make_simulated_path(sd, savedir, years)
 		Wr = mean([mean(series(p, :Wr)) for p in p_bench])
+		Gini = mean([mean(series(p, :Gini)) for p in p_bench])
 		save(pwd() * "/../Output/g.jld", "g", g)
 		run(`cp ../Output/SOEdef.jld ../Output/run$(run_number)/SOEdef.jld`)
 	else
@@ -124,7 +125,10 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 		calib_table_comp = make_calib_table_comp([v_m; 100*def_freq; Wr], [v_nodef; 100*freq_nodef; W_nodef], [v_noΔ; 100*freq_noΔ; W_noΔ], [v_nob; 100*freq_nob; W_nob])
 		write(savedir * "calib_table_comp.txt", calib_table_comp)
 
-		v_rep, freq_rep = make_repagent_simul(sd, run_number, years)
+		v_rep, freq_rep, W_rep, Gini_rep = make_repagent_simul(sd, run_number, years)
+
+		rep_agent_table = make_RH_table([v_m; Gini; 100*def_freq; Wr], [v_rep; Gini_rep; 100*freq_rep; W_rep])
+		write(savedir * "rep_agent_table.txt", rep_agent_table)
 	else
 		print_save("Suboptimal g. Skipping computation of no-def")
 	end
