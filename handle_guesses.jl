@@ -255,6 +255,8 @@ function make_repagent_simul(sd::SOEdef, run_number, years) where T <: AbstractP
 		sd_rep.pars[key] = val
 	end
 
+	mpe_iter!(sd_rep, nodef = true, run_number = run_number, save_copies = false)
+
 	mpe_iter!(sd_rep; rep_agent = true, run_number=run_number, save_copies=false)
 	pp, Ndefs = parsimul(sd_rep; simul_length=4*years, burn_in=1+4*100)
 	
