@@ -252,7 +252,9 @@ function make_repagent_simul(sd::SOEdef, run_number, years) where T <: AbstractP
 	sd_rep = SOEdef(rep_agent = true);
 
 	for (key, val) in pars(sd)
-		sd_rep.pars[key] = val
+		if key != :σϵ
+			sd_rep.pars[key] = val
+		end
 	end
 
 	mpe_iter!(sd_rep, nodef = true, run_number = run_number, save_copies = false)

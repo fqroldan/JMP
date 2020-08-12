@@ -133,14 +133,6 @@ function SOEdef(;
 		Δ = 0.0
 	end
 
-	σmin, σmax = 0.01, 1.25
-	if rep_agent
-		σϵ = 0.0001
-		Nϵ = 2
-		Nσ = 2
-		σmin, σmax = 0.01, 0.02
-	end
-
 	# Debt parameters
 	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
 	κ = ρ + r_star
@@ -155,6 +147,8 @@ function SOEdef(;
 	meanξ = tax
 	ξgrid, Pξ = tauchen_fun(Nξ, ρξ, σξ, m=0.5, mu=meanξ)
 
+	σmin, σmax = 0.01, 1.25
+	
 	ρϵ, σϵ = 0., 0.
 	if income_process == "Floden-Lindé"
 		ρϵ = 0.9136		# Floden-Lindé for US
@@ -164,6 +158,13 @@ function SOEdef(;
 		σϵ = 0.2498		# Mendoza-D'Erasmo for Spain
 	else
 		throw(error("Must specify an income process"))
+	end
+	
+	if rep_agent
+		σϵ = 0.0001
+		Nϵ = 2
+		Nσ = 2
+		σmin, σmax = 0.01, 0.02
 	end
 	ρϵ, σϵ = quarterlize_AR1(ρϵ, σϵ)
 
