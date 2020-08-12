@@ -71,8 +71,7 @@ function make_params_table(sd::SOEdef)
 end
 
 function make_calib_table(v_m)
-
-	table = "\\begin{tabular}{@{\\extracolsep{20pt}}lcc@{}} \\toprule \n"
+	table = "\\begin{tabular*}{.45\\textwidth}{@{\\extracolsep{20pt}}lcc@{}} \\toprule \n"
 
 	colnames = ["\\textbf{Target}", "\\textbf{Model}", "\\textbf{Data}"]
 
