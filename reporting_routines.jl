@@ -104,7 +104,7 @@ end
 
 function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 	k = sum(length(v) > 0 for v in [ v_m, v_m_nodef, v_m_noΔ, v_m_nob ])
-	table = "\\begin{tabular*}{.8\\textwidth}{@{\\extracolsep{\\fill}}l*{$k}c@{}} \\toprule \n"
+	table = "\\begin{tabular*}{.85\\textwidth}{@{\\extracolsep{\\fill}}l*{$k}c@{}} \\toprule \n"
 
 	colnames = ["\\textbf{Moment}", "\\textbf{Benchmark}"]
 	rownames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread"; "Std coef spread	"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"; "Avg wealth Gini"; "Default frequency"; "Welfare in repayment"]
@@ -114,7 +114,7 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 		push!(colnames, "\\textbf{\$\\Delta=0\$}")
 	end
 	if length(v_m_nob) > 0
-		push!(colnames, "\\textbf{No dom. holdings}")
+		push!(colnames, "\\textbf{No dom.~holdings}")
 	end
 	push!(colnames, "\\textbf{No default}")
 
