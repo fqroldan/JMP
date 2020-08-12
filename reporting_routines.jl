@@ -180,6 +180,7 @@ function make_RH_table(v_m, v_rep)
 
 	list_perc = ones(length(v_m))
 	list_perc[1:6] .= 0.0
+	list_perc[end] .= 0.0
 	vs = [@sprintf("%0.3g",vv)*ifelse(list_perc[jv]==1,"\\%", "") for (jv, vv) in enumerate(v_m)]
 	# pad_v = max(length(colnames[2]), maximum(length.( vs ))) + 3
 	pad_v = maximum(length.( vs )) + 3
