@@ -179,8 +179,11 @@ function make_unemp(sd::SOEdef; style::Style=slides_def, leg=true)
 	max_z = max(max_z1, max_z2)
 
 	data1 = makecontour(sd, U_matbz, :b, :z, min_z, max_z, f2=x->100x, suffix="%")
-
+	data1[:colorbar_tick0] = 0
+	data1[:colorbar_dtick] = 5
 	data2 = makecontour_μσ(sd, U_matμσ, min_z, max_z, suffix="%")
+	data2[:colorbar_tick0] = 0
+	data2[:colorbar_dtick] = 5
 
 	data = [data1, data2]
 	# data = data1
@@ -202,8 +205,8 @@ function make_debtprice(sd::SOEdef; style::Style=slides_def, leg=true)
 	qg_matμσ = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jμ, μv) in enumerate(sd.gr[:μ]), (jσ,σv) in enumerate(sd.gr[:σ])]
 	
 
-	data1 = makecontour(sd, qg_matbz, :b, :z, 0.5, 1, f2=x->100x, reversescale=true)
-	data2 = makecontour_μσ(sd, qg_matμσ, 0.5, 1, reversescale=true)
+	data1 = makecontour(sd, qg_matbz, :b, :z, 0.4, 1, f2=x->100x, reversescale=true)
+	data2 = makecontour_μσ(sd, qg_matμσ, 0.4, 1, reversescale=true)
 
 	data = [data1, data2]
 	# data = data1
@@ -510,7 +513,11 @@ function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Fl
 	titlevec = ["p10", "p25", "p50", "p75", "p90", "Average"]
 
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+	print("1 - W_bench / W_nodef over the distribution:\n")
 	for (jj, key) in enumerate(keyvec)
+		_, _, b_me, _, _ = series_crises(pv_bench, tvv, key, k)
+		_, _, n_me, _, _ = series_crises(pv_nodef, tvv, key, k)
+		print("$key: $(@sprintf("%0.3g", 100 * (1- n_me[end]/b_me[end])))%\n")
 		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, axis=1+(jj-1)%6, CI=true, k=k)
 			push!(data, scat)
 		end
@@ -571,7 +578,16 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64;
 	f2vec[[4]] .= (x->25 * x/meanYn)
 
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+	print("1 - (1-y_bench) / (1-y_nodef) for different variables:\n")
 	for (jj, key) in enumerate(keyvec)
+		_, _, b_me, _, b_av = series_crises(pv_bench, tvv, key, k)
+		_, _, n_me, _, n_av = series_crises(pv_nodef, tvv, key, k)
+		if key in [:Y, :C]
+			print("$key: $(@sprintf("%0.8g", 100 * (1- (100-f2vec[jj](n_me[end]))/(100-f1vec[jj](b_me[end])))))%\n")
+		elseif key == :Wr
+			print("$key median: $(@sprintf("%0.5g", 100 * (1-n_me[end]/b_me[end])))%\n")
+			print("$key mean: $(@sprintf("%0.5g", 100 * (1-n_av[end]/b_av[end])))%\n")
+		end
 		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, f1vec[jj], f2vec[jj], axis=jj, CI=true, k=k)
 			push!(data, scat)
 		end
