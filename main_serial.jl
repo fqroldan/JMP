@@ -120,9 +120,9 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 			current_best = 1
 		end
 
-		v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob, W_noΔ, W_nodef, W_nob = make_comparison_simul(sd, noΔ, rep_agent, run_number, current_best, years, p_bench, πthres, savedir, already_done)
+		v_noΔ, v_nodef, v_nob, freq_noΔ, freq_nodef, freq_nob, Gini_noΔ, Gini_nodef, Gini_nob, W_noΔ, W_nodef, W_nob = make_comparison_simul(sd, noΔ, rep_agent, run_number, current_best, years, p_bench, πthres, savedir, already_done)
 
-		calib_table_comp = make_calib_table_comp([v_m; 100*def_freq; Wr], [v_nodef; 100*freq_nodef; W_nodef], [v_noΔ; 100*freq_noΔ; W_noΔ], [v_nob; 100*freq_nob; W_nob])
+		calib_table_comp = make_calib_table_comp([v_m; Gini; 100*def_freq; Wr], [v_nodef; Gini_nodef; 100*freq_nodef; W_nodef], [v_noΔ; Gini_noΔ; 100*freq_noΔ; W_noΔ], [v_nob; Gini_nob; 100*freq_nob; W_nob])
 		write(savedir * "calib_table_comp.txt", calib_table_comp)
 
 		v_rep, freq_rep, W_rep, Gini_rep = make_repagent_simul(sd, run_number, years)

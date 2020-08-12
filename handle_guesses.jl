@@ -283,6 +283,7 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_
 
 	freq = [0.0 for jj in 1:3]
 	Wr = [0.0 for jj in 1:3]
+	Gini = [0.0 for jj in 1:3]
 	v = [zeros(12) for jj in 1:3]
 	for (js, sim_name) in enumerate(sim_names)
 		nodelta, nodef, nob = sim_mat[js, :]
@@ -294,6 +295,7 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_
 		v[js] = vsim
 
 		Wr[js] = mean([mean(series(p, :Wr)) for p in pp])
+		Gini[js] = mean([mean(series(p, :Gini)) for p in pp])
 
 		eval_GMM(vsim)
 		sd.pars[:Δ] = old_Δ
@@ -302,13 +304,14 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_
 	freq_nodelta, freq_nodef, freq_nob = freq
 	v_nodelta, v_nodef, v_nob = v
 	W_nodelta, W_nodef, W_nob = Wr
+	Gini_nodelta, Gini_nodef, Gini_nob = Gini
 
 	# for (jj, slides) in enumerate([true; false])
 	# 	pcomp = plot_comparison_episodes(p_bench, p_nodef; episode_type = episode_type, slides = slides, πthres=πthres)
 	# 	savejson(pcomp, savedir * "comparison_crisis_nodef$(jj).json")
 	# end
 
-	return v_nodelta, v_nodef, v_nob, freq_nodelta, freq_nodef, freq_nob, W_nodelta, W_nodef, W_nob
+	return v_nodelta, v_nodef, v_nob, freq_nodelta, freq_nodef, freq_nob, Gini_nodelta, Gini_nodef, Gini_nob, W_nodelta, W_nodef, W_nob
 end
 
 function determine_done(run_number, params)
