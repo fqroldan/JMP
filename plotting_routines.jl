@@ -274,12 +274,12 @@ function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, 
 
 	line_bench = scatter(x=(-2k:k)/4, y=f1.(bench_me), name="Benchmark", mode="lines", line_color=colbench, fill="tonexty", showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
 	# lb_avg = scatter(x=(-2k:k)/4, y=f1.(bench_av), name="Benchmark", mode="lines", line_color=col[fill="tonexty", 1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	lb_up = scatter(x=(-2k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", line_width=0.001, line_color=colbench, showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	lb_lo = scatter(x=(-2k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", line_width=0.001, line_color=colbench, fill="tonexty", showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	lb_up = scatter(x=(-2k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colbench, showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	lb_lo = scatter(x=(-2k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colbench, fill="tonexty", showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
 	line_nodef = scatter(x=(-2k:k)/4, y=f2.(nodef_me), name="No default", line_dash="dashdot", mode="lines", line_color=colnodef, fill="tonexty", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
 	# ln_avg = scatter(x=(-2k:k)/4, y=f2.(nodef_av), name="No default", mode="lines", line_color=colnodef, fill="tonexty", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	ln_up = scatter(x=(-2k:k)/4, y=f2.(nodef_up), hoverinfo="skip", mode="lines", line_width=0.001, line_color=colnodef, showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	ln_lo = scatter(x=(-2k:k)/4, y=f2.(nodef_lo), hoverinfo="skip", mode="lines", line_width=0.001, line_color=colnodef, fill="tonexty", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	ln_up = scatter(x=(-2k:k)/4, y=f2.(nodef_up), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colnodef, showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	ln_lo = scatter(x=(-2k:k)/4, y=f2.(nodef_lo), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colnodef, fill="tonexty", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
 
 	s1 = [line_bench, line_nodef]
 	if avg
@@ -382,10 +382,14 @@ function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4
 	plot(data, layout, style=style)
 end
 
-function distribution_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads", k=6) where T<:AbstractPath
+function distribution_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, response="W", type="highspreads", k=6) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, πthres, k, type=type)
 
-	keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
+	if response == "W"
+		keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
+	elseif response == "C"
+		keyvec = [:C10, :C25, :C50, :C75, :C90, :C]
+	end
 	titlevec = ["p10", "p25", "p50", "p75", "p90", "Average"]
 
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
@@ -506,10 +510,14 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 
 	plot(data, layout, style=style)
 end
-function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.6, k=8) where T<:AbstractPath
+function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.6, k=8, response="W") where T<:AbstractPath
 	Nc, tvv = get_crises(pv_bench, πthres, k)
 	println("Suggested yh=0.7 for style=paper")
-	keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
+	if response == "W"
+		keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
+	elseif response == "C"
+		keyvec = [:C10, :C25, :C50, :C75, :C90, :C]
+	end
 	titlevec = ["p10", "p25", "p50", "p75", "p90", "Average"]
 
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
@@ -739,23 +747,23 @@ function full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector
 
 	line_bench = scatter(x=(-2k:k)/4, y=f1.(bench_me), name="Benchmark",  mode="lines", line_color=colbench, showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
 	# lbench_avg = scatter(x=(-2k:k)/4, y=f1.(bench_av), name="Benchmark", line_color=col[1])
-	# lb_up = scatter(x=(-2k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[1])
-	# lb_lo = scatter(x=(-2k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[1], fill="tonexty")
+	# lb_up = scatter(x=(-2k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.00001, line_color=col[1])
+	# lb_lo = scatter(x=(-2k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.00001, line_color=col[1], fill="tonexty")
 	noΔ2 = scatter(x=-2k/4, y=f2.(noΔ_me)[1], legendgroup=2, name="Δ = 0", mode = "lines+markers", marker_symbol="diamond", showlegend=true)
 	line_noΔ = scatter(x=(-2k:k)/4, y=f2.(noΔ_me), name="Δ = 0", line_color=colnoΔ, mode="lines", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
 	markers_noΔ = scatter(x=((-2k:k)/4)[1:4:end], y=f2.(noΔ_me)[1:4:end], name="Δ = 0", line_color=colnoΔ, mode="markers", marker_symbol = "diamond", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
 	# lnoΔ_avg = scatter(x=(-2k:k)/4, y=f2.(noΔ_av), name="Δ = 0", line_color=col[2])
-	# lΔ_up = scatter(x=(-2k:k)/4, y=f2.(noΔ_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[2])
-	# lΔ_lo = scatter(x=(-2k:k)/4, y=f2.(noΔ_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[2], fill="tonexty")
+	# lΔ_up = scatter(x=(-2k:k)/4, y=f2.(noΔ_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.00001, line_color=col[2])
+	# lΔ_lo = scatter(x=(-2k:k)/4, y=f2.(noΔ_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.00001, line_color=col[2], fill="tonexty")
 	line_nob = scatter(x=(-2k:k)/4, y=f3.(nob_me), name="No dom. holdings", line_color=colnob, mode="lines", line_dash="dash", marker_symbol = "circle", showlegend=false, legendgroup = 3, xaxis="x$axis", yaxis="y$axis")
 	markers_nob = scatter(x=((-2k:k)/4)[1:4:end], y=f3.(nob_me)[1:4:end], name="No dom. holdings", marker_color=colnob, mode="markers", marker_symbol = "circle", showlegend=(axis==1), legendgroup = 3, xaxis="x$axis", yaxis="y$axis")
 	# lnob_avg = scatter(x=(-2k:k)/4, y=f3.(nob_av), name="No dom. holdings", line_color=col[3])
-	# lnob_up = scatter(x=(-2k:k)/4, y=f3.(nob_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[3])
-	# lnob_lo = scatter(x=(-2k:k)/4, y=f3.(nob_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[3], fill="tonexty")
+	# lnob_up = scatter(x=(-2k:k)/4, y=f3.(nob_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.00001, line_color=col[3])
+	# lnob_lo = scatter(x=(-2k:k)/4, y=f3.(nob_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.00001, line_color=col[3], fill="tonexty")
 	line_nodef = scatter(x=(-2k:k)/4, y=f4.(nodef_me), name="No default", line_color=colnodef, mode="lines", showlegend=(axis==1), legendgroup = 4, xaxis="x$axis", yaxis="y$axis", line_dash="dashdot")
 	# lnodef_avg = scatter(x=(-k:k)/4, y=f4.(nodef_av), name="No default", line_color=col[4])
-	# ln_up = scatter(x=(-k:k)/4, y=f4.(nodef_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[4])
-	# ln_lo = scatter(x=(-k:k)/4, y=f4.(nodef_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.001, line_color=col[4], fill="tonexty")
+	# ln_up = scatter(x=(-k:k)/4, y=f4.(nodef_up), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.00001, line_color=col[4])
+	# ln_lo = scatter(x=(-k:k)/4, y=f4.(nodef_lo), hoverinfo="skip", mode="lines", showlegend=false, line_width=0.00001, line_color=col[4], fill="tonexty")
 
 	s1 = [line_bench, line_noΔ, line_nob, line_nodef, markers_noΔ, markers_nob, noΔ2]
 	if avg

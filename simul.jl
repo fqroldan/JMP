@@ -222,7 +222,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 
 	Eω_fromb = dot(λt, avgω_fromb) / dot(λt, ϕb)
 
-	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[90]))
+	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5]))
 
 	a  = dot(λt, ϕa)
 	a2 = dot(λt, ϕa.^2)
