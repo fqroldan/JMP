@@ -131,6 +131,8 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	quantiles_vec = [0.1, 0.25, 0.5, 0.75, 0.9]
 	quantiles_ω   = [ifelse(cdf_ω[end] > quantile, findfirst(cdf_ω.>=quantile), length(cdf_ω)) for quantile in quantiles_vec]
 
+	C_dist = zeros(length(quantiles_vec))
+
 	sav_a_ω = zeros(length(quantiles_vec))
 	sav_b_ω = zeros(length(quantiles_vec))
 	prob_ϵω = zeros(length(quantiles_vec), N(sd,:ϵ))
@@ -142,17 +144,21 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 		ωv = sd.gr[:ωf][quantile]
 		sav_a = 0.0
 		sav_b = 0.0
+		cdist = 0.0
 		for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])
 			yd = (wt*Ld*(1.0-sd.pars[:τ]) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
 			sg = max(sd.pars[:ωmin], itp_ϕs(ωv, ϵv, Bt, μt, σt, ξt, ζt, zt))
 			θg = min(max(0.0, itp_ϕθ(sg, ϵv, Bt, μt, σt, ξt, ζt, zt)), 1.0)
 			abc = get_abc(yd, sd.pars[:ωmin], qhv, qg, pCt, sg, θg)
-			ap, bp = abc[:a], abc[:b]
+			ap, bp, cc = abc[:a], abc[:b], abc[:c]
 
 			sav_a += ap * dist_ϵ[jϵ] / sum(dist_ϵ)
 			sav_b += bp * dist_ϵ[jϵ] / sum(dist_ϵ)
+
+			cdist += cc * dist_ϵ[jϵ] / sum(dist_ϵ)
 		end
 
+		C_dist[jq] = cdist
 		sav_a_ω[jq] = sav_a
 		sav_b_ω[jq] = sav_b
 		prob_ϵω[jq,:] = dist_ϵ / sum(dist_ϵ)
@@ -194,6 +200,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 			b90[js] += max(0.0, bp)
 		end
 	end
+
 	# Compute Gini index
 	# S_i = pdf times wealth from 1 to i
 	S = [sum( [mλω[jj]*ωϵv[jj, 1] for jj in 1:i] ) for i in 1:length(mλω)]
@@ -215,7 +222,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 
 	Eω_fromb = dot(λt, avgω_fromb) / dot(λt, ϕb)
 
-	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :avgω => Eω_fromb, :Gini => Gini))
+	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[90]))
 
 	a  = dot(λt, ϕa)
 	a2 = dot(λt, ϕa.^2)
