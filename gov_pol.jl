@@ -134,7 +134,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=15e-4, nodef::Bo
 		sd.eq[:welfare] = upd_η * W_new + (1.0-upd_η) * sd.eq[:welfare]
 
 		if isnan.(sum(sd.eq[:welfare]))
-			print_save("\nWARNING: ||welf|| = NaN")
+			print_save("\nWARNING: ‖welf‖ = NaN")
 		end
 
 		old_rep = copy(sd.gov[:repay])

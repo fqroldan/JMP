@@ -404,7 +404,8 @@ function distribution_crises(pv::Vector{T}, πthres::Float64; style::Style=slide
 		attr(text = titlevec[jj], x = -k/2+(3k)/8, xanchor="center", xref = "x$jj",y = ys[ceil(Int, jj/3)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
 	]
 
-	layout = Layout(annotations=annotations,
+	layout = Layout(
+		annotations=annotations,
 		xaxis1 = attr(domain = [0, 0.3]),
 		xaxis2 = attr(domain = [0.33, 0.63]),
 		xaxis3 = attr(domain = [0.66, 0.99]),
