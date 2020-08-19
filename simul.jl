@@ -689,3 +689,46 @@ function MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4*10, 
 	return pv, pv_high
 end
 
+
+function simul_stats_nodef(pv::Vector{T}) where T <: AbstractPath
+
+	pvec = Vector{AbstractPath}(undef, 0 )
+
+	for pp in pv
+		def_state = (series(pp,:ζ) .== 0)
+
+		defs = findall([def_state[tt]-def_state[tt-1].==1  for tt in 2:length(def_state)])
+		reen = findall([def_state[tt]-def_state[tt-1].==-1 for tt in 2:length(def_state)])
+
+		if defs[1] > reen[1]
+			print("WARNING: started in default")
+		else
+			reen = [1; reen]
+		end
+
+		if defs[end] == periods(pp)
+		elseif length(reen) > length(defs)
+			defs = [defs; periods(pp)]
+		end
+
+		for (jd, tt) in enumerate(defs)
+			len = defs[jd] - reen[jd] + 1
+			
+			if len > 2
+				path_between = Path{len}(Dict(key => val[reen[jd]:defs[jd]] for (key, val) in pp.data))
+
+				push!(pvec, path_between)
+			end
+		end
+	end
+
+	println("Left with $(length(pvec)) paths")
+
+	T_vec = [periods(pp) for pp in pvec]
+	V_vec = [simul_stats(pp) for pp in pvec]
+
+	mean_V = sum(V_vec .* T_vec / sum(T_vec))
+end
+
+
+
