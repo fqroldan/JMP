@@ -311,6 +311,8 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	σpv = σprime[jζp]
 	qpv = qprime[jζp]
 
+	spr = get_spr(qpv, sd.pars[:κ])
+
 	if !jdef && !repay_prime
 		Bpv = (1.0 - sd.pars[:ℏ]) * Bpv
 	end
@@ -368,7 +370,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	# Fill the path for next period
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
-		fill_path!(p,t+1, Dict(:B => Bpv, :μ => μpv, :σ => σpv, :ζ => ζpv, :ξ => ξpv, :z => zpv, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qpv, :mean => M, :var => V))
+		fill_path!(p,t+1, Dict(:B => Bpv, :μ => μpv, :σ => σpv, :ζ => ζpv, :ξ => ξpv, :z => zpv, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qpv, :spread=>spr, :mean => M, :var => V))
 		fill_path!(p, t+1, Dict(:Wr10 => Wr_vec[1], :Wr25 => Wr_vec[2], :Wr50 => Wr_vec[3], :Wr75 => Wr_vec[4], :Wr90 => Wr_vec[5], :Wd10 => Wd_vec[1], :Wd25 => Wd_vec[2], :Wd50 => Wd_vec[3], :Wd75 => Wd_vec[4], :Wd90 => Wd_vec[5]))
 	end
 
@@ -499,7 +501,7 @@ function simul_stats(pv::Vector{T}) where T <: AbstractPath
 	return v_m
 end
 
-spr(q,κ) = (1+(κ * (1/q - 1)))^4 - 1
+get_spr(q,κ) = (1+(κ * (1/q - 1)))^4 - 1
 
 function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::Bool=false, κ = 0.05985340654896883)
 	T = periods(path)
@@ -524,7 +526,7 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 	π_vec = series(path,:π)
 	ψ_vec = series(path,:ψ)
 	u_vec = 100.0 * (1.0 .- series(path, :L))
-	spr_vec = 100 * spr.(series(path, :qg), κ)
+	spr_vec = 100 * get_spr.(series(path, :qg), κ)
 
 	# verbose && print("T = $T\n")
 

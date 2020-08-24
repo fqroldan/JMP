@@ -427,9 +427,9 @@ panels_defaults(pv::Vector{T}; k=8, style::Style=slides_def, yh = 0.65, indiv=fa
 function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, πthres, k, type=type)
 	println("Suggested yh=0.7 for style=paper")
-	keyvec = [:z, :Y, :C, :CoY, :B, :ψ, :qg, :π, :L, :mean, :var, :P, :avgω, :p90, :G, :T]
+	keyvec = [:z, :Y, :C, :CoY, :B, :ψ, :spread, :π, :L, :mean, :var, :P, :avgω, :p90, :G, :T]
 
-	titlevec = ["TFP", "Output", "Consumption", "<i>C/Y<sup>d</sup>", "Bonds", "Proportion Domestic", "Price of new debt", "Default prob", "Unemployment", "Wealth Dist Mean", "Wealth Dist Variance", "Price of nontradables", "Bondholdings-weighted avg wealth", "top 10% holdings", "Govt spending", "Lump-sum taxes"]
+	titlevec = ["TFP", "Output", "Consumption", "<i>C/Y<sup>d</sup>", "Gov't Debt", "Proportion Domestic", "Spreads", "Default prob", "Unemployment", "Wealth Dist Mean", "Wealth Dist Variance", "Price of nontradables", "Bondholdings-weighted avg wealth", "top 10% holdings", "Govt spending", "Lump-sum taxes"]
 
 	meanY = mean([mean(series(p, :Y)) for p in pv])
 	meanC = mean([mean(series(p, :C)) for p in pv])
@@ -442,10 +442,12 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 	funcvec[3] = (x->100*x/meanC)
 	funcvec[[5, 10, 13]] .= (x->25 * x/meanY)
 	funcvec[[1, 4, 6, 8]] .= (x->100*x)
+	funcvec[7] = x->10000*x
 	funcvec[9] = (x->100*(1 .- x))
 	ytitle[[5, 10, 13, 15, 16]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
 	ytitle[[1,4,6,8,9]] .= "%"
+	ytitle[7] = "bps"
 
 	if haskey(first(pv).data, :Gini)
 		titlevec[keyvec.==:var] .= "Wealth Gini"
@@ -559,9 +561,9 @@ end
 function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, k=8) where T<:AbstractPath
 	Nc, tvv = get_crises(pv_bench, πthres, k)
 	println("Suggested yh=0.7 for style=paper")
-	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :qg, :Wr]
+	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :spread, :Wr]
 
-	titlevec = ["TFP", "Output", "Consumption", "Bonds", "Govt spending", "Lump-sum taxes", "Unemployment", "Price of new debt", "Welfare in repayment"]
+	titlevec = ["TFP", "Output", "Consumption", "Gov't Debt", "Govt spending", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
 
 	meanYb = mean([mean(series(p, :Y)) for p in pv_bench])
 	meanCb = mean([mean(series(p, :C)) for p in pv_bench])
@@ -577,9 +579,11 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64;
 	f1vec[3] = (x->100*x/meanCb)
 	f1vec[[4]] .= (x->25 * x/meanYb)
 	f1vec[7] = (x->100*(1 .- x))
+	f1vec[8] = x->10000*x
 	ytitle[[4,5,6]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
 	ytitle[[1,7]] .= "%"
+	ytitle[8] = "bps"
 
 	f2vec = copy(f1vec)
 	f2vec[[2,5,6]] .= (x->100*x/meanYn)
@@ -648,9 +652,9 @@ end
 function panels_full_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector{T}, pv_nodef::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65) where T<:AbstractPath
 	Nc, tvv = get_crises(pv_bench, πthres, 8)
 	println("Suggested yh=0.7 for style=paper")
-	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :qg, :Wr]
+	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :spread, :Wr]
 
-	titlevec = ["TFP", "Output", "Consumption", "Bonds", "Govt spending", "Lump-sum taxes", "Unemployment", "Price of new debt", "Welfare in repayment"]
+	titlevec = ["TFP", "Output", "Consumption", "Gov't Debt", "Govt spending", "Lump-sum taxes", "Unemployment", "Spreads", "Welfare in repayment"]
 
 	meanYb = mean([mean(series(p, :Y)) for p in pv_bench])
 	meanCb = mean([mean(series(p, :C)) for p in pv_bench])
@@ -670,9 +674,11 @@ function panels_full_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vecto
 	f1vec[3] = (x->100*x/meanCb)
 	f1vec[[4]] .= (x->25 * x/meanYb)
 	f1vec[7] = (x->100*(1 .- x))
+	f1vec[8] = x->10000*x
 	ytitle[[4,5,6]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
 	ytitle[[1,7]] .= "%"
+	ytitle[8] = "bps"
 
 	f2vec = copy(f1vec)
 	f2vec[[2,5,6]] .= (x->100*x/meanYΔ)
