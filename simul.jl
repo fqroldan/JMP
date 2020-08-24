@@ -217,7 +217,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	p25 = dot(λt, b25) / dot(λt, ϕb)
 	p90 = dot(λt, b90) / dot(λt, ϕb)
 
-	aggC_T = C  * sd.pars[:ϖ] * (1 / pCt)^(-sd.pars[:η])
+	aggC_T = C  * sd.pars[:ϖ] * pCt^sd.pars[:η] # = (1 / pCt)^(-sd.pars[:η])
 	NX = supply_T - aggC_T - Gt * (1 - sd.pars[:ϑ])
 
 	Eω_fromb = dot(λt, avgω_fromb) / dot(λt, ϕb)
@@ -467,6 +467,24 @@ function get_AR1(y::Vector)
 	return ρ, σ
 end
 
+function get_AR1(y::Vector, ζ::Vector)
+
+	y_lag   = y[1:end-1]
+	new_def = [ζ[tt]-ζ[tt-1] == -1 for tt in 2:length(ζ)]
+	y       = y[2:end]
+
+	data = DataFrame(yt = y, ylag = y_lag, X = new_def)
+	OLS = glm(@formula(yt ~ -1 + ylag + X), data, Normal(), IdentityLink())
+
+	ρ = coef(OLS)[1]
+
+	ϵ = y - ρ * y_lag - coef(OLS)[2] * new_def
+
+	σ = var(ϵ)^0.5
+
+	return ρ, σ
+end
+
 get_MV(y::Vector) = mean(y), var(y)^0.5
 
 function simul_stats(pv::Vector{T}) where T <: AbstractPath
@@ -481,7 +499,9 @@ function simul_stats(pv::Vector{T}) where T <: AbstractPath
 	return v_m
 end
 
-function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::Bool=false)
+spr(q,κ) = (1+(κ * (1/q - 1)))^4 - 1
+
+function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::Bool=false, κ = 0.05985340654896883)
 	T = periods(path)
 	
 	if ζ_vec == []
@@ -493,28 +513,28 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 		conditional = (ζ_vec .== 1)
 	end
 
-	B_vec = series(path,:B)[conditional]
-	μ_vec = series(path,:μ)[conditional]
-	σ_vec = series(path,:σ)[conditional]
-	w_vec = series(path,:w)[conditional]
-	z_vec = exp.(series(path,:z)[conditional])
-	Y_vec = series(path,:Y)[conditional]
-	C_vec = series(path,:C)[conditional]
-	G_vec = series(path,:G)[conditional]
-	π_vec = series(path,:π)[conditional]
-	ψ_vec = series(path,:ψ)[conditional]
-	u_vec = 100.0 * (1.0 .- series(path, :L)[conditional])
-	spr_vec = 1.0./series(path, :qg)[conditional] .- (1.04)^0.25
+	B_vec = series(path,:B)
+	μ_vec = series(path,:μ)
+	σ_vec = series(path,:σ)
+	w_vec = series(path,:w)
+	z_vec = exp.(series(path,:z))
+	Y_vec = series(path,:Y)
+	C_vec = series(path,:C)
+	G_vec = series(path,:G)
+	π_vec = series(path,:π)
+	ψ_vec = series(path,:ψ)
+	u_vec = 100.0 * (1.0 .- series(path, :L))
+	spr_vec = 100 * spr.(series(path, :qg), κ)
 
 	# verbose && print("T = $T\n")
 
 	m_vec, sd_vec = unmake_logN(μ_vec, σ_vec)
 	mean_wealth = 100*mean(m_vec./(4*Y_vec))
 
-	ρy, σy = get_AR1(log.(Y_vec.+1e-8))
-	ρc, σc = get_AR1(log.(C_vec.+1e-8))
+	ρy, σy = get_AR1(log.(Y_vec.+1e-8), ζ_vec)
+	ρc, σc = get_AR1(log.(C_vec.+1e-8), ζ_vec)
 	if var(spr_vec) > 1e-6
-		ρs, σs = get_AR1(spr_vec)
+		ρs, σs = get_AR1(spr_vec, ζ_vec)
 	else
 		ρs, σs = 1.0, 0.0
 	end
