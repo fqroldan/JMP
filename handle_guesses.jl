@@ -163,7 +163,7 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 	targets = vec([0.96580506  0.01294576  0.96172496  0.01663608  0.96656486  0.10252351 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
 	
 	g = eval_GMM(v_m, targets)
-	calib_table = make_calib_table([v_m;100*mean([mean(series(path,:Gini)])
+	calib_table = make_calib_table([v_m;100*mean([mean(series(path,:Gini))])])
 	write(savedir * "calib_table.txt", calib_table)
 
 	return g, pp, πthres, v_m, def_freq
