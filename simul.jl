@@ -476,11 +476,16 @@ function get_AR1(y::Vector, ζ::Vector)
 	y       = y[2:end]
 
 	data = DataFrame(yt = y, ylag = y_lag, X = new_def)
-	OLS = glm(@formula(yt ~ -1 + ylag + X), data, Normal(), IdentityLink())
+		
+	if maximum(new_def) == 0
+		OLS = glm(@formula(yt ~ -1 + ylag), data, Normal(), IdentityLink())
+	else
+		OLS = glm(@formula(yt ~ -1 + ylag + X), data, Normal(), IdentityLink())
+	end
 
 	ρ = coef(OLS)[1]
 
-	ϵ = y - ρ * y_lag - coef(OLS)[2] * new_def
+	ϵ = y - predict(OLS)
 
 	σ = var(ϵ)^0.5
 
