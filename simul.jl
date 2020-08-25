@@ -560,7 +560,7 @@ function find_crises(pp::Path, πthres::Float64, k::Int64=7)
 	# println(findall(π_vec .>= πthres))
 
 	Nc = 0
-	jt = k
+	jt = 2k
 	tvec = Int64[]
 	while jt < T - k
 		# println(jt)
@@ -626,8 +626,10 @@ function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k
 		if length(tv) > 0
 			Y = series(pv[jv], key)
 			for (jt, tt) in enumerate(tv)
-				jc += 1
-				ymat[:, jc] = Y[tt-2k:tt+k]
+				if tt-2k > 0
+					jc += 1
+					ymat[:, jc] = Y[tt-2k:tt+k]
+				end
 			end
 		end
 	end
