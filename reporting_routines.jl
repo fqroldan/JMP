@@ -99,7 +99,7 @@ function make_calib_table(v_m)
 
 	# table *= " \\multicolumn{3}{@{}p{.5\\textwidth}@{}}{\\footnotesize All data from Eurostat 2000Q1:2017Q4, except private consumption from OECD 2000Q1:2017Q4, domestic holdings from Banco de España, 2004Q1:2017Q4}\n"
 
-	table *= "\\end{tabular}"
+	table *= "\\end{tabular*}"
 	return table
 end
 

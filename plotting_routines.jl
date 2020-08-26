@@ -106,7 +106,7 @@ function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 	plot(l[:], layout, style=style)
 end	
 
-function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol, min_z, max_z; f1::Function=identity, f2::Function=identity, divergent::Bool=false, reversescale::Bool=false, suffix="")
+function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol, min_z, max_z; f1::Function=identity, f2::Function=identity, divergent::Bool=false, reversescale::Bool=false, suffix="", xpad=10)
 
 	if divergent
 		colpal = ColorSchemes.broc
@@ -116,10 +116,10 @@ function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol, min_z, m
 
 	colscale = [[vv, get(colpal, vv)] for vv in range(0,1,length=100)]
 
-	contour(;x = f1.(sd.gr[dim1]), y = f2.(sd.gr[dim2]), z=y, colorscale = colscale, reversescale=reversescale, autocontour=false, colorbar_ticksuffix=suffix, colorbar_showticksuffix="all", contours=Dict(:start=>min_z,:end=>max_z), xaxis="x1", yaxis="y1")
+	contour(;x = f1.(sd.gr[dim1]), y = f2.(sd.gr[dim2]), z=y, colorscale = colscale, reversescale=reversescale, autocontour=false, colorbar_ticksuffix=suffix, colorbar_xpad = xpad, colorbar_showticksuffix="all", contours=Dict(:start=>min_z,:end=>max_z), xaxis="x1", yaxis="y1")
 end
 
-function makecontour_μσ(sd::SOEdef, y::Matrix, min_z, max_z; divergent::Bool=false, reversescale::Bool=false, fz::Function=identity, suffix="")
+function makecontour_μσ(sd::SOEdef, y::Matrix, min_z, max_z; divergent::Bool=false, reversescale::Bool=false, fz::Function=identity, suffix="", xpad=10)
 	knots = (sd.gr[:μ], sd.gr[:σ])
 	itp_y = extrapolate(interpolate(knots, y, Gridded(Linear())), Interpolations.Line())
 
@@ -136,7 +136,7 @@ function makecontour_μσ(sd::SOEdef, y::Matrix, min_z, max_z; divergent::Bool=f
 	ctμσ = contour(;
 	x = xgrid, y = ygrid,
 	z = fz.(y_mat), xaxis="x2", yaxis="y2",
-	colorscale = colscale, reversescale=reversescale, colorbar_ticksuffix=suffix, colorbar_showticksuffix="all", autocontour=false, contours=Dict(:start=>min_z,:end=>max_z))
+	colorscale = colscale, reversescale=reversescale, colorbar_ticksuffix=suffix, colorbar_xpad = xpad, colorbar_showticksuffix="all", autocontour=false, contours=Dict(:start=>min_z,:end=>max_z))
 end
 
 function reeval_mat_MV(sd::SOEdef, itp_obj; lb=-Inf, ub=Inf)
@@ -205,8 +205,8 @@ function make_debtprice(sd::SOEdef; style::Style=slides_def, leg=true)
 	qg_matμσ = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jμ, μv) in enumerate(sd.gr[:μ]), (jσ,σv) in enumerate(sd.gr[:σ])]
 	
 
-	data1 = makecontour(sd, qg_matbz, :b, :z, 0.4, 1, f2=x->100x, reversescale=true)
-	data2 = makecontour_μσ(sd, qg_matμσ, 0.4, 1, reversescale=true)
+	data1 = makecontour(sd, qg_matbz, :b, :z, 0.4, 1, f2=x->100x, xpad = 15, reversescale=true)
+	data2 = makecontour_μσ(sd, qg_matμσ, 0.4, 1, xpad = 15, reversescale=true)
 
 	data = [data1, data2]
 	# data = data1
