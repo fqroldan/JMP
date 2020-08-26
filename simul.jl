@@ -458,11 +458,11 @@ function get_AR1(y::Vector)
 	y = y[2:end]
 
 	data = DataFrame(yt = y, ylag = y_lag)
-	OLS = glm(@formula(yt ~ ylag - 1), data, Normal(), IdentityLink())
+	OLS = glm(@formula(yt ~ -1 + ylag), data, Normal(), IdentityLink())
 
 	ρ = coef(OLS)[1]
 
-	ϵ = y - ρ * y_lag
+	ϵ = y - predict(OLS)
 
 	σ = var(ϵ)^0.5
 
