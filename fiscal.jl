@@ -146,8 +146,8 @@ coef_B = [-3.7139713360228805,  0.7275741192021965, -0.012592821100531077,  0.02
 	# coef_g = [20.6746151785  0.0307028678  0.0021122640  0.0095750707 -0.0002004299  0.0090837466 -0.0001310273]
 
 	# coef_B = [ 1.0786829981  0.3342813521  0.0001223178 -0.0102040316  0.0001494438  0.0461321365 -0.00014158229 ]
-	g = [ ones(size(unemp)) unemp unemp2 BoY BoY2 NX NX2 ] * coef_g' / 100
-	net_iss = [ ones(size(unemp)) unemp unemp2 BoY BoY2 NX NX2 ] * coef_B' / 100
+	g = [ ones(size(unemp)) unemp unemp2 BoY BoY2 NX NX2 ] * coef_g / 100
+	net_iss = [ ones(size(unemp)) unemp unemp2 BoY BoY2 NX NX2 ] * coef_B / 100
 
 	eq[:spending] = max.(min.(vec(g), 0.35), 0) .* (1 * eq[:output])
 	eq[:issuance] = min.(0.35,max.(0, vec(net_iss))) .* (4 * eq[:output]) + (1 - pars[:ρ])*debt
