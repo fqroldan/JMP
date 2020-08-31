@@ -140,7 +140,7 @@ function SOEdef(;
 	## Prepare discretized processes
 	# Aggregate risk
 	# zgrid, Pz = tauchen_fun(Nz, ρz, σz, m=1.5)
-	zchain = tauchen(Nz, ρz, σz, 0, 2)
+	zchain = tauchen(Nz, ρz, σz, 0, 3)
 	Pz = zchain.p
 	zgrid = zchain.state_values
 
@@ -296,10 +296,11 @@ end
 function update_prob_z!(sd::SOEdef, ρ::Real=sd.pars[:ρz], σ::Real=sd.pars[:σz])
 	Ns = N(sd, :z)
 	
-	zgrid, Pz = tauchen_fun(Ns, ρ, σ, m=1.5)
+	# zgrid, Pz = tauchen_fun(Ns, ρ, σ, m=1.5)
+	zchain = tauchen(Nz, ρ, σ, 0, 3)
 
-	sd.gr[:z] = zgrid
-	sd.prob[:z] = Pz
+	sd.gr[:z] = zchain.state_values
+	sd.prob[:z] = zchain.p
 
 	nothing
 end
@@ -307,11 +308,12 @@ end
 function update_prob_ξ!(sd::SOEdef, ρ::Real=sd.pars[:ρξ], σ::Real=sd.pars[:σξ], meanξ::Real=sd.pars[:meanξ])
 	Ns = N(sd, :ξ)
 
-	ξgrid, Pξ = tauchen_fun(Ns, ρ, σ, m=0.5)
-	ξgrid = ξgrid .+ meanξ
+	# ξgrid, Pξ = tauchen_fun(Ns, ρ, σ, m=0.5)
+	# ξgrid = ξgrid .+ meanξ
+	ξchain = tauchen(Ns, ρ, σ, 0, 1)
 
-	sd.gr[:ξ] = ξgrid
-	sd.prob[:ξ] = Pξ
+	sd.gr[:ξ] = ξchain.state_values .+ meanξ
+	sd.prob[:ξ] = ξchain.p
 
 	nothing
 end
