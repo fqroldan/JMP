@@ -249,15 +249,15 @@ function get_AR1(y::Vector)
 	y = y[2:end]
 
 	data = DataFrame(yt = y, ylag = y_lag)
-	OLS = glm(@formula(yt ~ ylag), data, Normal(), IdentityLink())
+	OLS = lm(@formula(yt ~ ylag), data)
 
 	println(OLS); ρ = coef(OLS)[2]
-
+	println("R2 = $(r2(OLS))")
 	ϵ = y - predict(OLS)
 
 	σ = (sum(ϵ.^2)/(length(ϵ)))^.5
 
-	return ρ, σ
+	return ρ, σ / (1-ρ^2)
 end
 
 function load_GDP_SPA()
