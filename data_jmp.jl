@@ -1,4 +1,31 @@
-using CSV, DataFrames, Dates, GLM, PlotlyJS, ORCA, FixedEffectModels, RegressionTables, SparseArrays, ExcelReaders
+using QuantEcon, CSV, DataFrames, Dates, GLM, PlotlyJS, ColorSchemes, ORCA, FixedEffectModels, RegressionTables, SparseArrays, ExcelReaders
+
+""" Define styles """
+def_style = let
+	axis = attr(showgrid = true, gridcolor="#e2e2e2", gridwidth=0.5, zeroline=false)
+	layout = Layout(xaxis = axis, yaxis=axis)
+	Style(layout=layout)
+end
+
+slides_def = let
+	layout = Layout(plot_bgcolor="#fafafa", paper_bgcolor="#fafafa",
+		width=1920*0.45, height=1080*0.45, font_size=16, font_family="Lato",
+		legend = attr(orientation = "h", x=0.05))
+	Style(def_style, layout=layout)
+end
+
+dark_bg = let
+	axis = attr(gridcolor="#1b1b1b")
+	layout = Layout(plot_bgcolor="#020202", paper_bgcolor="#020202", font_color="white", xaxis=axis,yaxis=axis)
+	Style(layout=layout)
+end
+slides_dark = Style(slides_def, dark_bg)
+
+paper = let
+	layout = Layout(width = 1920 * 0.5, height = 1080 * 0.35, font_size=16, font_family = "Linux Libertine",
+		legend = attr(orientation = "h", x=0.05))
+	Style(def_style, layout=layout)
+end
 
 function load_all()
 
@@ -123,7 +150,7 @@ function regs_sec2(data::DataFrame)
 	regtable(regY1, regY2, regC1, regC2, res1, res2, regression_statistics = [:nobs, :adjr2, :r2_within], print_estimator_section = false, labels=Dict("TIME"=>"Time FE","GEO"=>"Country FE", "lgdp"=>"log Y_t", "lcons"=>"log C_t", "lcons_"=>" log C_t"))
 end
 
-function regs_fiscalrules(df::DataFrame)
+function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
 
 	df = df[df.TIME .>= Date("2000-01-01"),:]
 
@@ -154,12 +181,41 @@ function regs_fiscalrules(df::DataFrame)
 
 	println(regtable(reg1G, reg2G, reg3G, reg4G, reg1B, reg2B, reg3B, reg4B, renderSettings=asciiOutput(),regression_statistics = [:nobs, :r2, :adjr2, :r2_within], print_estimator_section = false, labels=Dict("TIME"=>"Time FE","GEO"=>"Country FE", "g_spend" => "G_t/Y_t", "unemp" => "Unemployment_t", "unemp2" => "Unemployment_t^2", "debt" => "B_t/Y_t", "BoverY2" => "(B_t/Y_t)^2", "NX" => "Net Exports_t", "NXsq" => "Net Exports_t^2", "net_iss" => "(B_t' - (1-ρ)B_t) / Y_t")))
 
-	plot([
+	col = [	
+		get(ColorSchemes.davos, 0.2)
+		get(ColorSchemes.lajolla, 0.6)
+		get(ColorSchemes.cork, 0.9)
+	]
+
+	data = [
+		scatter(x=df[df.GEO.=="Spain",:].TIME, y=df[df.GEO.=="Spain",:].net_iss, name = "Observed", legendgroup = 1, yaxis="y1", marker_color=col[1])
+		scatter(x=df[df.GEO.=="Spain",:].TIME, y=df[df.GEO.=="Spain",:].g_spend, name = "Observed", legendgroup = 1, yaxis="y2", showlegend=false, marker_color=col[1])
+		scatter(x=df[df.GEO.=="Spain",:].TIME, y=iss_hat, name = "Fitted", line_dash="dashdot", legendgroup=2, yaxis="y1", marker_color=col[2])
+		scatter(x=df[df.GEO.=="Spain",:].TIME, y=g_hat, name = "Fitted", line_dash="dashdot", legendgroup=2, yaxis="y2", showlegend=false, marker_color=col[2])
+	]
+
+	annotations = [
+		attr(x=0.5, xref="paper", xanchor="center", y=1, yref="paper", text = "Government Spending", font_size=18, showarrow=false)
+		attr(x=0.5, xref="paper", xanchor="center", y=0.45, yref="paper", text = "Debt Issuances", font_size=18, showarrow=false)
+		]
+
+	layout = Layout(annotations = annotations, height = style.layout[:height]*yh,
+		yaxis1 = attr(domain = [0, 0.4], title="% of GDP"),
+		yaxis2 = attr(domain = [0.55, 0.95], title="% of GDP"),
+		)
+
+	pg = plot([
 		scatter(x=df[df.GEO.=="Spain",:].TIME, y=df[df.GEO.=="Spain",:].net_iss, name = "Observed")
 		scatter(x=df[df.GEO.=="Spain",:].TIME, y=iss_hat, name = "Fitted")
 		]
 		)
+	pb = plot([
+		scatter(x=df[df.GEO.=="Spain",:].TIME, y=df[df.GEO.=="Spain",:].g_spend, name = "Observed")
+		scatter(x=df[df.GEO.=="Spain",:].TIME, y=g_hat, name = "Fitted")
+		]
+		)
 
+	plot(data, layout, style=style)
 	# plot([
 	# 	scatter(x=df[df.GEO.=="Spain",:].TIME, y=df[df.GEO.=="Spain",:].g_spend, name = "Observed")
 	# 	scatter(x=df[df.GEO.=="Spain",:].TIME, y=g_hat, name = "Fitted")
@@ -168,7 +224,7 @@ function regs_fiscalrules(df::DataFrame)
 
 	# plot([scatter(x=df[df.GEO.==country,:].net_iss, y=iss_hat[df.GEO.==country], name=country, text=df[df.GEO.==country,:].TIME, mode="markers") for country in unique(df.GEO)])
 
-	return coef(reg4G), coef(reg4B)
+	# return coef(reg4G), coef(reg4B)
 end
 
 function hp_filter(y::Vector{Float64}, lambda::Float64=1600.)
@@ -188,7 +244,23 @@ function hp_detrend(y::Vector{Float64}, lambda::Float64=1600.)
     return y - hp_filter(y, lambda)
 end
 
-function load_SPA()
+function get_AR1(y::Vector)
+       y_lag = y[1:end-1]
+       y = y[2:end]
+
+       data = DataFrame(yt = y, ylag = y_lag)
+       OLS = glm(@formula(yt ~ ylag), data, Normal(), IdentityLink())
+
+       println(OLS); ρ = coef(OLS)[2]
+
+       ϵ = y - predict(OLS)
+
+       σ = (sum(ϵ.^2)/(length(ϵ)))^.5
+
+       return ρ, σ
+end
+
+function load_GDP_SPA()
 	data_raw 		= readxl("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2!B12:I103");
 
 	d = readxl("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2!A12:A103");
@@ -206,11 +278,16 @@ function load_SPA()
 	df.date = dates_GDP
 
 	for yy in varlabels
-		df["$(yy)_hp"] = hp_detrend(log.(df[yy]))
+		df[!,"$(yy)_hp"] = hp_detrend(log.(df[!,yy]))
 	end
 
 	df.CoverY = df.C_hh ./ df.GDP * 100
 
+	return df
+end
+
+function load_SPA()
+	df = load_GDP_SPA()
 
 	data_rates = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!B10:D101")
 	d2 = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!A10:A101")
@@ -228,17 +305,15 @@ function load_SPA()
 
 	debt_base = CSV.read("/home/q/Dropbox/Research/Active/Default_Inequality_Supply/empirics/Debt/data_spain.csv", datarow=2)[1:end-3,:]
 
-	debt_base.Column1 = Date.(data.Column1[1:end-3], "u-yy") .+ Year(2000) .- Month(2)
+	debt_base.Column1 = Date.(debt_base.Column1, "u-yy") .+ Year(2000) .- Month(2)
 	rename!(debt_base, "Column1" => "date")
 
 	debt_base = DataFrame([y=>debt_base[y] for y in ["date", "Total Foreign", "Total domestic", "Debt to GDP"]])
 
-
-
 	return df
 end
 	
-function SPA_CvY(;style::Style=slides_def)
+function SPA_CvY(;style::Style=slides_def, yh = 1)
 
 	df = load_SPA()
 
@@ -284,13 +359,14 @@ function SPA_CvY(;style::Style=slides_def)
 
 
 	layout = Layout(shapes = shapes, annotations = annotations,
+		height = style.layout[:height]*yh, 
 		yaxis1 = attr(title="%"),
 		yaxis2 = attr(titlefont_size=18, title="bps", overlaying = "y", side="right", zeroline=false),
 		legend = attr(x=0.5, xanchor = "center"),
 		)
 
 	plot([
-		[scatter(x=df.date, y=df[y], line = lineattr[y], name=y) for y in ["Output", "Consumption"]]
+		[scatter(x=df.date, y=df[!,y], line = lineattr[y], name=y) for y in ["Output", "Consumption"]]
 		scatter(x=df.date, y=df.spread, name="Spread (right axis)", line = lineattr["Spread"], yaxis="y2")
 		], layout, style=style)
 end
@@ -329,8 +405,8 @@ function SPA_nw(; style::Style=slides_def)
 	        , ax = 40, ay = -40, xanchor = "left", yanchor = "bottom", text="Mean $(round(Int, mean(df.liabilities)))%");
 	    ]
 	shapes = [
-	    hline(mean(assets), line = attr(width = 1, dash = "dot", color=col[1]))
-	    hline(mean(liabilities), line = attr(width = 1, dash = "dot", color=col[2]))
+	    hline(mean(df.assets), line = attr(width = 1, dash = "dot", color=col[1]))
+	    hline(mean(df.liabilities), line = attr(width = 1, dash = "dot", color=col[2]))
 	    ]
 
 	layout = Layout(annotations = annot, shapes = shapes,
@@ -338,7 +414,7 @@ function SPA_nw(; style::Style=slides_def)
 		)
 
 	pNW = plot([
-	        scatter(;x = df.date, y=df[y], line_color=col[jj], name=uppercasefirst(y)) for (jj,y) in enumerate(["assets", "liabilities"])
+	        scatter(;x = df.date, y=df[!,y], line_color=col[jj], name=uppercasefirst(y)) for (jj,y) in enumerate(["assets", "liabilities"])
 	        ], layout, style=style)
 end
 
