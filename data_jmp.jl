@@ -228,36 +228,36 @@ function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
 end
 
 function hp_filter(y::Vector{Float64}, lambda::Float64=1600.)
-    n = length(y)
-    #@assert n >= 4
+	n = length(y)
+	#@assert n >= 4
 
-    diag2 = lambda*ones(n-2)
-    diag1 = [ -2lambda; -4lambda*ones(n-3); -2lambda ]
-    diag0 = [ 1+lambda; 1+5lambda; (1+6lambda)*ones(n-4); 1+5lambda; 1+lambda ]
+	diag2 = lambda*ones(n-2)
+	diag1 = [ -2lambda; -4lambda*ones(n-3); -2lambda ]
+	diag0 = [ 1+lambda; 1+5lambda; (1+6lambda)*ones(n-4); 1+5lambda; 1+lambda ]
 
-    D = spdiagm(-2=>diag2, -1=>diag1, 0=>diag0, 1=>diag1, 2=>diag2)
+	D = spdiagm(-2=>diag2, -1=>diag1, 0=>diag0, 1=>diag1, 2=>diag2)
 
-    D\y
+	D\y
 end
 
 function hp_detrend(y::Vector{Float64}, lambda::Float64=1600.)
-    return y - hp_filter(y, lambda)
+	return y - hp_filter(y, lambda)
 end
 
 function get_AR1(y::Vector)
-       y_lag = y[1:end-1]
-       y = y[2:end]
+	y_lag = y[1:end-1]
+	y = y[2:end]
 
-       data = DataFrame(yt = y, ylag = y_lag)
-       OLS = glm(@formula(yt ~ ylag), data, Normal(), IdentityLink())
+	data = DataFrame(yt = y, ylag = y_lag)
+	OLS = glm(@formula(yt ~ ylag), data, Normal(), IdentityLink())
 
-       println(OLS); ρ = coef(OLS)[2]
+	println(OLS); ρ = coef(OLS)[2]
 
-       ϵ = y - predict(OLS)
+	ϵ = y - predict(OLS)
 
-       σ = (sum(ϵ.^2)/(length(ϵ)))^.5
+	σ = (sum(ϵ.^2)/(length(ϵ)))^.5
 
-       return ρ, σ
+	return ρ, σ
 end
 
 function load_GDP_SPA()
@@ -343,19 +343,19 @@ function SPA_CvY(;style::Style=slides_def, yh = 1)
 	minY, minC = df.Output[df.date .>= Date("2013-05-01")][1], df.Consumption[df.date .>= Date("2013-05-01")][1]
 
 	shapes = [
-            hline([minY], [Date(date1Y)], [Date(date2Y)], line = attr(width = 1.25, dash="dot", color=col[1]))
-            hline([minC], [Date(date1C)], [Date(date2C)], line = attr(width = 1.25, dash="dot", color=col[2]))
-            vline(date1Y, minY, 100, line = attr(width=1.5, dash="dot", color=col[1]))
-            vline(date1C, minC, 100, line = attr(width=1.5, dash="dot", color=col[2]))
-            vline(datemid-Dates.Month(1), minY, midY, line = attr(width=1.5, dash="dot", color=col[1]))
-            vline(datemid, minC, midC, line = attr(width=1.5, dash="dot", color=col[2]))
-        ]
+			hline([minY], [Date(date1Y)], [Date(date2Y)], line = attr(width = 1.25, dash="dot", color=col[1]))
+			hline([minC], [Date(date1C)], [Date(date2C)], line = attr(width = 1.25, dash="dot", color=col[2]))
+			vline(date1Y, minY, 100, line = attr(width=1.5, dash="dot", color=col[1]))
+			vline(date1C, minC, 100, line = attr(width=1.5, dash="dot", color=col[2]))
+			vline(datemid-Dates.Month(1), minY, midY, line = attr(width=1.5, dash="dot", color=col[1]))
+			vline(datemid, minC, midC, line = attr(width=1.5, dash="dot", color=col[2]))
+		]
 	annotations = [
-            attr(x = Date(date1Y), y = 95, showarrow=false, xanchor="right", text="$(round(Int,100*(minY-maxY)/maxY))%", font_color=col[1])
-            attr(x = Date(date1C), y = 92, showarrow=false, xanchor="left", text="$(round(Int,100*(minC-maxC)/maxC))%", font_color=col[2])
-            attr(x = Date(datemid)-Dates.Month(1), y = 93, showarrow=false, xanchor="right", text="$(round(Int,100*(minY-midY)/midY))%", font_color=col[1])
-            attr(x = Date(datemid), y = 88, showarrow=false, xanchor="right", text="$(round(Int,100*(minC-midC)/midC))%", font_color=col[2])
-        ]
+			attr(x = Date(date1Y), y = 95, showarrow=false, xanchor="right", text="$(round(Int,100*(minY-maxY)/maxY))%", font_color=col[1])
+			attr(x = Date(date1C), y = 92, showarrow=false, xanchor="left", text="$(round(Int,100*(minC-maxC)/maxC))%", font_color=col[2])
+			attr(x = Date(datemid)-Dates.Month(1), y = 93, showarrow=false, xanchor="right", text="$(round(Int,100*(minY-midY)/midY))%", font_color=col[1])
+			attr(x = Date(datemid), y = 88, showarrow=false, xanchor="right", text="$(round(Int,100*(minC-midC)/midC))%", font_color=col[2])
+		]
 
 
 	layout = Layout(shapes = shapes, annotations = annotations,
@@ -399,22 +399,22 @@ function SPA_nw(; style::Style=slides_def)
 	]
 
 	annot = [
-	    attr(x = Date("2009-02"), y = mean(df.assets) - 1
-	        , ax = -40, ay = 40, xanchor = "right", yanchor = "top", text="Mean $(round(Int, mean(df.assets)))%");
-	    attr(x = Date("2004-01"), y = mean(df.liabilities) + 1
-	        , ax = 40, ay = -40, xanchor = "left", yanchor = "bottom", text="Mean $(round(Int, mean(df.liabilities)))%");
-	    ]
+		attr(x = Date("2009-02"), y = mean(df.assets) - 1
+			, ax = -40, ay = 40, xanchor = "right", yanchor = "top", text="Mean $(round(Int, mean(df.assets)))%");
+		attr(x = Date("2004-01"), y = mean(df.liabilities) + 1
+			, ax = 40, ay = -40, xanchor = "left", yanchor = "bottom", text="Mean $(round(Int, mean(df.liabilities)))%");
+		]
 	shapes = [
-	    hline(mean(df.assets), line = attr(width = 1, dash = "dot", color=col[1]))
-	    hline(mean(df.liabilities), line = attr(width = 1, dash = "dot", color=col[2]))
-	    ]
+		hline(mean(df.assets), line = attr(width = 1, dash = "dot", color=col[1]))
+		hline(mean(df.liabilities), line = attr(width = 1, dash = "dot", color=col[2]))
+		]
 
 	layout = Layout(annotations = annot, shapes = shapes,
 		yaxis = attr(title="% of GDP"),
 		)
 
 	pNW = plot([
-	        scatter(;x = df.date, y=df[!,y], line_color=col[jj], name=uppercasefirst(y)) for (jj,y) in enumerate(["assets", "liabilities"])
-	        ], layout, style=style)
+			scatter(;x = df.date, y=df[!,y], line_color=col[jj], name=uppercasefirst(y)) for (jj,y) in enumerate(["assets", "liabilities"])
+			], layout, style=style)
 end
 
