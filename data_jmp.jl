@@ -109,6 +109,8 @@ function load_all()
 	data.debt_lead = by(data, :GEO, x = :debt => Base.Fix2(lead, 1)).x
 	data.debt_level_lead = by(data, :GEO, x = :debt_level => Base.Fix2(lead, 1)).x
 
+	data.cpi_lag = by(data, :GEO, x = :cpi => Base.Fix2(lag, 4)).x
+	data.inflation = ((data.cpi ./ data.cpi_lag).^1 .- 1) * 100
 
 	data.x = ifelse.(data.TIME .== Date("2007-01-01"), data.debt, missing)
 	temp = by(data, :GEO, b0=:x => x->maximum(skipmissing(x)))
