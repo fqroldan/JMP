@@ -110,11 +110,11 @@ function load_all()
 	data.debt_level_lead = by(data, :GEO, x = :debt_level => Base.Fix2(lead, 1)).x
 
 
-	data.x = data.debt .* (data.TIME .== Date("2007-01-01"))
+	data.x = ifelse.(data.TIME .== Date("2007-01-01"), data.debt, missing)
 	temp = by(data, :GEO, b0=:x => x->maximum(skipmissing(x)))
 	data = join(data, temp, on = [:GEO])
 
-	data.x = data.rates .* (data.GEO .== "Germany")
+	data.x = ifelse.(data.GEO.=="Germany", data.rates, missing)
 	temp = by(data, :TIME, GERint=:x => x->maximum(skipmissing(x)))
 	data = join(data, temp, on = [:TIME])
 	data.spread = data.rates - data.GERint
@@ -138,15 +138,17 @@ function regs_sec2(data::DataFrame)
 
 	regY1 = reg(df, @formula(lgdp ~ spread + fe(GEO) + fe(TIME)))
 	regC1 = reg(df, @formula(lcons ~ spread + fe(GEO) + fe(TIME)))
+	regu1 = reg(df, @formula(unemp ~ spread + fe(GEO) + fe(TIME)))
 
 	regY2 = reg(df, @formula(lgdp ~ spread + debt + fe(GEO) + fe(TIME)))
 	regC2 = reg(df, @formula(lcons ~ spread + debt + fe(GEO) + fe(TIME)))
+	regu2 = reg(df, @formula(unemp ~ spread + debt + fe(GEO) + fe(TIME)))
 
 	res1 = reg(df, @formula(lcons_ ~ spread + lgdp + fe(GEO) + fe(TIME)))
 	res2 = reg(df, @formula(lcons_ ~ spread + debt + lgdp + fe(GEO) + fe(TIME)))
 
 	regtable(regY1, regY2, regC1, regC2, res1, res2, renderSettings = latexOutput("../Output/current_best/table1.txt"), regression_statistics = [:nobs, :r2_within], print_estimator_section = false, labels = Dict("__LABEL_FE_YES__" => "\\checkmark", "__LABEL_STATISTIC_adjr2__" => "Adj.~\$R^2\$", "TIME"=>"Time FE", "GEO"=>"Country FE", "lgdp"=>"\$\\log Y_t\$", "lcons"=>"\$\\log C_t\$", "lcons_"=>"\$\\log C_{t}\$", "spread"=>"Spread\$_t\$", "debt"=>"\$B_t/Y_t\$"))
-	regtable(regY1, regY2, regC1, regC2, res1, res2, regression_statistics = [:nobs, :adjr2, :r2_within], print_estimator_section = false, labels=Dict("TIME"=>"Time FE","GEO"=>"Country FE", "lgdp"=>"log Y_t", "lcons"=>"log C_t", "lcons_"=>" log C_t"))
+	regtable(regY1, regY2, regC1, regC2, regu1, regu2, res1, res2, regression_statistics = [:nobs, :adjr2, :r2_within], print_estimator_section = false, labels=Dict("TIME"=>"Time FE","GEO"=>"Country FE", "lgdp"=>"log Y_t", "lcons"=>"log C_t", "lcons_"=>" log C_t"))
 end
 
 function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
