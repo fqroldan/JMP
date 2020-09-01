@@ -114,11 +114,10 @@ function load_all()
 	temp = by(data, :GEO, b0=:x => x->maximum(skipmissing(x)))
 	data = join(data, temp, on = [:GEO])
 
-	data.x = data.rates .* (data.GEO .== "Germany (until 1990 former territory of the FRG)")
+	data.x = data.rates .* (data.GEO .== "Germany")
 	temp = by(data, :TIME, GERint=:x => x->maximum(skipmissing(x)))
 	data = join(data, temp, on = [:TIME])
 	data.spread = data.rates - data.GERint
-
 
 	data
 end
@@ -248,16 +247,20 @@ function get_AR1(y::Vector)
 	y_lag = y[1:end-1]
 	y = y[2:end]
 
-	data = DataFrame(yt = y, ylag = y_lag)
-	OLS = lm(@formula(yt ~ ylag), data)
+	t = 1:length(y)
 
-	println(OLS); ρ = coef(OLS)[2]
-	println("R2 = $(r2(OLS))")
+	data = DataFrame(yt = y, ylag = y_lag, t=t)
+	OLS = lm(@formula(yt ~ ylag), data)
+	
+	ρ = coef(OLS)[2]
+	# println(OLS); 
+	# println("R2 = $(r2(OLS))")
 	ϵ = y - predict(OLS)
 
-	σ = (sum(ϵ.^2)/(length(ϵ)))^.5
+	σ2 = sum(ϵ.^2)/(length(ϵ))
 
-	return ρ, σ / (1-ρ^2)
+	σy = sqrt(σ2 / (1-ρ^2))
+	return ρ, σy
 end
 
 function load_GDP_SPA()
@@ -308,16 +311,22 @@ function load_SPA()
 	debt_base.Column1 = Date.(debt_base.Column1, "u-yy") .+ Year(2000) .- Month(2)
 	rename!(debt_base, "Column1" => "date")
 
-	debt_base = DataFrame([y=>debt_base[y] for y in ["date", "Total Foreign", "Total domestic", "Debt to GDP"]])
+	debt_base = DataFrame([y=>debt_base[!,y] for y in ["date", "Total Foreign", "Total domestic", "Debt to GDP"]])
 
 	return df
 end
 	
-function SPA_CvY(;style::Style=slides_def, yh = 1)
+function SPA_CvY(country::String="Spain";style::Style=slides_def, yh = 1, sh=true)
 
 	df = load_SPA()
+	if country != "Spain"
+		df = load_all()
+		df = df[df.GEO.==country,:]
+		rename!(df, "gdp" => "GDP", "cons" => "C_hh", "TIME" => "date")
+		df.spread *= 100
+	end
 
-	df = df[df.date.>= Date("2000-01-01"),:]
+	df = df[df.date.>= Date("2002-01-01"),:]
 
 	jT = findfirst(df.date .>= Date("2008-01-01"))
 
@@ -326,11 +335,11 @@ function SPA_CvY(;style::Style=slides_def, yh = 1)
 
 	col = [	
 		get(ColorSchemes.davos, 0.2)
-		get(ColorSchemes.lajolla, 0.6)
+		get(ColorSchemes.lajolla, 0.5)
 		get(ColorSchemes.cork, 0.9)
 	]
 
-	lineattr = Dict("Output" => attr(color=col[1]), "Consumption" => attr(color=col[2], dash="dashdot"), "Spread" => attr(color=col[3], dash="dot"))
+	lineattr = Dict("Output" => attr(width = 2.5, color=col[1]), "Consumption" => attr(width = 2.5, color=col[2], dash="dashdot"), "Spread" => attr(width = 2.5, color=col[3], dash="dot"))
 
 	date1Y = Date("2008-01-01")
 	date1C = Date("2008-02-01")
@@ -342,24 +351,29 @@ function SPA_CvY(;style::Style=slides_def, yh = 1)
 	midY, midC = first(df.Output[df.date .>= datemid]), first(df.Consumption[df.date .>= datemid])
 	minY, minC = df.Output[df.date .>= Date("2013-05-01")][1], df.Consumption[df.date .>= Date("2013-05-01")][1]
 
-	shapes = [
-			hline([minY], [Date(date1Y)], [Date(date2Y)], line = attr(width = 1.25, dash="dot", color=col[1]))
-			hline([minC], [Date(date1C)], [Date(date2C)], line = attr(width = 1.25, dash="dot", color=col[2]))
-			vline(date1Y, minY, 100, line = attr(width=1.5, dash="dot", color=col[1]))
-			vline(date1C, minC, 100, line = attr(width=1.5, dash="dot", color=col[2]))
-			vline(datemid-Dates.Month(1), minY, midY, line = attr(width=1.5, dash="dot", color=col[1]))
-			vline(datemid, minC, midC, line = attr(width=1.5, dash="dot", color=col[2]))
-		]
-	annotations = [
-			attr(x = Date(date1Y), y = 95, showarrow=false, xanchor="right", text="$(round(Int,100*(minY-maxY)/maxY))%", font_color=col[1])
-			attr(x = Date(date1C), y = 92, showarrow=false, xanchor="left", text="$(round(Int,100*(minC-maxC)/maxC))%", font_color=col[2])
-			attr(x = Date(datemid)-Dates.Month(1), y = 93, showarrow=false, xanchor="right", text="$(round(Int,100*(minY-midY)/midY))%", font_color=col[1])
-			attr(x = Date(datemid), y = 88, showarrow=false, xanchor="right", text="$(round(Int,100*(minC-midC)/midC))%", font_color=col[2])
-		]
+	shapes = []
+	annotations = []
+
+	if sh
+		shapes = [
+				hline([minY], [Date(date1Y)], [Date(date2Y)], line = attr(width = 1.5, dash="dot", color=col[1]))
+				hline([minC], [Date(date1C)], [Date(date2C)], line = attr(width = 1.5, dash="dot", color=col[2]))
+				vline(date1Y, minY, 100, line = attr(width=1.75, dash="dot", color=col[1]))
+				vline(date1C, minC, 100, line = attr(width=1.75, dash="dot", color=col[2]))
+				vline(datemid-Dates.Month(1), minY, midY, line = attr(width=1.75, dash="dot", color=col[1]))
+				vline(datemid, minC, midC, line = attr(width=1.75, dash="dot", color=col[2]))
+			]
+		annotations = [
+				attr(x = Date(date1Y), y = (maxY+minY)/2, showarrow=false, xanchor="right", text="$(round(Int,100*(minY-maxY)/maxY))%", font_color=col[1])
+				attr(x = Date(date1C), y = (maxC+minC)/2, showarrow=false, xanchor="left", text="$(round(Int,100*(minC-maxC)/maxC))%", font_color=col[2])
+				attr(x = Date(datemid)-Dates.Month(1), y = minY, yanchor="bottom", showarrow=false, xanchor="right", text="$(round(Int,100*(minY-midY)/midY))%", font_color=col[1])
+				attr(x = Date(datemid), y = minC, yanchor="bottom", showarrow=false, xanchor="left", text="$(round(Int,100*(minC-midC)/midC))%", font_color=col[2])
+			]
+	end
 
 
 	layout = Layout(shapes = shapes, annotations = annotations,
-		height = style.layout[:height]*yh, 
+		height = style.layout[:height]*yh, title = "Output and Consumption in " * country,
 		yaxis1 = attr(title="%"),
 		yaxis2 = attr(titlefont_size=18, title="bps", overlaying = "y", side="right", zeroline=false),
 		legend = attr(x=0.5, xanchor = "center"),
