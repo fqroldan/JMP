@@ -294,7 +294,7 @@ function load_SPA()
 	data_rates = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!B10:D101")
 	d2 = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!A10:A101")
 	dates_rates = Date.(["$(parse(Int, d2[jt][1:4]))-$(parse(Int,d2[jt][end])*3-2)" for jt in 1:length(d2)], "yyyy-mm")
-	spread = 10000 * convert(Vector{Float64}, data_rates[:,2] - data_rates[:,1]);
+	spread = 100 * convert(Vector{Float64}, data_rates[:,2] - data_rates[:,1]);
 
 	SPR = DataFrame("date" => dates_rates, "spread" => spread)
 
@@ -312,7 +312,39 @@ function load_SPA()
 
 	debt_base = DataFrame([y=>debt_base[!,y] for y in ["date", "Total Foreign", "Total domestic", "Debt to GDP"]])
 
+	df = join(df, debt_base, on=["date"])
 	return df
+end
+
+function SPA_targets()
+	df = load_all()
+	df = df[df.TIME .>= Date("2000-01-01"), :]
+	df = df[df.GEO .== "Spain", :]
+	rename!(df, "TIME" => "date")
+
+	df_nw = load_SPA_nw()
+
+	df = join(df, df_nw, on = ["date"])
+
+	ρy, σy = get_AR1(hp_detrend(log.(df.gdp)))
+	ρc, σc = get_AR1(hp_detrend(log.(df.cons)))
+	ρq, σq = get_AR1(df.spread / 100)
+
+	B_avg = mean(df.debt)
+	B_std = sqrt(var(df.debt))
+	u_avg = mean(df.unemp)
+	u_std = sqrt(var(df.unemp))
+
+	w_avg = mean(df.net_worth)
+
+	df_spa = load_SPA()
+	median_dom = quantile(df_spa["Total domestic"] ./ ( df_spa["Total domestic"] + df_spa["Total Foreign"] ), 0.5)
+
+	SPA_gini = CSV.read("../Data/Gini/icw_sr_05_1_Data.csv")
+
+	Gini = SPA_gini.Value[end]
+
+	[ρy, σy, ρc, σc, ρq, σq, B_avg, B_std, u_avg, u_std, w_avg, median_dom, Gini]
 end
 	
 function SPA_CvY(country::String="Spain";style::Style=slides_def, yh = 1, sh=true)
@@ -383,8 +415,7 @@ function SPA_CvY(country::String="Spain";style::Style=slides_def, yh = 1, sh=tru
 		], layout, style=style)
 end
 
-function SPA_nw(; style::Style=slides_def)
-
+function load_SPA_nw()
 	function load_SPA_nw(k::String)
 		data_raw = readxl("../Data/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xlsx", "Data$(k)!A12:F89");
 
@@ -403,6 +434,12 @@ function SPA_nw(; style::Style=slides_def)
 	rename!(df2, "assets" => "liabilities")
 
 	df = join(df1, df2, on = "date")
+	df.net_worth = df.assets - df.liabilities
+	return df
+end
+
+function make_SPA_nw(; style::Style=slides_def)
+	df = load_SPA_nw()
 
 	col = [	
 		get(ColorSchemes.davos, 0.2)
