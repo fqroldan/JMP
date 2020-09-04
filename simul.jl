@@ -532,6 +532,7 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 	ψ_vec = series(path,:ψ)
 	u_vec = 100.0 * (1.0 .- series(path, :L))
 	spr_vec = get_spr.(series(path, :qg), κ)
+	Gini_vec = 100*series(path,:Gini)
 
 	# verbose && print("T = $T\n")
 
@@ -550,8 +551,9 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 	m_gspend, sd_gspend = get_MV(100*G_vec./Y_vec)
 	ψ_mean = 100 * median(ψ_vec)
 	spr_mean = mean(spr_vec)
+	Gini_mean = mean(Gini_vec)
 
-	v_m = [ρy; σy; ρc; σc; ρs; σs; m_debt; sd_debt; m_unemp; sd_unemp; ψ_mean; mean_wealth]
+	v_m = [ρy, σy, ρc, σc, ρs, σs, m_debt, sd_debt, m_unemp, sd_unemp, ψ_mean, mean_wealth, Gini_mean]
 
 	return v_m
 end

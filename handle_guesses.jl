@@ -160,10 +160,11 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 	# make_IRF_plots(path; slides = true, create_plots = true, response = resp, savedir=savedir) # for resp = Y, C
 
 	v_m = simul_stats(pp)
-	targets = vec([0.96580506 0.01294576 0.96172496 0.01663608 0.96656486 0.32019293 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
+	# targets = vec([0.96580506 0.01294576 0.96172496 0.01663608 0.96656486 0.32019293 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
+	targets = SPA_targets()
 	
 	g = eval_GMM(v_m, targets)
-	calib_table = make_calib_table([v_m;100*mean([mean(series(path,:Gini)) for path in pp])])
+	calib_table = make_calib_table(v_m)
 	write(savedir * "calib_table.txt", calib_table)
 
 	return g, pp, πthres, v_m, def_freq
@@ -265,12 +266,12 @@ function make_repagent_simul(sd::SOEdef, run_number, years) where T <: AbstractP
 	Tyears = floor(Int64,periods(pp)*0.25)
 	freq = Ndefs/Tyears
 
-	Gini = mean([mean(series(p, :Gini)) for p in pp])
+	# Gini = mean([mean(series(p, :Gini)) for p in pp])
 	Wr = mean([mean(series(p, :Wr)) for p in pp])
 
 	vsim = simul_stats(pp)
 
-	return vsim, freq, Wr, Gini
+	return vsim, freq, Wr
 end
 
 
@@ -283,7 +284,6 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_
 
 	freq = [0.0 for jj in 1:3]
 	Wr = [0.0 for jj in 1:3]
-	Gini = [0.0 for jj in 1:3]
 	v = [zeros(12) for jj in 1:3]
 	for (js, sim_name) in enumerate(sim_names)
 		nodelta, nodef, nob = sim_mat[js, :]
@@ -295,7 +295,6 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_
 		v[js] = vsim
 
 		Wr[js] = mean([mean(series(p, :Wr)) for p in pp])
-		Gini[js] = mean([mean(series(p, :Gini)) for p in pp])
 
 		eval_GMM(vsim)
 		sd.pars[:Δ] = old_Δ
@@ -304,14 +303,13 @@ function make_comparison_simul(sd::SOEdef, noΔ, rep_agent, run_number, current_
 	freq_nodelta, freq_nodef, freq_nob = freq
 	v_nodelta, v_nodef, v_nob = v
 	W_nodelta, W_nodef, W_nob = Wr
-	Gini_nodelta, Gini_nodef, Gini_nob = Gini
 
 	# for (jj, slides) in enumerate([true; false])
 	# 	pcomp = plot_comparison_episodes(p_bench, p_nodef; episode_type = episode_type, slides = slides, πthres=πthres)
 	# 	savejson(pcomp, savedir * "comparison_crisis_nodef$(jj).json")
 	# end
 
-	return v_nodelta, v_nodef, v_nob, freq_nodelta, freq_nodef, freq_nob, Gini_nodelta, Gini_nodef, Gini_nob, W_nodelta, W_nodef, W_nob
+	return v_nodelta, v_nodef, v_nob, freq_nodelta, freq_nodef, freq_nob, W_nodelta, W_nodef, W_nob
 end
 
 function determine_done(run_number, params)
