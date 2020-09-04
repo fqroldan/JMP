@@ -466,7 +466,7 @@ function get_AR1(y::Vector)
 
 	σ = var(ϵ)^0.5
 
-	return ρ, σ / (1-ρ^2)
+	return ρ, sqrt(σ^2 / (1-ρ^2))
 end
 
 function get_AR1(y::Vector, ζ::Vector)
@@ -489,7 +489,7 @@ function get_AR1(y::Vector, ζ::Vector)
 
 	σ = var(ϵ)^0.5
 
-	return ρ, σ / (1-ρ^2)
+	return ρ, sqrt(σ^2 / (1-ρ^2))
 end
 
 get_MV(y::Vector) = mean(y), var(y)^0.5
@@ -506,7 +506,7 @@ function simul_stats(pv::Vector{T}) where T <: AbstractPath
 	return v_m
 end
 
-get_spr(q,κ) = (1+(κ * (1/q - 1)))^4 - 1
+get_spr(q,κ) = 10000 * ( (1+(κ * (1/q - 1)))^4 - 1 )
 
 function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::Bool=false, κ = 0.05985340654896883)
 	T = periods(path)
@@ -531,7 +531,7 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 	π_vec = series(path,:π)
 	ψ_vec = series(path,:ψ)
 	u_vec = 100.0 * (1.0 .- series(path, :L))
-	spr_vec = 100 * get_spr.(series(path, :qg), κ)
+	spr_vec = get_spr.(series(path, :qg), κ)
 
 	# verbose && print("T = $T\n")
 
