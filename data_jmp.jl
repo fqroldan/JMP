@@ -344,7 +344,7 @@ function SPA_targets()
 
 	Gini = SPA_gini.Value[end]
 
-	[ρy, σy, ρc, σc, ρq, σq, B_avg, B_std, u_avg, u_std, median_dom, w_avg, Gini]
+	[ρy, 100*σy, ρc, 100*σc, ρq, σq, B_avg, B_std, u_avg, u_std, median_dom, w_avg, Gini]
 end
 	
 function SPA_CvY(country::String="Spain";style::Style=slides_def, yh = 1, sh=true)

@@ -553,7 +553,7 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 	spr_mean = mean(spr_vec)
 	Gini_mean = mean(Gini_vec)
 
-	v_m = [ρy, σy, ρc, σc, ρs, σs, m_debt, sd_debt, m_unemp, sd_unemp, ψ_mean, mean_wealth, Gini_mean]
+	v_m = [ρy, 100*σy, ρc, 100*σc, ρs, σs, m_debt, sd_debt, m_unemp, sd_unemp, ψ_mean, mean_wealth, Gini_mean]
 
 	return v_m
 end
