@@ -442,7 +442,6 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 	funcvec[3] = (x->100*x/meanC)
 	funcvec[[5, 10, 13]] .= (x->25 * x/meanY)
 	funcvec[[1, 4, 6, 8]] .= (x->100*x)
-	funcvec[7] = x->10000*x
 	funcvec[9] = (x->100*(1 .- x))
 	ytitle[[5, 10, 13, 15, 16]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
@@ -579,7 +578,6 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64;
 	f1vec[3] = (x->100*x/meanCb)
 	f1vec[[4]] .= (x->25 * x/meanYb)
 	f1vec[7] = (x->100*(1 .- x))
-	f1vec[8] = x->10000*x
 	ytitle[[4,5,6]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
 	ytitle[[1,7]] .= "%"
@@ -674,7 +672,6 @@ function panels_full_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vecto
 	f1vec[3] = (x->100*x/meanCb)
 	f1vec[[4]] .= (x->25 * x/meanYb)
 	f1vec[7] = (x->100*(1 .- x))
-	f1vec[8] = x->10000*x
 	ytitle[[4,5,6]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
 	ytitle[[1,7]] .= "%"
