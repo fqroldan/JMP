@@ -328,7 +328,7 @@ function SPA_targets()
 
 	ρy, σy = get_AR1(hp_detrend(log.(df.gdp)))
 	ρc, σc = get_AR1(hp_detrend(log.(df.cons)))
-	ρq, σq = get_AR1(df.spread / 100)
+	ρq, σq = get_AR1(df.spread)
 
 	B_avg = mean(df.debt)
 	B_std = sqrt(var(df.debt))
