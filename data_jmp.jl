@@ -72,13 +72,13 @@ function load_all()
 	temp = stack(temp, Not(:TIME))
 	rename!(temp, :variable=>:GEO, :value=>:consnom)
 
-	data = join(data, temp, on = [:GEO, :TIME])
+	data = innerjoin(data, temp, on = [:GEO, :TIME])
 
 	temp = CSV.read("../Data/fred_cpi.csv", DataFrame, missingstring=":")
 	temp = stack(temp, Not(:TIME))
 	rename!(temp, :variable=>:GEO, :value=>:cpi)
 
-	data = join(data, temp, on = [:GEO, :TIME])
+	data = innerjoin(data, temp, on = [:GEO, :TIME])
 
 	data.cons = data.cons ./ data.cpi
 	data.cons2 = data.consnom ./ data.cpi
@@ -91,7 +91,7 @@ function load_all()
 	temp = stack(temp, Not(:TIME))
 	rename!(temp, :variable=>:GEO, :value=>:gdp2)
 
-	data = join(data, temp, on = [:GEO, :TIME])
+	data = innerjoin(data, temp, on = [:GEO, :TIME])
 
 	data.GEO[data.GEO.=="Germany (until 1990 former territory of the FRG)"] .= "Germany"
 
@@ -113,11 +113,11 @@ function load_all()
 
 	data.x = ifelse.(data.TIME .== Date("2007-01-01"), data.debt, missing)
 	temp = by(data, :GEO, b0=:x => x->maximum(skipmissing(x)))
-	data = join(data, temp, on = [:GEO])
+	data = innerjoin(data, temp, on = [:GEO])
 
 	data.x = ifelse.(data.GEO.=="Germany", data.rates, missing)
 	temp = by(data, :TIME, GERint=:x => x->maximum(skipmissing(x)))
-	data = join(data, temp, on = [:TIME])
+	data = innerjoin(data, temp, on = [:TIME])
 	data.spread = 100 * ( data.rates - data.GERint )
 
 	data
@@ -297,12 +297,12 @@ function load_SPA()
 
 	SPR = DataFrame("date" => dates_rates, "spread" => spread)
 
-	df = join(df, SPR, on=["date"])
+	df = innerjoin(df, SPR, on=["date"])
 
 	unemp_base = CSV.read("../Data/Eurostat aggregates/Unemployment/une_rt_q_2_Data.csv", DataFrame, datarow=6)
 	unemp_base.TIME = Date.(["$(parse(Int, unemp_base.TIME[jt][1:4]))-$(parse(Int,unemp_base.TIME[jt][end])*3-2)" for jt in 1:length(unemp_base.TIME)], "yyyy-mm")
 	unemp_base = DataFrame(date = unemp_base.TIME, unemp = unemp_base.Value)
-	df = join(df, unemp_base, on=["date"])
+	df = innerjoin(df, unemp_base, on=["date"])
 
 	debt_base = CSV.read("/home/q/Dropbox/Research/Active/Default_Inequality_Supply/empirics/Debt/data_spain.csv", DataFrame, datarow=2)[1:end-3,:]
 
@@ -311,7 +311,7 @@ function load_SPA()
 
 	debt_base = DataFrame([y=>debt_base[!,y] for y in ["date", "Total Foreign", "Total domestic", "Debt to GDP"]])
 
-	df = join(df, debt_base, on=["date"])
+	df = innerjoin(df, debt_base, on=["date"])
 	return df
 end
 
@@ -323,7 +323,7 @@ function SPA_targets()
 
 	df_nw = load_SPA_nw()
 
-	df = join(df, df_nw, on = ["date"])
+	df = innerjoin(df, df_nw, on = ["date"])
 
 	ρy, σy = get_AR1(hp_detrend(log.(df.gdp)))
 	ρc, σc = get_AR1(hp_detrend(log.(df.cons)))
@@ -348,14 +348,14 @@ end
 	
 function SPA_CvY(country::String="Spain";style::Style=slides_def, yh = 1, sh=true)
 
-	df = load_SPA()
-	if country != "Spain"
-		df = load_all()
-		df = df[df.GEO.==country,:]
-		rename!(df, "gdp" => "GDP", "cons" => "C_hh", "TIME" => "date")
-	end
+	# df = load_SPA()
+	# if country != "Spain"
+	df = load_all()
+	df = df[df.GEO.==country,:]
+	rename!(df, "gdp" => "GDP", "cons" => "C_hh", "TIME" => "date")
+	# end
 
-	df = df[df.date.>= Date("2002-01-01"),:]
+	df = df[df.date.>= Date("2000-01-01"),:]
 
 	jT = findfirst(df.date .>= Date("2008-01-01"))
 
@@ -372,13 +372,13 @@ function SPA_CvY(country::String="Spain";style::Style=slides_def, yh = 1, sh=tru
 
 	date1Y = Date("2008-01-01")
 	date1C = Date("2008-02-01")
-	date2Y = Date("2013-04-01")
-	date2C = Date("2013-06-01")
+	date2Y = Date("2012-10-01")
+	date2C = Date("2012-10-01")
 	datemid = Date("2010-10-01")
 
 	maxY, maxC = 100, 100
 	midY, midC = first(df.Output[df.date .>= datemid]), first(df.Consumption[df.date .>= datemid])
-	minY, minC = df.Output[df.date .>= Date("2013-05-01")][1], df.Consumption[df.date .>= Date("2013-05-01")][1]
+	minY, minC = df.Output[df.date .>= date2Y][1], df.Consumption[df.date .>= date2C][1]
 
 	shapes = []
 	annotations = []
@@ -432,7 +432,7 @@ function load_SPA_nw()
 	df2 = load_SPA_nw("2")
 	rename!(df2, "assets" => "liabilities")
 
-	df = join(df1, df2, on = "date")
+	df = innerjoin(df1, df2, on = "date")
 	df.net_worth = df.assets - df.liabilities
 	return df
 end
