@@ -119,7 +119,7 @@ function load_all()
 	data.x = ifelse.(data.GEO.=="Germany", data.rates, missing)
 	temp = by(data, :TIME, GERint=:x => x->maximum(skipmissing(x)))
 	data = join(data, temp, on = [:TIME])
-	data.spread = data.rates - data.GERint
+	data.spread = 100 * ( data.rates - data.GERint )
 
 	data
 end
@@ -155,7 +155,9 @@ end
 
 function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
 
-	df = df[df.TIME .>= Date("2000-01-01"),:]
+	# df = df[df.TIME .>= Date("2000-01-01"),:]
+
+	# df = df[df.TIME .<= Date("2010-01-01"),:]
 
 	df.net_iss = (df.debt_level_lead - (1-0.05) * df.debt_level) ./ df.gdp
 
@@ -219,15 +221,8 @@ function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
 		)
 
 	plot(data, layout, style=style)
-	# plot([
-	# 	scatter(x=df[df.GEO.=="Spain",:].TIME, y=df[df.GEO.=="Spain",:].g_spend, name = "Observed")
-	# 	scatter(x=df[df.GEO.=="Spain",:].TIME, y=g_hat, name = "Fitted")
-	# 	]
-	# 	)
 
-	# plot([scatter(x=df[df.GEO.==country,:].net_iss, y=iss_hat[df.GEO.==country], name=country, text=df[df.GEO.==country,:].TIME, mode="markers") for country in unique(df.GEO)])
-
-	# return coef(reg4G), coef(reg4B)
+	return coef(reg4G), coef(reg4B)
 end
 
 function hp_filter(y::Vector{Float64}, lambda::Float64=1600.)
@@ -299,7 +294,7 @@ function load_SPA()
 	data_rates = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!B10:D101")
 	d2 = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!A10:A101")
 	dates_rates = Date.(["$(parse(Int, d2[jt][1:4]))-$(parse(Int,d2[jt][end])*3-2)" for jt in 1:length(d2)], "yyyy-mm")
-	spread = 100 * convert(Vector{Float64}, data_rates[:,2] - data_rates[:,1]);
+	spread = 10000 * convert(Vector{Float64}, data_rates[:,2] - data_rates[:,1]);
 
 	SPR = DataFrame("date" => dates_rates, "spread" => spread)
 
@@ -327,7 +322,6 @@ function SPA_CvY(country::String="Spain";style::Style=slides_def, yh = 1, sh=tru
 		df = load_all()
 		df = df[df.GEO.==country,:]
 		rename!(df, "gdp" => "GDP", "cons" => "C_hh", "TIME" => "date")
-		df.spread *= 100
 	end
 
 	df = df[df.date.>= Date("2002-01-01"),:]
