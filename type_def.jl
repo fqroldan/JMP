@@ -296,11 +296,13 @@ end
 function update_prob_z!(sd::SOEdef, ρ::Real=sd.pars[:ρz], σ::Real=sd.pars[:σz])
 	Ns = N(sd, :z)
 	
-	# zgrid, Pz = tauchen_fun(Ns, ρ, σ, m=1.5)
-	zchain = tauchen(Ns, ρ, σ, 0, 3)
+	zgrid, Pz = tauchen_fun(Ns, ρ, σ, m=1.5)
+	sd.gr[:z] = zgrid
+	sd.prob[:z] = Pz
 
-	sd.gr[:z] = zchain.state_values
-	sd.prob[:z] = zchain.p
+	# zchain = tauchen(Ns, ρ, σ, 0, 3)
+	# sd.gr[:z] = zchain.state_values
+	# sd.prob[:z] = zchain.p
 
 	nothing
 end
@@ -308,12 +310,16 @@ end
 function update_prob_ξ!(sd::SOEdef, ρ::Real=sd.pars[:ρξ], σ::Real=sd.pars[:σξ], meanξ::Real=sd.pars[:meanξ])
 	Ns = N(sd, :ξ)
 
-	# ξgrid, Pξ = tauchen_fun(Ns, ρ, σ, m=0.5)
-	# ξgrid = ξgrid .+ meanξ
-	ξchain = tauchen(Ns, ρ, σ, 0, 1)
+	ξgrid, Pξ = tauchen_fun(Ns, ρ, σ, m=0.5)
+	ξgrid = ξgrid .+ meanξ
 
-	sd.gr[:ξ] = ξchain.state_values .+ meanξ
-	sd.prob[:ξ] = ξchain.p
+	sd.gr[:ξ] = ξgrid
+	sd.prob[:ξ] = Pξ
+
+	# ξchain = tauchen(Ns, ρ, σ, 0, 1)
+
+	# sd.gr[:ξ] = ξchain.state_values .+ meanξ
+	# sd.prob[:ξ] = ξchain.p
 
 	nothing
 end
