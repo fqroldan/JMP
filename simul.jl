@@ -489,7 +489,7 @@ function get_AR1(y::Vector, ζ::Vector)
 
 	σ = var(ϵ)^0.5
 
-	return ρ, sqrt(σ^2 / (1-ρ^2))
+	return ρ, sqrt(max(0, σ^2 / (1-ρ^2)))
 end
 
 get_MV(y::Vector) = mean(y), var(y)^0.5

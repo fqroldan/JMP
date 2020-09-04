@@ -29,22 +29,21 @@ end
 
 function load_all()
 
-	gdp_base = CSV.read("../Data/Eurostat aggregates/gdp_all.csv", missingstring=":")
-	rates_base = CSV.read("../Data/Eurostat aggregates/rates_all.csv", missingstring=":")	
-	debt_base = CSV.read("../Data/Eurostat aggregates/debt_all.csv", missingstring=":")
+	gdp_base = CSV.read("../Data/Eurostat aggregates/gdp_all.csv", DataFrame, missingstring=":")
+	rates_base = CSV.read("../Data/Eurostat aggregates/rates_all.csv", DataFrame, missingstring=":")	
+	debt_base = CSV.read("../Data/Eurostat aggregates/debt_all.csv", DataFrame, missingstring=":")
 	# debt_base.Value[is.na(debt_base$Value)] = 0
-	unemp_base = CSV.read("../Data/Eurostat aggregates/unemp_all.csv", missingstring=":")
+	unemp_base = CSV.read("../Data/Eurostat aggregates/unemp_all.csv", DataFrame, missingstring=":")
 	# unemp_base$Value[is.na(unemp_base$Value)] = 0
-	exports_base = CSV.read("../Data/Eurostat aggregates/exports_all_namq_10_gdp.csv", missingstring=":")
-	imports_base = CSV.read("../Data/Eurostat aggregates/imports_all_namq_10_gdp.csv", missingstring=":")
-	g_base = CSV.read("../Data/Eurostat aggregates/g_all_namq_10_gdp.csv", missingstring=":")
-	sav_base = CSV.read("../Data/Eurostat aggregates/nasq_10_ki_1_Data.csv", missingstring=":")
-	c_base = CSV.read("../Data/Eurostat aggregates/HhC_all_namq_10_gdp_1_Data.csv", missingstring=":")
-	coy_base = CSV.read("../Data/Eurostat aggregates/CoY_namq_10_gdp_1_Data.csv", missingstring=":")
-	DeltaC_base = CSV.read("../Data/Eurostat aggregates/HHDC_namq_10_gdp_1_Data.csv", missingstring=":")
+	exports_base = CSV.read("../Data/Eurostat aggregates/exports_all_namq_10_gdp.csv", DataFrame, missingstring=":")
+	imports_base = CSV.read("../Data/Eurostat aggregates/imports_all_namq_10_gdp.csv", DataFrame, missingstring=":")
+	g_base = CSV.read("../Data/Eurostat aggregates/g_all_namq_10_gdp.csv", DataFrame, missingstring=":")
+	sav_base = CSV.read("../Data/Eurostat aggregates/nasq_10_ki_1_Data.csv", DataFrame, missingstring=":")
+	c_base = CSV.read("../Data/Eurostat aggregates/HhC_all_namq_10_gdp_1_Data.csv", DataFrame, missingstring=":")
+	coy_base = CSV.read("../Data/Eurostat aggregates/CoY_namq_10_gdp_1_Data.csv", DataFrame, missingstring=":")
+	DeltaC_base = CSV.read("../Data/Eurostat aggregates/HHDC_namq_10_gdp_1_Data.csv", DataFrame, missingstring=":")
 
 	for x in [gdp_base, rates_base, debt_base, unemp_base, exports_base, imports_base, g_base, sav_base, c_base, coy_base, DeltaC_base]
-		
 		x.TIME = Date.(["$(parse(Int, x.TIME[jt][1:4]))-$(parse(Int,x.TIME[jt][end])*3-2)" for jt in 1:length(x.TIME)], "yyyy-mm")
 		
 		sort!(x, [:GEO, :TIME])
@@ -68,14 +67,14 @@ function load_all()
 	data = data[data.GEO .!= "Greece",:]
 
 
-	temp = CSV.read("../Data/fred_data.csv", missingstring=":")
+	temp = CSV.read("../Data/fred_data.csv", DataFrame, missingstring=":")
 	temp.TIME = Date.([temp.TIME[jt][1:6] * ifelse(parse(Int,temp.TIME[jt][7:8]) < 60, "20","19") * temp.TIME[jt][7:8] for jt in 1:length(temp.TIME)], "mm/dd/yyyy")
 	temp = stack(temp, Not(:TIME))
 	rename!(temp, :variable=>:GEO, :value=>:consnom)
 
 	data = join(data, temp, on = [:GEO, :TIME])
 
-	temp = CSV.read("../Data/fred_cpi.csv", missingstring=":")
+	temp = CSV.read("../Data/fred_cpi.csv", DataFrame, missingstring=":")
 	temp = stack(temp, Not(:TIME))
 	rename!(temp, :variable=>:GEO, :value=>:cpi)
 
@@ -88,7 +87,7 @@ function load_all()
 
 	data.debt_level = data.debt .* data.gdp
 
-	temp = CSV.read("../Data/fred_gdp.csv", missingstring=":")
+	temp = CSV.read("../Data/fred_gdp.csv", DataFrame, missingstring=":")
 	temp = stack(temp, Not(:TIME))
 	rename!(temp, :variable=>:GEO, :value=>:gdp2)
 
@@ -300,12 +299,12 @@ function load_SPA()
 
 	df = join(df, SPR, on=["date"])
 
-	unemp_base = CSV.read("../Data/Eurostat aggregates/Unemployment/une_rt_q_2_Data.csv", datarow=6)
+	unemp_base = CSV.read("../Data/Eurostat aggregates/Unemployment/une_rt_q_2_Data.csv", DataFrame, datarow=6)
 	unemp_base.TIME = Date.(["$(parse(Int, unemp_base.TIME[jt][1:4]))-$(parse(Int,unemp_base.TIME[jt][end])*3-2)" for jt in 1:length(unemp_base.TIME)], "yyyy-mm")
 	unemp_base = DataFrame(date = unemp_base.TIME, unemp = unemp_base.Value)
 	df = join(df, unemp_base, on=["date"])
 
-	debt_base = CSV.read("/home/q/Dropbox/Research/Active/Default_Inequality_Supply/empirics/Debt/data_spain.csv", datarow=2)[1:end-3,:]
+	debt_base = CSV.read("/home/q/Dropbox/Research/Active/Default_Inequality_Supply/empirics/Debt/data_spain.csv", DataFrame, datarow=2)[1:end-3,:]
 
 	debt_base.Column1 = Date.(debt_base.Column1, "u-yy") .+ Year(2000) .- Month(2)
 	rename!(debt_base, "Column1" => "date")
@@ -338,9 +337,9 @@ function SPA_targets()
 	w_avg = mean(df.net_worth)
 
 	df_spa = load_SPA()
-	median_dom = 100 * quantile(df_spa["Total domestic"] ./ ( df_spa["Total domestic"] + df_spa["Total Foreign"] ), 0.5)
+	median_dom = 100 * quantile(df_spa[!,"Total domestic"] ./ ( df_spa[!,"Total domestic"] + df_spa[!,"Total Foreign"] ), 0.5)
 
-	SPA_gini = CSV.read("../Data/Gini/icw_sr_05_1_Data.csv")
+	SPA_gini = CSV.read("../Data/Gini/icw_sr_05_1_Data.csv", DataFrame)
 
 	Gini = SPA_gini.Value[end]
 

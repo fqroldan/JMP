@@ -130,7 +130,7 @@ function eval_GMM(v_o, target_o = vec([0.96580506  0.01294576  0.96172496  0.016
 	g = (v_m - targets)'*W*(v_m-targets)
 
 	if show_res
-		targetnames = ["AR(1) Output"; "σ(Output)"; "AR(1) Cons"; "σ(Cons) / σ(Output)"; "AR(1) Spreads"; "σ(spreads)"; "mean B/Y"; "std B/Y"; "mean unemp"; "std unemp"; "median Dom Holdings"; "mean wealth/Y" ]
+		targetnames = ["AR(1) Output", "σ(Output)", "AR(1) Cons", "σ(Cons) / σ(Output)", "AR(1) Spreads", "σ(spreads)", "mean B/Y", "std B/Y", "mean unemp", "std unemp", "median Dom Holdings", "mean wealth/Y", "Avg wealth Gini"]
 		res = [targetnames v_m targets (targets-v_m)./targets]
 		for jj in 1:size(res,1)
 		    print_save("\n")
