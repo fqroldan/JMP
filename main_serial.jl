@@ -128,7 +128,7 @@ function wrapper_run(par_vec, nodef, noΔ, rep_agent, L, gs; do_all::Bool=true)
 
 		v_rep, freq_rep, W_rep = make_repagent_simul(sd, run_number, years)
 
-		rep_agent_table = make_RH_table([v_m; Gini; 100*def_freq; Wr], [v_rep; 100*freq_rep; W_rep])
+		rep_agent_table = make_RH_table([v_m; 100*def_freq; Wr], [v_rep; 100*freq_rep; W_rep])
 		write(savedir * "rep_agent_table.txt", rep_agent_table)
 	else
 		print_save("Suboptimal g. Skipping computation of no-def")
