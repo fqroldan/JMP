@@ -338,13 +338,13 @@ function SPA_targets()
 	w_avg = mean(df.net_worth)
 
 	df_spa = load_SPA()
-	median_dom = quantile(df_spa["Total domestic"] ./ ( df_spa["Total domestic"] + df_spa["Total Foreign"] ), 0.5)
+	median_dom = 100 * quantile(df_spa["Total domestic"] ./ ( df_spa["Total domestic"] + df_spa["Total Foreign"] ), 0.5)
 
 	SPA_gini = CSV.read("../Data/Gini/icw_sr_05_1_Data.csv")
 
 	Gini = SPA_gini.Value[end]
 
-	[ρy, σy, ρc, σc, ρq, σq, B_avg, B_std, u_avg, u_std, w_avg, median_dom, Gini]
+	[ρy, σy, ρc, σc, ρq, σq, B_avg, B_std, u_avg, u_std, median_dom, w_avg, Gini]
 end
 	
 function SPA_CvY(country::String="Spain";style::Style=slides_def, yh = 1, sh=true)
