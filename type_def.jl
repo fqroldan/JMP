@@ -296,13 +296,13 @@ end
 function update_prob_z!(sd::SOEdef, ρ::Real=sd.pars[:ρz], σ::Real=sd.pars[:σz])
 	Ns = N(sd, :z)
 	
-	zgrid, Pz = tauchen_fun(Ns, ρ, σ, m=1.5)
-	sd.gr[:z] = zgrid
-	sd.prob[:z] = Pz
+	# zgrid, Pz = tauchen_fun(Ns, ρ, σ, m=1.5)
+	# sd.gr[:z] = zgrid
+	# sd.prob[:z] = Pz
 
-	# zchain = tauchen(Ns, ρ, σ, 0, 3)
-	# sd.gr[:z] = zchain.state_values
-	# sd.prob[:z] = zchain.p
+	zchain = tauchen(Ns, ρ, σ, 0, 2)
+	sd.gr[:z] = zchain.state_values
+	sd.prob[:z] = zchain.p
 
 	nothing
 end
