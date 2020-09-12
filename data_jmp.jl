@@ -241,14 +241,19 @@ function hp_detrend(y::Vector{Float64}, lambda::Float64=1600.)
 	return y - hp_filter(y, lambda)
 end
 
-function get_AR1(y::Vector)
+function get_AR1(y::Vector; trend::Bool=false)
 	y_lag = y[1:end-1]
 	y = y[2:end]
 
 	t = 1:length(y)
 
 	data = DataFrame(yt = y, ylag = y_lag, t=t)
-	OLS = lm(@formula(yt ~ ylag), data)
+	if trend
+		form = @formula(yt ~ ylag + t)
+	else
+		form = @formula(yt ~ ylag)
+	end
+	OLS = lm(form, data)
 	
 	ρ = coef(OLS)[2]
 	# println(OLS); 
