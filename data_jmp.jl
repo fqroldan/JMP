@@ -325,8 +325,8 @@ function SPA_targets()
 
 	df = innerjoin(df, df_nw, on = ["date"])
 
-	ρy, σy = get_AR1(hp_detrend(log.(df.gdp)))
-	ρc, σc = get_AR1(hp_detrend(log.(df.cons)))
+	ρy, σy = get_AR1(log.(df.gdp))
+	ρc, σc = get_AR1(log.(df.cons))
 	ρq, σq = get_AR1(df.spread)
 
 	B_avg = mean(df.debt)
