@@ -622,20 +622,22 @@ end
 
 get_crises(pp::Path, πthres::Float64, k::Int64=7) = get_crises([pp], πthres, k)
 
-series_crises(pp::Path, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9) = series_crises([pp], tvv, key, k)
-function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9) where T <: AbstractPath
+series_crises(pp::Path, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9, symmetric=false) = series_crises([pp], tvv, key, k, symmetric=symmetric)
+function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9; symmetric::Bool=false) where T <: AbstractPath
 	
 	Nc = sum([length(tv) for tv in tvv])
-	ymat = Matrix{Float64}(undef, 3k+1, Nc)
+	symmetric ? k_back = k : k_back = 2k
+
+	ymat = Matrix{Float64}(undef, (k+k_back)+1, Nc)
 
 	jc = 0
 	for (jv,tv) in enumerate(tvv)
 		if length(tv) > 0
 			Y = series(pv[jv], key)
 			for (jt, tt) in enumerate(tv)
-				if tt-2k > 0
+				if tt-k_back > 0
 					jc += 1
-					ymat[:, jc] = Y[tt-2k:tt+k]
+					ymat[:, jc] = Y[tt-k_back:tt+k]
 				end
 			end
 		end

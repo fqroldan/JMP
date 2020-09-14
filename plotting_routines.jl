@@ -235,20 +235,22 @@ function make_def_incentive(sd::SOEdef; style::Style=slides_def)
 end
 
 scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, X::Float64) where T <: AbstractPath = scats_crises(pv, tvv, key, x->x/X)
-function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f::Function=identity; axis::Int64=1, indiv=false, k=8) where T <: AbstractPath
+function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f::Function=identity; axis::Int64=1, indiv=false, k=8, symmetric=false) where T <: AbstractPath
 
-	ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k)
+	k_back = 2k - symmetric*k
 
-	line_up = scatter(x=(-2k:k)/4, y=f(y_up),hoverinfo="skip",showlegend=false,legendgroup=3,mode="lines",line=attr(color="rgb(31,119,180)", width=0.001), xaxis="x$axis", yaxis="y$axis")
-	line_lo = scatter(x=(-2k:k)/4, y=f(y_lo),hoverinfo="skip",showlegend=(axis==1),legendgroup=3, name="IQR",mode="lines",line=attr(color="rgb(31,119,180)",width=0.001), fill="tonexty", fillcolor="rgba(31,119,180,0.25)", xaxis="x$axis", yaxis="y$axis")
-	line_me = scatter(x=(-2k:k)/4, y=f(y_me), name="Median",legendgroup=1,showlegend=(axis==1), mode="lines", line=attr(color=col[4]), xaxis="x$axis", yaxis="y$axis")
-	line_av = scatter(x=(-2k:k)/4, y=f(y_av), name="Mean",legendgroup=2,showlegend=(axis==1), mode="lines", line=attr(color=col[3], dash="dash"), xaxis="x$axis", yaxis="y$axis")
+	ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, symmetric=symmetric)
+
+	line_up = scatter(x=(-k_back:k)/4, y=f(y_up),hoverinfo="skip",showlegend=false,legendgroup=3,mode="lines",line=attr(color="rgb(31,119,180)", width=0.001), xaxis="x$axis", yaxis="y$axis")
+	line_lo = scatter(x=(-k_back:k)/4, y=f(y_lo),hoverinfo="skip",showlegend=(axis==1),legendgroup=3, name="IQR",mode="lines",line=attr(color="rgb(31,119,180)",width=0.001), fill="tonexty", fillcolor="rgba(31,119,180,0.25)", xaxis="x$axis", yaxis="y$axis")
+	line_me = scatter(x=(-k_back:k)/4, y=f(y_me), name="Median",legendgroup=1,showlegend=(axis==1), mode="lines", line=attr(color=col[4]), xaxis="x$axis", yaxis="y$axis")
+	line_av = scatter(x=(-k_back:k)/4, y=f(y_av), name="Mean",legendgroup=2,showlegend=(axis==1), mode="lines", line=attr(color=col[3], dash="dash"), xaxis="x$axis", yaxis="y$axis")
 
 
 	s1 = [line_up, line_lo, line_me, line_av]
 	if indiv
 		s1 =[
-		[scatter(x=(-2k:k)/4, y=f.(ymat)[:,jc], name="Individual", legendgroup=3, mode="lines", line_color="rgb(31,119,180)", opacity=0.75, line_width=0.5, showlegend=((axis==1)&(jc==1)), xaxis="x$axis", yaxis="y$axis", hoverinfo="skip") for jc in 1:size(ymat,2)]
+		[scatter(x=(-k_back:k)/4, y=f.(ymat)[:,jc], name="Individual", legendgroup=3, mode="lines", line_color="rgb(31,119,180)", opacity=0.75, line_width=0.5, showlegend=((axis==1)&(jc==1)), xaxis="x$axis", yaxis="y$axis", hoverinfo="skip") for jc in 1:size(ymat,2)]
 		line_up
 		line_lo
 		line_me
@@ -424,7 +426,7 @@ function distribution_crises(pv::Vector{T}, πthres::Float64; style::Style=slide
 end
 
 panels_defaults(pv::Vector{T}; k=8, style::Style=slides_def, yh = 0.65, indiv=false) where T<:AbstractPath = panels_crises(pv, 0.0, style=style, yh=yh, type="default", indiv=indiv, k=k)
-function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8) where T<:AbstractPath
+function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, πthres, k, type=type)
 	println("Suggested yh=0.7 for style=paper")
 	keyvec = [:z, :Y, :C, :CoY, :B, :ψ, :spread, :π, :L, :mean, :var, :P, :avgω, :p90, :G, :T]
@@ -457,10 +459,11 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 	
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
 	for (jj, key) in enumerate(keyvec)
-		for scat in scats_crises(pv, tvv, key, funcvec[jj], axis=jj, indiv=indiv, k=k)
+		for scat in scats_crises(pv, tvv, key, funcvec[jj], axis=jj, indiv=indiv, k=k, symmetric=symmetric)
 			push!(data, scat)
 		end
 	end
+	k_back = 2k - symmetric*k
 
 	a = 1/4
 	b = 1/20
@@ -471,39 +474,38 @@ function panels_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def,
 
 	ys = [1, 0.75, 0.475, 0.21]
 	annotations = [
-		attr(text=titlevec[jj], x = -k/2+(3k)/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/4)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
+		attr(text=titlevec[jj], x = -k_back/8+k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/4)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
 		]
-
 	layout = Layout(shapes=shapes, annotations = annotations,
 		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
-		xaxis1 = attr(domain = [0a, a-2bx], range=[-k/2, k/4]),
-		xaxis2 = attr(domain = [1a+bx, 2a-bx], range=[-k/2, k/4]),
-		xaxis3 = attr(domain = [2a+bx, 3a-bx], range=[-k/2, k/4]),
-		xaxis4 = attr(domain = [3a+2bx, 4a], range=[-k/2, k/4]),
+		xaxis1 = attr(domain = [0a, a-2bx], range=[-k_back/4, k/4]),
+		xaxis2 = attr(domain = [1a+bx, 2a-bx], range=[-k_back/4, k/4]),
+		xaxis3 = attr(domain = [2a+bx, 3a-bx], range=[-k_back/4, k/4]),
+		xaxis4 = attr(domain = [3a+2bx, 4a], range=[-k_back/4, k/4]),
 		yaxis1 = attr(anchor = "x1", domain = [3a+b, 4a-b], titlefont_size = 16, title=ytitle[1]),
 		yaxis2 = attr(anchor = "x2", domain = [3a+b, 4a-b], titlefont_size = 16, title=ytitle[2]),
 		yaxis3 = attr(anchor = "x3", domain = [3a+b, 4a-b], titlefont_size = 16, title=ytitle[3]),
 		yaxis4 = attr(anchor = "x4", domain = [3a+b, 4a-b], titlefont_size = 16, title=ytitle[4]),
-		xaxis5 = attr(domain = [0a, a-2bx], anchor="y5", range=[-k/2, k/4]),
-		xaxis6 = attr(domain = [1a+bx, 2a-bx], anchor="y6", range=[-k/2, k/4]),
-		xaxis7 = attr(domain = [2a+bx, 3a-bx], anchor="y7", range=[-k/2, k/4]),
-		xaxis8 = attr(domain = [3a+2bx, 4a], anchor="y8", range=[-k/2, k/4]),
+		xaxis5 = attr(domain = [0a, a-2bx], anchor="y5", range=[-k_back/4, k/4]),
+		xaxis6 = attr(domain = [1a+bx, 2a-bx], anchor="y6", range=[-k_back/4, k/4]),
+		xaxis7 = attr(domain = [2a+bx, 3a-bx], anchor="y7", range=[-k_back/4, k/4]),
+		xaxis8 = attr(domain = [3a+2bx, 4a], anchor="y8", range=[-k_back/4, k/4]),
 		yaxis5 = attr(anchor = "x5", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[5]),
 		yaxis6 = attr(anchor = "x6", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[6]),
 		yaxis7 = attr(anchor = "x7", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[7]),
 		yaxis8 = attr(anchor = "x8", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[8]),
-		xaxis9 = attr(domain = [0a, a-2bx], anchor="y9", range=[-k/2, k/4]),
-		xaxis10 = attr(domain = [1a+bx, 2a-bx], anchor="y10", range=[-k/2, k/4]),
-		xaxis11 = attr(domain = [2a+bx, 3a-bx], anchor="y11", range=[-k/2, k/4]),
-		xaxis12 = attr(domain = [3a+2bx, 4a], anchor="y12", range=[-k/2, k/4]),
+		xaxis9 = attr(domain = [0a, a-2bx], anchor="y9", range=[-k_back/4, k/4]),
+		xaxis10 = attr(domain = [1a+bx, 2a-bx], anchor="y10", range=[-k_back/4, k/4]),
+		xaxis11 = attr(domain = [2a+bx, 3a-bx], anchor="y11", range=[-k_back/4, k/4]),
+		xaxis12 = attr(domain = [3a+2bx, 4a], anchor="y12", range=[-k_back/4, k/4]),
 		yaxis9 = attr(anchor = "x9", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[9]),
 		yaxis10 = attr(anchor = "x10", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[10]),
 		yaxis11 = attr(anchor = "x11", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[11]),
 		yaxis12 = attr(anchor = "x12", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[12]),
-		xaxis13 = attr(domain = [0a, a-2bx], anchor="y13", range=[-k/2, k/4]),
-		xaxis14 = attr(domain = [1a+bx, 2a-bx], anchor="y14", range=[-k/2, k/4]),
-		xaxis15 = attr(domain = [2a+bx, 3a-bx], anchor="y15", range=[-k/2, k/4]),
-		xaxis16 = attr(domain = [3a+2bx, 4a], anchor="y16", range=[-k/2, k/4]),
+		xaxis13 = attr(domain = [0a, a-2bx], anchor="y13", range=[-k_back/4, k/4]),
+		xaxis14 = attr(domain = [1a+bx, 2a-bx], anchor="y14", range=[-k_back/4, k/4]),
+		xaxis15 = attr(domain = [2a+bx, 3a-bx], anchor="y15", range=[-k_back/4, k/4]),
+		xaxis16 = attr(domain = [3a+2bx, 4a], anchor="y16", range=[-k_back/4, k/4]),
 		yaxis13 = attr(anchor = "x13", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[13]),
 		yaxis14 = attr(anchor = "x14", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[14]),
 		yaxis15 = attr(anchor = "x15", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[15]),
