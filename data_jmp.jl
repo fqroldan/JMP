@@ -1,4 +1,4 @@
-using QuantEcon, CSV, DataFrames, Dates, GLM, PlotlyJS, ColorSchemes, ORCA, FixedEffectModels, RegressionTables, SparseArrays, ExcelReaders
+using QuantEcon, CSV, DataFrames, Dates, GLM, PlotlyJS, ColorSchemes, FixedEffectModels, RegressionTables, SparseArrays, ExcelReaders
 
 """ Define styles """
 def_style = let
