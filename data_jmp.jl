@@ -133,6 +133,8 @@ function regs_sec2(data::DataFrame)
 	df = data[(data.TIME .>= t1) .& (data.TIME .<= t2),:]
 	# df = data	
 
+	df.spread *= 0.01 # Measured in percent
+
 	df.lcons_ = df.lcons
 	# fs = reg(df, @formula(spread ~ b0 + fe(TIME)), save=true)
 	# df.spr_hat = coef(fs)[1] * df.b0 + fe(fs).fe_TIME
@@ -149,6 +151,7 @@ function regs_sec2(data::DataFrame)
 	res2 = reg(df, @formula(lcons_ ~ spread + debt + lgdp + fe(GEO) + fe(TIME)))
 
 	regtable(regY1, regY2, regC1, regC2, res1, res2, renderSettings = latexOutput("../Output/current_best/table1.txt"), regression_statistics = [:nobs, :r2_within], print_estimator_section = false, labels = Dict("__LABEL_FE_YES__" => "\\checkmark", "__LABEL_STATISTIC_adjr2__" => "Adj.~\$R^2\$", "TIME"=>"Time FE", "GEO"=>"Country FE", "lgdp"=>"\$\\log Y_t\$", "lcons"=>"\$\\log C_t\$", "lcons_"=>"\$\\log C_{t}\$", "spread"=>"Spread\$_t\$", "debt"=>"\$B_t/Y_t\$"))
+
 	regtable(regY1, regY2, regC1, regC2, regu1, regu2, res1, res2, regression_statistics = [:nobs, :adjr2, :r2_within], print_estimator_section = false, labels=Dict("TIME"=>"Time FE","GEO"=>"Country FE", "lgdp"=>"log Y_t", "lcons"=>"log C_t", "lcons_"=>" log C_t"))
 end
 
