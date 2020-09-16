@@ -578,7 +578,7 @@ function find_crises(pp::Path, thres::Number, sym::Symbol=:π, k::Int64=7, k_bac
 	while jt < T - k
 		# println(jt)
 		jt += 1
-		if minimum(sym_vec[jt-k:jt+k]) >= thres && minimum(ζ_vec[jt-k:jt+k]) == 1 # Not default
+		if minimum(sym_vec[jt-k:jt+k]) >= thres && minimum(ζ_vec[jt-k_back:jt+k]) == 1 # Not default
 			Nc += 1
 			push!(tvec, jt)
 			jt += k
