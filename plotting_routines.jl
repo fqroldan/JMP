@@ -265,21 +265,21 @@ function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol, f::Function=i
 end
 
 scats_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64=x1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath = scats_comp(pv_bench, pv_nodef, tvv, key, x->x/x1, x->x/x2, CI=CI, avg=avg)
-function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1; CI::Bool=false, avg::Bool=false, axis::Int64=1, k=8) where T <: AbstractPath
-	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k)
-	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k)
+function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1; CI::Bool=false, avg::Bool=false, axis::Int64=1, k=8, k_back=2k) where T <: AbstractPath
+	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k, k_back)
+	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k, k_back)
 
 	colbench = get(ColorSchemes.corkO, 0.25)
 	colnodef = get(ColorSchemes.corkO, 0.65)
 
-	line_bench = scatter(x=(-2k:k)/4, y=f1.(bench_me), name="Benchmark", mode="lines", line_color=colbench, fill="tonexty", showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	# lb_avg = scatter(x=(-2k:k)/4, y=f1.(bench_av), name="Benchmark", mode="lines", line_color=col[fill="tonexty", 1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	lb_up = scatter(x=(-2k:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colbench, showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	lb_lo = scatter(x=(-2k:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colbench, fill="tonexty", showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	line_nodef = scatter(x=(-2k:k)/4, y=f2.(nodef_me), name="No default", line_dash="dashdot", mode="lines", line_color=colnodef, fill="tonexty", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	# ln_avg = scatter(x=(-2k:k)/4, y=f2.(nodef_av), name="No default", mode="lines", line_color=colnodef, fill="tonexty", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	ln_up = scatter(x=(-2k:k)/4, y=f2.(nodef_up), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colnodef, showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	ln_lo = scatter(x=(-2k:k)/4, y=f2.(nodef_lo), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colnodef, fill="tonexty", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	line_bench = scatter(x=(-k_back:k)/4, y=f1.(bench_me), name="Benchmark", mode="lines", line_color=colbench, fill="tonexty", showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	# lb_avg = scatter(x=(-k_back:k)/4, y=f1.(bench_av), name="Benchmark", mode="lines", line_color=col[fill="tonexty", 1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	lb_up = scatter(x=(-k_back:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colbench, showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	lb_lo = scatter(x=(-k_back:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colbench, fill="tonexty", showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	line_nodef = scatter(x=(-k_back:k)/4, y=f2.(nodef_me), name="No default", line_dash="dashdot", mode="lines", line_color=colnodef, fill="tonexty", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	# ln_avg = scatter(x=(-k_back:k)/4, y=f2.(nodef_av), name="No default", mode="lines", line_color=colnodef, fill="tonexty", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	ln_up = scatter(x=(-k_back:k)/4, y=f2.(nodef_up), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colnodef, showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	ln_lo = scatter(x=(-k_back:k)/4, y=f2.(nodef_lo), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colnodef, fill="tonexty", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
 
 	s1 = [line_bench, line_nodef]
 	if avg
@@ -382,8 +382,8 @@ function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4
 	plot(data, layout, style=style)
 end
 
-function distribution_crises(pv::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, response="W", type="highspreads", k=6) where T<:AbstractPath
-	Nc, tvv = get_crises(pv, πthres, k, type=type)
+function distribution_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, response="W", type="highspreads", k=6, k_back=k) where T<:AbstractPath
+	Nc, tvv = get_crises(pv, thres, sym, k, k_back, type=type)
 
 	if response == "W"
 		keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
@@ -394,24 +394,24 @@ function distribution_crises(pv::Vector{T}, πthres::Float64; style::Style=slide
 
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
 	for (jj, key) in enumerate(keyvec)
-		for scat in scats_crises(pv, tvv, key, axis=1+(jj-1)%6, k=k)
+		for scat in scats_crises(pv, tvv, key, axis=1+(jj-1)%6, k=k, k_back=k_back)
 			push!(data, scat)
 		end
 	end
 
-	ys = [1, 0.46]
+	ys = [1, 0.44]
 	annotations = [
-		attr(text = titlevec[jj], x = -k/2+(3k)/8, xanchor="center", xref = "x$jj",y = ys[ceil(Int, jj/3)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
+		attr(text = titlevec[jj], x = -k_back/8+k/8, xanchor="center", xref = "x$jj",y = ys[ceil(Int, jj/3)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
 	]
 
 	layout = Layout(
 		annotations=annotations,
-		xaxis1 = attr(domain = [0, 0.3]),
-		xaxis2 = attr(domain = [0.33, 0.63]),
-		xaxis3 = attr(domain = [0.66, 0.99]),
-		xaxis4 = attr(domain = [0, 0.3], anchor="y4"),
-		xaxis5 = attr(domain = [0.33, 0.63], anchor="y5"),
-		xaxis6 = attr(domain = [0.66, 0.99], anchor="y6"),
+		xaxis1 = attr(domain = [0, 0.29]),
+		xaxis2 = attr(domain = [0.34, 0.62]),
+		xaxis3 = attr(domain = [0.67, 0.99]),
+		xaxis4 = attr(domain = [0, 0.29], anchor="y4"),
+		xaxis5 = attr(domain = [0.34, 0.62], anchor="y5"),
+		xaxis6 = attr(domain = [0.67, 0.99], anchor="y6"),
 		yaxis1 = attr(domain = [0.525, 0.95], anchor="x1"),
 		yaxis2 = attr(domain = [0.525, 0.95], anchor="x2"),
 		yaxis3 = attr(domain = [0.525, 0.95], anchor="x3"),
@@ -424,8 +424,11 @@ function distribution_crises(pv::Vector{T}, πthres::Float64; style::Style=slide
 end
 
 panels_defaults(pv::Vector{T}; k=8, style::Style=slides_def, yh = 0.65, indiv=false) where T<:AbstractPath = panels_crises(pv, 0.0, style=style, yh=yh, type="default", indiv=indiv, k=k)
-function panels_crises(pv::Vector{T}, thres::Float64, sym::Symbol; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric) where T<:AbstractPath
+function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, thres, sym, k, k_back, type=type)
+
+	println("$Nc episodes")
+
 	println("Suggested yh=0.7 for style=paper")
 	keyvec = [:z, :Y, :C, :CoY, :B, :ψ, :spread, :π, :L, :mean, :var, :P, :avgω, :p90, :G, :T]
 
@@ -511,8 +514,8 @@ function panels_crises(pv::Vector{T}, thres::Float64, sym::Symbol; style::Style=
 
 	plot(data, layout, style=style)
 end
-function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.6, k=8, response="W") where T<:AbstractPath
-	Nc, tvv = get_crises(pv_bench, πthres, k)
+function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.6, k=8, k_back=2k, response="W") where T<:AbstractPath
+	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back)
 	println("Suggested yh=0.7 for style=paper")
 	if response == "W"
 		keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
@@ -527,7 +530,7 @@ function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Fl
 		_, _, b_me, _, _ = series_crises(pv_bench, tvv, key, k)
 		_, _, n_me, _, _ = series_crises(pv_nodef, tvv, key, k)
 		print("$key: $(@sprintf("%0.3g", 100 * (1- n_me[end]/b_me[end])))%\n")
-		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, axis=1+(jj-1)%6, CI=true, k=k)
+		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, axis=1+(jj-1)%6, CI=true, k=k, k_back=k_back)
 			push!(data, scat)
 		end
 	end
@@ -556,8 +559,8 @@ function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Fl
 	plot(data, layout, style=style)
 end
 
-function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65, k=8) where T<:AbstractPath
-	Nc, tvv = get_crises(pv_bench, πthres, k)
+function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol=:π; style::Style=slides_def, yh = 0.65, k=8, k_back=2k) where T<:AbstractPath
+	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back)
 	println("Suggested yh=0.7 for style=paper")
 	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :spread, :Wr]
 
@@ -598,7 +601,7 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres::Float64;
 			print("$key median: $(@sprintf("%0.5g", 100 * (1-n_me[end]/b_me[end])))%\n")
 			print("$key mean: $(@sprintf("%0.5g", 100 * (1-n_av[end]/b_av[end])))%\n")
 		end
-		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, f1vec[jj], f2vec[jj], axis=jj, CI=true, k=k)
+		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, f1vec[jj], f2vec[jj], axis=jj, CI=true, k=k, k_back=k_back)
 			push!(data, scat)
 		end
 	end
