@@ -532,6 +532,12 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 	ψ_vec = series(path,:ψ)
 	u_vec = 100.0 * (1.0 .- series(path, :L))
 	spr_vec = get_spr.(series(path, :qg), κ)
+	if haskey(path.data, :spread)
+		sprvec = series(path, :spread)
+		if norm(spr_vec .- sprvec).>1e-8
+			print("WARNING: Difference in calculation of spreads\n")
+		end
+	end
 	Gini_vec = 100*series(path,:Gini)
 
 	# verbose && print("T = $T\n")
