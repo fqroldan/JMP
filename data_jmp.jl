@@ -183,8 +183,10 @@ function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
 	reg3B = lm(@formula(net_iss ~ unemp + debt + NX), df[df.GEO.=="Spain",:])
 	reg4B = lm(@formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX + NXsq), df[df.GEO.=="Spain",:])
 
-	g_hat = predict(reg4G)
-	iss_hat = predict(reg4B)
+	# g_hat = predict(reg4G)
+	# iss_hat = predict(reg4B)
+	g_hat = predict(reg3G)
+	iss_hat = predict(reg3B)
 
 	println(regtable(reg1G, reg2G, reg3G, reg4G, reg1B, reg2B, reg3B, reg4B, renderSettings=asciiOutput(),regression_statistics = [:nobs, :r2, :adjr2, :r2_within], print_estimator_section = false, labels=Dict("TIME"=>"Time FE","GEO"=>"Country FE", "g_spend" => "G_t/Y_t", "unemp" => "Unemployment_t", "unemp2" => "Unemployment_t^2", "debt" => "B_t/Y_t", "BoverY2" => "(B_t/Y_t)^2", "NX" => "Net Exports_t", "NXsq" => "Net Exports_t^2", "net_iss" => "(B_t' - (1-ρ)B_t) / Y_t")))
 
@@ -224,7 +226,8 @@ function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
 
 	plot(data, layout, style=style)
 
-	return coef(reg4G), coef(reg4B)
+	# return coef(reg4G), coef(reg4B)
+	return coef(reg3G), coef(reg3B)
 end
 
 function hp_filter(y::Vector{Float64}, lambda::Float64=1600.)
