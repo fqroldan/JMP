@@ -564,8 +564,8 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 	return v_m
 end
 
-function find_crises(pp::Path, πthres::Float64, k::Int64=7)
-	π_vec = series(pp,:π)
+function find_crises(pp::Path, thres::Number, sym::Symbol=:π, k::Int64=7, k_back=2k)
+	sym_vec = series(pp,sym)
 	ζ_vec = series(pp,:ζ)
 
 	T = periods(pp)
@@ -573,12 +573,12 @@ function find_crises(pp::Path, πthres::Float64, k::Int64=7)
 	# println(findall(π_vec .>= πthres))
 
 	Nc = 0
-	jt = 2k
+	jt = k_back
 	tvec = Int64[]
 	while jt < T - k
 		# println(jt)
 		jt += 1
-		if minimum(π_vec[jt-k:jt+k]) >= πthres && minimum(ζ_vec[jt-k:jt+k]) == 1 # Not default
+		if minimum(sym_vec[jt-k:jt+k]) >= thres && minimum(ζ_vec[jt-k:jt+k]) == 1 # Not default
 			Nc += 1
 			push!(tvec, jt)
 			jt += k
@@ -607,12 +607,12 @@ function find_defaults(pp::Path, k::Int64=7)
 	return Nc, tvec
 end
 
-function get_crises(pv::Vector{T}, πthres::Float64, k::Int64=7; type="highspreads") where T <: AbstractPath
+function get_crises(pv::Vector{T}, thres::Number, sym::Symbol=:π, k::Int64=7, k_back=15; type="highspreads") where T <: AbstractPath
 	Nc = 0
 	tmat = Vector{Vector{Int64}}(undef,0)
 	for (jp, pp) in enumerate(pv)
 		if type == "highspreads"
-			N_new, tvec = find_crises(pp, πthres, k)
+			N_new, tvec = find_crises(pp, thres, sym, k, k_back)
 		elseif type == "default"
 			N_new, tvec = find_defaults(pp)
 		else
@@ -626,13 +626,13 @@ function get_crises(pv::Vector{T}, πthres::Float64, k::Int64=7; type="highsprea
 	return Nc, tmat
 end
 
-get_crises(pp::Path, πthres::Float64, k::Int64=7) = get_crises([pp], πthres, k)
+get_crises(pp::Path, thres::Number, k::Int64=7) = get_crises([pp], πthres, k)
 
-series_crises(pp::Path, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9, symmetric=false) = series_crises([pp], tvv, key, k, symmetric=symmetric)
-function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9; symmetric::Bool=false) where T <: AbstractPath
+series_crises(pp::Path, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9, k_back=k) = series_crises([pp], tvv, key, k, k_back)
+function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9, k_back = k) where T <: AbstractPath
 	
 	Nc = sum([length(tv) for tv in tvv])
-	symmetric ? k_back = k : k_back = 2k
+	# symmetric ? k_back = k : k_back = 2k
 
 	ymat = Matrix{Float64}(undef, (k+k_back)+1, Nc)
 
