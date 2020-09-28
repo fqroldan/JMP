@@ -110,7 +110,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=10e-4, nodef::Bo
 	upd_η = 1.
 	upd_ηR = 0.14
 
-	tol_eqm = 5e-2
+	tol_eqm = 1e-2
 	maxiter_CE = 100
 
 	if nodef
@@ -128,6 +128,10 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=10e-4, nodef::Bo
 		""" RUN COMP_EQM LOOP """
 		dist_CE1 = comp_eqm!(sd, verbose = verbose, tol = tol_eqm, maxiter = maxiter_CE)
 		dist_CE = min(2*dist_CE1, tol_eqm)
+
+		true && print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:μ]))), $(@sprintf("%0.3g",maximum(sd.gr[:μ])))]")
+		true && print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:σ]))), $(@sprintf("%0.3g",maximum(sd.gr[:σ])))]")
+
 
 		""" UPDATES """
 		W_new = update_W(sd)
@@ -168,7 +172,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=10e-4, nodef::Bo
 		dist = max(dist, dist_CE)
 
 		time_old = time()
-		maxiter_CE = 15
+		maxiter_CE = 25
 	end
 	if save_copies
 		save(pwd() * "/../Output/SOEdef.jld", "sd", sd)

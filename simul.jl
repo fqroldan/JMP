@@ -28,7 +28,7 @@ function integrate_C(sd::SOEdef, Bt, μt, σt, ξt, ζt, zt, λt, itp_ϕc, itp_C
 	return C_from_λ, log(C_from_interp) - log(C_from_λ)
 end
 
-function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ, verbose::Bool=false)
+function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ, discr, verbose::Bool=false)
 
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal getfrompath(p, t, :z)
@@ -80,10 +80,14 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 
 	val_int_C, discrepancy = integrate_C(sd, Bt, μt, σt, ξt, ζt, zt, λt, itp_ϕc, itp_C)
 
+	discr[:C] = (discrepancy + (t-1) * discr[:C]) / t
+
 	results, _ = find_prices_direct(sd, val_int_C, Gt, Bpv, pNg, pNmin, pNmax, Bt, μt, σt, ξt, ζt, zt)
 
 	wt, pN, Ld, output = results
 	profits = output - wt*Ld
+
+	discr[:pN] = (log(pN) - log(pNg) + (t-1) * discr[:pN]) / t
 
 	pCt = price_index(sd, pN)
 	Ld_N, Ld_T  = labor_demand(sd, wt, zt, ζt, pN)
@@ -420,8 +424,9 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; verbos
 	# Simulate
 	t0 = time()
 	Ndefs = 0
+	discr = Dict(:C => 0.0, :pN => 0.0)
 	for t in 1:T
-		λ, new_def = iter_simul!(sd, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ, verbose)
+		λ, new_def = iter_simul!(sd, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ, discr, verbose)
 		Ndefs += new_def
 	end
 
@@ -698,8 +703,9 @@ function MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4*10, 
 	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
 
 	# Simulate for 'burn_in' periods to initialize the distirbution
+	discr = Dict(:C => 0.0, :pN => 0.0)
 	for t in 1:burn_in
-		λ, new_def = iter_simul!(sd, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ, verbose)
+		λ, new_def = iter_simul!(sd, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ, discr, verbose)
 	end
 
 	μ0, σ0 = [p.data[key][end] for key in [:μ, :σ]]
@@ -713,15 +719,17 @@ function MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4*10, 
 		fill_path!(pv[jk],1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
 		jz_series = Vector{Int64}(undef, T)
 		jz_series[1] = jz
+		discr = Dict(:C => 0.0, :pN => 0.0)
 		for t in 1:T
-			λ, new_def = iter_simul!(sd, pv[jk], t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ, verbose)
+			λ, new_def = iter_simul!(sd, pv[jk], t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ, discr, verbose)
 		end
 		pv_high[jk] = Path(T=T)
 		Bhigh = (1+ϵb)*B0
 		Random.seed!(jk)
 		fill_path!(pv_high[jk],1, Dict(:B => Bhigh, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
+		discr = Dict(:C => 0.0, :pN => 0.0)
 		for t in 1:T
-			λhigh, new_def = iter_simul!(sd, pv_high[jk], t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λhigh, Qϵ, verbose)
+			λhigh, new_def = iter_simul!(sd, pv_high[jk], t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λhigh, Qϵ, discr, verbose)
 		end
 	end
 

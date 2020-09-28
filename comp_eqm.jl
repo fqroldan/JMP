@@ -33,14 +33,14 @@ function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv
 	# Step 4: Get nontraded demand
  	# Recover traded demand from total consumption
 	pC = price_index(sd, pN)
-	cT = val_int_C * (1-ϖ) * (1.0/pC)^(-η)
-	cN = val_int_C * ( ϖ ) * (pN/pC)^(-η)
+	cT = val_int_C * (1-ϖ) * (pC)^(η)      # cᵢ = ϖᵢ (pᵢ/p)^(-η) C
+	cN = val_int_C * ( ϖ ) * (pC/pN)^(η)
 	gN = G * ϑ / pN
 
 	yN = max(0.0, supply_N - gN)
 
 	# Get new implied pN
-	pN_new = ϖ^(1/η) / (1-ϖ^(1/η)) * (cT/yN)^(1/η)
+	pN_new = (ϖ / (1-ϖ))^(1/η) * (cT/yN)^(1/η)
 
 	pN_new = min(100.0, pN_new)
 
@@ -61,6 +61,7 @@ function find_prices_direct(sd::SOEdef, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv
 			)
 
 		pN = res.minimizer
+		res.minimum > 1e-4 && print("\nWARNING: No prices, dist $(res.minimum)")
 	else
 		if false
 			pNg = max(min(pNg, pNmax - 1e-6), pNmin + 1e-6)
@@ -231,14 +232,16 @@ end
 function find_q(sd::SOEdef, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)
 	pars = sd.pars
 	haircut = 0.0
-	if jdef && reentry==false
-		haircut = 0.0
-	end
+	ρ = pars[:ρ]
+
 	if jdef == false && ζpv == 0
 		haircut = pars[:ℏ]
 	end
+	if ζpv == 0 # If default tomorrow, no depreciation of bond
+		ρ = 0.0
+	end
 
-	R = (ζpv==1) * pars[:κ] + (1.0 - haircut) .* ((1.0-pars[:ρ])*q)
+	R = (ζpv==1) * pars[:κ] + (1.0 - haircut) .* (1.0-ρ) *q
 
 	Eω   = a + R*b
 	varω = var_a + R^2 * var_b + 2*R * cov_ab
@@ -457,7 +460,7 @@ function update_expectations!(sd::SOEdef, upd_η::Float64)
 
 	μ_new, σ_new = find_all_expectations(sd, itp_ϕa, itp_ϕb, itp_qᵍ)
 
-	new_μgrid = new_grid(μ_new, gr[:μ], lb = -3.0, ub = 3.0)
+	new_μgrid = new_grid(μ_new, gr[:μ], lb = -0.25, ub = 3.0)
 	new_σgrid = new_grid(σ_new, gr[:σ], lb = 1e-2)
 
 	for js in 1:length(μ_new)

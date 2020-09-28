@@ -183,10 +183,10 @@ function SOEdef(;
 	ϑ = 0.88 # Straight from Anzoategui
 
 	μ_anzo = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
-	ω_anzo = 0.8  # Taken from Anzoategui, targets SS output share of nontradables at 88%
+	ω_anzo = 0.83  # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
 	η = μ_anzo
-	ϖ = ω_anzo^(1.0/μ_anzo)
+	ϖ = ω_anzo^(μ_anzo)
 
 	# Grids for endogenous aggregate states
 	Bmax  = 6.5
@@ -331,7 +331,7 @@ N(sd::SOEdef, sym) = length(sd.gr[sym])
 agg_grid(sd::SOEdef) = gridmake(1:N(sd,:b), 1:N(sd,:μ), 1:N(sd,:σ), 1:N(sd,:ξ), 1:N(sd,:ζ), 1:N(sd,:z))
 
 price_index(sd::SOEdef, pN) = price_index(sd.pars, pN)
-price_index(p::Dict{Symbol,Float64}, pN) = (p[:ϖ] * pN.^(1.0-p[:η]) .+ (1.0-p[:ϖ])).^(1.0/(1.0-p[:η]))
+price_index(p::Dict{Symbol,Float64}, pN) = (p[:ϖ] * pN.^(1-p[:η]) .+ (1-p[:ϖ])).^(1.0/(1.0-p[:η]))
 
 function make_logN(meanX, varX)
 	""" Takes mean and variance and returns μ and σ parameters for logNormal dist"""

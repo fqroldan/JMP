@@ -1,7 +1,7 @@
 abstract type Hank
 end
 
-using PlotlyJS, ColorSchemes, ORCA
+using PlotlyJS, ColorSchemes
 
 col = [	"#1f77b4",  # muted blue
 		"#ff7f0e",  # safety orange
