@@ -110,7 +110,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=10e-4, nodef::Bo
 	upd_η = 1.
 	upd_ηR = 0.14
 
-	tol_eqm = 1e-2
+	tol_eqm = 0.1
 	maxiter_CE = 100
 
 	if nodef
