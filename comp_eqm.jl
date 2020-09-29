@@ -42,7 +42,7 @@ function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv
 	# Get new implied pN
 	pN_new = (ϖ / (1-ϖ))^(1/η) * (cT/yN)^(1/η)
 
-	pN_new = min(100.0, pN_new)
+	# pN_new = min(100.0, pN_new)
 
 	output = pN * supply_N + supply_T
 	F = pN - pN_new
@@ -57,11 +57,14 @@ function find_prices_direct(sd::SOEdef, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv
 	if do_solver_prices
 		res = Optim.optimize(
 			pNv -> (eval_prices_direct(sd, val_int_C, G, pNv, bv, μv, σv, ξv, ζv, zv)[:F])^2,
-			pNmin, pNmax, GoldenSection()
+			pNmin, pNmax, Brent()
 			)
 
 		pN = res.minimizer
-		res.minimum > 1e-4 && print("\nWARNING: No prices, dist $(res.minimum)")
+		if res.minimum > 1e-4
+			# print("\nWARNING: No prices, dist $(res.minimum)")
+			pN = eval_prices_direct(sd, val_int_C, G, pNg, bv, μv, σv, ξv, ζv, zv)[:pN_new]
+		end
 	else
 		if false
 			pNg = max(min(pNg, pNmax - 1e-6), pNmin + 1e-6)
@@ -501,7 +504,7 @@ function update_grids!(sd::SOEdef; new_μgrid::Vector=[], new_σgrid::Vector=[],
 			y = reshape(y, N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z))
 		end
 		if ext
-			knots = (gr[:ω], gr[:ϵ], gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z], gr[:pN])
+			# knots = (gr[:ω], gr[:ϵ], gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z], gr[:pN])
 		end
 
 		itp_obj_y = interpolate(knots, y, Gridded(Linear()))
@@ -511,8 +514,8 @@ function update_grids!(sd::SOEdef; new_μgrid::Vector=[], new_σgrid::Vector=[],
 			y_new = itp_y(gr[:b], new_μgrid, new_σgrid, gr[:ξ], gr[:ζ], new_zgrid)
 			return reshape(y_new, length(y_new))
 		elseif ext
-			y_new = itp_y(gr[:ω], gr[:ϵ], gr[:b], new_μgrid, new_σgrid, gr[:ξ], gr[:ζ], new_zgrid, gr[:pN])
-			return y_new
+			# y_new = itp_y(gr[:ω], gr[:ϵ], gr[:b], new_μgrid, new_σgrid, gr[:ξ], gr[:ζ], new_zgrid, gr[:pN])
+			# return y_new
 		else
 			y_new = itp_y(gr[:ω], gr[:ϵ], gr[:b], new_μgrid, new_σgrid, gr[:ξ], gr[:ζ], new_zgrid)
 			return y_new
@@ -621,8 +624,8 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 
 		""" UPDATE GRID FOR PN """
 		t1 = time()
-		update_grid_p!(sd, exc_dem_prop, exc_sup_prop)
-		!verbose || print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:pN]))), $(@sprintf("%0.3g",maximum(sd.gr[:pN])))]")
+		# update_grid_p!(sd, exc_dem_prop, exc_sup_prop)
+		# !verbose || print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:pN]))), $(@sprintf("%0.3g",maximum(sd.gr[:pN])))]")
 		!verbose || print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
 		
 		dist_s = maximum(dists)
