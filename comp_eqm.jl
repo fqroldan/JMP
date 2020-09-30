@@ -10,12 +10,10 @@ function labor_demand(sd::SOEdef, w, z, ζv, pNv)
 	return Ld_nontradables, Ld_tradables
 end
 
-
-function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv, zv)
- 	ϖ, η, ϑ, Δ, α_N, α_T, wbar = [sd.pars[key] for key in [:ϖ, :η, :ϑ, :Δ, :α_N, :α_T, :wbar]]
-	Ls = 1.0
-	
+function find_w_given_p(sd::SOEdef, zv, ζv, pN)
+	wbar = sd.pars[:wbar]
 	# Step 1: Find unconstrained wage
+	Ls = 1.0
 	res = Optim.optimize(
 		w -> (Ls - sum(labor_demand(sd, w, zv, ζv, pN)))^2,
 		min(0.5*pN,0.5), max(1,4*pN), GoldenSection()
@@ -23,6 +21,17 @@ function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv
 
 	# Step 2: Apply constraint
 	wv = max(res.minimizer, wbar)
+end
+
+function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv, zv; find_w=true, wbar=sd.pars[:wbar])
+ 	ϖ, η, ϑ, Δ, α_N, α_T = [sd.pars[key] for key in [:ϖ, :η, :ϑ, :Δ, :α_N, :α_T]]
+	
+	# Steps 1-2: Find wage
+	if find_w
+		wv = find_w_given_p(sd, zv, ζv, pN)
+	else
+		wv = wbar
+	end
 
 	# Step 3: Compute labor demand in nontradables and supply
 	Ld_N, Ld_T = labor_demand(sd, wv, zv, ζv, pN)
@@ -42,7 +51,7 @@ function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv
 	# Get new implied pN
 	pN_new = (ϖ / (1-ϖ))^(1/η) * (cT/yN)^(1/η)
 
-	# pN_new = min(100.0, pN_new)
+	pN_new = min(100.0, pN_new)
 
 	output = pN * supply_N + supply_T
 	F = pN - pN_new
@@ -56,14 +65,23 @@ function find_prices_direct(sd::SOEdef, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv
 
 	if do_solver_prices
 		res = Optim.optimize(
-			pNv -> (eval_prices_direct(sd, val_int_C, G, pNv, bv, μv, σv, ξv, ζv, zv)[:F])^2,
+			pNv -> (eval_prices_direct(sd, val_int_C, G, pNv, bv, μv, σv, ξv, ζv, zv, find_w=false, wbar=0.01)[:F])^2,
 			pNmin, pNmax, Brent()
 			)
 
 		pN = res.minimizer
 		if res.minimum > 1e-4
-			# print("\nWARNING: No prices, dist $(res.minimum)")
-			pN = eval_prices_direct(sd, val_int_C, G, pNg, bv, μv, σv, ξv, ζv, zv)[:pN_new]
+				res = Optim.optimize(
+				pNv -> (eval_prices_direct(sd, val_int_C, G, pNv, bv, μv, σv, ξv, ζv, zv, find_w=false, wbar=sd.pars[:wbar])[:F])^2,
+				pNmin, pNmax, Brent()
+				)
+
+			pN = res.minimizer
+
+			if res.minimum > 1e-4
+				print("\nWARNING: No prices, dist $(res.minimum)")
+				pN = eval_prices_direct(sd, val_int_C, G, pNg, bv, μv, σv, ξv, ζv, zv)[:pN_new]
+			end
 		end
 	else
 		if false
