@@ -129,8 +129,9 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=10e-4, nodef::Bo
 		dist_CE1 = comp_eqm!(sd, verbose = verbose, tol = tol_eqm, maxiter = maxiter_CE)
 		dist_CE = min(2*dist_CE1, tol_eqm)
 
-		true && print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:μ]))), $(@sprintf("%0.3g",maximum(sd.gr[:μ])))]")
-		true && print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:σ]))), $(@sprintf("%0.3g",maximum(sd.gr[:σ])))]")
+		true && print_save("\nNew pN = [$(@sprintf("%0.3g",minimum(sd.eq[:pN]))), $(@sprintf("%0.3g",maximum(sd.eq[:pN])))]")
+		true && print_save("\nNew w  = [$(@sprintf("%0.3g",minimum(sd.eq[:wage]))), $(@sprintf("%0.3g",maximum(sd.eq[:wage])))]")
+		true && print_save("\nNew Ld = [$(@sprintf("%0.3g",minimum(sd.eq[:Ld]))), $(@sprintf("%0.3g",maximum(sd.eq[:Ld])))]")
 
 
 		""" UPDATES """

@@ -228,10 +228,7 @@ function eval_value(sd::SOEdef, guess, itp_vf_s, itp_wf_s, ωv, jϵ, jξ, jz, ex
 	return Dict(:v => vt, :w => wt)
 end
 
-function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf; resolve::Bool = true, verbose::Bool=true, autodiff::Bool=false) where {Ktot,Kshocks}
-	v = Dict{Symbol, Array{Float64,Ktot}}(key=>similar(val) for (key, val) in sd.v)
-	ϕ = Dict{Symbol, Array{Float64,Ktot}}(key=>similar(val) for (key, val) in sd.ϕ)
-	warnc0 = zeros(size(qᵍ_mat))
+function opt_value!(v, ϕ, warnc0, sd::SOEdef, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf; resolve::Bool = true, verbose::Bool=true, autodiff::Bool=false)
 
 	adjustment = sum(ergodic_ϵ(sd).*exp.(sd.gr[:ϵ]))
 	ωmax = maximum(sd.gr[:ω])
@@ -333,10 +330,10 @@ function opt_value(sd::SOEdef{Ktot,Kshocks}, qʰ_mat, qᵍ_mat, wL_mat, T_mat, p
 		end
 	end
 
-	return v, ϕ, warnc0
+	# return v, ϕ, warnc0
 end
 
-function update_policy!(sd::SOEdef, itp_θ, qʰ_mat, qᵍ_mat)
+function update_policy!(ϕ, sd::SOEdef, itp_θ, qʰ_mat, qᵍ_mat)
 	Jgrid = agg_grid(sd)
 
 	for js in 1:size(Jgrid, 1)
@@ -359,26 +356,26 @@ function update_policy!(sd::SOEdef, itp_θ, qʰ_mat, qᵍ_mat)
 			""" RHS, pCv irrelevant because I only want :a and :b """
 			others = get_abc(1.0, sd.pars[:ωmin], qʰv, qᵍv, 1.0, sv, θv)
 
-			sd.ϕ[:a][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = others[:a]
-			sd.ϕ[:b][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = others[:b]
+			ϕ[:a][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = others[:a]
+			ϕ[:b][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] = others[:b]
 		end
 	end
 	nothing
 end
 
-function bellman_iteration!(sd::SOEdef, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve::Bool=true, verbose::Bool=true, autodiff::Bool=false)
+function bellman_iteration!(v, ϕ, warnc0, sd::SOEdef, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve::Bool=true, verbose::Bool=true, autodiff::Bool=false)
 	# Interpolate the value function
 	itp_vf = make_itp(sd, sd.v[:v]; agg=false);
 	itp_wf = make_itp(sd, sd.v[:w]; agg=false);
 	itp_qᵍ = make_itp(sd, sd.eq[:qᵍ]; agg=true);
 
 	# Compute values
-	vf, ϕ, warnc0 = opt_value(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf, resolve = resolve, verbose = verbose, autodiff=autodiff)
+	opt_value!(v, ϕ, warnc0, sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat, itp_qᵍ, itp_vf, itp_wf, resolve = resolve, verbose = verbose, autodiff=autodiff)
 
 	# Let know if anything is wrong
-	for key in keys(vf)
-		if sum(isnan.(vf[key])) > 0
-			print_save("$(sum(isnan.(vf[key]))) NaNs found in vf[$(key)]")
+	for key in keys(v)
+		if sum(isnan.(v[key])) > 0
+			print_save("$(sum(isnan.(v[key]))) NaNs found in v[$(key)]")
 		end
 	end
 	for key in keys(ϕ)
@@ -390,17 +387,18 @@ function bellman_iteration!(sd::SOEdef, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat
 	itp_θ  = make_itp(sd, ϕ[:θ]; agg=false);
 
 	# Store results in the type
-	sd.v = vf
-	sd.ϕ = ϕ
+	# sd.v = vf
+	# sd.ϕ = ϕ
 
 	# Store results for policy in :a and :b
-	update_policy!(sd, itp_θ, qʰ_mat, qᵍ_mat)
+	update_policy!(ϕ, sd, itp_θ, qʰ_mat, qᵍ_mat)
 
-	return warnc0
+	# return warnc0, vf, ϕ
+	nothing
 end
 
 
-function vfi!(sd::SOEdef; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=200)
+function vfi!(sd::SOEdef{Ktot,Kshocks}; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=200) where {Ktot,Kshocks}
 
 	!verbose || print_save("\nSolving household problem: ")
 	time_init = time()
@@ -409,7 +407,9 @@ function vfi!(sd::SOEdef; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=
 
 	upd_ηϕ = 0.75
 
-	warnc0 = zeros(size(sd.eq[:qᵍ]))
+	v = Dict{Symbol, Array{Float64,Ktot}}(key=>similar(val) for (key, val) in sd.v)
+	ϕ = Dict{Symbol, Array{Float64,Ktot}}(key=>similar(val) for (key, val) in sd.ϕ)
+	warnc0 = zeros(N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z))
 
 	t_old = time()
 	while dist > tol && iter < maxiter
@@ -418,25 +418,29 @@ function vfi!(sd::SOEdef; tol::Float64=5e-3, verbose::Bool=true, maxiter::Int64=
 
 		if iter > 5
 			for jj in 1:5
-				bellman_iteration!(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=false)
+				bellman_iteration!(v, ϕ, warnc0, sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=false)
+				for (key, val) in v
+					sd.v[key] = val
+				end
 			end
 		end
 		
-		v_old = copy(sd.v)
-		ϕ_old = copy(sd.ϕ)
-		warnc0 = bellman_iteration!(sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=true, autodiff=false)
-		v_new = copy(sd.v)
-		ϕ_new = copy(sd.ϕ)
+		bellman_iteration!(v, ϕ, warnc0, sd, qʰ_mat, qᵍ_mat, wL_mat, T_mat, pC_mat, Π_mat; resolve=true, autodiff=false)
 
-		for (key, val) in ϕ_new
-			sd.ϕ[key] = ϕ_old[key] + upd_ηϕ * (val - ϕ_old[key])
+
+		dist_v = maximum([ norm( v[key] - sd.v[key] ) / norm(sd.v[key]) for key in keys(sd.v)])
+		norm_v = Dict(key => norm(sd.v[key]) for key in keys(sd.v))
+		dist_ϕ = maximum([norm( ϕ[key] - sd.ϕ[key] ) / (1+norm(sd.ϕ[key])) for key in [:s,:θ]])
+		dist = max(dist_v, 0.1*dist_ϕ)
+		# dist = 1 * dist_v
+
+		for (key, val) in ϕ
+			sd.ϕ[key] = sd.ϕ[key] + upd_ηϕ * (val - sd.ϕ[key])
+		end
+		for (key, val) in v
+			sd.v[key] = val
 		end
 
-		dist_v = maximum([sqrt.(sum( (v_new[key] - v_old[key]).^2 )) / sqrt.(sum(v_old[key].^2)) for key in keys(sd.v)])
-		norm_v = Dict(key => sqrt.(sum(v_old[key].^2)) for key in keys(sd.v))
-		dist_ϕ = maximum([sqrt.(sum( (ϕ_new[key] - ϕ_old[key]).^2 )) / sqrt.(1+sum(ϕ_old[key].^2)) for key in [:s,:θ]])
-		# dist = max(dist_v, 0.05*dist_ϕ)
-		dist = 1 * dist_v
 		if iter % 20 == 0 || (verbose && dist < tol)
 			t_new = time()
 			print("\nd(v, v′) = $(@sprintf("%0.3g",dist)) at ‖v,w‖ = ($(@sprintf("%0.3g",norm_v[:v])), $(@sprintf("%0.3g",norm_v[:w]))) after $(time_print(t_new-t_old)) and $iter iterations ")

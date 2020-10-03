@@ -11,19 +11,16 @@ function labor_demand(sd::SOEdef, w, z, ζv, pNv)
 end
 
 function find_w_given_p(sd::SOEdef, zv, ζv, pN)
-	wbar = sd.pars[:wbar]
 	# Step 1: Find unconstrained wage
 	Ls = 1.0
 	res = Optim.optimize(
 		w -> (Ls - sum(labor_demand(sd, w, zv, ζv, pN)))^2,
 		min(0.5*pN,0.5), max(1,4*pN), GoldenSection()
 		)
-
-	# Step 2: Apply constraint
-	wv = max(res.minimizer, wbar)
+	wv = res.minimizer
 end
 
-function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv, zv; find_w=true, wbar=sd.pars[:wbar])
+function eval_prices_direct(sd::SOEdef, pCC, G, pN, bv, μv, σv, ξv, ζv, zv; find_w=true, wbar=sd.pars[:wbar])
  	ϖ, η, ϑ, Δ, α_N, α_T = [sd.pars[key] for key in [:ϖ, :η, :ϑ, :Δ, :α_N, :α_T]]
 	
 	# Steps 1-2: Find wage
@@ -32,6 +29,9 @@ function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv
 	else
 		wv = wbar
 	end
+
+	# Step 2: Apply constraint
+	wv = max(wv, wbar)
 
 	# Step 3: Compute labor demand in nontradables and supply
 	Ld_N, Ld_T = labor_demand(sd, wv, zv, ζv, pN)
@@ -42,11 +42,13 @@ function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv
 	# Step 4: Get nontraded demand
  	# Recover traded demand from total consumption
 	pC = price_index(sd, pN)
+	val_int_C = pCC / pC
+
 	cT = val_int_C * (1-ϖ) * (pC)^(η)      # cᵢ = ϖᵢ (pᵢ/p)^(-η) C
 	cN = val_int_C * ( ϖ ) * (pC/pN)^(η)
 	gN = G * ϑ / pN
 
-	yN = max(0.0, supply_N - gN)
+	yN = max(0.1, supply_N - gN)
 
 	# Get new implied pN
 	pN_new = (ϖ / (1-ϖ))^(1/η) * (cT/yN)^(1/η)
@@ -59,45 +61,40 @@ function eval_prices_direct(sd::SOEdef, val_int_C, G, pN, bv, μv, σv, ξv, ζv
 	return Dict(:output => output, :Ld => Ld, :pN_new => pN_new, :C => val_int_C, :wage => wv, :F => F, :supply_N => supply_N, :demand_N => cN+gN)
 end
 
-function find_prices_direct(sd::SOEdef, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, ζv, zv)
+function find_prices_direct(sd::SOEdef, pCC, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, ζv, zv)
 
 	do_solver_prices = true
 
 	if do_solver_prices
 		res = Optim.optimize(
-			pNv -> (eval_prices_direct(sd, val_int_C, G, pNv, bv, μv, σv, ξv, ζv, zv, find_w=false, wbar=0.01)[:F])^2,
+			pNv -> (eval_prices_direct(sd, pCC, G, pNv, bv, μv, σv, ξv, ζv, zv, find_w=true, wbar=0.01)[:F])^2,
 			pNmin, pNmax, Brent()
 			)
 
 		pN = res.minimizer
-		if res.minimum > 1e-4
-				res = Optim.optimize(
-				pNv -> (eval_prices_direct(sd, val_int_C, G, pNv, bv, μv, σv, ξv, ζv, zv, find_w=false, wbar=sd.pars[:wbar])[:F])^2,
-				pNmin, pNmax, Brent()
-				)
+		wt = find_w_given_p(sd, zv, ζv, pN)
+		if wt < sd.pars[:wbar] || !(res.minimum < 1e-4)
+			# print("\nWAGE VIOLATING CONSTRAINT")
+			res = Optim.optimize(
+			pNv -> (eval_prices_direct(sd, pCC, G, pNv, bv, μv, σv, ξv, ζv, zv, find_w=false, wbar=sd.pars[:wbar])[:F])^2,
+			pNmin, pNmax, Brent()
+			)
 
 			pN = res.minimizer
 
 			if res.minimum > 1e-4
 				print("\nWARNING: No prices, dist $(res.minimum)")
-				pN = eval_prices_direct(sd, val_int_C, G, pNg, bv, μv, σv, ξv, ζv, zv)[:pN_new]
+				pN = eval_prices_direct(sd, pCC, G, pNg, bv, μv, σv, ξv, ζv, zv)[:pN_new]
 			end
 		end
 	else
-		if false
-			pNg = max(min(pNg, pNmax - 1e-6), pNmin + 1e-6)
-			obj_f(x) = (eval_prices_direct(sd, val_int_C, G, x, bv, μv, σv, ξv, ζv, zv)[:F])^2
-			res = Optim.optimize(
-				pN -> obj_f(first(pN)),
-				[pNmin], [pNmax], [pNg], Fminbox(LBFGS())#, autodiff=:forward#, Optim.Options(f_tol=1e-12)
-				)
-			pN = first(res.minimizer)
-		else
-			pN = pNg
+		for jj in 1:6
+			pN = eval_prices_direct(sd, pCC, G, pNg, bv, μv, σv, ξv, ζv, zv)[:pN_new]
+			pNg = pN
 		end
 	end
 
-	vars = eval_prices_direct(sd, val_int_C, G, pN, bv, μv, σv, ξv, ζv, zv)
+	vars = eval_prices_direct(sd, pCC, G, pN, bv, μv, σv, ξv, ζv, zv)
 
 	pN >= pNmax - 0.05*(pNmax-pNmin) ? exc_dem = 1 : exc_dem = 0
 	pN <= pNmin + 0.05*(pNmax-pNmin) ? exc_sup = 1 : exc_sup = 0
@@ -140,7 +137,8 @@ function find_all_prices(sd::SOEdef, itp_ϕc)
 		zv = gr[:z][Jgrid[js, 6]]
 
 		val_int_C = get_agg_C(sd, itp_ϕc, bv, μv, σv, ξv, ζv, zv)
-		r, mf, ed, es = find_prices_direct(sd, val_int_C, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, ζv, zv)
+		pCC = price_index(sd, pNg) * val_int_C
+		r, mf, ed, es = find_prices_direct(sd, pCC, G, Bpv, pNg, pNmin, pNmax, bv, μv, σv, ξv, ζv, zv)
 
 		results[js, :] = r
 		minf[js, :], exc_dem[js], exc_sup[js] = mf, ed, es
@@ -189,7 +187,7 @@ function update_state_functions!(sd::SOEdef, upd_η; verbose::Bool=false)
 
 	eq[:pN] = upd_η * results[:, 2] + (1.0-upd_η) * eq[:pN]
 
-	Jgrid = agg_grid(sd)
+	Jgrid = agg_grid(sd);
 	Threads.@threads for js in 1:size(Jgrid,1)
 	# for js in 1:N
 		Bpv = eq[:issuance][js]
@@ -208,8 +206,9 @@ function update_state_functions!(sd::SOEdef, upd_η; verbose::Bool=false)
 		pN = max(min(pN, pNmax), pNmin)
 
 		val_int_C = get_agg_C(sd, itp_ϕc, bv, μv, σv, ξv, ζv, zv)
+		pCC = val_int_C * price_index(sd, pN)
 
-		others = eval_prices_direct(sd, val_int_C, G, pN, bv, μv, σv, ξv, ζv, zv)
+		others = eval_prices_direct(sd, pCC, G, pN, bv, μv, σv, ξv, ζv, zv)
 
 		for (key, val) in others # should contain :wage, :Ld, :output, :C
 			if haskey(eq, key)
@@ -481,7 +480,7 @@ function update_expectations!(sd::SOEdef, upd_η::Float64)
 
 	μ_new, σ_new = find_all_expectations(sd, itp_ϕa, itp_ϕb, itp_qᵍ)
 
-	new_μgrid = new_grid(μ_new, gr[:μ], lb = -0.25, ub = 3.0)
+	new_μgrid = new_grid(μ_new, gr[:μ], lb = -0.25, ub = 1.5)
 	new_σgrid = new_grid(σ_new, gr[:σ], lb = 1e-2)
 
 	for js in 1:length(μ_new)
@@ -621,7 +620,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		!verbose || print_save(" (spread between $(floor(Int,10000*minimum(sd.eq[:spread]))) bps and $(floor(Int,10000*maximum(sd.eq[:spread][Jgrid[:,5].==1]))) bps)")
 
 		""" SOLVE INCOME FLUCTUATIONS PROBLEM """
-		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = false);
+		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = verbose);
 		flag = (dist_v < tol_vfi)
 		if flag && iter % iter_show == 0
 			print_save(" ✓")
@@ -642,8 +641,8 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 
 		""" UPDATE GRID FOR PN """
 		t1 = time()
-		# update_grid_p!(sd, exc_dem_prop, exc_sup_prop)
-		# !verbose || print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:pN]))), $(@sprintf("%0.3g",maximum(sd.gr[:pN])))]")
+		update_grid_p!(sd, exc_dem_prop, exc_sup_prop)
+		!verbose || print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:pN]))), $(@sprintf("%0.3g",maximum(sd.gr[:pN])))]")
 		!verbose || print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
 		
 		dist_s = maximum(dists)
