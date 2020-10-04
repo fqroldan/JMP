@@ -290,7 +290,7 @@ function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bp
 		reentry = true
 		jζp = 2
 		ζpv = gr[:ζ][jζp]
-		qmin, qmax = minimum(sd.eq[:qᵍ]), maximum(sd.eq[:qᵍ])
+		qmin, qmax = 1e-6, 1.1
 
 		res = Optim.optimize(
 			q -> (find_q(sd, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1] - q)^2,
