@@ -488,8 +488,8 @@ function update_expectations!(sd::SOEdef, upd_η::Float64)
 		σ_new[js] = max.(min.(σ_new[js], maximum(gr[:σ])), minimum(gr[:σ]))
 	end
 
-	dist_exp[1] = sqrt.(sum( (fl(μ_new) - fl(μ_old)).^2 )) / sqrt.(sum(fl(μ_old).^2))
-	dist_exp[2] = sqrt.(sum( (fl(σ_new) - fl(σ_old)).^2 )) / sqrt.(sum(fl(σ_old).^2))
+	dist_exp[1] = norm(fl(μ_new) - fl(μ_old)) / norm(fl(μ_old))
+	dist_exp[2] = norm(fl(σ_new) - fl(σ_old)) / norm(fl(σ_old))
 
 	μ_new = upd_η * μ_new + (1.0 - upd_η) * μ_old
 	σ_new = upd_η * σ_new + (1.0 - upd_η) * σ_old
