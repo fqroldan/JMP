@@ -243,7 +243,9 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	prop_domestic = b/Bpv
 	Bf = Bpv - b
 
-	μ′, σ′, q′, _ = compute_stats_logN(sd, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, exp_rep, jdef)
+	qguess = itp_qᵍ(Bt, μt, σt, ξt, ζt, zt)
+
+	μ′, σ′, q′, _ = compute_stats_logN(sd, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, exp_rep, jdef, qguess)
 
 	# μ′, σ′, q′ = new_expectations(h, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, wt, thres, Bt, μt, σt, w0, ζt, zt, jdef) # This would assume that λₜ is lognormal
 	# print("\n$(q′)")

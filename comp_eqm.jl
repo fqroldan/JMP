@@ -276,14 +276,14 @@ function find_q(sd::SOEdef, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv,
 	return new_q, μpv, σpv
 end
 
-function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, exp_rep, jdef)
+function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, exp_rep, jdef, qguess)
 	gr = sd.gr
 
 	q = zeros(N(sd,:ξ), N(sd,:z), 2)
 	μ = [zeros(2) for jξp in 1:N(sd,:ξ), jzp in 1:N(sd,:z)]
 	σ = [zeros(2) for jξp in 1:N(sd,:ξ), jzp in 1:N(sd,:z)]
 
-	alarm_mat = Array{Float64, 3}(undef, N(sd,:ξ), N(sd,:z), 2)
+	alarm_mat = Array{Int64, 3}(undef, N(sd,:ξ), N(sd,:z), 2)
 
 	for (jξp, ξpv) in enumerate(gr[:ξ]), (jzp, zpv) in enumerate(gr[:z])
 		# First any case where ζ′ = 1 -- no default
@@ -296,8 +296,13 @@ function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bp
 			q -> (find_q(sd, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1] - q)^2,
 			qmin, qmax, Brent()
 			)
-		q[jξp, jzp, jζp] = res.minimizer
-		res.minimum > 1e-4 ? alarm_mat[jξp, jzp, jζp] = 1 : alarm_mat[jξp, jzp, jζp] = 0
+		if res.minimum > 1e-4
+			alarm_mat[jξp, jzp, jζp] = 1
+			q[jξp, jzp, jζp] = qguess
+		else
+			alarm_mat[jξp, jzp, jζp] = 0
+			q[jξp, jzp, jζp] = res.minimizer
+		end
 
 		_, μ[jξp, jzp][jζp], σ[jξp, jzp][jζp] = find_q(sd, q[jξp, jzp, jζp], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)
 
@@ -310,8 +315,13 @@ function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bp
 				q -> (find_q(sd, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1] - q)^2,
 				qmin, qmax, Brent()
 				)
-			q[jξp, jzp, jζp] = res.minimizer
-			res.minimum > 1e-4 ? alarm_mat[jξp, jzp, jζp] = 1 : alarm_mat[jξp, jzp, jζp] = 0
+			if res.minimum > 1e-4
+				alarm_mat[jξp, jzp, jζp] = 1
+				q[jξp, jzp, jζp] = qguess
+			else
+				alarm_mat[jξp, jzp, jζp] = 0
+				q[jξp, jzp, jζp] = res.minimizer
+			end
 
 			_, μ[jξp, jzp][jζp], σ[jξp, jzp][jζp] = find_q(sd, q[jξp, jzp, jζp], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)
 		else
@@ -323,8 +333,13 @@ function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bp
 				q -> (find_q(sd, q, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1] - q)^2,
 				qmin, qmax, Brent()
 				)
-			q[jξp, jzp, jζp] = res.minimizer
-			res.minimum > 1e-4 ? alarm_mat[jξp, jzp, jζp] = 1 : alarm_mat[jξp, jzp, jζp] = 0
+			if res.minimum > 1e-4
+				alarm_mat[jξp, jzp, jζp] = 1
+				q[jξp, jzp, jζp] = qguess
+			else
+				alarm_mat[jξp, jzp, jζp] = 0
+				q[jξp, jzp, jζp] = res.minimizer
+			end
 
 			_, μ[jξp, jzp][jζp], σ[jξp, jzp][jζp] = find_q(sd, q[jξp, jzp, 2], a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)
 		end
@@ -343,6 +358,8 @@ function new_expectations(sd::SOEdef, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, 
 	ξv = gr[:ξ][Jgrid[js, 4]]
 	ζv = gr[:ζ][Jgrid[js, 5]]
 	zv = gr[:z][Jgrid[js, 6]]
+
+	qguess = sd.eq[:qᵍ][js]
 
 	λϵ = ergodic_ϵ(sd)
 
@@ -398,7 +415,7 @@ function new_expectations(sd::SOEdef, itp_ϕa, itp_ϕb, itp_qᵍ, Bpv, exp_rep, 
 
 	!isnan(var_a+var_b+cov_ab) || print_save("\nVa, Vb, cov = $var_a, $var_b, $cov_ab")
 
-	μ′, σ′, q, alarm_vec = compute_stats_logN(sd, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, exp_rep, jdef)
+	μ′, σ′, q, alarm_vec = compute_stats_logN(sd, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, exp_rep, jdef, qguess)
 	return μ′, σ′, alarm_vec
 end
 
