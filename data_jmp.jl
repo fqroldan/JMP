@@ -315,7 +315,7 @@ function load_SPA()
 	unemp_base = DataFrame(date = unemp_base.TIME, unemp = unemp_base.Value)
 	df = innerjoin(df, unemp_base, on=["date"])
 
-	debt_base = CSV.read("/home/q/Dropbox/Research/Active/Default_Inequality_Supply/empirics/Debt/data_spain.csv", DataFrame, datarow=2)[1:end-3,:]
+	debt_base = CSV.read("../Data/spain_debt/data_spain.csv", DataFrame, datarow=2)[1:end-3,:]
 
 	debt_base.Column1 = Date.(debt_base.Column1, "u-yy") .+ Year(2000) .- Month(2)
 	rename!(debt_base, "Column1" => "date")
