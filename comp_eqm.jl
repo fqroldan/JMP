@@ -682,7 +682,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		dist = max(5*dist_v, dist)
 		tol_vfi = max(exp(0.95*log(1+min(tol/5,tol_vfi)))-1, tol/10)
 
-		upd_η = max(0.95*upd_η, 5e-2)
+		upd_η = max(0.995*upd_η, 0.1)
 	end
 
 	if dist <= tol
