@@ -616,7 +616,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 
 	dist_v, dist_exp, dist_s = zeros(3)
 
-	tol_vfi = tol
+	tol_vfi = tol / 4
 	t0 = time()
 	while dist > tol && iter < maxiter
 		iter += 1
@@ -680,7 +680,7 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		end
 		dist = max(dist_s, dist_exp)
 		dist = max(5*dist_v, dist)
-		tol_vfi = max(exp(0.95*log(1+min(tol/5,tol_vfi)))-1, tol/10)
+		tol_vfi = max(0.975 * dist/5, tol/10)
 
 		upd_η = max(0.995*upd_η, 0.1)
 	end
