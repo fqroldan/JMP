@@ -198,10 +198,9 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 
 		avgω_fromb[js] = ωv * max(0.0, bp)
 
-		jω = js[1]
-		if jω < q25
+		if ωv < cdf_ω[q25]
 			b25[js] += max(0.0, bp)
-		elseif jω > q90
+		elseif ωv > cdf_ω[q90]
 			b90[js] += max(0.0, bp)
 		end
 	end
