@@ -168,9 +168,9 @@ function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
 
 	df.NXsq = df.NX.^2 .* sign.(df.NX)
 
-	reg1G = reg(df, @formula(g_spend ~ unemp + unemp2 + debt + BoverY2 + NX + NXsq + fe(GEO) + fe(TIME)), save=true)
+	reg1G = reg(df, @formula(g_spend ~ unemp + unemp2 + debt + BoverY2 + NX + fe(GEO) + fe(TIME)), save=true)
 	reg2G = reg(df, @formula(g_spend ~ unemp + debt + NX + fe(GEO) + fe(TIME)), save=true)
-	reg1B = reg(df, @formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX + NXsq + fe(GEO) + fe(TIME)), save=true)
+	reg1B = reg(df, @formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX + fe(GEO) + fe(TIME)), save=true)
 	reg2B = reg(df, @formula(net_iss ~ unemp + debt + NX + fe(GEO) + fe(TIME)), save=true)
 
 	iss_hat = reg1B.fe.fe_GEO + reg1B.fe.fe_TIME
@@ -181,9 +181,10 @@ function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
 	end
 
 	reg3G = lm(@formula(g_spend ~ unemp + debt + NX), df[df.GEO.=="Spain",:])
-	reg4G = lm(@formula(g_spend ~ unemp + unemp2 + debt + BoverY2 + NX + NXsq), df[df.GEO.=="Spain",:])
+	reg4G = lm(@formula(g_spend ~ unemp + unemp2 + debt + BoverY2 + NX), df[df.GEO.=="Spain",:])
 	reg3B = lm(@formula(net_iss ~ unemp + debt + NX), df[df.GEO.=="Spain",:])
-	reg4B = lm(@formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX + NXsq), df[df.GEO.=="Spain",:])
+	# reg4B = lm(@formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX + NXsq), df[df.GEO.=="Spain",:])
+	reg4B = lm(@formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX), df[df.GEO.=="Spain",:])
 
 	# g_hat = predict(reg4G)
 	# iss_hat = predict(reg4B)
