@@ -222,12 +222,16 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	p25 = dot(λt, b25) / dot(λt, ϕb)
 	p90 = dot(λt, b90) / dot(λt, ϕb)
 
-	aggC_T = C  * sd.pars[:ϖ] * pCt^sd.pars[:η] # = (1 / pCt)^(-sd.pars[:η])
+	aggC_T = C  * (1-sd.pars[:ϖ]) * pCt^sd.pars[:η] # = (1 / pCt)^(-sd.pars[:η])
 	NX = supply_T - aggC_T - Gt * (1 - sd.pars[:ϑ])
 
 	Eω_fromb = dot(λt, avgω_fromb) / dot(λt, ϕb)
 
-	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5]))
+	meanω = dot(λt, ωϵv[:,1])
+	mω2 = dot(λt, (ωϵv[:,1]).^2)
+	varω = mω2 - meanω^2
+
+	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :mean => meanω, :var => varω, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5]))
 
 	a  = dot(λt, ϕa)
 	a2 = dot(λt, ϕa.^2)
@@ -372,12 +376,12 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 
 	# λpd = Q' * λt
 
-	M, V = unmake_logN(μpv, σpv)
+	# M, V = unmake_logN(μpv, σpv)
 
 	# Fill the path for next period
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
-		fill_path!(p,t+1, Dict(:B => Bpv, :μ => μpv, :σ => σpv, :ζ => ζpv, :ξ => ξpv, :z => zpv, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qpv, :spread=>spr, :mean => M, :var => V))
+		fill_path!(p,t+1, Dict(:B => Bpv, :μ => μpv, :σ => σpv, :ζ => ζpv, :ξ => ξpv, :z => zpv, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qpv, :spread=>spr))
 		fill_path!(p, t+1, Dict(:Wr10 => Wr_vec[1], :Wr25 => Wr_vec[2], :Wr50 => Wr_vec[3], :Wr75 => Wr_vec[4], :Wr90 => Wr_vec[5], :Wd10 => Wd_vec[1], :Wd25 => Wd_vec[2], :Wd50 => Wd_vec[3], :Wd75 => Wd_vec[4], :Wd90 => Wd_vec[5]))
 	end
 
@@ -538,6 +542,7 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 	G_vec = series(path,:G)
 	π_vec = series(path,:π)
 	ψ_vec = series(path,:ψ)
+	mean_vec = series(path, :mean)
 	u_vec = 100.0 * (1.0 .- series(path, :L))
 	spr_vec = get_spr.(series(path, :qg), κ)
 	if haskey(path.data, :spread)
@@ -550,8 +555,9 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 
 	# verbose && print("T = $T\n")
 
-	m_vec, sd_vec = unmake_logN(μ_vec, σ_vec)
-	mean_wealth = 100*mean(m_vec./(4*Y_vec))
+	# m_vec, sd_vec = unmake_logN(μ_vec, σ_vec)
+	# mean_wealth = 100*mean(m_vec./(4*Y_vec))
+	mean_wealth = 25 * mean( mean_vec ./ Y_vec )
 
 	ρy, σy = get_AR1(log.(Y_vec.+1e-8), ζ_vec)
 	ρc, σc = get_AR1(log.(C_vec.+1e-8), ζ_vec)
@@ -561,7 +567,7 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 		ρs, σs = 1.0, 0.0
 	end
 	m_unemp, sd_unemp = get_MV(u_vec)
-	m_debt, sd_debt = get_MV(100*B_vec./(4*Y_vec))
+	m_debt, sd_debt = get_MV(25*B_vec./Y_vec)
 	m_gspend, sd_gspend = get_MV(100*G_vec./Y_vec)
 	ψ_mean = 100 * median(ψ_vec)
 	spr_mean = mean(spr_vec)
