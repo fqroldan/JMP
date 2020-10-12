@@ -297,13 +297,15 @@ function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bp
 			qmin, qmax, Brent()
 			)
 		if res.minimum > 1e-4
-			alarm_mat[jξp, jzp, jζp] = 1
 			iter, dist = 0, 10.0
 			while dist > 1e-4 && iter < 150
 				iter += 1
 				qg = find_q(sd, qguess, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1]
 				dist = (qg - qguess)^2 / qguess
 				qguess = qg
+			end
+			if dist > 1e-4
+				alarm_mat[jξp, jzp, jζp] = 1
 			end
 			q[jξp, jzp, jζp] = qguess
 		else
@@ -323,13 +325,15 @@ function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bp
 				qmin, qmax, Brent()
 				)
 			if res.minimum > 1e-4
-				alarm_mat[jξp, jzp, jζp] = 1
 				iter, dist = 0, 10.0
 				while dist > 1e-4 && iter < 150
 					iter += 1
 					qg = find_q(sd, qguess, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1]
 					dist = (qg - qguess)^2 / qguess
 					qguess = qg
+				end
+				if dist > 1e-4
+					alarm_mat[jξp, jzp, jζp] = 1
 				end
 				q[jξp, jzp, jζp] = qguess
 			else
@@ -348,13 +352,15 @@ function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bp
 				qmin, qmax, Brent()
 				)
 			if res.minimum > 1e-4
-				alarm_mat[jξp, jzp, jζp] = 1
 				iter, dist = 0, 10.0
 				while dist > 1e-4 && iter < 150
 					iter += 1
 					qg = find_q(sd, qguess, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1]
 					dist = (qg - qguess)^2 / qguess
 					qguess = qg
+				end
+				if dist > 1e-4
+					alarm_mat[jξp, jzp, jζp] = 1
 				end
 				q[jξp, jzp, jζp] = qguess
 			else
