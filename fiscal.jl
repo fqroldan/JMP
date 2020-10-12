@@ -44,7 +44,7 @@ function iterate_qᵍ!(sd::SOEdef; verbose::Bool=false, tol = 1e-12, maxiter = 1
 						ζpv = 0.0
 						μpv = sd.LoM[:μ][js, jξp, jzp][1]
 						σpv = sd.LoM[:σ][js, jξp, jzp][1]
-						E_rep += prob * (1.0-pars[:ℏ]) * (1.0-pars[:ρ]) * itp_qᵍ((1 - pars[:ℏ])*bpv, μpv, σpv, ξpv, ζpv, zpv) * (1.0-exp_rep[jξp, jzp])
+						E_rep += prob * (1.0-pars[:ℏ]) * itp_qᵍ((1 - pars[:ℏ])*bpv, μpv, σpv, ξpv, ζpv, zpv) * (1.0-exp_rep[jξp, jzp])
 						check += prob
 					end
 				end

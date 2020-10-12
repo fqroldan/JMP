@@ -110,7 +110,7 @@ function walue(sd::SOEdef, θp, itp_vf_s, ωv, jϵ, jξ, jz, exp_rep, RHS, qʰv,
 
 						# Default
 						jζp = 1
-						Rb = (1-pars[:ρ]) * (1-pars[:ℏ]) * qᵍp[jξp, jzp, jζp]
+						Rb = (1-pars[:ℏ]) * qᵍp[jξp, jzp, jζp]
 						ωpv = ap + bp * Rb
 						if ωpv < pars[:ωmin]
 							out_bounds += 1

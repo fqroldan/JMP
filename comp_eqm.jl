@@ -298,6 +298,13 @@ function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bp
 			)
 		if res.minimum > 1e-4
 			alarm_mat[jξp, jzp, jζp] = 1
+			iter, dist = 0, 10.0
+			while dist > 1e-4 && iter < 150
+				iter += 1
+				qg = find_q(sd, qguess, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1]
+				dist = (qg - qguess)^2 / qguess
+				qguess = qg
+			end
 			q[jξp, jzp, jζp] = qguess
 		else
 			alarm_mat[jξp, jzp, jζp] = 0
@@ -317,6 +324,13 @@ function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bp
 				)
 			if res.minimum > 1e-4
 				alarm_mat[jξp, jzp, jζp] = 1
+				iter, dist = 0, 10.0
+				while dist > 1e-4 && iter < 150
+					iter += 1
+					qg = find_q(sd, qguess, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1]
+					dist = (qg - qguess)^2 / qguess
+					qguess = qg
+				end
 				q[jξp, jzp, jζp] = qguess
 			else
 				alarm_mat[jξp, jzp, jζp] = 0
@@ -335,6 +349,13 @@ function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bp
 				)
 			if res.minimum > 1e-4
 				alarm_mat[jξp, jzp, jζp] = 1
+				iter, dist = 0, 10.0
+				while dist > 1e-4 && iter < 150
+					iter += 1
+					qg = find_q(sd, qguess, a, b, var_a, var_b, cov_ab, Bpv, ξpv, ζpv, zpv, jdef, itp_qᵍ, reentry)[1]
+					dist = (qg - qguess)^2 / qguess
+					qguess = qg
+				end
 				q[jξp, jzp, jζp] = qguess
 			else
 				alarm_mat[jξp, jzp, jζp] = 0
@@ -497,7 +518,7 @@ function update_expectations!(sd::SOEdef, upd_η::Float64)
 
 	μ_new, σ_new = find_all_expectations(sd, itp_ϕa, itp_ϕb, itp_qᵍ)
 
-	new_μgrid = new_grid(μ_new, gr[:μ], lb = -0.25, ub = 2)
+	new_μgrid = new_grid(μ_new, gr[:μ], lb = -0.25, ub = 1.75)
 	new_σgrid = new_grid(σ_new, gr[:σ], lb = 1e-2)
 
 	for js in 1:length(μ_new)

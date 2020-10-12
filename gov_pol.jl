@@ -124,14 +124,16 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=10e-4, nodef::Bo
 	while iter < 2 || (dist > tol && iter < maxiter)
 		iter += 1
 		print_save("\n\nOuter Iteration $iter (run $(run_number)) with upd_ηR = $(@sprintf("%0.3g",upd_ηR)) at $(Dates.format(now(), "HH:MM"))")
+		print_save("\nqᵍ between $(round(minimum(sd.eq[:qᵍ][Jgrid[:,5].==1]),digits=4)) and $(round(maximum(sd.eq[:qᵍ]),digits=4)). risk-free is $(round(mean(sd.eq[:qʰ]),digits=4))")
+		print_save(" (spread between $(floor(Int,10000*minimum(sd.eq[:spread]))) bps and $(floor(Int,10000*maximum(sd.eq[:spread][Jgrid[:,5].==1]))) bps)")
 
 		""" RUN COMP_EQM LOOP """
 		dist_CE1 = comp_eqm!(sd, verbose = verbose, tol = tol_eqm, maxiter = maxiter_CE)
 		dist_CE = min(2*dist_CE1, tol_eqm)
 
-		true && print_save("\nNew pN = [$(@sprintf("%0.3g",minimum(sd.eq[:pN]))), $(@sprintf("%0.3g",maximum(sd.eq[:pN])))]")
-		true && print_save("\nNew w  = [$(@sprintf("%0.3g",minimum(sd.eq[:wage]))), $(@sprintf("%0.3g",maximum(sd.eq[:wage])))]")
-		true && print_save("\nNew Ld = [$(@sprintf("%0.3g",minimum(sd.eq[:Ld]))), $(@sprintf("%0.3g",maximum(sd.eq[:Ld])))]")
+		verbose && print_save("\nNew pN = [$(@sprintf("%0.3g",minimum(sd.eq[:pN]))), $(@sprintf("%0.3g",maximum(sd.eq[:pN])))]")
+		verbose && print_save("\nNew w  = [$(@sprintf("%0.3g",minimum(sd.eq[:wage]))), $(@sprintf("%0.3g",maximum(sd.eq[:wage])))]")
+		verbose && print_save("\nNew Ld = [$(@sprintf("%0.3g",minimum(sd.eq[:Ld]))), $(@sprintf("%0.3g",maximum(sd.eq[:Ld])))]")
 
 
 		""" UPDATES """
