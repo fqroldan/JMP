@@ -30,7 +30,7 @@ function update_govpol(sd::SOEdef)
 
 	# More μ means default more often
 	μ_gov = 0.001 * 0.0
-	σ_gov = 0.008
+	σ_gov = 0.004
 
 	Jgrid = agg_grid(sd);
 	rep_prob = zeros(N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z), N(sd,:ξ), N(sd,:z))
@@ -120,6 +120,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=10e-4, nodef::Bo
 	if nob
 		sd.opt[:nob] = true
 	end
+	Jgrid = agg_grid(sd);
 
 	while iter < 2 || (dist > tol && iter < maxiter)
 		iter += 1

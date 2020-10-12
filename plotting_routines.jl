@@ -878,7 +878,7 @@ function Wr_Wd(sd::SOEdef, type::String)
 
 	# More μ means default more often
 	μ_gov = 0.001 * 0.0
-	σ_gov = 0.004
+	σ_gov = 0.008
 
 	Wr = zeros(size(sd.eq[:wage])..., N(sd,:z))
 	Wd = zeros(size(sd.eq[:wage])..., N(sd,:z))
@@ -1003,7 +1003,7 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Boo
 
 	jbv = [floor(Int, N(sd,:b)*0.25), 10, N(sd,:b)]
 	_, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
-	jμ = 1
+	# jμ = 1
 
 
 	Eyv = Vector{Vector{Float64}}(undef, 0)
