@@ -283,7 +283,7 @@ function compute_stats_logN(sd::SOEdef, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bp
 	μ = [zeros(2) for jξp in 1:N(sd,:ξ), jzp in 1:N(sd,:z)]
 	σ = [zeros(2) for jξp in 1:N(sd,:ξ), jzp in 1:N(sd,:z)]
 
-	alarm_mat = Array{Int64, 3}(undef, N(sd,:ξ), N(sd,:z), 2)
+	alarm_mat = zeros(Int64, N(sd,:ξ), N(sd,:z), 2)
 
 	for (jξp, ξpv) in enumerate(gr[:ξ]), (jzp, zpv) in enumerate(gr[:z])
 		# First any case where ζ′ = 1 -- no default
