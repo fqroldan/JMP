@@ -1,4 +1,4 @@
-using QuantEcon, CSV, DataFrames, Dates, GLM, PlotlyJS, ColorSchemes, FixedEffectModels, RegressionTables, SparseArrays, ExcelReaders
+using QuantEcon, CSV, DataFrames, Dates, GLM, PlotlyJS, ColorSchemes, FixedEffectModels, RegressionTables, SparseArrays, XLSX
 
 """ Define styles """
 def_style = let
@@ -276,12 +276,16 @@ function get_AR1(y::Vector; trend::Bool=false)
 end
 
 function load_GDP_SPA()
-	data_raw 		= readxl("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2!B12:I103");
+	# data_raw 		= readxl("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2!B12:I103");
+	data_raw = XLSX.readdata("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2", "B12:I103")
 
 	d = readxl("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2!A12:A103");
+	d = XLSX.readdata("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2", "A12:A103")
+
 	dates_GDP 		= Date.(["$(parse(Int, d[jt][1:4]))-$(parse(Int,d[jt][end])*3-2)" for jt in 1:length(d)], "yyyy-mm")
 
-	varnames = readxl("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2!B11:I11")[:]
+	# varnames = readxl("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2!B11:I11")[:]
+	varnames = XLSX.readdata("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2", "B11:I11")[:]
 
 	varlabels = ["GDP", "C", "G", "C_hh", "C_npish", "Kform", "X", "M"]
 
@@ -304,8 +308,11 @@ end
 function load_SPA()
 	df = load_GDP_SPA()
 
-	data_rates = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!B10:D101")
-	d2 = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!A10:A101")
+	# data_rates = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!B10:D101")
+	data_rates = XLSX.readdata("../Data/Eurostat aggregates/Spain_rates.xls", "Data", "B10:D101")
+	# d2 = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!A10:A101")
+	d2 = XLSX.readdata("../Data/Eurostat aggregates/Spain_rates.xls", "Data", "A10:A101")
+
 	dates_rates = Date.(["$(parse(Int, d2[jt][1:4]))-$(parse(Int,d2[jt][end])*3-2)" for jt in 1:length(d2)], "yyyy-mm")
 	spread = 100 * convert(Vector{Float64}, data_rates[:,2] - data_rates[:,1]);
 
@@ -430,7 +437,8 @@ end
 
 function load_SPA_nw()
 	function load_SPA_nw(k::String)
-		data_raw = readxl("../Data/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xlsx", "Data$(k)!A12:F89");
+		# data_raw = readxl("../Data/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xlsx", "Data$(k)!A12:F89");
+		data_raw = XLSX.readdata("../Data/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xlsx", "Data$(k)", "A12:F89")
 
 		GEO = data_raw[1,:]
 		GEO[1] = "date"
