@@ -199,7 +199,7 @@ function make_unemp(sd::SOEdef; style::Style=slides_def, leg=true)
 end
 
 function make_debtprice(sd::SOEdef; style::Style=slides_def, leg=true)
-	jb, jμ, jσ, jξ, jζ, jz = [7, 1,3,1,2,5]
+	jb, jμ, jσ, jξ, jζ, jz = [7, 3,3,1,2,5]
 
 	qg_matbz = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
 	qg_matμσ = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jμ, μv) in enumerate(sd.gr[:μ]), (jσ,σv) in enumerate(sd.gr[:σ])]
@@ -1003,6 +1003,8 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Boo
 
 	jbv = [floor(Int, N(sd,:b)*0.25), 10, N(sd,:b)]
 	_, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
+	jμ = 1
+
 
 	Eyv = Vector{Vector{Float64}}(undef, 0)
 	Eydv = Vector{Vector{Float64}}(undef, 0)
