@@ -456,7 +456,7 @@ function find_all_expectations(sd::SOEdef, itp_ϕa, itp_ϕb, itp_qᵍ)
 	# σ′ = Array{Float64}(undef, Nj, N(sd,:ξ), N(sd,:z), 2)
 	μ′ = similar(sd.LoM[:μ])
 	σ′ = similar(sd.LoM[:σ])
-	alarm_vec = Array{Float64}(undef, Nj, N(sd,:ξ), N(sd,:z), 2)
+	alarm_vec = Array{Int64}(undef, Nj, N(sd,:ξ), N(sd,:z), 2)
 
 	# Threads.@threads for js in 1:N
 	for js in 1:Nj
