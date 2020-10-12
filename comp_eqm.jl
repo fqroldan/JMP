@@ -524,7 +524,7 @@ function update_expectations!(sd::SOEdef, upd_η::Float64)
 
 	μ_new, σ_new = find_all_expectations(sd, itp_ϕa, itp_ϕb, itp_qᵍ)
 
-	new_μgrid = new_grid(μ_new, gr[:μ], lb = -0.25, ub = 1.75)
+	new_μgrid = new_grid(μ_new, gr[:μ], lb = -1, ub = 1.75)
 	new_σgrid = new_grid(σ_new, gr[:σ], lb = 1e-2)
 
 	for js in 1:length(μ_new)
