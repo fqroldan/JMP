@@ -29,7 +29,7 @@ function update_govpol(sd::SOEdef)
 	itp_W = make_itp(sd, sd.eq[:welfare]; agg=true)
 
 	# More μ means default less often
-	μ_gov = 0.01 #* 0.0
+	μ_gov = 0.02 #* 0.0
 	σ_gov = 0.004
 
 	Jgrid = agg_grid(sd);
@@ -165,7 +165,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=10e-4, nodef::Bo
 		end
 
 		if save_copies && iter % 50 == 0
-			save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
+			save(pwd() * "/../Output/run$(run_number)/SOEdef.jld", "sd", sd)
 		end
 
 		tol_eqm = max(max(exp(0.9*log(1+min(dist_CE1,tol_eqm)))-1, dist, 1e-5))
@@ -179,7 +179,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=10e-4, nodef::Bo
 		maxiter_CE = 25
 	end
 	if save_copies
-		save(pwd() * "/../Output/SOEdef.jld", "sd", sd)
+		save(pwd() * "/../Output/run$(run_number)/SOEdef.jld", "sd", sd)
 	end
 	if dist <= tol
 		print_save("\n\nConverged in $iter iterations. ")
