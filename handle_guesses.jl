@@ -469,4 +469,5 @@ pars(sd::SOEdef) = Dict(
 	:meanξ	=> sd.pars[:meanξ],
 	:ρξ		=> sd.pars[:ρξ],
 	:σξ		=> sd.pars[:σξ],
+	:μ_gov  => sd.pars[:μ_gov],
 	)

@@ -29,7 +29,8 @@ function update_govpol(sd::SOEdef)
 	itp_W = make_itp(sd, sd.eq[:welfare]; agg=true)
 
 	# More μ means default less often
-	μ_gov = 0.02 #* 0.0
+	# μ_gov = 0.016 #* 0.0
+	μ_gov = sd.pars[:μ_gov]
 	σ_gov = 0.004
 
 	Jgrid = agg_grid(sd);
