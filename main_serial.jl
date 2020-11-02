@@ -11,7 +11,7 @@ include("gov_pol.jl")
 include("reporting_routines.jl")
 include("simul.jl")
 include("plotting_routines.jl")
-include("data_jmp.jl")
+# include("data_jmp.jl")
 
 # print("mpe_iter!(sd)")
 params_center = Dict{Symbol, Float64}(
