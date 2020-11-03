@@ -161,7 +161,7 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 
 	v_m = simul_stats(pp)
 	# targets = vec([0.96580506 0.01294576 0.96172496 0.01663608 0.96656486 0.32019293 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
-	targets = SPA_targets()
+	targets = load_SPA_targets()
 	
 	g = eval_GMM(v_m, targets)
 	calib_table = make_calib_table(v_m)
@@ -458,6 +458,11 @@ end
 # end
 
 # pars(sd::SOEdef) = [(1/sd.pars[:β])^4-1; sd.pars[:γ]; sd.pars[:τ]; sd.pars[:wbar]; sd.pars[:ρz]; sd.pars[:σz]; sd.pars[:meanξ]; sd.pars[:ρξ]; sd.pars[:σξ]]
+
+function load_SPA_targets()
+	df = CSV.read("SPA_targets.csv", DataFrame)
+	return df.x
+end
 
 pars(sd::SOEdef) = Dict(
 	:β 		=> sd.pars[:β],
