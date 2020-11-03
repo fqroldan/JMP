@@ -145,6 +145,19 @@ function eval_GMM(v_o, target_o = vec([0.96580506  0.01294576  0.96172496  0.016
 	return g
 end
 
+function prep_table(pp)
+	v_m = simul_stats(pp)
+
+	targets = load_SPA_targets()
+
+	g = eval_GMM(v_m, targets)
+
+	avg_defprob = (1+mean([mean(series(pv, :π)[series(pv, :ζ).==1]) for pv in pp])).^4 - 1
+
+	print("def prob = $(@sprintf("%0.3g", (100*avg_defprob)))%")
+	return g, targets, v_m
+end
+
 function make_simulated_path(sd::SOEdef, savedir, years=100)
 	pp, Ndefs = parsimul(sd; simul_length=4*years, burn_in=1+4*100)
 	Tyears = floor(Int64,periods(pp)*0.25)
@@ -158,12 +171,8 @@ function make_simulated_path(sd::SOEdef, savedir, years=100)
 	# pl, πthres = plot_episodes(path; episode_type="onlyspread", slides=true, πthres=0.95) # Also here need to make it so there are at least 10 episodes
 	πthres = 1.0
 	# make_IRF_plots(path; slides = true, create_plots = true, response = resp, savedir=savedir) # for resp = Y, C
+	g, targets, v_m = prep_table(pp)
 
-	v_m = simul_stats(pp)
-	# targets = vec([0.96580506 0.01294576 0.96172496 0.01663608 0.96656486 0.32019293 64.57638889 23.48323041 15.94722222  6.08732167  56.4851069778397  94.479167])
-	targets = load_SPA_targets()
-	
-	g = eval_GMM(v_m, targets)
 	calib_table = make_calib_table(v_m)
 	write(savedir * "calib_table.txt", calib_table)
 
