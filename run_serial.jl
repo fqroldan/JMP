@@ -11,4 +11,4 @@ for (key, val) in pars(sd)
 	print_save("$(rpad(key, 6, " ")) => $val\n")
 end
 
-save("../Output/SOEdef.jld", "sd", sd)
+save("../Output/SOEdef.jld", "sd", sd, "g", g, "pp", p_bench)
