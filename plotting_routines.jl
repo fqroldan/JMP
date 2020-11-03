@@ -241,8 +241,8 @@ function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f:
 
 	line_up = scatter(x=(-k_back:k)/4, y=f(y_up),hoverinfo="skip",showlegend=false,legendgroup=3,mode="lines",line=attr(color="rgb(31,119,180)", width=0.001), xaxis="x$axis", yaxis="y$axis")
 	line_lo = scatter(x=(-k_back:k)/4, y=f(y_lo),hoverinfo="skip",showlegend=(axis==1),legendgroup=3, name="IQR",mode="lines",line=attr(color="rgb(31,119,180)",width=0.001), fill="tonexty", fillcolor="rgba(31,119,180,0.25)", xaxis="x$axis", yaxis="y$axis")
-	line_me = scatter(x=(-k_back:k)/4, y=f(y_me), name="Median",legendgroup=1,showlegend=(axis==1), mode="lines", line=attr(color=col[4]), xaxis="x$axis", yaxis="y$axis")
-	line_av = scatter(x=(-k_back:k)/4, y=f(y_av), name="Mean",legendgroup=2,showlegend=(axis==1), mode="lines", line=attr(color=col[3], dash="dash"), xaxis="x$axis", yaxis="y$axis")
+	line_me = scatter(x=(-k_back:k)/4, y=f(y_me), name="Median",legendgroup=1,showlegend=(axis==1), mode="lines", line=attr(color=col[3], dash="dash"), xaxis="x$axis", yaxis="y$axis")
+	line_av = scatter(x=(-k_back:k)/4, y=f(y_av), name="Mean",legendgroup=2,showlegend=(axis==1), mode="lines", line=attr(color=col[4], dash="solid"), xaxis="x$axis", yaxis="y$axis")
 
 
 	s1 = [line_up, line_lo, line_me, line_av]
