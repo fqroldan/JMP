@@ -2,6 +2,7 @@ include("main_serial.jl")
 
 write("../Output/output.txt", "")
 sd = load("../Output/SOEdef.jld", "sd")
+update_probs!(sd)
 
 mpe_iter!(sd, run_number = 1)
 
