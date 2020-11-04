@@ -485,3 +485,8 @@ pars(sd::SOEdef) = Dict(
 	:σξ		=> sd.pars[:σξ],
 	:μ_gov  => sd.pars[:μ_gov],
 	)
+
+function showtable(run_number::Int)
+	p_bench = load("../HPC_output/run$run_number/SOEdef.jld", "pp");
+	prep_table(p_bench)
+end
