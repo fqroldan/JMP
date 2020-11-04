@@ -487,6 +487,9 @@ pars(sd::SOEdef) = Dict(
 	)
 
 function showtable(run_number::Int)
-	p_bench = load("../HPC_output/run$run_number/SOEdef.jld", "pp");
+	p_bench, pars = load("../HPC_output/run$run_number/SOEdef.jld", "pp", "pars");
+	for (key, val) in pars
+       print("$(rpad(key, 6, " ")) => $val\n")
+	end
 	prep_table(p_bench)
 end
