@@ -450,7 +450,7 @@ function parsimul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=1)
 	pv = Vector{Path}(undef, K)
 	Ndefs = Vector{Int64}(undef, K)
 
-	print_save("\nStarting $K simulations of $(floor(Int, simul_length/4)) years.")
+	print_save("\nStarting $K simulations of $(floor(Int, simul_length/4)) years at $(Dates.format(now(), "HH:MM")).")
 
 	t0 = time()
 	Threads.@threads for jk in 1:K
