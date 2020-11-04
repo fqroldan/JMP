@@ -577,7 +577,7 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 	return v_m
 end
 
-function find_crises(pp::Path, thres::Number, sym::Symbol=:π, k::Int64=7, k_back=2k)
+function find_crises(pp::Path, thres::Number, sym::Symbol=:π, k::Int64=7, k_back=2k, thres_back::Number=Inf)
 	sym_vec = series(pp,sym)
 	ζ_vec = series(pp,:ζ)
 
@@ -591,7 +591,7 @@ function find_crises(pp::Path, thres::Number, sym::Symbol=:π, k::Int64=7, k_bac
 	while jt < T - k
 		# println(jt)
 		jt += 1
-		if minimum(sym_vec[jt-k:jt+k]) >= thres && minimum(ζ_vec[jt-k_back:jt+k]) == 1 # Not default
+		if minimum(sym_vec[jt-k:jt+k]) >= thres && sym_vec[jt-k_back] <= thres_back && minimum(ζ_vec[jt-k_back:jt+k]) == 1 # Not default
 			Nc += 1
 			push!(tvec, jt)
 			jt += k
@@ -620,12 +620,12 @@ function find_defaults(pp::Path, k::Int64=7)
 	return Nc, tvec
 end
 
-function get_crises(pv::Vector{T}, thres::Number, sym::Symbol=:π, k::Int64=7, k_back=15; type="highspreads") where T <: AbstractPath
+function get_crises(pv::Vector{T}, thres::Number, sym::Symbol=:π, k::Int64=7, k_back=15, thres_back::Number=Inf; type="highspreads") where T <: AbstractPath
 	Nc = 0
 	tmat = Vector{Vector{Int64}}(undef,0)
 	for (jp, pp) in enumerate(pv)
 		if type == "highspreads"
-			N_new, tvec = find_crises(pp, thres, sym, k, k_back)
+			N_new, tvec = find_crises(pp, thres, sym, k, k_back, thres_back)
 		elseif type == "default"
 			N_new, tvec = find_defaults(pp)
 		else

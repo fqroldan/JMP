@@ -424,8 +424,8 @@ function distribution_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::S
 end
 
 panels_defaults(pv::Vector{T}; k=8, style::Style=slides_def, yh = 0.65, indiv=false) where T<:AbstractPath = panels_crises(pv, 0.0, style=style, yh=yh, type="default", indiv=indiv, k=k)
-function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric) where T<:AbstractPath
-	Nc, tvv = get_crises(pv, thres, sym, k, k_back, type=type)
+function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf) where T<:AbstractPath
+	Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type=type)
 
 	println("$Nc episodes")
 
