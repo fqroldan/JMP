@@ -19,6 +19,7 @@ sd2 = load("../Output/SOEdef_nodef.jld", "sd")
 for (key, val) in pars(sd)
 	sd2.pars[key] = val
 end
+update_probs!(sd2)
 mpe_iter!(sd2, run_number = 2, nodef = true)
 g, p_nodef, _, v_m, def_freq = make_simulated_path(sd2, "../Output/run1/", 30000);
 Wr = mean([mean(series(p, :Wr)) for p in p_nodef])
