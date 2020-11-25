@@ -134,7 +134,8 @@ function H(sr::SOE, cT, w)
 	""" Computes labor supply consistent with consumption of tradables + wage """
 	α, η, ϖN, ϖT = [sr.pars[key] for key in [:α, :η, :ϖN, :ϖT]]
 
-	return (ϖN/ϖT * α/w)^(1/(1+α*η)) * cT^((1+η)/(1+α*η))
+	# return (ϖN/ϖT * α/w)^(1/(1+α*η)) * cT^(((1+η)/(1+α*η)))
+	return (ϖN/ϖT * α/w)^(1/(1+α*η)) * cT^(1+η)
 end
 
 function eq_h(sr::SOE, cT)
