@@ -504,6 +504,8 @@ function WEO_spark(; own, style::Style=slides_def)
 
 	colvec = ["#0098e9", "#f97760", "#5aa800"]
 
+	colvec[1] = "#55779A"
+
 	sc = [
 		[bar(x=df[df.ifscode.==k,:].year, y = df[df.ifscode.==k,:].debt_usd ./ df[df.ifscode.==ifelse(own, k, 1),:].ngdpd, marker_color=colvec[jk], name=first(unique(df[df.ifscode.==k,:].country))) for (jk,k) in enumerate([110, 201, 1201])]
 		# scatter(x=df[df.ifscode.==1,:].year, y = df[df.ifscode.==1,:].debt_usd ./ df[df.ifscode.==1,:].ngdpd)
