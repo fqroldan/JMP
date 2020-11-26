@@ -15,8 +15,8 @@ slides_def = let
 end
 
 dark_bg = let
-	axis = attr(gridcolor="#1b1b1b")
-	layout = Layout(plot_bgcolor="#020202", paper_bgcolor="#020202", font_color="white", xaxis=axis,yaxis=axis)
+	axis = attr(gridcolor="#353535")
+	layout = Layout(plot_bgcolor="#1e1e1e", paper_bgcolor="#1e1e1e", font_color="white", xaxis=axis,yaxis=axis)
 	Style(layout=layout)
 end
 slides_dark = Style(slides_def, dark_bg)
@@ -367,7 +367,7 @@ function SPA_targets()
 	[ρy, 100*σy, ρc, 100*σc, ρq, σq, B_avg, B_std, u_avg, u_std, median_dom, w_avg, Gini]
 end
 	
-function SPA_CvY(country::String="Spain";style::Style=slides_def, yh = 1, sh=true)
+function SPA_CvY(country::String="Spain"; style::Style=slides_def, yh = 1, sh=true)
 
 	# df = load_SPA()
 	# if country != "Spain"
@@ -488,3 +488,22 @@ function make_SPA_nw(; style::Style=slides_def)
 			], layout, style=style)
 end
 
+
+function WEO_spark(; style::Style=slides_def)
+
+	df = CSV.read("../Data/WEO/debts_spark.csv", DataFrame)
+
+	df = df[df.year.>2000,:]
+
+	colvec = ["#0098e9", "#f97760", "#5aa800"]
+
+	sc = [
+		[bar(x=df[df.ifscode.==k,:].year, y = df[df.ifscode.==k,:].debt_usd ./ df[df.ifscode.==k,:].ngdpd, marker_color=colvec[jk], name=first(unique(df[df.ifscode.==k,:].country))) for (jk,k) in enumerate([110, 201, 1201])]
+		# scatter(x=df[df.ifscode.==1,:].year, y = df[df.ifscode.==1,:].debt_usd ./ df[df.ifscode.==1,:].ngdpd)
+		]
+
+	layout = Layout(barmode="stack", yaxis_title="<i>% of own GDP", title="Government debts globally (WEO Oct 2020)")
+
+
+	plot(sc, layout, style=style)
+end
