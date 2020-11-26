@@ -489,21 +489,27 @@ function make_SPA_nw(; style::Style=slides_def)
 end
 
 
-function WEO_spark(; style::Style=slides_def)
+function WEO_spark(; own, style::Style=slides_def)
 
 	df = CSV.read("../Data/WEO/debts_spark.csv", DataFrame)
 
-	df = df[df.year.>2000,:]
+	df = df[df.year.>=2003,:]
+
+
+	if own
+		ytitle = "<i>% of own GDP"
+	else
+		ytitle = "<i>% of World GDP"
+	end
 
 	colvec = ["#0098e9", "#f97760", "#5aa800"]
 
 	sc = [
-		[bar(x=df[df.ifscode.==k,:].year, y = df[df.ifscode.==k,:].debt_usd ./ df[df.ifscode.==k,:].ngdpd, marker_color=colvec[jk], name=first(unique(df[df.ifscode.==k,:].country))) for (jk,k) in enumerate([110, 201, 1201])]
+		[bar(x=df[df.ifscode.==k,:].year, y = df[df.ifscode.==k,:].debt_usd ./ df[df.ifscode.==ifelse(own, k, 1),:].ngdpd, marker_color=colvec[jk], name=first(unique(df[df.ifscode.==k,:].country))) for (jk,k) in enumerate([110, 201, 1201])]
 		# scatter(x=df[df.ifscode.==1,:].year, y = df[df.ifscode.==1,:].debt_usd ./ df[df.ifscode.==1,:].ngdpd)
 		]
 
-	layout = Layout(barmode="stack", yaxis_title="<i>% of own GDP", title="Government debts globally (WEO Oct 2020)")
-
+	layout = Layout(barmode=ifelse(own, "", "stack"), yaxis_title=ytitle, title="Government debts globally (WEO Oct 2020)")
 
 	plot(sc, layout, style=style)
 end
