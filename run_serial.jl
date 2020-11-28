@@ -27,4 +27,4 @@ Wr = mean([mean(series(p, :Wr)) for p in p_nodef])
 
 print_save("$(sd2.gr[:z])\n")
 
-save("../Output/SOEdef_nodef.jld", "sd", sd2, "g", g, "pp", p_bench, "pars", pars(sd2), "Wr", Wr)
+save("../Output/SOEdef_nodef.jld", "sd", sd2, "g", g, "pp", p_nodef, "pars", pars(sd2), "Wr", Wr)
