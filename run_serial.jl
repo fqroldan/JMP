@@ -28,7 +28,7 @@ Wr = mean([mean(series(p, :Wr)) for p in p_nodef])
 print_save("$(sd2.gr[:z])\n")
 save("../Output/SOEdef_nodef.jld", "sd", sd2, "g", g, "pp", p_nodef, "pars", pars(sd2), "Wr", Wr)
 
-sd3 = load("../Output/SOEdef_nodef.jld", "sd")
+sd3 = load("../Output/SOEdef.jld", "sd")
 for (key, val) in pars(sd)
 	sd3.pars[key] = val
 end
@@ -38,7 +38,7 @@ g, p_noΔ, _, v_m, def_freq = make_simulated_path(sd3, "../Output/run3/", 30000)
 Wr = mean([mean(series(p, :Wr)) for p in p_noΔ])
 save("../Output/SOEdef_nodelta.jld", "sd", sd3, "g", g, "pp", p_noΔ, "pars", pars(sd3), "Wr", Wr)
 
-sd4 = load("../Output/SOEdef_nodef.jld", "sd")
+sd4 = load("../Output/SOEdef.jld", "sd")
 for (key, val) in pars(sd)
 	sd4.pars[key] = val
 end
