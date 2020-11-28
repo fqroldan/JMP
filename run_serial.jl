@@ -46,6 +46,6 @@ update_probs!(sd4)
 mpe_iter!(sd4, run_number = 4, nodef = false, noΔ = false, nob = true)
 g, p_nob, _, v_m, def_freq = make_simulated_path(sd4, "../Output/run4/", 30000);
 Wr = mean([mean(series(p, :Wr)) for p in p_nob])
-save("../Output/SOEdef_nodelta.jld", "sd", sd4, "g", g, "pp", p_nob, "pars", pars(sd4), "Wr", Wr)
+save("../Output/SOEdef_nob.jld", "sd", sd4, "g", g, "pp", p_nob, "pars", pars(sd4), "Wr", Wr)
 
 
