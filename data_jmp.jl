@@ -367,7 +367,13 @@ function SPA_targets()
 
 	[ρy, 100*σy, ρc, 100*σc, ρq, σq, B_avg, B_std, u_avg, u_std, median_dom, w_avg, Gini]
 end
-	
+
+function save_SPA_targets()
+	df = DataFrame(:x => SPA_targets())
+
+	CSV.write("SPA_targets.csv", df);
+end
+
 function SPA_CvY(country::String="Spain"; style::Style=slides_def, yh = 1, sh=true)
 
 	# df = load_SPA()
