@@ -474,10 +474,11 @@ function get_AR1(y::Vector)
 	ρ = coef(OLS)[2]
 
 	ϵ = y - predict(OLS)
+	σ2 = sum(ϵ.^2)/(length(ϵ))
+	σϵ = sqrt(σ2)
 
-	σ = var(ϵ)^0.5
-
-	return ρ, sqrt(σ^2 / (1-ρ^2))
+	σy = sqrt(σ2 / (1-ρ^2))
+	return ρ, σϵ
 end
 
 function get_AR1(y::Vector, ζ::Vector)
@@ -497,10 +498,11 @@ function get_AR1(y::Vector, ζ::Vector)
 	ρ = coef(OLS)[2]
 
 	ϵ = y - predict(OLS)
+	σ2 = sum(ϵ.^2)/(length(ϵ))
+	σϵ = sqrt(σ2)
 
-	σ = var(ϵ)^0.5
-
-	return ρ, sqrt(max(0, σ^2 / (1-ρ^2)))
+	σy = sqrt(σ2 / (1-ρ^2))
+	return ρ, σϵ
 end
 
 get_MV(y::Vector) = mean(y), var(y)^0.5

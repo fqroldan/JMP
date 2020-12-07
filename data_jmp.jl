@@ -270,9 +270,10 @@ function get_AR1(y::Vector; trend::Bool=false)
 	ϵ = y - predict(OLS)
 
 	σ2 = sum(ϵ.^2)/(length(ϵ))
+	σϵ = sqrt(σ2)
 
 	σy = sqrt(σ2 / (1-ρ^2))
-	return ρ, σy
+	return ρ, σϵ
 end
 
 function load_GDP_SPA()
