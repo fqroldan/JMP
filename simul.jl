@@ -81,14 +81,14 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 	val_int_C, discrepancy = integrate_C(sd, Bt, μt, σt, ξt, ζt, zt, λt, itp_ϕc, itp_C)
 	pCC = val_int_C * price_index(sd, pNg)
 
-	discr[:C] = (discrepancy + (t-1) * discr[:C]) / t
+	discr[:C] = (discrepancy + (t-1) * abs(discr[:C])) / t
 
 	results, _ = find_prices_direct(sd, pCC, Gt, Bpv, pNg, pNmin, pNmax, Bt, μt, σt, ξt, ζt, zt)
 
 	wt, pN, Ld, output = results
 	profits = output - wt*Ld
 
-	discr[:pN] = (log(pN) - log(pNg) + (t-1) * discr[:pN]) / t
+	discr[:pN] = (log(pN) - log(pNg) + (t-1) * abs(discr[:pN])) / t
 
 	pCt = price_index(sd, pN)
 	Ld_N, Ld_T  = labor_demand(sd, wt, zt, ζt, pN)
@@ -430,7 +430,7 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.
 	# Simulate
 	t0 = time()
 	Ndefs = 0
-	discr = Dict(:C => 0.0, :pN => 0.0)
+	discr = Dict(:C => 0.0, :pN => 0.0, :μ => 0.0, :σ => 0.0)
 	for t in 1:T
 		λ, new_def = iter_simul!(sd, p, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λ, Qϵ, discr, verbose)
 		Ndefs += new_def
@@ -438,7 +438,7 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.
 
 	print_save("Average discrepancy:\n")
 	for (key, val) in discr
-		print_save(key * ": $val\n")
+		print_save("$key" * ": $val\n")
 	end
 
 	# verbose && print_save("\nTime in simulation: $(time_print(time()-t0))")
