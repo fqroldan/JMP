@@ -445,7 +445,7 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.
 
 	jz_series = jz_series[burn_in+1:end]
 
-	return trim_path(p, burn_in), jz_series, Ndefs
+	return trim_path(p, burn_in), jz_series, Ndefs, discr
 end
 
 function parsimul(sd::SOEdef; ϕ=sd.ϕ, simul_length::Int64=1, burn_in::Int64=1)
@@ -457,13 +457,22 @@ function parsimul(sd::SOEdef; ϕ=sd.ϕ, simul_length::Int64=1, burn_in::Int64=1)
 
 	print_save("\nStarting $K simulations of $(floor(Int, simul_length/4)) years at $(Dates.format(now(), "HH:MM")).")
 
+	discr_tot = Dict(:C => 0.0, :pN => 0.0)
+
 	t0 = time()
 	Threads.@threads for jk in 1:K
-		pp, jzs, N = simul(sd, jk, simul_length, burn_in; ϕ=ϕ, verbose=(jk==1))
+		pp, jzs, N, discr = simul(sd, jk, simul_length, burn_in; ϕ=ϕ, verbose=(jk==1))
 		pv[jk] = pp
 		Ndefs[jk] = N
+		for (key, val) in discr_tot
+			discr_tot[key] += discr[key] / K
+		end
 	end
 	print_save(" Time in simulation: $(time_print(time()-t0))")
+
+	for (key, val) in discr_tot
+		print_save("Average discrepancy in $(key): $(discr_tot[key])\n")
+	end
 
 	N = sum(Ndefs)
 	return pv, N
