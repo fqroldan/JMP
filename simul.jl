@@ -436,6 +436,11 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.
 		Ndefs += new_def
 	end
 
+	print_save("Average discrepancy:\n")
+	for (key, val) in discr
+		print_save(key * ": $val\n")
+	end
+
 	# verbose && print_save("\nTime in simulation: $(time_print(time()-t0))")
 
 	jz_series = jz_series[burn_in+1:end]
