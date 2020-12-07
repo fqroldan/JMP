@@ -28,6 +28,11 @@ Wr = mean([mean(series(p, :Wr)) for p in p_nodef])
 print_save("$(sd2.gr[:z])\n")
 save("../Output/SOEdef_nodef.jld", "sd", sd2, "g", g, "pp", p_nodef, "pars", pars(sd2), "Wr", Wr)
 
+g, p_benchnodef, _, _, _ = make_simulated_path(sd, "../Output/run5"/, 30000, ϕ = sd2.ϕ);
+Wr = mean([mean(series(p, :Wr)) for p in p_benchnodef])
+save("../Output/SOEdef_benchnodef.jld", "g", g, "pp", p_benchnodef, "Wr", Wr)
+
+
 sd3 = load("../Output/SOEdef.jld", "sd")
 for (key, val) in pars(sd)
 	sd3.pars[key] = val

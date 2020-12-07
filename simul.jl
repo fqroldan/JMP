@@ -388,7 +388,7 @@ function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕa, itp_ϕb, itp_ϕ
 end
 
 
-function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; verbose::Bool=false)
+function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.ϕ, verbose::Bool=false)
 	gr = sd.gr
 	Random.seed!(jk)
 
@@ -401,11 +401,11 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; verbos
 	B0, μ0, σ0, ξ0, ζ0, z0 = mean(gr[:b]), mean(gr[:μ]), mean(gr[:σ]), gr[:ξ][1], gr[:ζ][2], gr[:z][jz]
 	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
 
-	itp_ϕa = make_itp(sd, sd.ϕ[:a]; agg=false);
-	itp_ϕb = make_itp(sd, sd.ϕ[:b]; agg=false);
-	itp_ϕc = make_itp(sd, sd.ϕ[:c]; agg=false);
-	itp_ϕs = make_itp(sd, sd.ϕ[:s]; agg=false);
-	itp_ϕθ = make_itp(sd, sd.ϕ[:θ]; agg=false);
+	itp_ϕa = make_itp(sd, ϕ[:a]; agg=false);
+	itp_ϕb = make_itp(sd, ϕ[:b]; agg=false);
+	itp_ϕc = make_itp(sd, ϕ[:c]; agg=false);
+	itp_ϕs = make_itp(sd, ϕ[:s]; agg=false);
+	itp_ϕθ = make_itp(sd, ϕ[:θ]; agg=false);
 	itp_vf = make_itp(sd, sd.v[:v]; agg=false);
 
 	itp_C  = make_itp(sd, sd.eq[:C]; agg=true);
@@ -443,7 +443,7 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; verbos
 	return trim_path(p, burn_in), jz_series, Ndefs
 end
 
-function parsimul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=1)
+function parsimul(sd::SOEdef; ϕ=sd.ϕ, simul_length::Int64=1, burn_in::Int64=1)
 	K = Threads.nthreads()
 	simul_length = ceil(Int, simul_length/K)
 
@@ -454,7 +454,7 @@ function parsimul(sd::SOEdef; simul_length::Int64=1, burn_in::Int64=1)
 
 	t0 = time()
 	Threads.@threads for jk in 1:K
-		pp, jzs, N = simul(sd, jk, simul_length, burn_in; verbose=(jk==1))
+		pp, jzs, N = simul(sd, jk, simul_length, burn_in; ϕ=ϕ, verbose=(jk==1))
 		pv[jk] = pp
 		Ndefs[jk] = N
 	end
