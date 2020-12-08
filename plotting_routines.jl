@@ -265,9 +265,9 @@ function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol, f::Function=i
 end
 
 scats_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64=x1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath = scats_comp(pv_bench, pv_nodef, tvv, key, x->x/x1, x->x/x2, CI=CI, avg=avg)
-function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1; CI::Bool=false, avg::Bool=false, axis::Int64=1, k=8, k_back=2k, transf=0) where T <: AbstractPath
-	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k, k_back)
-	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k, k_back)
+function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1; CI::Bool=false, avg::Bool=false, axis::Int64=1, k=8, k_back=2k, transf=0, relative=false) where T <: AbstractPath
+	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k, k_back, relative=relative)
+	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k, k_back, relative=relative)
 
 	if transf == 1
 		nodef_up = (nodef_up .- nodef_me[1]) ./ max.(1, nodef_me[1])
@@ -282,14 +282,14 @@ function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, 
 	colbench = get(ColorSchemes.corkO, 0.25)
 	colnodef = get(ColorSchemes.corkO, 0.65)
 
-	line_bench = scatter(x=(-k_back:k)/4, y=f1.(bench_me), name="Benchmark", mode="lines", line_color=colbench, fill="tonexty", showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	# lb_avg = scatter(x=(-k_back:k)/4, y=f1.(bench_av), name="Benchmark", mode="lines", line_color=col[fill="tonexty", 1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	line_bench = scatter(x=(-k_back:k)/4, y=f1.(bench_me), name="Benchmark", mode="lines", line_color=colbench, fill=ifelse(CI,"tonexty", ""), showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	# lb_avg = scatter(x=(-k_back:k)/4, y=f1.(bench_av), name="Benchmark", mode="lines", line_color=col[fill=ifelse(CI,"tonexty", ""), 1], showlegend=(axis==1), legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
 	lb_up = scatter(x=(-k_back:k)/4, y=f1.(bench_up), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colbench, showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	lb_lo = scatter(x=(-k_back:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colbench, fill="tonexty", showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
-	line_nodef = scatter(x=(-k_back:k)/4, y=f2.(nodef_me), name="No default", line_dash="dashdot", mode="lines", line_color=colnodef, fill="tonexty", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	# ln_avg = scatter(x=(-k_back:k)/4, y=f2.(nodef_av), name="No default", mode="lines", line_color=colnodef, fill="tonexty", showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	lb_lo = scatter(x=(-k_back:k)/4, y=f1.(bench_lo), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colbench, fill=ifelse(CI,"tonexty", ""), showlegend=false, legendgroup = 1, xaxis="x$axis", yaxis="y$axis")
+	line_nodef = scatter(x=(-k_back:k)/4, y=f2.(nodef_me), name="No default", line_dash="dashdot", mode="lines", line_color=colnodef, fill=ifelse(CI,"tonexty", ""), showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	# ln_avg = scatter(x=(-k_back:k)/4, y=f2.(nodef_av), name="No default", mode="lines", line_color=colnodef, fill=ifelse(CI,"tonexty", ""), showlegend=(axis==1), legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
 	ln_up = scatter(x=(-k_back:k)/4, y=f2.(nodef_up), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colnodef, showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
-	ln_lo = scatter(x=(-k_back:k)/4, y=f2.(nodef_lo), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colnodef, fill="tonexty", showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
+	ln_lo = scatter(x=(-k_back:k)/4, y=f2.(nodef_lo), hoverinfo="skip", mode="lines", line_width=0.00001, line_color=colnodef, fill=ifelse(CI,"tonexty", ""), showlegend=false, legendgroup = 2, xaxis="x$axis", yaxis="y$axis")
 
 	s1 = [line_bench, line_nodef]
 	if avg
@@ -446,6 +446,7 @@ function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=s
 
 	meanY = mean([mean(series(p, :Y)) for p in pv])
 	meanC = mean([mean(series(p, :C)) for p in pv])
+	meanCoY = mean([mean(series(p, :CoY)) for p in pv])
 	
 	funcvec = Vector{Function}(undef, length(keyvec))
 	funcvec .= identity
@@ -453,8 +454,9 @@ function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=s
 
 	funcvec[[2, 15, 16]] .= (x->100*x/meanY)
 	funcvec[3] = (x->100*x/meanC)
+	funcvec[4] = (x->100 * (x .- meanCoY))
 	funcvec[[5, 10, 13]] .= (x->25 * x/meanY)
-	funcvec[[1, 4, 6, 8]] .= (x->100*x)
+	funcvec[[1, 6, 8]] .= (x->100*x)
 	funcvec[9] = (x->100*(1 .- x))
 	ytitle[[5, 10, 13, 15, 16]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
@@ -569,30 +571,37 @@ function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Numb
 	plot(data, layout, style=style)
 end
 
-function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol=:π; thres_back::Number=Inf, style::Style=slides_def, yh = 0.65, k=8, k_back=2k, transf::Bool=true) where T<:AbstractPath
+function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol=:π; thres_back::Number=Inf, style::Style=slides_def, yh = 0.65, k=8, k_back=2k, transf::Bool=true, relative=false, CIs=true) where T<:AbstractPath
 	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back, thres_back)
 	println("Suggested yh=0.7 for style=paper")
-	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :spread, :Wr]
+	keyvec = [:z, :Y, :C, :CoY, :B, :T, :L, :spread, :Wr]
 
-	titlevec = ["TFP", "Output", "Consumption", "Gov't Debt", "Govt spending", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
+	titlevec = ["TFP", "Output", "Consumption", "<i>C/Y<sup>d</sup>", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
 
 	meanYb = mean([mean(series(p, :Y)) for p in pv_bench])
 	meanCb = mean([mean(series(p, :C)) for p in pv_bench])
 	meanYn = mean([mean(series(p, :Y)) for p in pv_nodef])
 	meanCn = mean([mean(series(p, :C)) for p in pv_nodef])
 	
+	if relative
+		meanYb = 100
+		meanCb = 100
+		meanYn = 100
+		meanCn = 100
+	end
+
 	f1vec = Vector{Function}(undef, length(keyvec))
 	f1vec .= identity
 	ytitle = ["" for jj in 1:length(keyvec)]
 
-	f1vec[1] = x->100*x
-	f1vec[[2, 5, 6]] .= (x->100*x/meanYb)
+	f1vec[[1,4]] .= x->100*x
+	f1vec[[2, 6]] .= (x->100*x/meanYb)
 	f1vec[3] = (x->100*x/meanCb)
-	f1vec[[4]] .= (x->25 * x/meanYb)
+	f1vec[[5]] .= (x->25 * x/meanYb)
 	f1vec[7] = (x->100*(1 .- x))
-	ytitle[[4,5,6]] .= "% of mean GDP"
+	ytitle[[5,6]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
-	ytitle[[1,7]] .= "%"
+	ytitle[[1,4,7]] .= "%"
 	ytitle[8] = "bps"
 
 	tr_vec = ones(9)
@@ -600,22 +609,31 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 	transf ? tr_vec *= 0 : nothing
 
 	f2vec = copy(f1vec)
-	f2vec[[2,5,6]] .= (x->100*x/meanYn)
+	f2vec[[2,6]] .= (x->100*x/meanYn)
 	f2vec[3] = (x->100*x/meanCn)
-	f2vec[[4]] .= (x->25 * x/meanYn)
+	f2vec[[5]] .= (x->25 * x/meanYn)
+
+	relvec = [false for jj in eachindex(keyvec)]
+	if relative
+		relvec[[2,3,5]] .= true
+		f1vec[[2,3,5]] .= x->100*x
+		f2vec[[2,3,5]] .= x->100*x
+		ytitle[[2,3,5]] .= "% dev from start"
+	end
+
 
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
 	print("1 - (1-y_bench) / (1-y_nodef) for different variables:\n")
 	for (jj, key) in enumerate(keyvec)
-		_, _, b_me, _, b_av = series_crises(pv_bench, tvv, key, k)
-		_, _, n_me, _, n_av = series_crises(pv_nodef, tvv, key, k)
+		_, _, b_me, _, b_av = series_crises(pv_bench, tvv, key, k, relative=relvec[jj])
+		_, _, n_me, _, n_av = series_crises(pv_nodef, tvv, key, k, relative=relvec[jj])
 		if key in [:Y, :C]
 			print("$key: $(@sprintf("%0.8g", 100 * (1- (100-f2vec[jj](n_me[end]))/(100-f1vec[jj](b_me[end])))))%\n")
 		elseif key == :Wr
 			print("$key median: $(@sprintf("%0.5g", 100 * (1-n_me[end]/b_me[end])))%\n")
 			print("$key mean: $(@sprintf("%0.5g", 100 * (1-n_av[end]/b_av[end])))%\n")
 		end
-		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, f1vec[jj], f2vec[jj], axis=jj, CI=true, k=k, k_back=k_back, transf=tr_vec[jj])
+		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, f1vec[jj], f2vec[jj], axis=jj, CI=CIs, k=k, k_back=k_back, transf=tr_vec[jj], relative=relvec[jj])
 			push!(data, scat)
 		end
 	end
@@ -794,6 +812,97 @@ function full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector
 	end
 	s1
 end
+
+function panels_comp3(pv_be::Vector{T}, pv_nd::Vector{T}, pv_bn::Vector{T}, thres::Number, sym::Symbol=:π; thres_back::Number=Inf, style::Style=slides_def, yh = 0.65, k=8, k_back=2k, transf::Bool=true) where T<:AbstractPath
+	Nc, tvv = get_crises(pv_be, thres, sym, k, k_back, thres_back)
+	println("Suggested yh=0.7 for style=paper")
+	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :spread, :Wr]
+
+	titlevec = ["TFP", "Output", "Consumption", "Gov't Debt", "Govt spending", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
+
+	relvec = [false for jj in eachindex(keyvec)]
+	if relative
+		relvec[[2,3,4,5,6]] .= true
+	end
+
+	f1vec = Vector{Function}(undef, length(keyvec))
+	f1vec .= identity
+	ytitle = ["" for jj in 1:length(keyvec)]
+
+	f1vec[1] = x->100*x
+	f1vec[[2, 5, 6]] .= (x->100*x/meanYb)
+	f1vec[3] = (x->100*x/meanCb)
+	f1vec[[4]] .= (x->25 * x/meanYb)
+	f1vec[7] = (x->100*(1 .- x))
+	ytitle[[4,5,6]] .= "% of mean GDP"
+	ytitle[[2, 3]] .= "% dev from mean"
+	ytitle[[1,7]] .= "%"
+	ytitle[8] = "bps"
+
+	tr_vec = ones(9)
+	tr_vec[6] = 0
+	transf ? tr_vec *= 0 : nothing
+
+	f2vec = copy(f1vec)
+	f2vec[[2,5,6]] .= (x->100*x/meanYn)
+	f2vec[3] = (x->100*x/meanCn)
+	f2vec[[4]] .= (x->25 * x/meanYn)
+
+	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+	print("1 - (1-y_bench) / (1-y_nodef) for different variables:\n")
+	for (jj, key) in enumerate(keyvec)
+		_, _, b_me, _, b_av = series_crises(pv_be, tvv, key, k, relative=relvec[jj])
+		_, _, n_me, _, n_av = series_crises(pv_nd, tvv, key, k, relative=relvec[jj])
+		if key in [:Y, :C]
+			print("$key: $(@sprintf("%0.8g", 100 * (1- (100-f2vec[jj](n_me[end]))/(100-f1vec[jj](b_me[end])))))%\n")
+		elseif key == :Wr
+			print("$key median: $(@sprintf("%0.5g", 100 * (1-n_me[end]/b_me[end])))%\n")
+			print("$key mean: $(@sprintf("%0.5g", 100 * (1-n_av[end]/b_av[end])))%\n")
+		end
+		for scat in scats_comp(pv_be, pv_nd, tvv, key, f1vec[jj], f2vec[jj], axis=jj, CI=true, k=k, k_back=k_back, transf=tr_vec[jj], relative=relvec[jj])
+			push!(data, scat)
+		end
+	end
+
+	a = 1/3
+	b = 1/20
+	bx = 1/30
+	shapes = [
+		# vline(0, line_width=1, marker_color="black")
+		]
+
+	ys = [1, 0.64, 0.3]
+	annotations = [
+		attr(text=titlevec[jj], x = -k_back/8 + k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in 1:length(titlevec)
+		]
+
+	layout = Layout(shapes=shapes, annotations = annotations,
+		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
+		xaxis1 = attr(domain = [0a, a-2bx], anchor="y1"),
+		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
+		xaxis3 = attr(domain = [2a+2bx, 3a], anchor="y3"),
+		yaxis1 = attr(anchor = "x1", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[1]),
+		yaxis2 = attr(anchor = "x2", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[2]),
+		yaxis3 = attr(anchor = "x3", domain = [2a+b, 3a-b], titlefont_size = 14, title=ytitle[3]),
+		xaxis4 = attr(domain = [0a, a-2bx], anchor="y4"),
+		xaxis5 = attr(domain = [1a+bx, 2a-bx], anchor="y5"),
+		xaxis6 = attr(domain = [2a+2bx, 3a], anchor="y6"),
+		yaxis4 = attr(anchor = "x4", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[4]),
+		yaxis5 = attr(anchor = "x5", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[5]),
+		yaxis6 = attr(anchor = "x6", domain = [1a+b, 2a-b], titlefont_size = 14, title=ytitle[6]),
+		xaxis7 = attr(domain = [0a, a-2bx], anchor="y7"),
+		xaxis8 = attr(domain = [1a+bx, 2a-bx], anchor="y8"),
+		xaxis9 = attr(domain = [2a+2bx, 3a], anchor="y9"),
+		yaxis7 = attr(anchor = "x7", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[7]),
+		yaxis8 = attr(anchor = "x8", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[8]),
+		yaxis9 = attr(anchor = "x9", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[9]),
+	)
+	plot(data, layout, style=style)
+	# plot(data[12+1:12+6])
+end
+
+
+
 
 function twisted_π(sd::SOEdef, jϵ=floor(Int, N(sd,:ϵ)/2), eval_points::Vector{Int64}=[default_eval_points(sd)...])
 	itp_qᵍ = make_itp(sd, sd.eq[:qᵍ], agg=true)

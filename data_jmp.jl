@@ -193,6 +193,9 @@ function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
 
 	println(regtable(reg1G, reg2G, reg3G, reg4G, reg1B, reg2B, reg3B, reg4B, renderSettings=asciiOutput(),regression_statistics = [:nobs, :r2, :adjr2, :r2_within], print_estimator_section = false, labels=Dict("TIME"=>"Time FE","GEO"=>"Country FE", "g_spend" => "G_t/Y_t", "unemp" => "Unemployment_t", "unemp2" => "Unemployment_t^2", "debt" => "B_t/Y_t", "BoverY2" => "(B_t/Y_t)^2", "NX" => "Net Exports_t", "NXsq" => "Net Exports_t^2", "net_iss" => "(B_t' - (1-ρ)B_t) / Y_t")))
 
+	regtable(reg4G, reg3G, reg4B, reg3B, renderSettings = latexOutput("../Output/table_fiscal.txt"), regression_statistics = [:nobs, :r2], print_estimator_section = false, labels = Dict("__LABEL_STATISTIC_adjr2__" => "Adj.~\$R^2\$", "__LABEL_STATISTIC_N__" => "Observations", "TIME"=>"Time FE", "GEO"=>"Country FE", "(Intercept)" => "Constant", "g_spend" => "\$G_t/Y_t\$", "unemp" => "Unemployment\$_t\$", "unemp2" => "Unemployment\$_t^2\$", "debt" => "\$B_t/Y_t\$", "BoverY2" => "\$(B_t/Y_t)^2\$", "NX" => "Net Exports\$_t\$", "NXsq" => "Net Exports\$_t^2\$", "net_iss" => "\$(B_t' - (1-ρ)B_t) / Y_t\$"))
+
+
 	col = [	
 		get(ColorSchemes.davos, 0.2)
 		get(ColorSchemes.lajolla, 0.6)
@@ -207,7 +210,7 @@ function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
 	]
 
 	annotations = [
-		attr(x=0.5, xref="paper", xanchor="center", y=1, yref="paper", text = "Government Spending", font_size=18, showarrow=false)
+		attr(x=0.5, xref="paper", xanchor="center", y=1.025, yref="paper", text = "Government Spending", font_size=18, showarrow=false)
 		attr(x=0.5, xref="paper", xanchor="center", y=0.45, yref="paper", text = "Debt Issuances", font_size=18, showarrow=false)
 		]
 
@@ -229,7 +232,7 @@ function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
 
 	plot(data, layout, style=style)
 
-	return coef(reg4G), coef(reg4B)
+	# return coef(reg4G), coef(reg4B)
 	# return coef(reg3G), coef(reg3B)
 end
 

@@ -47,9 +47,11 @@ function make_params_table(sd::SOEdef)
 		:z => ["TFP process", 					"\$ \\rho_z, \\sigma_z \$", 	[sd.pars[:ρz], sd.pars[:σz]], false],
 		:ξ0=> ["Mean risk premium", 			"\$\\bar{\\xi}\$", 				sd.pars[:meanξ], true],
 		:ξ => ["Risk premium AR(1)", 			"\$\\rho_\\xi, \\sigma_\\xi\$", [sd.pars[:ρξ], sd.pars[:σξ]], false],
+		:μ_gov => ["Mean utility cost of default", "\$\\mu_g\$", sd.pars[:μ_gov], false],
+		# :σ_gov => ["Std utility cost of default", "\$\\sigma_g\$", sd.pars[:σ_gov], false]
 		)
 
-	for key in [:β, :γ, :τ, :w, :z, :ξ0, :ξ]
+	for key in [:β, :γ, :τ, :w, :z, :ξ0, :ξ, :μ_gov]
 		table *= "\n" * rpad(td[key][1],30," ") * "&" * rpad(td[key][2],30," ") * "&"
 		if key == :z || key == :ξ
 			table *= "($(@sprintf("%0.4g",td[key][3][1])), $(@sprintf("%0.4g",(td[key][3][2]))))"
@@ -267,10 +269,13 @@ end
 
 function save_all_tables(savedir = "../HPC_output/current_best/")
 
+	sd = load(savedir * "SOEdef.jld", "sd")
 	p_bench, W_bench = load(savedir * "SOEdef.jld", "pp", "Wr")
 	p_nodef, W_nodef = load(savedir * "SOEdef_nodef.jld", "pp", "Wr")
 	p_noΔ, W_noΔ = load(savedir * "SOEdef_nodelta.jld", "pp", "Wr")
 	p_nob, W_nob = load(savedir * "SOEdef_nob.jld", "pp", "Wr")
+
+	write(savedir * "params_table.txt", make_params_table(sd))
 
 	v_bench = simul_stats(p_bench)
 	freq_bench = get_def_freq(p_bench)

@@ -652,8 +652,8 @@ end
 
 get_crises(pp::Path, thres::Number, k::Int64=7) = get_crises([pp], πthres, k)
 
-series_crises(pp::Path, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9, k_back=k) = series_crises([pp], tvv, key, k, k_back)
-function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9, k_back = k) where T <: AbstractPath
+series_crises(pp::Path, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9, k_back=k, relative=false) = series_crises([pp], tvv, key, k, k_back, relative=relative)
+function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9, k_back = k; relative=false) where T <: AbstractPath
 	
 	Nc = sum([length(tv) for tv in tvv])
 	# symmetric ? k_back = k : k_back = 2k
@@ -668,6 +668,9 @@ function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k
 				if tt-k_back > 0
 					jc += 1
 					ymat[:, jc] = Y[tt-k_back:tt+k]
+					if relative
+						ymat[:,jc] = (ymat[:,jc] .- Y[tt-k_back]) / Y[tt-k_back]
+					end
 				end
 			end
 		end
