@@ -53,7 +53,7 @@ default_eval_points(sd::SOEdef) = floor(Int, N(sd,:b)*0.9), floor(Int, N(sd,:μ)
 
 function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
-	jb, jμ, jσ, jξ, jζ, jz = 2, 3, 3, 2, 2, 7
+	jb, jμ, jσ, jξ, jζ, jz = 6, 2, 2, 2, 2, 4
 	μv, σv = sd.gr[:μ][jμ], sd.gr[:σ][jσ]
 
 	ϕ = Dict(key => [sd.ϕ[key][jω, jϵ, jb, jμ, jσ, jξ, jζ, jz] for jω in 1:N(sd,:ω), jϵ in 1:N(sd,:ϵ)] for key in keys(sd.ϕ))
@@ -199,7 +199,7 @@ function make_unemp(sd::SOEdef; style::Style=slides_def, leg=true)
 end
 
 function make_debtprice(sd::SOEdef; style::Style=slides_def, leg=true)
-	jb, jμ, jσ, jξ, jζ, jz = [7, 3,3,1,2,5]
+	jb, jμ, jσ, jξ, jζ, jz = [10, 3,2,1,2,5]
 
 	qg_matbz = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
 	qg_matμσ = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jμ, μv) in enumerate(sd.gr[:μ]), (jσ,σv) in enumerate(sd.gr[:σ])]
@@ -265,9 +265,19 @@ function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol, f::Function=i
 end
 
 scats_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64=x1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath = scats_comp(pv_bench, pv_nodef, tvv, key, x->x/x1, x->x/x2, CI=CI, avg=avg)
-function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1; CI::Bool=false, avg::Bool=false, axis::Int64=1, k=8, k_back=2k) where T <: AbstractPath
+function scats_comp(pvb::Vector{T}, pvn::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f1::Function=identity, f2::Function=f1; CI::Bool=false, avg::Bool=false, axis::Int64=1, k=8, k_back=2k, transf=0) where T <: AbstractPath
 	ybench, bench_up, bench_me, bench_lo, bench_av = series_crises(pvb, tvv, key, k, k_back)
 	ynodef, nodef_up, nodef_me, nodef_lo, nodef_av = series_crises(pvn, tvv, key, k, k_back)
+
+	if transf == 1
+		nodef_up = (nodef_up .- nodef_me[1]) ./ max.(1, nodef_me[1])
+		nodef_lo = (nodef_lo .- nodef_me[1]) ./ max.(1, nodef_me[1])
+		nodef_me = (nodef_me .- nodef_me[1]) ./ max.(1, nodef_me[1])
+		bench_up = (bench_up .- bench_me[1]) ./ max.(1, bench_me[1])
+		bench_lo = (bench_lo .- bench_me[1]) ./ max.(1, bench_me[1])
+		bench_me = (bench_me .- bench_me[1]) ./ max.(1, bench_me[1])
+	end
+
 
 	colbench = get(ColorSchemes.corkO, 0.25)
 	colnodef = get(ColorSchemes.corkO, 0.65)
@@ -514,8 +524,8 @@ function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=s
 
 	plot(data, layout, style=style)
 end
-function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.6, k=8, k_back=2k, response="W") where T<:AbstractPath
-	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back)
+function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, thres_back::Number=Inf, yh = 0.6, k=8, k_back=2k, response="W", transf = false) where T<:AbstractPath
+	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back, thres_back)
 	println("Suggested yh=0.7 for style=paper")
 	if response == "W"
 		keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
@@ -530,14 +540,14 @@ function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Numb
 		_, _, b_me, _, _ = series_crises(pv_bench, tvv, key, k)
 		_, _, n_me, _, _ = series_crises(pv_nodef, tvv, key, k)
 		print("$key: $(@sprintf("%0.3g", 100 * (1- n_me[end]/b_me[end])))%\n")
-		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, axis=1+(jj-1)%6, CI=true, k=k, k_back=k_back)
+		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, axis=1+(jj-1)%6, CI=true, k=k, k_back=k_back, transf=transf)
 			push!(data, scat)
 		end
 	end
 
 	ys = [1, 0.46]
 	annotations = [
-		attr(text = "<i>"*titlevec[jj], x = -k/2+(3k)/8, xanchor="center", xref = "x$jj",y = ys[ceil(Int, jj/3)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
+		attr(text = "<i>"*titlevec[jj], x = -k_back/8 + k/8, xanchor="center", xref = "x$jj",y = ys[ceil(Int, jj/3)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
 	]
 
 	layout = Layout(annotations=annotations,
@@ -559,8 +569,8 @@ function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Numb
 	plot(data, layout, style=style)
 end
 
-function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol=:π; style::Style=slides_def, yh = 0.65, k=8, k_back=2k) where T<:AbstractPath
-	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back)
+function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol=:π; thres_back::Number=Inf, style::Style=slides_def, yh = 0.65, k=8, k_back=2k, transf::Bool=true) where T<:AbstractPath
+	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back, thres_back)
 	println("Suggested yh=0.7 for style=paper")
 	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :spread, :Wr]
 
@@ -585,6 +595,10 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 	ytitle[[1,7]] .= "%"
 	ytitle[8] = "bps"
 
+	tr_vec = ones(9)
+	tr_vec[6] = 0
+	transf ? tr_vec *= 0 : nothing
+
 	f2vec = copy(f1vec)
 	f2vec[[2,5,6]] .= (x->100*x/meanYn)
 	f2vec[3] = (x->100*x/meanCn)
@@ -601,7 +615,7 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 			print("$key median: $(@sprintf("%0.5g", 100 * (1-n_me[end]/b_me[end])))%\n")
 			print("$key mean: $(@sprintf("%0.5g", 100 * (1-n_av[end]/b_av[end])))%\n")
 		end
-		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, f1vec[jj], f2vec[jj], axis=jj, CI=true, k=k, k_back=k_back)
+		for scat in scats_comp(pv_bench, pv_nodef, tvv, key, f1vec[jj], f2vec[jj], axis=jj, CI=true, k=k, k_back=k_back, transf=tr_vec[jj])
 			push!(data, scat)
 		end
 	end
@@ -615,7 +629,7 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 
 	ys = [1, 0.64, 0.3]
 	annotations = [
-		attr(text=titlevec[jj], x = -k/2 + 3k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in 1:length(titlevec)
+		attr(text=titlevec[jj], x = -k_back/8 + k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in 1:length(titlevec)
 		]
 
 	layout = Layout(shapes=shapes, annotations = annotations,
@@ -640,6 +654,7 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 		yaxis9 = attr(anchor = "x9", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[9]),
 	)
 	plot(data, layout, style=style)
+	# plot(data[12+1:12+6])
 end
 
 function plot_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres, key::Symbol, f::Function=identity; style::Style=slides_def) where T <: AbstractPath
@@ -847,7 +862,7 @@ function make_twisted(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_point
 	Tπ = zeros(N(sd,:ω), N(sd,:ϵ))
 
 	if custom_points
-		eval_points = [13,4,2,2,2,7]
+		eval_points = [15,2,3,2,2,1]
 	end
 
 	if leg
@@ -1001,10 +1016,11 @@ end
 function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Bool=true)
 	Jgrid = agg_grid(sd)
 
-	jbv = [floor(Int, N(sd,:b)*0.25), 10, N(sd,:b)]
+	jbv = [floor(Int, N(sd,:b)*0.25), 9, N(sd,:b)]
 	_, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
 	# jμ = 1
-
+	jσ = 2
+	# jξ = 2
 
 	Eyv = Vector{Vector{Float64}}(undef, 0)
 	Eydv = Vector{Vector{Float64}}(undef, 0)
@@ -1014,18 +1030,18 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Boo
 	Er2 = Vector{Vector{Float64}}(undef, 0)
 	for (jj,jb) in enumerate(jbv)
 		if type == "Earnings_Default"
-			Ey, Er, Eyd = get_earnings_default(sd, [jb,jμ, jσ, 1, jζ, jz])
-			Eyy, Err, Eyyd = get_earnings_default(sd, [jb,jμ, jσ, 2, jζ, jz])
+			Ey, Er, Eyd = get_earnings_default(sd, [jb,jμ, jσ, jξ, 1, jz])
+			Eyy, Err, Eyyd = get_earnings_default(sd, [jb,jμ, jσ, jξ, 2, jz])
 			cor = "(y,ret)"
 		elseif type == "Wr-Wd"
-			Ey, Er = get_Wr_Wd(sd, [jb,jμ, jσ, 1, jζ, jz])
-			Eyy, Err = get_Wr_Wd(sd, [jb,jμ, jσ, 2, jζ, jz])
+			Ey, Er = get_Wr_Wd(sd, [jb,jμ, jσ, jξ, 1, jz])
+			Eyy, Err = get_Wr_Wd(sd, [jb,jμ, jσ, jξ, 2, jz])
 			Eyd = Ey.*NaN
 			Eyyd = Ey.*NaN
 			cor = "(Wr, Wd)"
 		elseif type == "T"
-			Ey, Er = get_Wr_Wd(sd, [jb,jμ, jσ, 1, jζ, jz], type="T")
-			Eyy, Err = get_Wr_Wd(sd, [jb,jμ, jσ, 2, jζ, jz], type="T")
+			Ey, Er = get_Wr_Wd(sd, [jb,jμ, jσ, jξ, 1, jz], type="T")
+			Eyy, Err = get_Wr_Wd(sd, [jb,jμ, jσ, jξ, 2, jz], type="T")
 			Eyd = Ey.*NaN
 			Eyyd = Ey.*NaN
 			cor = "(Tr, Td)"
