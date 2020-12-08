@@ -796,5 +796,8 @@ function simul_stats_nodef(pv::Vector{T}) where T <: AbstractPath
 	mean_V = sum(V_vec .* T_vec / sum(T_vec))
 end
 
-
-
+rel_var(p_bench::Path, p_nodef::Path, key::Symbol) = rel_var([p_bench], [p_nodef], key)
+function rel_var(p_bench::Vector{T}, p_nodef::Vector{T}, key::Symbol) where T <: AbstractPath
+	rel(x,y) = (y-x) / x
+	return rel(mean([mean(series(p, key)) for p in p_bench]), mean([mean(series(p, key)) for p in p_nodef]))
+end
