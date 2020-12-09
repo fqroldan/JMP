@@ -14,7 +14,7 @@ for (key, val) in pars(sd)
 	print_save("$(rpad(key, 6, " ")) => $val\n")
 end
 
-save("../Output/SOEdef1.jld", "sd", sd, "g", g, "pp", p_bench, "pars", pars(sd), "Wr", Wr)
+save("../Output/SOEdef.jld", "sd", sd, "g", g, "pp", p_bench, "pars", pars(sd), "Wr", Wr)
 print_save("$(sd.gr[:z])\n")
 
 sd2 = load("../Output/SOEdef_nodef.jld", "sd")
