@@ -1,8 +1,8 @@
 include("main_serial.jl")
+using JLD2, FileIO
 
 write("../Output/output.txt", "")
-sd = load("../Output/SOEdef1.jld", "sd")
-sd = SOEdef()
+sd = FileIO.load("../Output/SOEdef.jld2", "sd")
 update_probs!(sd)
 
 mpe_iter!(sd, run_number = 1)
@@ -14,19 +14,20 @@ for (key, val) in pars(sd)
 	print_save("$(rpad(key, 6, " ")) => $val\n")
 end
 
-save("../Output/SOEdef1.jld", "sd", sd, "g", g, "pp", p_bench, "pars", pars(sd), "Wr", Wr)
+FileIO.save("../Output/SOEdef.jld2", "sd", sd, "g", g, "pp", p_bench, "pars", pars(sd), "Wr", Wr)
 print_save("$(sd.gr[:z])\n")
 
-for (key, val) in pars(sd)
-	sd.pars[key] = val
+sd2 = FileIO.load("../Output/SOEdef_nodef.jld2", "sd")
+for (key, val) in pars(sd2)
+	sd2.pars[key] = val
 end
-update_probs!(sd)
-mpe_iter!(sd, run_number = 2, nodef = true)
-g, p_nodef, _, v_m, def_freq = make_simulated_path(sd, "../Output/run2/", 30000);
+update_probs!(sd2)
+mpe_iter!(sd2, run_number = 2, nodef = true)
+g, p_nodef, _, v_m, def_freq = make_simulated_path(sd2, "../Output/run2/", 30000);
 Wr = mean([mean(series(p, :Wr)) for p in p_nodef])
 
-print_save("$(sd.gr[:z])\n")
-save("../Output/SOEdef_nodef.jld", "sd", sd, "g", g, "pp", p_nodef, "pars", pars(sd), "Wr", Wr)
+print_save("$(sd2.gr[:z])\n")
+FileIO.save("../Output/SOEdef_nodef.jld2", "sd", sd2, "g", g, "pp", p_nodef, "pars", pars(sd2), "Wr", Wr)
 
 # g, p_benchnodef, _, _, _ = make_simulated_path(sd, "../Output/run5/", 30000, ϕ = sd2.ϕ);
 # Wr = mean([mean(series(p, :Wr)) for p in p_benchnodef])
