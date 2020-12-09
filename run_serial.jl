@@ -1,11 +1,8 @@
 include("main_serial.jl")
 
 write("../Output/output.txt", "")
-try
-	sd = load("../Output/SOEdef.jld", "sd")
-catch
-	sd = SOEdef()
-end
+# sd = load("../Output/SOEdef.jld", "sd")
+sd = SOEdef()
 update_probs!(sd)
 
 mpe_iter!(sd, run_number = 1)
