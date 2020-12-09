@@ -88,14 +88,14 @@ function quarterlize_AR1(ρ, σ)
 end
 
 function SOEdef(;
-	β = (1.0/1.09)^0.25,
+	β = (1.0/1.05615)^0.25,
 	IES = 1.0,
-	RRA = 10,
-	τ = 0.2,
+	RRA = 3,
+	τ = 0.28,
 	r_star = 1.04^0.25 - 1.0,
-	tax = 0.02,
+	meanξ = 0.0005,
 	ωmax = 20,
-	wbar = 0.89,
+	wbar = 1.175,
 	curv = .4,
 	income_process = "Mendoza-D'Erasmo",
 	EpsteinZin = true,
@@ -103,15 +103,15 @@ function SOEdef(;
 	Nω_fine = 1000,
 	Nω = 7,
 	Nϵ = 5,
-	Nμ = 4,
-	Nσ = 4,
+	Nμ = 5,
+	Nσ = 5,
 	Nb = 17,
 	Nξ = 2,
-	Nz = 7,
-	ρz = 0.97,
-	σz = 0.003,
+	Nz = 9,
+	ρz = 0.63,
+	σz = 0.009,
 	ρξ = 0.95,
-	σξ = 0.0025,
+	σξ = 0.00025,
 	ℏ = 0.45,
 	Δ = 0.1,
 	θ = .04167,
@@ -144,7 +144,6 @@ function SOEdef(;
 	Pz = zchain.p
 	zgrid = zchain.state_values
 
-	meanξ = tax
 	ξgrid, Pξ = tauchen_fun(Nξ, ρξ, σξ, m=0.5, mu=meanξ)
 
 	σmin, σmax = 0.01, 1.25
