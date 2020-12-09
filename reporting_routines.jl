@@ -77,7 +77,7 @@ function make_calib_table(v_m)
 
 	colnames = ["\\textbf{Target}", "\\textbf{Model}", "\\textbf{Data}"]
 
-	rownames = ["AR(1) coef \$\\log(Y_t)\$"; "Std coef \$\\log(Y_t)\$"; "AR(1) coef \$\\log(C_t)\$"; "Std coef \$\\log(C_t)\$"; "AR(1) coef spread"; "Std coef spread (bps)"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"; "Avg wealth Gini"]
+	rownames = ["AR(1) autocorr.~coef \$\\log(Y_t)\$"; "AR(1) std coef \$\\log(Y_t)\$"; "AR(1) autocorr.~coef \$\\log(C_t)\$"; "AR(1) std coef \$\\log(C_t)\$"; "AR(1) autocorr.~coef spread"; "AR(1) std coef spread (bps)"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"; "Avg wealth Gini"]
 
 	# data_stats = [ 0.96580506; 0.01294576; 0.96172496; 0.01663608; 0.96656486; 0.10252351; 64.57638889; 23.48323041; 15.94722222; 6.08732167; 56.49; 94.48]
 
