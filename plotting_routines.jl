@@ -503,7 +503,8 @@ function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=s
 	funcvec[9] = (x->100*(1 .- x))
 	ytitle[[5, 10, 13, 15, 16]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
-	ytitle[[1,4,6,8,9]] .= "%"
+	ytitle[[1,6,8,9]] .= "%"
+	ytitle[4] = "diff from mean"
 	ytitle[7] = "bps"
 
 	if haskey(first(pv).data, :Gini)
