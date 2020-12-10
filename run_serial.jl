@@ -17,7 +17,7 @@ FileIO.save("../Output/SOEdef.jld2", "sd", sd, "g", g, "pp", p_bench, "pars", pa
 print_save("$(sd.gr[:z])\n")
 
 sd2 = FileIO.load("../Output/SOEdef_nodef.jld2", "sd")
-for (key, val) in pars(sd2)
+for (key, val) in pars(sd)
 	sd2.pars[key] = val
 end
 update_probs!(sd2)
