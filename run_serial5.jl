@@ -1,5 +1,4 @@
 include("main_serial.jl")
-using JLD2, FileIO
 
 write("../Output/output.txt", "")
 sd = FileIO.load("../Output/SOEdef.jld2", "sd")
