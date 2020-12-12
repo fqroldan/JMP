@@ -269,11 +269,11 @@ end
 
 function save_all_tables(savedir = "../HPC_output/current_best/")
 
-	sd = load(savedir * "SOEdef.jld", "sd")
-	p_bench, W_bench = load(savedir * "SOEdef.jld", "pp", "Wr")
-	p_nodef, W_nodef = load(savedir * "SOEdef_nodef.jld", "pp", "Wr")
-	p_noΔ, W_noΔ = load(savedir * "SOEdef_nodelta.jld", "pp", "Wr")
-	p_nob, W_nob = load(savedir * "SOEdef_nob.jld", "pp", "Wr")
+	sd = FileIO.load(savedir * "SOEdef.jld2", "sd")
+	p_bench, W_bench = FileIO.load(savedir * "SOEdef.jld2", "pp", "Wr")
+	# p_nodef, W_nodef = File.load(savedir * "SOEdef_nodef.jld", "pp", "Wr")
+	# p_noΔ, W_noΔ = load(savedir * "SOEdef_nodelta.jld", "pp", "Wr")
+	# p_nob, W_nob = load(savedir * "SOEdef_nob.jld", "pp", "Wr")
 
 	write(savedir * "params_table.txt", make_params_table(sd))
 
@@ -281,24 +281,28 @@ function save_all_tables(savedir = "../HPC_output/current_best/")
 	freq_bench = get_def_freq(p_bench)
 	v_nodef = simul_stats(p_nodef)
 	freq_nodef = get_def_freq(p_nodef)
-	v_noΔ = simul_stats(p_noΔ)
-	freq_noΔ = get_def_freq(p_noΔ)
-	v_nob = simul_stats(p_nob)
-	freq_nob = get_def_freq(p_nob)
+	# v_noΔ = simul_stats(p_noΔ)
+	# freq_noΔ = get_def_freq(p_noΔ)
+	# v_nob = simul_stats(p_nob)
+	# freq_nob = get_def_freq(p_nob)
 
 	write(savedir * "calib_table.txt", make_calib_table(v_bench))
 
-	write(savedir * "calib_table_comp.txt", make_calib_table_comp([v_bench; 100*freq_bench; W_bench], [v_nodef; 100*freq_nodef; W_nodef], [v_noΔ; 100*freq_noΔ; W_noΔ], [v_nob; 100*freq_nob; W_nob]))
+	write(savedir * "calib_table_comp.txt", 
+		make_calib_table_comp(
+			[v_bench; 100*freq_bench; W_bench],
+			[v_nodef; 100*freq_nodef; W_nodef],
+			# [v_noΔ; 100*freq_noΔ; W_noΔ],
+			# [v_nob; 100*freq_nob; W_nob],
+			))
 
 	write(savedir * "welfare_table.txt", make_welfare_table(p_bench, p_nodef))
 end
 
 function save_all_plots(savedir = "../HPC_output/current_best/")
 
-	sd_bench, p_bench, W_bench = load(savedir * "SOEdef.jld", "sd", "pp", "Wr")
-	sd_nodef, p_nodef, W_nodef = load(savedir * "SOEdef_nodef.jld", "sd", "pp", "Wr")
-	sd_noΔ, p_noΔ, W_noΔ = load(savedir * "SOEdef_nodelta.jld", "sd", "pp", "Wr")
-	sd_nob, p_nob, W_nob = load(savedir * "SOEdef_nob.jld", "sd", "pp", "Wr")
+	sd_bench, p_bench, W_bench = FileIO.load(savedir * "SOEdef.jld2", "sd", "pp", "Wr")
+	sd_nodef, p_nodef, W_nodef = FileIO.load(savedir * "SOEdef_nodef.jld2", "sd", "pp", "Wr")
 
 	p1 = make_panels(sd, "Earnings_Default", style=paper, leg=false)
 	savefig(p1, savedir * "wages_paper.pdf", width=floor(Int, p1.plot.layout[:width]), height=floor(Int,p1.plot.layout[:height]))
@@ -324,7 +328,7 @@ function save_all_plots(savedir = "../HPC_output/current_best/")
 	p1 = panels_defaults(p_bench, style=paper, indiv=false)
 	savefig(p1, savedir * "defaults_paper.pdf", width=floor(Int, p1.plot.layout[:width]), height=floor(Int,p1.plot.layout[:height]))
 
-	p1 = panels_comp(p_bench, p_nodef, 400, :spread, thres_back = 350, k=1, k_back=11, style=paper, yh=0.55)
+	p1 = panels_comp(p_bench, p_nodef, 400, :spread, thres_back = 350, k=1, k_back=11, style=paper, yh=0.55, relative=true)
 	savefig(p1, savedir * "crises_comp_paper.pdf", width=floor(Int, p1.plot.layout[:width]), height=floor(Int,p1.plot.layout[:height]))
 
 	p1 = distribution_comp(p_bench, p_nodef, 400, :spread, thres_back = 350, k=1, k_back=11, style=paper, yh=0.5, transf=false, response = "W")
