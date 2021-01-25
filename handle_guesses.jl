@@ -164,7 +164,7 @@ function make_simulated_path(sd::SOEdef, savedir, years=100; ϕ=sd.ϕ)
 	def_freq = Ndefs/Tyears
 	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(round(1000*def_freq)/10)%")
 	# print_save("\nAverage Gini coefficient: $(@sprintf("%0.3g",100*mean([mean(series(path,:Gini)) for path in pp])))")
-	save(savedir*"p_bench.jld", "pp", pp, "Ndefs", Ndefs)
+	save(savedir*"p_bench.jld2", "pp", pp, "Ndefs", Ndefs)
 	
 	# pl = plot_simul(path)
 
@@ -250,9 +250,9 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 	print_save("\nSolving $(sim_name) version")
 	mpe_iter!(sd; nodef = nodef, noΔ = nodelta, nob = nob, rep_agent = rep_agent, run_number=run_number, save_copies=false)
 	pp, Ndefs = parsimul(sd; simul_length=4*years, burn_in=1+4*100)
-	save("../Output/run$(run_number)/SOEdef_$(sim_name).jld", "sd", sd)
-	save("../Output/SOEdef_$(sim_name).jld", "sd", sd)
-	save("../Output/run$(run_number)/p_$(sim_name).jld", "pp", pp, "Ndefs", Ndefs)
+	save("../Output/run$(run_number)/SOEdef_$(sim_name).jld2", "sd", sd)
+	save("../Output/SOEdef_$(sim_name).jld2", "sd", sd)
+	save("../Output/run$(run_number)/p_$(sim_name).jld2", "pp", pp, "Ndefs", Ndefs)
 	print_save(" ✓")
 	return pp, Ndefs
 end
