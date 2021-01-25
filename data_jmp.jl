@@ -1,5 +1,5 @@
 using QuantEcon, CSV, DataFrames, Dates, GLM, PlotlyJS, ColorSchemes, FixedEffectModels, RegressionTables, SparseArrays, ExcelReaders
- 
+
 """ Define styles """
 def_style = let
 	axis = attr(showgrid = true, gridcolor="#e2e2e2", gridwidth=0.5, zeroline=false)
