@@ -307,7 +307,7 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, q
 	Wr_vec = [sum([itp_vf(sav_a_ω[jq] + Rvec[2]*sav_b_ω[jq], ϵpv, Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])]) for jq in 1:length(quantiles_ω)]
 	Wd_vec = [sum([itp_vf(sav_a_ω[jq] + Rvec[1]*sav_b_ω[jq], ϵpv, Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])]) for jq in 1:length(quantiles_ω)]
 
-	# λpd = zeros(size(λt))
+	λpd = zeros(size(λt))
 	for jζp in 1:2
 		savings = ϕa + Rvec[jζp]*ϕb
 		savings = max.(min.(savings, sd.pars[:ωmax]), sd.pars[:ωmin])
@@ -316,7 +316,7 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, q
 		Qω = BasisMatrix(basis, Expanded(), savings, 0).vals[1]
 		Q = row_kron(Qϵ, Qω)
 
-		λpd = Q' * λt
+		λp = Q' * λt
 		λ_matp = reshape(λpd, N(sd,:ωf), N(sd,:ϵ))
 		if jζp == 2 # repayment
 			Wr = sum([itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])])
@@ -324,11 +324,11 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, q
 			Wd = sum([itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])])
 		end
 
-		# if repay_prime && jζp == 2
-		# 	λpd = copy(λp)
-		# elseif !repay_prime && jζp == 1
-		# 	λpd = copy(λp)
-		# end
+		if repay_prime && jζp == 2
+			λpd = copy(λp)
+		elseif !repay_prime && jζp == 1
+			λpd = copy(λp)
+		end
 	end
 
 	if repay_prime
@@ -586,7 +586,7 @@ function parsimul(sd::SOEdef; ϕ=sd.ϕ, simul_length::Int64=1, burn_in::Int64=1)
 	print_save("Time in simulation: $(time_print(time()-t0))\n")
 
 	for (key, val) in discr_tot
-		print_save("Average discrepancy in $(key): $(discr_tot[key])\n")
+		print_save("Average discrepancy in $(key): $(@sprintf("%0.3g", 100*discr_tot[key]))%\n")
 	end
 
 	N = sum(Ndefs)
