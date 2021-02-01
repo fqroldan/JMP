@@ -232,10 +232,10 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
 
 	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :mean => meanω, :var => varω, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5]))
 	
-	return λt, ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef
+	return ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef
 end
 
-function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef, itp_qᵍ, itp_vf, Qϵ)
+function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef, itp_repay, itp_qᵍ, itp_vf, Qϵ)
 
 	Bt = getfrompath(p, t, :B)
 	μt = getfrompath(p, t, :μ)
@@ -263,6 +263,12 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, e
 
 	qguess = itp_qᵍ(Bt, μt, σt, ξt, ζt, zt)
 
+	exp_rep = zeros(N(sd,:ξ), N(sd,:z))
+	# itp_repay = extrapolate(itp_repay, Interpolations.Flat())
+	for (jξp, ξpv) in enumerate(sd.gr[:ξ]), (jzp, zpv) in enumerate(sd.gr[:z])
+		exp_rep[jξp, jzp] = max(0, min(1, itp_repay(Bt, μt, σt, ξt, ζt, zt, ξpv, zpv)))
+	end
+
 	μ′, σ′, q′, _ = compute_stats_logN(sd, a, b, var_a, var_b, cov_ab, itp_qᵍ, Bpv, exp_rep, jdef, qguess)
 
 	# μ′, σ′, q′ = new_expectations(h, itp_qᵍ, Bpv, wt, thres, Bt, μt, σt, w0, ζt, zt, jdef) # This would assume that λₜ is lognormal
@@ -288,11 +294,11 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, e
 	if jdef
 		Bpvec = [Bpv, Bpv]
 		repay_prime = (rand() <= sd.pars[:θ])
-		Rvec = [(1-sd.pars[:ρ]) * qprime[1], sd.pars[:κ] + (1-sd.pars[:ρ]) * qprime[2]]
+		Rvec = [qprime[1], sd.pars[:κ] + (1-sd.pars[:ρ]) * qprime[2]]
 	else
 		Bpvec = [(1-sd.pars[:ℏ])*Bpv, Bpv]
 		repay_prime = (rand() <= exp_rep[jξp,jzp])
-		Rvec = [(1-sd.pars[:ℏ])*(1-sd.pars[:ρ]) * qprime[1], sd.pars[:κ] + (1.0-sd.pars[:ρ]) * qprime[2]]
+		Rvec = [(1-sd.pars[:ℏ]) * qprime[1], sd.pars[:κ] + (1.0-sd.pars[:ρ]) * qprime[2]]
 	end
 
 	Wr = 0.0 # itp_W(Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv)
@@ -301,7 +307,7 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, e
 	Wr_vec = [sum([itp_vf(sav_a_ω[jq] + Rvec[2]*sav_b_ω[jq], ϵpv, Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])]) for jq in 1:length(quantiles_ω)]
 	Wd_vec = [sum([itp_vf(sav_a_ω[jq] + Rvec[1]*sav_b_ω[jq], ϵpv, Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])]) for jq in 1:length(quantiles_ω)]
 
-	λpd = zeros(size(λt))
+	# λpd = zeros(size(λt))
 	for jζp in 1:2
 		savings = ϕa + Rvec[jζp]*ϕb
 		savings = max.(min.(savings, sd.pars[:ωmax]), sd.pars[:ωmin])
@@ -310,19 +316,19 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, e
 		Qω = BasisMatrix(basis, Expanded(), savings, 0).vals[1]
 		Q = row_kron(Qϵ, Qω)
 
-		λp = Q' * λt
-		λ_matp = reshape(λp, N(sd,:ωf), N(sd,:ϵ))
+		λpd = Q' * λt
+		λ_matp = reshape(λpd, N(sd,:ωf), N(sd,:ϵ))
 		if jζp == 2 # repayment
 			Wr = sum([itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])])
 		else
 			Wd = sum([itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])])
 		end
 
-		if repay_prime && jζp == 2
-			λpd = copy(λp)
-		elseif !repay_prime && jζp == 1
-			λpd = copy(λp)
-		end
+		# if repay_prime && jζp == 2
+		# 	λpd = copy(λp)
+		# elseif !repay_prime && jζp == 1
+		# 	λpd = copy(λp)
+		# end
 	end
 
 	if repay_prime
@@ -404,9 +410,9 @@ end
 
 function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ, discr, verbose::Bool=false)
 
-	λt, ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef = iter_simul_t!(sd, p, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose)
+	ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef = iter_simul_t!(sd, p, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose)
 
-	λpd, new_def = iter_simul_tp!(sd, p, t, jz_series, λt, ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef, itp_qᵍ, itp_vf, Qϵ)
+	λpd, new_def = iter_simul_tp!(sd, p, t, jz_series, λt, ϕa, ϕb, Bpv, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef, itp_repay, itp_qᵍ, itp_vf, Qϵ)
 
 	return λpd, new_def
 end
@@ -424,8 +430,6 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.
 	B0, μ0, σ0, ξ0, ζ0, z0 = mean(gr[:b]), mean(gr[:μ]), mean(gr[:σ]), gr[:ξ][1], gr[:ζ][2], gr[:z][jz]
 	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
 
-	itp_ϕa = make_itp(sd, ϕ[:a]; agg=false);
-	itp_ϕb = make_itp(sd, ϕ[:b]; agg=false);
 	itp_ϕc = make_itp(sd, ϕ[:c]; agg=false);
 	itp_ϕs = make_itp(sd, ϕ[:s]; agg=false);
 	itp_ϕθ = make_itp(sd, ϕ[:θ]; agg=false);
@@ -447,7 +451,7 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.
 	jz_series[1] = jz
 
 	# Initialize objects for iterating the distribution
-	λ = initial_dist(sd, μ0, σ0)
+	λ = initial_dist(sd, μ0, σ0);
 	Qϵ = kron(sd.prob[:ϵ], ones(N(sd,:ωf),1))
 
 	# Simulate
@@ -463,7 +467,100 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.
 
 	jz_series = jz_series[burn_in+1:end]
 
-	return trim_path(p, burn_in), jz_series, Ndefs, discr
+	return trim_path(p, burn_in), jz_series, Ndefs, discr, λ
+end
+
+function iter_simul_switch!(sd1::SOEdef, sd2::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay1, itp_repay2, itp_W, λt, Qϵ, discr, verbose::Bool=false)
+
+	ϕa, ϕb, Bpv, _, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef = iter_simul_t!(sd1, p, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay1, λt, discr, verbose)
+
+	λpd, new_def = iter_simul_tp!(sd2, p, t, jz_series, λt, ϕa, ϕb, Bpv, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef, itp_repay2, itp_qᵍ, itp_vf, Qϵ)
+
+	return λpd, new_def
+end
+
+function simul_switch!(p::Path, sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, B0, μ0, σ0, ξ0, ζ0, z0, λ0, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_W1, itp_repay1, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_W2, itp_repay2, verbose = false)
+	Random.seed!(100+jk)
+
+	# Setup
+	T = length1 + length2 + length3
+
+	jz = findfirst(sd1.gr[:z] .== z0)
+
+	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
+
+	jz_series = Vector{Int64}(undef, T)
+	jz_series[1] = jz
+
+	# Initialize objects for iterating the distribution
+	λ = λ0
+	Qϵ = kron(sd1.prob[:ϵ], ones(N(sd1,:ωf),1));
+
+	# Simulate
+	t0 = time()
+	Ndefs = 0
+	discr = Dict(:C => 0.0, :pN => 0.0, :μ => 0.0, :σ => 0.0)
+	for t in 1:T
+		if t <= length1 # simulate in 1
+			λ, new_def = iter_simul!(sd1, p, t, jz_series, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_repay1, itp_W1, λ, Qϵ, discr, verbose)
+		elseif t == length1 # switch from 1 to 2
+			λ, new_def = iter_simul_switch!(sd1, sd2, p, t, jz_series, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf2, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ2, itp_repay1, itp_repay2, itp_W1, λ, Qϵ, discr, verbose)
+		elseif t <= length1 + length2 # simulate in 2
+			λ, new_def = iter_simul!(sd2, p, t, jz_series, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_repay2, itp_W2, λ, Qϵ, discr, verbose)
+		elseif t == length1 + length2 # switch back to 1
+			λ, new_def = iter_simul_switch!(sd2, sd1, p, t, jz_series, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf1, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ1, itp_repay1, itp_repay2, itp_W2, λ, Qϵ, discr, verbose)
+		else # simulate in 1
+			λ, new_def = iter_simul!(sd1, p, t, jz_series, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_repay1, itp_W1, λ, Qϵ, discr, verbose)
+		end
+		Ndefs += new_def
+	end
+
+	# verbose && print_save("\nTime in simulation: $(time_print(time()-t0))")
+
+	# jz_series = jz_series[burn_in+1:end]
+
+	return p, jz_series, Ndefs, discr
+end
+
+ function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, λ0, B0=mean(sd1.gr[:b]), μ0=mean(sd1.gr[:μ]), σ0=mean(sd1.gr[:σ]), ξ0=sd1.gr[:ξ][1], ζ0=sd1.gr[:ζ][2], z0=sd1.gr[:z][1])
+
+	T = length1 + length2 + length3
+	p = Path(T = T)
+
+	itp_ϕc1 = make_itp(sd1, sd1.ϕ[:c]; agg=false);
+	itp_ϕs1 = make_itp(sd1, sd1.ϕ[:s]; agg=false);
+	itp_ϕθ1 = make_itp(sd1, sd1.ϕ[:θ]; agg=false);
+	itp_vf1 = make_itp(sd1, sd1.v[:v]; agg=false);
+
+	itp_C1  = make_itp(sd1, sd1.eq[:C]; agg=true);
+	itp_B′1 = make_itp(sd1, sd1.eq[:issuance]; agg=true);
+	itp_G1  = make_itp(sd1, sd1.eq[:spending]; agg=true);
+	itp_pN1 = make_itp(sd1, sd1.eq[:pN]; agg=true);
+	itp_qᵍ1 = make_itp(sd1, sd1.eq[:qᵍ]; agg=true);
+	itp_W1  = make_itp(sd1, sd1.eq[:welfare]; agg=true);
+
+	rep_mat = reshape_long_shocks(sd1, sd1.gov[:repay]);
+	knots = (sd1.gr[:b], sd1.gr[:μ], sd1.gr[:σ], sd1.gr[:ξ], sd1.gr[:ζ], sd1.gr[:z], sd1.gr[:ξ], sd1.gr[:z]);
+	itp_repay1 = interpolate(knots, rep_mat, Gridded(Linear()));
+
+	itp_ϕc2 = make_itp(sd2, sd2.ϕ[:c]; agg=false);
+	itp_ϕs2 = make_itp(sd2, sd2.ϕ[:s]; agg=false);
+	itp_ϕθ2 = make_itp(sd2, sd2.ϕ[:θ]; agg=false);
+	itp_vf2 = make_itp(sd2, sd2.v[:v]; agg=false);
+
+	itp_C2  = make_itp(sd2, sd2.eq[:C]; agg=true);
+	itp_B′2 = make_itp(sd2, sd2.eq[:issuance]; agg=true);
+	itp_G2  = make_itp(sd2, sd2.eq[:spending]; agg=true);
+	itp_pN2 = make_itp(sd2, sd2.eq[:pN]; agg=true);
+	itp_qᵍ2 = make_itp(sd2, sd2.eq[:qᵍ]; agg=true);
+	itp_W2  = make_itp(sd2, sd2.eq[:welfare]; agg=true);
+
+	rep_mat = reshape_long_shocks(sd2, sd2.gov[:repay]);
+	knots = (sd2.gr[:b], sd2.gr[:μ], sd2.gr[:σ], sd2.gr[:ξ], sd2.gr[:ζ], sd2.gr[:z], sd2.gr[:ξ], sd2.gr[:z]);
+	itp_repay2 = interpolate(knots, rep_mat, Gridded(Linear()));
+
+
+	simul_switch!(p, sd1, sd2, jk, length1, length2, length3, B0, μ0, σ0, ξ0, ζ0, z0, λ0, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_W1, itp_repay1, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_W2, itp_repay2)
 end
 
 function parsimul(sd::SOEdef; ϕ=sd.ϕ, simul_length::Int64=1, burn_in::Int64=1)
@@ -473,20 +570,20 @@ function parsimul(sd::SOEdef; ϕ=sd.ϕ, simul_length::Int64=1, burn_in::Int64=1)
 	pv = Vector{Path}(undef, K)
 	Ndefs = Vector{Int64}(undef, K)
 
-	print_save("\nStarting $K simulations of $(floor(Int, simul_length/4)) years at $(Dates.format(now(), "HH:MM")).")
+	print_save("Starting $K simulations of $(floor(Int, simul_length/4)) years at $(Dates.format(now(), "HH:MM")).\n")
 
 	discr_tot = Dict(:C => 0.0, :pN => 0.0)
 
 	t0 = time()
 	Threads.@threads for jk in 1:K
-		pp, jzs, N, discr = simul(sd, jk, simul_length, burn_in; ϕ=ϕ, verbose=(jk==1))
+		pp, jzs, N, discr, _ = simul(sd, jk, simul_length, burn_in; ϕ=ϕ, verbose=(jk==1))
 		pv[jk] = pp
 		Ndefs[jk] = N
 		for (key, val) in discr_tot
 			discr_tot[key] += discr[key] / K
 		end
 	end
-	print_save(" Time in simulation: $(time_print(time()-t0))")
+	print_save("Time in simulation: $(time_print(time()-t0))\n")
 
 	for (key, val) in discr_tot
 		print_save("Average discrepancy in $(key): $(discr_tot[key])\n")
