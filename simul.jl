@@ -207,12 +207,12 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
 
 	# Compute Gini index
 	# S_i = pdf times wealth from 1 to i
-	S = [sum( [mλω[jj]*ωϵv[jj, 1] for jj in 1:i] ) for i in 1:length(mλω)]
+	S = [sum( mλω[jj]*ωϵv[jj, 1] for jj in 1:i ) for i in 1:length(mλω)]
 
 	# S_0 = 0
 	S = [0;S]
 
-	Gini = 1 - (sum( [ mλω[jj] * (S[jj] + S[jj+1]) for jj in 1:length(mλω)]))/S[end]
+	Gini = 1 - (sum( mλω[jj] * (S[jj] + S[jj+1]) for jj in 1:length(mλω) ))/S[end]
 
 	C = dot(λt, ϕc)
 	CoY = C / output
@@ -304,8 +304,8 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, q
 	Wr = 0.0 # itp_W(Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv)
 	Wd = 0.0 # itp_W(Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv)
 
-	Wr_vec = [sum([itp_vf(sav_a_ω[jq] + Rvec[2]*sav_b_ω[jq], ϵpv, Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])]) for jq in 1:length(quantiles_ω)]
-	Wd_vec = [sum([itp_vf(sav_a_ω[jq] + Rvec[1]*sav_b_ω[jq], ϵpv, Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])]) for jq in 1:length(quantiles_ω)]
+	Wr_vec = [sum(itp_vf(sav_a_ω[jq] + Rvec[2]*sav_b_ω[jq], ϵpv, Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])) for jq in 1:length(quantiles_ω)]
+	Wd_vec = [sum(itp_vf(sav_a_ω[jq] + Rvec[1]*sav_b_ω[jq], ϵpv, Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])) for jq in 1:length(quantiles_ω)]
 
 	λpd = zeros(size(λt))
 	for jζp in 1:2
@@ -317,11 +317,13 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, q
 		Q = row_kron(Qϵ, Qω)
 
 		λp = Q' * λt
-		λ_matp = reshape(λpd, N(sd,:ωf), N(sd,:ϵ))
+		λ_matp = reshape(λp, N(sd,:ωf), N(sd,:ϵ))
 		if jζp == 2 # repayment
-			Wr = sum([itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])])
+			Wr = sum(itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ]))
+			# println(Wr)
 		else
-			Wd = sum([itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])])
+			Wd = sum(itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ]))
+			# println(Wd)
 		end
 
 		if repay_prime && jζp == 2
@@ -397,6 +399,8 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, q
 	# λpd = Q' * λt
 
 	# M, V = unmake_logN(μpv, σpv)
+	# println(t)
+	# println(spr)
 
 	# Fill the path for next period
 	if t < length(jz_series)
@@ -410,7 +414,7 @@ end
 
 function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ, discr, verbose::Bool=false)
 
-	ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef = iter_simul_t!(sd, p, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose)
+	ϕa, ϕb, Bpv, _, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef = iter_simul_t!(sd, p, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose)
 
 	λpd, new_def = iter_simul_tp!(sd, p, t, jz_series, λt, ϕa, ϕb, Bpv, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef, itp_repay, itp_qᵍ, itp_vf, Qϵ)
 
@@ -427,7 +431,7 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.
 
 	jz = 1
 
-	B0, μ0, σ0, ξ0, ζ0, z0 = mean(gr[:b]), mean(gr[:μ]), mean(gr[:σ]), gr[:ξ][1], gr[:ζ][2], gr[:z][jz]
+	B0, μ0, σ0, ξ0, ζ0, z0 = mean(sd.gr[:b]), mean(sd.gr[:μ]), mean(sd.gr[:σ]), sd.gr[:ξ][1], sd.gr[:ζ][2], sd.gr[:z][jz]
 	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
 
 	itp_ϕc = make_itp(sd, ϕ[:c]; agg=false);
@@ -501,11 +505,11 @@ function simul_switch!(p::Path, sd1::SOEdef, sd2::SOEdef, jk, length1, length2, 
 	Ndefs = 0
 	discr = Dict(:C => 0.0, :pN => 0.0, :μ => 0.0, :σ => 0.0)
 	for t in 1:T
-		if t <= length1 # simulate in 1
+		if t < length1 # simulate in 1
 			λ, new_def = iter_simul!(sd1, p, t, jz_series, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_repay1, itp_W1, λ, Qϵ, discr, verbose)
 		elseif t == length1 # switch from 1 to 2
 			λ, new_def = iter_simul_switch!(sd1, sd2, p, t, jz_series, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf2, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ2, itp_repay1, itp_repay2, itp_W1, λ, Qϵ, discr, verbose)
-		elseif t <= length1 + length2 # simulate in 2
+		elseif t < length1 + length2 # simulate in 2
 			λ, new_def = iter_simul!(sd2, p, t, jz_series, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_repay2, itp_W2, λ, Qϵ, discr, verbose)
 		elseif t == length1 + length2 # switch back to 1
 			λ, new_def = iter_simul_switch!(sd2, sd1, p, t, jz_series, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf1, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ1, itp_repay1, itp_repay2, itp_W2, λ, Qϵ, discr, verbose)
@@ -519,10 +523,42 @@ function simul_switch!(p::Path, sd1::SOEdef, sd2::SOEdef, jk, length1, length2, 
 
 	# jz_series = jz_series[burn_in+1:end]
 
-	return p, jz_series, Ndefs, discr
+	return trim_path(p, 1), jz_series, Ndefs, discr
 end
 
- function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, λ0, B0=mean(sd1.gr[:b]), μ0=mean(sd1.gr[:μ]), σ0=mean(sd1.gr[:σ]), ξ0=sd1.gr[:ξ][1], ζ0=sd1.gr[:ζ][2], z0=sd1.gr[:z][1])
+function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; burn_in = 4*100, B0 = mean(sd.gr[:b]), K)
+	pv = Vector{Path}()
+
+	print_save("Starting $K simulations at $(Dates.format(now(), "HH:MM:SS")).\n")
+
+	t0 = time()
+	K_eff = 0
+	Threads.@threads for jk in 1:K
+		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, B0=B0, T = 4*100)
+
+		if minimum(series(p, :ζ)) == 1
+			push!(pv, p)
+			K_eff += 1
+		end
+		# Ndefs[jk] = N
+	end
+	print_save("Time in simulation: $(time_print(time()-t0)). Left with $K_eff simulations.\n")
+
+	return pv, length1, length1+length2
+end
+
+
+function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3; B0=mean(sd1.gr[:b]), μ0=mean(sd1.gr[:μ]), σ0=mean(sd1.gr[:σ]), ξ0=sd1.gr[:ξ][1], ζ0=sd1.gr[:ζ][2], z0=sd1.gr[:z][1], T)
+
+	_, _, _, _, λ = simul(sd1, jk, T, 1)
+
+	simul_switch(sd1, sd2, jk, length1, length2, length3, λ, B0, μ0, σ0, ξ0, ζ0, z0)
+end
+
+
+function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, λ0, B0=mean(sd1.gr[:b]), μ0=mean(sd1.gr[:μ]), σ0=mean(sd1.gr[:σ]), ξ0=sd1.gr[:ξ][1], ζ0=sd1.gr[:ζ][2], z0=sd1.gr[:z][1])
+
+	length1 += 1
 
 	T = length1 + length2 + length3
 	p = Path(T = T)
@@ -539,9 +575,9 @@ end
 	itp_qᵍ1 = make_itp(sd1, sd1.eq[:qᵍ]; agg=true);
 	itp_W1  = make_itp(sd1, sd1.eq[:welfare]; agg=true);
 
-	rep_mat = reshape_long_shocks(sd1, sd1.gov[:repay]);
+	rep_mat1 = reshape_long_shocks(sd1, sd1.gov[:repay]);
 	knots = (sd1.gr[:b], sd1.gr[:μ], sd1.gr[:σ], sd1.gr[:ξ], sd1.gr[:ζ], sd1.gr[:z], sd1.gr[:ξ], sd1.gr[:z]);
-	itp_repay1 = interpolate(knots, rep_mat, Gridded(Linear()));
+	itp_repay1 = interpolate(knots, rep_mat1, Gridded(Linear()));
 
 	itp_ϕc2 = make_itp(sd2, sd2.ϕ[:c]; agg=false);
 	itp_ϕs2 = make_itp(sd2, sd2.ϕ[:s]; agg=false);
@@ -555,10 +591,9 @@ end
 	itp_qᵍ2 = make_itp(sd2, sd2.eq[:qᵍ]; agg=true);
 	itp_W2  = make_itp(sd2, sd2.eq[:welfare]; agg=true);
 
-	rep_mat = reshape_long_shocks(sd2, sd2.gov[:repay]);
+	rep_mat2 = reshape_long_shocks(sd2, sd2.gov[:repay]);
 	knots = (sd2.gr[:b], sd2.gr[:μ], sd2.gr[:σ], sd2.gr[:ξ], sd2.gr[:ζ], sd2.gr[:z], sd2.gr[:ξ], sd2.gr[:z]);
-	itp_repay2 = interpolate(knots, rep_mat, Gridded(Linear()));
-
+	itp_repay2 = interpolate(knots, rep_mat2, Gridded(Linear()));
 
 	simul_switch!(p, sd1, sd2, jk, length1, length2, length3, B0, μ0, σ0, ξ0, ζ0, z0, λ0, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_W1, itp_repay1, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_W2, itp_repay2)
 end

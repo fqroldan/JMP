@@ -972,6 +972,54 @@ function panels_comp3(pv_bench::Vector{T}, pv_nodef::Vector{T}, pv_mixed::Vector
 end
 
 
+function plot_IRF(pv::Vector{Tp}, key::Symbol, t1, t2; cond=false, kwargs...) where Tp <: Path
+	T = periods(pv[1])
+
+	if cond
+		pv = [p for p in pv if minimum(series(p, :spread)[1+t1:t2]) < 400 && maximum(series(p, :spread)[1+t1:t2]) > 450]
+	end
+	println(length(pv))
+
+	if key == :BoY
+		y_mat = 25*[(series(p, :B)./series(p,:Y))[tt] for tt in 1:T, p in pv]
+	else
+		y_mat = [series(p, key)[tt] for tt in 1:T, p in pv]
+	end
+	
+	plot_IRF(y_mat, t1, t2; kwargs...)
+end
+
+function plot_IRF(y_mat::Matrix{Float64}, t1, t2; style::Style=slides_def, relative=false, xtitle="", ytitle="", title="")
+	T = size(y_mat,1)
+
+	if relative
+		y_mat = 100*[y_mat[tt, jk] ./ y_mat[1, jk] for tt in 1:T, jk in 1:size(y_mat,2)]
+	end
+
+	y_upper  = [quantile(y_mat[tt, :], 0.75) for tt in 1:T]
+	y_lower  = [quantile(y_mat[tt, :], 0.25) for tt in 1:T]
+	y_median = [quantile(y_mat[tt, :], 0.5) for tt in 1:T]
+	y_mean   = [mean(y_mat[tt, :]) for tt in 1:T]
+
+	shapes = [
+		vline((t1-1)/4, line_dash="dot", line_width=0.5)
+		vline((t2-2)/4, line_dash="dot", line_width=0.5)
+		]
+
+	layout = Layout(
+		shapes = shapes,
+		xaxis_title=xtitle, yaxis_title=ytitle, title=title,
+		)
+
+	scats = [
+		scatter(x = (-1:T)./4, y = y_upper, hoverinfo="skip",showlegend=false, mode="lines",line=attr(color="rgb(31,119,180)", width=0.001))
+		scatter(x = (-1:T)./4, y = y_lower, hoverinfo="skip",name="IQR",mode="lines",line=attr(color="rgb(31,119,180)", width=0.001), fill="tonexty", fillcolor="rgba(31,119,180,0.25)")
+		scatter(x = (-1:T)./4, y = y_median, name = "Median", line=attr(color=col[3], dash="dash"))
+		scatter(x = (-1:T)./4, y = y_mean, name = "Mean", mode="lines", line=attr(color=col[4], dash="solid"))
+		]
+
+	plot(scats, layout, style=style)
+end
 
 
 function twisted_π(sd::SOEdef, jϵ=floor(Int, N(sd,:ϵ)/2), eval_points::Vector{Int64}=[default_eval_points(sd)...])
