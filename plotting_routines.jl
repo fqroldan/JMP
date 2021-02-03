@@ -972,16 +972,13 @@ function panels_comp3(pv_bench::Vector{T}, pv_nodef::Vector{T}, pv_mixed::Vector
 end
 
 
-function plot_IRF(pv::Vector{Tp}, key::Symbol, t1, t2; cond=false, kwargs...) where Tp <: Path
+function plot_IRF(pv::Vector{Tp}, key::Symbol, t1, t2; kwargs...) where Tp <: Path
 	T = periods(pv[1])
-
-	if cond
-		pv = [p for p in pv if minimum(series(p, :spread)[1+t1:t2]) < 400 && maximum(series(p, :spread)[1+t1:t2]) > 450]
-	end
-	println(length(pv))
 
 	if key == :BoY
 		y_mat = 25*[(series(p, :B)./series(p,:Y))[tt] for tt in 1:T, p in pv]
+	elseif key == :unemp
+		y_mat = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv]
 	else
 		y_mat = [series(p, key)[tt] for tt in 1:T, p in pv]
 	end
@@ -989,7 +986,12 @@ function plot_IRF(pv::Vector{Tp}, key::Symbol, t1, t2; cond=false, kwargs...) wh
 	plot_IRF(y_mat, t1, t2; kwargs...)
 end
 
-function plot_IRF(y_mat::Matrix{Float64}, t1, t2; style::Style=slides_def, relative=false, xtitle="", ytitle="", title="")
+function plot_IRF(y_mat::Matrix{Float64}, t1, t2; style::Style=slides_def, kwargs...)
+	scats, layout = scats_IRF(y_mat, t1, t2; kwargs...)
+	plot(scats, layout, style=style)
+end
+
+function scats_IRF(y_mat::Matrix{Float64}, t1, t2; relative=false, xtitle="", ytitle="", title="")
 	T = size(y_mat,1)
 
 	if relative
@@ -1009,6 +1011,7 @@ function plot_IRF(y_mat::Matrix{Float64}, t1, t2; style::Style=slides_def, relat
 	layout = Layout(
 		shapes = shapes,
 		xaxis_title=xtitle, yaxis_title=ytitle, title=title,
+		font_size = 18,
 		)
 
 	scats = [
@@ -1018,9 +1021,120 @@ function plot_IRF(y_mat::Matrix{Float64}, t1, t2; style::Style=slides_def, relat
 		scatter(x = (-1:T)./4, y = y_mean, name = "Mean", mode="lines", line=attr(color=col[4], dash="solid"))
 		]
 
-	plot(scats, layout, style=style)
+	scats, layout
 end
 
+function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, t1 = 1, t2 = 12; style::Style=slides_def, kwargs...) where Tp <: Path
+	T = periods(pv_bench[1])
+	colbench = get(ColorSchemes.corkO, 0.25)
+	colnodef = get(ColorSchemes.corkO, 0.65)
+
+	keyvec = [:z, :Y, :C, :BoY, :GoY, :ToY, :unemp, :spread, :Wr]
+	namesvec = ["TFP", "Output", "Consumption", "Debt", "Gov't spending", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
+
+	ytitle = vcat("%", ["% deviation" for jj in 1:2], ["% of GDP" for jj in 1:3], "%", "bps", "")
+
+	scats = Vector{GenericTrace{Dict{Symbol, Any}}}()
+
+	for (jk, key) in enumerate(keyvec)
+
+		rel = jk in [2,3]
+		if key == :BoY
+			y = 25*[(series(p, :B)./series(p,:Y))[tt] for tt in 1:T, p in pv_bench]
+		elseif key == :GoY
+			y = 25*[(series(p, :G)./series(p,:Y))[tt] for tt in 1:T, p in pv_bench]
+		elseif key == :ToY
+			y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv_bench]
+		elseif key == :unemp
+			y = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv_bench]
+		else
+			y = [series(p, key)[tt] for tt in 1:T, p in pv_bench]
+		end
+
+		scat_vec, _ = scats_IRF(y, t1, t2, relative=rel, ytitle=ytitle[jk])
+		for (js, scat) in enumerate(scat_vec)
+			scat[:legendgroup] = 1
+			scat[:showlegend] = (jk == 1) && (js == 2)
+			if js == 2
+				scat[:name] = "Benchmark"
+			end
+			scat[:xaxis] = "x$jk"
+			scat[:yaxis] = "y$jk"
+			scat[:line][:color] = colbench
+			scat[:fillcolor] = ""
+			push!(scats, scat)
+		end
+
+		if key == :BoY
+			y = 25*[(series(p, :B)./series(p,:Y))[tt] for tt in 1:T, p in pv_nodef]
+		elseif key == :GoY
+			y = 25*[(series(p, :G)./series(p,:Y))[tt] for tt in 1:T, p in pv_nodef]
+		elseif key == :ToY
+			y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv_nodef]
+		elseif key == :unemp
+			y = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv_nodef]
+		else
+			y = [series(p, key)[tt] for tt in 1:T, p in pv_nodef]
+		end
+
+		scat_vec, _ = scats_IRF(y, t1, t2, relative=rel, ytitle=ytitle[jk])
+
+		for (js, scat) in enumerate(scat_vec)
+			scat[:legendgroup] = 2
+			scat[:showlegend] = (jk == 1) && (js == 2)
+			if js == 2
+				scat[:name] = "No default"
+			end
+			scat[:xaxis] = "x$jk"
+			scat[:yaxis] = "y$jk"
+			scat[:line][:color] = colnodef
+			scat[:fillcolor] = ""
+			push!(scats, scat)
+		end
+	end
+
+	a = 1/3
+	b = 1/20
+	bx = 1/30
+
+	ys = [1, 0.64, 0.3]
+	annotations = [
+		attr(text=namesvec[jj], x = mean((-1:T)./4), xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in 1:length(namesvec)
+		]
+
+	ydom = vcat([[2a+b, 3a-b] for jj in 1:3], [[1a+b, 2a-b] for jj in 1:3], [[0a+b, 1a-b] for jj in 1:3])
+
+	shapes = [
+		[vline((t1-1)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.5, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
+		[vline((t2-2)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.5, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
+		]
+
+	layout = Layout(font_size = 16,
+		shapes = shapes, annotations = annotations,
+		xaxis1 = attr(domain = [0a, a-2bx], anchor="y1"),
+		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
+		xaxis3 = attr(domain = [2a+2bx, 3a], anchor="y3"),
+		yaxis1 = attr(anchor = "x1", domain = ydom[1], titlefont_size = 16, title=ytitle[1]),
+		yaxis2 = attr(anchor = "x2", domain = ydom[2], titlefont_size = 16, title=ytitle[2]),
+		yaxis3 = attr(anchor = "x3", domain = ydom[3], titlefont_size = 16, title=ytitle[3]),
+		xaxis4 = attr(domain = [0a, a-2bx], anchor="y4"),
+		xaxis5 = attr(domain = [1a+bx, 2a-bx], anchor="y5"),
+		xaxis6 = attr(domain = [2a+2bx, 3a], anchor="y6"),
+		yaxis4 = attr(anchor = "x4", domain = ydom[4], titlefont_size = 16, title=ytitle[4]),
+		yaxis5 = attr(anchor = "x5", domain = ydom[5], titlefont_size = 16, title=ytitle[5]),
+		yaxis6 = attr(anchor = "x6", domain = ydom[6], titlefont_size = 16, title=ytitle[6]),
+		xaxis7 = attr(domain = [0a, a-2bx], anchor="y7"),
+		xaxis8 = attr(domain = [1a+bx, 2a-bx], anchor="y8"),
+		xaxis9 = attr(domain = [2a+2bx, 3a], anchor="y9"),
+		yaxis7 = attr(anchor = "x7", domain = ydom[7], titlefont_size = 16, title=ytitle[7]),
+		yaxis8 = attr(anchor = "x8", domain = ydom[8], titlefont_size = 16, title=ytitle[8]),
+		yaxis9 = attr(anchor = "x9", domain = ydom[9], titlefont_size = 16, title=ytitle[9]),
+		legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
+		; kwargs...
+		)
+
+	plot(scats, layout, style=style)
+end
 
 function twisted_π(sd::SOEdef, jϵ=floor(Int, N(sd,:ϵ)/2), eval_points::Vector{Int64}=[default_eval_points(sd)...])
 	itp_qᵍ = make_itp(sd, sd.eq[:qᵍ], agg=true)

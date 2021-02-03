@@ -28,7 +28,7 @@ function integrate_C(sd::SOEdef, Bt, μt, σt, ξt, ζt, zt, λt, itp_ϕc, itp_C
 	return C_from_λ, log(C_from_interp) - log(C_from_λ)
 end
 
-function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose::Bool=false)
+function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose::Bool=false; B2 = -Inf)
 
 	# Enter with a state B, μ, σ, w0, ζ, z.
 	# h.zgrid[jz] must equal getfrompath(p, t, :z)
@@ -57,9 +57,14 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
 		print_save("$(@sprintf("%0.3g",zt))")
 	end
 
-	Bpv 	= itp_B′(Bt, μt, σt, ξt, ζt, zt)
 	lb = sd.gr[:b][end] - sd.gr[:b][1]
-	Bpv = max.(min.(Bpv, sd.gr[:b][end]-0.01*lb), sd.gr[:b][1]+0.01*lb)
+	# println(B2)
+	if B2 == -Inf
+		Bpv = itp_B′(Bt, μt, σt, ξt, ζt, zt)
+		Bpv = max.(min.(Bpv, sd.gr[:b][end]-0.01*lb), sd.gr[:b][1]+0.01*lb)
+	else
+		Bpv = B2
+	end
 
 	Gt 		= itp_G(Bt, μt, σt, ξt, ζt, zt)
 	pNg 	= itp_pN(Bt, μt, σt, ξt, ζt, zt)
@@ -412,9 +417,9 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, q
 	return λpd, new_def
 end
 
-function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ, discr, verbose::Bool=false)
+function iter_simul!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay, itp_W, λt, Qϵ, discr, verbose::Bool=false; B2 = -Inf)
 
-	ϕa, ϕb, Bpv, _, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef = iter_simul_t!(sd, p, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose)
+	ϕa, ϕb, Bpv, _, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef = iter_simul_t!(sd, p, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose, B2 = B2)
 
 	λpd, new_def = iter_simul_tp!(sd, p, t, jz_series, λt, ϕa, ϕb, Bpv, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef, itp_repay, itp_qᵍ, itp_vf, Qϵ)
 
@@ -429,7 +434,7 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.
 	T = burn_in + simul_length
 	p = Path(T = T)
 
-	jz = 1
+	jz = Int(ceil(length(sd.gr[:z])/2))
 
 	B0, μ0, σ0, ξ0, ζ0, z0 = mean(sd.gr[:b]), mean(sd.gr[:μ]), mean(sd.gr[:σ]), sd.gr[:ξ][1], sd.gr[:ζ][2], sd.gr[:z][jz]
 	fill_path!(p,1, Dict(:B => B0, :μ => μ0, :σ => σ0, :w=>1.0, :ξ => ξ0, :ζ => ζ0, :z => z0))
@@ -474,16 +479,17 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.
 	return trim_path(p, burn_in), jz_series, Ndefs, discr, λ
 end
 
-function iter_simul_switch!(sd1::SOEdef, sd2::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay1, itp_repay2, itp_W, λt, Qϵ, discr, verbose::Bool=false)
+function iter_simul_switch!(sd1::SOEdef, sd2::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_vf, itp_C, itp_B′, itp_G, itp_pN, itp_qᵍ, itp_repay1, itp_repay2, itp_W, λt, Qϵ, discr, verbose::Bool=false; B2=-Inf)
 
-	ϕa, ϕb, Bpv, _, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef = iter_simul_t!(sd1, p, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay1, λt, discr, verbose)
+	ϕa, ϕb, Bpv, _, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef = iter_simul_t!(sd1, p, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay1, λt, discr, verbose, B2 = B2)
 
 	λpd, new_def = iter_simul_tp!(sd2, p, t, jz_series, λt, ϕa, ϕb, Bpv, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef, itp_repay2, itp_qᵍ, itp_vf, Qϵ)
 
 	return λpd, new_def
 end
 
-function simul_switch!(p::Path, sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, B0, μ0, σ0, ξ0, ζ0, z0, λ0, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_W1, itp_repay1, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_W2, itp_repay2, verbose = false)
+function simul_switch!(p::Path, sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, B0, μ0, σ0, ξ0, ζ0, z0, λ0, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_W1, itp_repay1, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_W2, itp_repay2, verbose = false; Bvec = [-Inf for jt in 1:length1+length2+length3])
+	
 	Random.seed!(100+jk)
 
 	# Setup
@@ -506,11 +512,11 @@ function simul_switch!(p::Path, sd1::SOEdef, sd2::SOEdef, jk, length1, length2, 
 	discr = Dict(:C => 0.0, :pN => 0.0, :μ => 0.0, :σ => 0.0)
 	for t in 1:T
 		if t < length1 # simulate in 1
-			λ, new_def = iter_simul!(sd1, p, t, jz_series, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_repay1, itp_W1, λ, Qϵ, discr, verbose)
+			λ, new_def = iter_simul!(sd1, p, t, jz_series, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_repay1, itp_W1, λ, Qϵ, discr, verbose, B2=Bvec[t])
 		elseif t == length1 # switch from 1 to 2
-			λ, new_def = iter_simul_switch!(sd1, sd2, p, t, jz_series, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf2, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ2, itp_repay1, itp_repay2, itp_W1, λ, Qϵ, discr, verbose)
+			λ, new_def = iter_simul_switch!(sd1, sd2, p, t, jz_series, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf2, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ2, itp_repay1, itp_repay2, itp_W1, λ, Qϵ, discr, verbose, B2=Bvec[t])
 		elseif t < length1 + length2 # simulate in 2
-			λ, new_def = iter_simul!(sd2, p, t, jz_series, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_repay2, itp_W2, λ, Qϵ, discr, verbose)
+			λ, new_def = iter_simul!(sd2, p, t, jz_series, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_repay2, itp_W2, λ, Qϵ, discr, verbose, B2=Bvec[t])
 		elseif t == length1 + length2 # switch back to 1
 			λ, new_def = iter_simul_switch!(sd2, sd1, p, t, jz_series, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf1, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ1, itp_repay1, itp_repay2, itp_W2, λ, Qϵ, discr, verbose)
 		else # simulate in 1
@@ -527,36 +533,42 @@ function simul_switch!(p::Path, sd1::SOEdef, sd2::SOEdef, jk, length1, length2, 
 end
 
 function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; burn_in = 4*100, B0 = mean(sd.gr[:b]), K)
-	pv = Vector{Path}()
+	pv  = Vector{Path}(undef, K)
+	pv2 = Vector{Path}(undef, K)
 
 	print_save("Starting $K simulations at $(Dates.format(now(), "HH:MM:SS")).\n")
 
 	t0 = time()
-	K_eff = 0
 	Threads.@threads for jk in 1:K
-		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, B0=B0, T = 4*100)
+		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, B0=B0, T = 4*105)
+		Bpv = series(p, :B)
+		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=4*105, Bvec = Bpv)
 
-		if minimum(series(p, :ζ)) == 1
-			push!(pv, p)
-			K_eff += 1
-		end
-		# Ndefs[jk] = N
+		pv[jk]  = p
+		pv2[jk] = p2
 	end
-	print_save("Time in simulation: $(time_print(time()-t0)). Left with $K_eff simulations.\n")
 
-	return pv, length1, length1+length2
+	println(extrema(series(p, :z)[1] for p in pv))
+
+	pv2 = [pv2[jk] for jk in eachindex(pv2) if minimum(series(pv[jk], :ζ)) == 1]
+	pv = [pv[jk] for jk in eachindex(pv) if minimum(series(pv[jk], :ζ)) == 1]
+
+	println(extrema(series(p, :z)[1] for p in pv))
+	print_save("Time in simulation: $(time_print(time()-t0)). Left with $(length(pv)) simulations.\n")
+
+	return pv, length1, length1+length2, pv2
 end
 
 
-function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3; B0=mean(sd1.gr[:b]), μ0=mean(sd1.gr[:μ]), σ0=mean(sd1.gr[:σ]), ξ0=sd1.gr[:ξ][1], ζ0=sd1.gr[:ζ][2], z0=sd1.gr[:z][1], T)
+function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3; B0=mean(sd1.gr[:b]), μ0=mean(sd1.gr[:μ]), σ0=mean(sd1.gr[:σ]), ξ0=sd1.gr[:ξ][1], ζ0=sd1.gr[:ζ][2], z0=mean(sd1.gr[:z]), T, Bvec=[-Inf for jt in 1:length1+length2+length3])
 
 	_, _, _, _, λ = simul(sd1, jk, T, 1)
 
-	simul_switch(sd1, sd2, jk, length1, length2, length3, λ, B0, μ0, σ0, ξ0, ζ0, z0)
+	simul_switch(sd1, sd2, jk, length1, length2, length3, λ, B0, μ0, σ0, ξ0, ζ0, z0, Bvec=Bvec)
 end
 
 
-function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, λ0, B0=mean(sd1.gr[:b]), μ0=mean(sd1.gr[:μ]), σ0=mean(sd1.gr[:σ]), ξ0=sd1.gr[:ξ][1], ζ0=sd1.gr[:ζ][2], z0=sd1.gr[:z][1])
+function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, λ0, B0=mean(sd1.gr[:b]), μ0=mean(sd1.gr[:μ]), σ0=mean(sd1.gr[:σ]), ξ0=sd1.gr[:ξ][1], ζ0=sd1.gr[:ζ][2], z0=mean(sd1.gr[:z]); Bvec=[-Inf for jt in 1:length1+length2+length3])
 
 	length1 += 1
 
@@ -595,7 +607,7 @@ function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, �
 	knots = (sd2.gr[:b], sd2.gr[:μ], sd2.gr[:σ], sd2.gr[:ξ], sd2.gr[:ζ], sd2.gr[:z], sd2.gr[:ξ], sd2.gr[:z]);
 	itp_repay2 = interpolate(knots, rep_mat2, Gridded(Linear()));
 
-	simul_switch!(p, sd1, sd2, jk, length1, length2, length3, B0, μ0, σ0, ξ0, ζ0, z0, λ0, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_W1, itp_repay1, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_W2, itp_repay2)
+	simul_switch!(p, sd1, sd2, jk, length1, length2, length3, B0, μ0, σ0, ξ0, ζ0, z0, λ0, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_W1, itp_repay1, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_W2, itp_repay2, Bvec = Bvec)
 end
 
 function parsimul(sd::SOEdef; ϕ=sd.ϕ, simul_length::Int64=1, burn_in::Int64=1)
