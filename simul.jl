@@ -532,7 +532,7 @@ function simul_switch!(p::Path, sd1::SOEdef, sd2::SOEdef, jk, length1, length2, 
 	return trim_path(p, 1), jz_series, Ndefs, discr
 end
 
-function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; burn_in = 4*100, B0 = mean(sd.gr[:b]), K)
+function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; same_pol=false, burn_in = 4*100, B0 = mean(sd.gr[:b]), K)
 	pv  = Vector{Path}(undef, K)
 	pv2 = Vector{Path}(undef, K)
 
@@ -541,9 +541,12 @@ function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; bu
 	t0 = time()
 	Threads.@threads for jk in 1:K
 		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, B0=B0, T = 4*105)
-		Bpv = series(p, :B)
-		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=4*105, Bvec = Bpv)
-
+		if same_pol
+			Bpv = series(p, :B)
+			p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=4*105, Bvec = Bpv)
+		else
+			p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=4*105)
+		end
 		pv[jk]  = p
 		pv2[jk] = p2
 	end
