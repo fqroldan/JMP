@@ -551,12 +551,9 @@ function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; sa
 		pv2[jk] = p2
 	end
 
-	println(extrema(series(p, :z)[1] for p in pv))
-
 	pv2 = [pv2[jk] for jk in eachindex(pv2) if minimum(series(pv[jk], :ζ)) == 1]
 	pv = [pv[jk] for jk in eachindex(pv) if minimum(series(pv[jk], :ζ)) == 1]
 
-	println(extrema(series(p, :z)[1] for p in pv))
 	print_save("Time in simulation: $(time_print(time()-t0)). Left with $(length(pv)) simulations.\n")
 
 	return pv, length1, length1+length2, pv2
