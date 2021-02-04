@@ -532,31 +532,32 @@ function simul_switch!(p::Path, sd1::SOEdef, sd2::SOEdef, jk, length1, length2, 
 	return trim_path(p, 1), jz_series, Ndefs, discr
 end
 
-function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; same_pol=false, burn_in = 4*100, B0 = mean(sd.gr[:b]), K)
+function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; same_pol=false, burn_in = 4*100, B0 = mean(sd.gr[:b]), K, cond_Y = -Inf)
 	pv  = Vector{Path}(undef, K)
 	pv2 = Vector{Path}(undef, K)
+	pv3 = Vector{Path}(undef, K)
 
 	print_save("Starting $K simulations at $(Dates.format(now(), "HH:MM:SS")).\n")
 
 	t0 = time()
 	Threads.@threads for jk in 1:K
 		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, B0=B0, T = 4*105)
-		if same_pol
-			Bpv = series(p, :B)
-			p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=4*105, Bvec = Bpv)
-		else
-			p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=4*105)
-		end
+		Bpv = series(p, :B)
+		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=4*105)
+		p3, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=4*105, Bvec = Bpv)
+		
 		pv[jk]  = p
 		pv2[jk] = p2
+		pv3[jk] = p3
 	end
 
 	pv2 = [pv2[jk] for jk in eachindex(pv2) if minimum(series(pv[jk], :ζ)) == 1]
+	pv3 = [pv3[jk] for jk in eachindex(pv3) if minimum(series(pv[jk], :ζ)) == 1]
 	pv = [pv[jk] for jk in eachindex(pv) if minimum(series(pv[jk], :ζ)) == 1]
 
 	print_save("Time in simulation: $(time_print(time()-t0)). Left with $(length(pv)) simulations.\n")
 
-	return pv, length1, length1+length2, pv2
+	return pv, length1, length1+length2, pv2, pv3
 end
 
 

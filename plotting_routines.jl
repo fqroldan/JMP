@@ -1024,13 +1024,22 @@ function scats_IRF(y_mat::Matrix{Float64}, t1, t2; relative=false, xtitle="", yt
 	scats, layout
 end
 
-function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, t1 = 1, t2 = 12; style::Style=slides_def, kwargs...) where Tp <: Path
+function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); t1 = 1, t2 = 12, cond_Y = -Inf, style::Style=slides_def, kwargs...) where Tp <: Path
 	T = periods(pv_bench[1])
 	colbench = get(ColorSchemes.corkO, 0.25)
 	colnodef = get(ColorSchemes.corkO, 0.65)
+	colsamep = get(ColorSchemes.lajolla, 0.65)
 
 	keyvec = [:z, :Y, :C, :BoY, :GoY, :ToY, :unemp, :spread, :Wr]
 	namesvec = ["TFP", "Output", "Consumption", "Debt", "Gov't spending", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
+
+	if cond_Y > -Inf
+		K = length(pv_bench)
+		pv_nodef = [pv_nodef[jk] for jk in eachindex(pv_nodef) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
+		pv_samep = [pv_samep[jk] for jk in eachindex(pv_samep) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
+		pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
+		print("Left with $(length(pv_bench)) out of $K simulations.\n")
+	end
 
 	ytitle = vcat("%", ["% deviation" for jj in 1:2], ["% of GDP" for jj in 1:3], "%", "bps", "")
 
@@ -1091,7 +1100,47 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, t1 = 1, t2 = 12;
 			scat[:fillcolor] = ""
 			push!(scats, scat)
 		end
+
+		if length(pv_samep) > 0
+			if key == :BoY
+				y = 25*[(series(p, :B)./series(p,:Y))[tt] for tt in 1:T, p in pv_samep]
+			elseif key == :GoY
+				y = 25*[(series(p, :G)./series(p,:Y))[tt] for tt in 1:T, p in pv_samep]
+			elseif key == :ToY
+				y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv_samep]
+			elseif key == :unemp
+				y = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv_samep]
+			else
+				y = [series(p, key)[tt] for tt in 1:T, p in pv_samep]
+			end
+
+			scat_vec, _ = scats_IRF(y, t1, t2, relative=rel, ytitle=ytitle[jk])
+
+			for (js, scat) in enumerate(scat_vec)
+				scat[:legendgroup] = 3
+				scat[:showlegend] = (jk == 1) && (js == 2)
+				if js == 2
+					scat[:name] = "No default (same debt issuances)"
+				end
+				scat[:xaxis] = "x$jk"
+				scat[:yaxis] = "y$jk"
+				scat[:line][:color] = colsamep
+				scat[:fillcolor] = ""
+				push!(scats, scat)
+			end
+		end
 	end
+
+	Wr_bench1 = mean(series(p, :Wr)[1+t1] for p in pv_bench)
+	Wr_nodef1 = mean(series(p, :Wr)[1+t1] for p in pv_nodef)
+	Wr_bench2 = mean(series(p, :Wr)[t2] for p in pv_bench)
+	Wr_bench3 = mean(series(p, :Wr)[1+t2] for p in pv_bench)
+
+	gain1 = (Wr_bench1 - Wr_nodef1) / Wr_nodef1
+	gain2 = (Wr_bench3 - Wr_bench2) / Wr_bench2
+
+	println("Loss from switching to default risk: $(@sprintf("%0.3g", 100*gain1))%")
+	println("Gain from switching to no default (WIT): $(@sprintf("%0.3g", 100*gain2))%")
 
 	a = 1/3
 	b = 1/20
