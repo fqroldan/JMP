@@ -541,10 +541,10 @@ function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; sa
 
 	t0 = time()
 	Threads.@threads for jk in 1:K
-		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, B0=B0, T = 4*105)
+		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, B0=B0, T = 1+4*100)
 		Bpv = series(p, :B)
-		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=4*105)
-		p3, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=4*105, Bvec = Bpv)
+		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=1+4*100)
+		p3, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=1+4*100, Bvec = Bpv)
 		
 		pv[jk]  = p
 		pv2[jk] = p2
