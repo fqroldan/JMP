@@ -1024,11 +1024,43 @@ function scats_IRF(y_mat::Matrix{Float64}, t1, t2; relative=false, xtitle="", yt
 	scats, layout
 end
 
+function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillcol, simname)
+	rel = jk in [2,3]
+	if key == :BoY
+		y = 25*[(series(p, :B)./series(p,:Y))[tt] for tt in 1:T, p in pv]
+	elseif key == :GoY
+		y = 25*[(series(p, :G)./series(p,:Y))[tt] for tt in 1:T, p in pv]
+	elseif key == :ToY
+		y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv]
+	elseif key == :unemp
+		y = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv]
+	else
+		y = [series(p, key)[tt] for tt in 1:T, p in pv]
+	end
+
+	scat_vec, _ = scats_IRF(y, t1, t2, relative=rel, ytitle=ytitle[jk])
+	for (js, scat) in enumerate(scat_vec)
+		scat[:legendgroup] = 1
+		scat[:showlegend] = (jk == 1) && (js == 2)
+		if js == 2
+			scat[:name] = simname
+		end
+		scat[:xaxis] = "x$jk"
+		scat[:yaxis] = "y$jk"
+		scat[:line][:color] = color
+		scat[:fillcolor] = fillcol
+		push!(scats, scat)
+	end
+end
+
 function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); t1 = 1, t2 = 12, cond_Y = -Inf, style::Style=slides_def, kwargs...) where Tp <: Path
 	T = periods(pv_bench[1])
-	colbench = get(ColorSchemes.corkO, 0.25)
-	colnodef = get(ColorSchemes.corkO, 0.65)
-	colsamep = get(ColorSchemes.lajolla, 0.65)
+	colbench = "rgb(0.36972225,0.47750525,0.62292125)"
+	fillbench = "rgba(0.36972225,0.47750525,0.62292125, 0.35)"
+	colnodef = "rgb(0.47854225,0.66285575,0.46836925)"
+	fillnodef = "rgba(0.47854225,0.66285575,0.46836925, 0.35)"
+	colsamep = "rgb(0.82969225,0.39322875,0.30229275)"
+	fillsamep = "rgba(0.82969225,0.39322875,0.30229275, 0.35)"
 
 	keyvec = [:z, :Y, :C, :BoY, :GoY, :ToY, :unemp, :spread, :Wr]
 	namesvec = ["TFP", "Output", "Consumption", "Debt", "Gov't spending", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
@@ -1047,87 +1079,10 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 
 	for (jk, key) in enumerate(keyvec)
 
-		rel = jk in [2,3]
-		if key == :BoY
-			y = 25*[(series(p, :B)./series(p,:Y))[tt] for tt in 1:T, p in pv_bench]
-		elseif key == :GoY
-			y = 25*[(series(p, :G)./series(p,:Y))[tt] for tt in 1:T, p in pv_bench]
-		elseif key == :ToY
-			y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv_bench]
-		elseif key == :unemp
-			y = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv_bench]
-		else
-			y = [series(p, key)[tt] for tt in 1:T, p in pv_bench]
-		end
-
-		scat_vec, _ = scats_IRF(y, t1, t2, relative=rel, ytitle=ytitle[jk])
-		for (js, scat) in enumerate(scat_vec)
-			scat[:legendgroup] = 1
-			scat[:showlegend] = (jk == 1) && (js == 2)
-			if js == 2
-				scat[:name] = "Benchmark"
-			end
-			scat[:xaxis] = "x$jk"
-			scat[:yaxis] = "y$jk"
-			scat[:line][:color] = colbench
-			scat[:fillcolor] = ""
-			push!(scats, scat)
-		end
-
-		if key == :BoY
-			y = 25*[(series(p, :B)./series(p,:Y))[tt] for tt in 1:T, p in pv_nodef]
-		elseif key == :GoY
-			y = 25*[(series(p, :G)./series(p,:Y))[tt] for tt in 1:T, p in pv_nodef]
-		elseif key == :ToY
-			y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv_nodef]
-		elseif key == :unemp
-			y = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv_nodef]
-		else
-			y = [series(p, key)[tt] for tt in 1:T, p in pv_nodef]
-		end
-
-		scat_vec, _ = scats_IRF(y, t1, t2, relative=rel, ytitle=ytitle[jk])
-
-		for (js, scat) in enumerate(scat_vec)
-			scat[:legendgroup] = 2
-			scat[:showlegend] = (jk == 1) && (js == 2)
-			if js == 2
-				scat[:name] = "No default"
-			end
-			scat[:xaxis] = "x$jk"
-			scat[:yaxis] = "y$jk"
-			scat[:line][:color] = colnodef
-			scat[:fillcolor] = ""
-			push!(scats, scat)
-		end
-
+		add_scats_IRF!(scats, pv_bench, key, ytitle, 1, jk, T, colbench, fillbench, "Benchmark")
+		add_scats_IRF!(scats, pv_nodef, key, ytitle, 2, jk, T, colnodef, fillnodef, "No default")
 		if length(pv_samep) > 0
-			if key == :BoY
-				y = 25*[(series(p, :B)./series(p,:Y))[tt] for tt in 1:T, p in pv_samep]
-			elseif key == :GoY
-				y = 25*[(series(p, :G)./series(p,:Y))[tt] for tt in 1:T, p in pv_samep]
-			elseif key == :ToY
-				y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv_samep]
-			elseif key == :unemp
-				y = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv_samep]
-			else
-				y = [series(p, key)[tt] for tt in 1:T, p in pv_samep]
-			end
-
-			scat_vec, _ = scats_IRF(y, t1, t2, relative=rel, ytitle=ytitle[jk])
-
-			for (js, scat) in enumerate(scat_vec)
-				scat[:legendgroup] = 3
-				scat[:showlegend] = (jk == 1) && (js == 2)
-				if js == 2
-					scat[:name] = "No default (same debt issuances)"
-				end
-				scat[:xaxis] = "x$jk"
-				scat[:yaxis] = "y$jk"
-				scat[:line][:color] = colsamep
-				scat[:fillcolor] = ""
-				push!(scats, scat)
-			end
+			add_scats_IRF!(scats, pv_samep, key, ytitle, 3, jk, T, colsamep, fillsamep, "No default (same debt issuances)")
 		end
 	end
 
@@ -1158,7 +1113,7 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 		[vline((t2-2)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.5, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
 		]
 
-	layout = Layout(font_size = 16,
+	layout = Layout(font_size = 16, 
 		shapes = shapes, annotations = annotations,
 		xaxis1 = attr(domain = [0a, a-2bx], anchor="y1"),
 		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
