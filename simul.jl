@@ -454,7 +454,7 @@ function simul(sd::SOEdef, jk=1, simul_length::Int64=1, burn_in::Int64=1; ϕ=sd.
 
 	rep_mat = reshape_long_shocks(sd, sd.gov[:repay]);
 	knots = (gr[:b], gr[:μ], gr[:σ], gr[:ξ], gr[:ζ], gr[:z], gr[:ξ], gr[:z]);
-	itp_repay = interpolate(knots, rep_mat, Gridded(Linear()));
+	itp_repay = extrapolate(interpolate(knots, rep_mat, Gridded(Linear())), Interpolations.Flat());
 
 	jz_series = Vector{Int64}(undef, T)
 	jz_series[1] = jz
@@ -590,7 +590,7 @@ function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, �
 
 	rep_mat1 = reshape_long_shocks(sd1, sd1.gov[:repay]);
 	knots = (sd1.gr[:b], sd1.gr[:μ], sd1.gr[:σ], sd1.gr[:ξ], sd1.gr[:ζ], sd1.gr[:z], sd1.gr[:ξ], sd1.gr[:z]);
-	itp_repay1 = interpolate(knots, rep_mat1, Gridded(Linear()));
+	itp_repay1 = extrapolate(interpolate(knots, rep_mat1, Gridded(Linear())), Interpolations.Flat());
 
 	itp_ϕc2 = make_itp(sd2, sd2.ϕ[:c]; agg=false);
 	itp_ϕs2 = make_itp(sd2, sd2.ϕ[:s]; agg=false);
@@ -606,7 +606,7 @@ function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, �
 
 	rep_mat2 = reshape_long_shocks(sd2, sd2.gov[:repay]);
 	knots = (sd2.gr[:b], sd2.gr[:μ], sd2.gr[:σ], sd2.gr[:ξ], sd2.gr[:ζ], sd2.gr[:z], sd2.gr[:ξ], sd2.gr[:z]);
-	itp_repay2 = interpolate(knots, rep_mat2, Gridded(Linear()));
+	itp_repay2 = extrapolate(interpolate(knots, rep_mat2, Gridded(Linear())), Interpolations.Flat());
 
 	simul_switch!(p, sd1, sd2, jk, length1, length2, length3, B0, μ0, σ0, ξ0, ζ0, z0, λ0, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_W1, itp_repay1, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_W2, itp_repay2, Bvec = Bvec)
 end

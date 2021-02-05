@@ -1040,7 +1040,7 @@ function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillco
 
 	scat_vec, _ = scats_IRF(y, t1, t2, relative=rel, ytitle=ytitle[jk])
 	for (js, scat) in enumerate(scat_vec)
-		scat[:legendgroup] = 1
+		scat[:legendgroup] = jg
 		scat[:showlegend] = (jk == 1) && (js == 2)
 		if js == 2
 			scat[:name] = simname
@@ -1053,14 +1053,14 @@ function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillco
 	end
 end
 
-function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); t1 = 1, t2 = 12, cond_Y = -Inf, style::Style=slides_def, kwargs...) where Tp <: Path
+function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); β = 0.9865170273023061, t1 = 1, t2 = 12, cond_Y = -Inf, cond_spr = Inf, style::Style=slides_def, kwargs...) where Tp <: Path
 	T = periods(pv_bench[1])
 	colbench = "rgb(0.36972225,0.47750525,0.62292125)"
-	fillbench = "rgba(0.36972225,0.47750525,0.62292125, 0.35)"
+	fillbench = "rgba(0.36972225,0.47750525,0.62292125, 0.25)"
 	colnodef = "rgb(0.47854225,0.66285575,0.46836925)"
-	fillnodef = "rgba(0.47854225,0.66285575,0.46836925, 0.35)"
+	fillnodef = "rgba(0.47854225,0.66285575,0.46836925, 0.25)"
 	colsamep = "rgb(0.82969225,0.39322875,0.30229275)"
-	fillsamep = "rgba(0.82969225,0.39322875,0.30229275, 0.35)"
+	fillsamep = "rgba(0.82969225,0.39322875,0.30229275, 0.25)"
 
 	keyvec = [:z, :Y, :C, :BoY, :GoY, :ToY, :unemp, :spread, :Wr]
 	namesvec = ["TFP", "Output", "Consumption", "Debt", "Gov't spending", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
@@ -1072,7 +1072,13 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 		pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
 		print("Left with $(length(pv_bench)) out of $K simulations.\n")
 	end
-
+	if cond_spr < Inf
+		K = length(pv_bench)
+		pv_nodef = [pv_nodef[jk] for jk in eachindex(pv_nodef) if series(pv_bench[jk], :spread)[t2] > cond_spr]
+		pv_samep = [pv_samep[jk] for jk in eachindex(pv_samep) if series(pv_bench[jk], :spread)[t2] > cond_spr]
+		pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if series(pv_bench[jk], :spread)[t2] > cond_spr]
+		print("Left with $(length(pv_bench)) out of $K simulations.\n")
+	end
 	ytitle = vcat("%", ["% deviation" for jj in 1:2], ["% of GDP" for jj in 1:3], "%", "bps", "")
 
 	scats = Vector{GenericTrace{Dict{Symbol, Any}}}()
@@ -1087,15 +1093,40 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	end
 
 	Wr_bench1 = mean(series(p, :Wr)[1+t1] for p in pv_bench)
+	Wr_bench1m = median(series(p, :Wr)[1+t1] for p in pv_bench)
 	Wr_nodef1 = mean(series(p, :Wr)[1+t1] for p in pv_nodef)
+	Wr_nodef1m = median(series(p, :Wr)[1+t1] for p in pv_nodef)
 	Wr_bench2 = mean(series(p, :Wr)[t2] for p in pv_bench)
+	Wr_bench2m = median(series(p, :Wr)[t2] for p in pv_bench)
 	Wr_bench3 = mean(series(p, :Wr)[1+t2] for p in pv_bench)
+	Wr_bench3m = median(series(p, :Wr)[1+t2] for p in pv_bench)
 
 	gain1 = (Wr_bench1 - Wr_nodef1) / Wr_nodef1
 	gain2 = (Wr_bench3 - Wr_bench2) / Wr_bench2
 
-	println("Loss from switching to default risk: $(@sprintf("%0.3g", 100*gain1))%")
-	println("Gain from switching to no default (WIT): $(@sprintf("%0.3g", 100*gain2))%")
+	loss1 = Wr_bench1 - Wr_nodef1
+	loss2 = Wr_bench3 - Wr_bench2
+
+	total_loss = (loss1 + β^11 * loss2) / Wr_nodef1
+
+	gain1m = (Wr_bench1m - Wr_nodef1m) / Wr_nodef1m
+	gain2m = (Wr_bench3m - Wr_bench2m) / Wr_bench2m
+
+	loss1m = Wr_bench1m - Wr_nodef1m
+	loss2m = Wr_bench3m - Wr_bench2m
+
+	total_lossm = (loss1m + β^11 * loss2m) / Wr_nodef1m
+
+	print("Loss from switching to default risk (mean, median): $(@sprintf("%0.3g", -100*gain1))%, $(@sprintf("%0.3g", -100*gain1m))%\n")
+	print("Gain from switching to no default (WIT): $(@sprintf("%0.3g", 100*gain2))%, $(@sprintf("%0.3g", 100*gain2m))%\n")
+	print("Loss from 11 quarters of default risk: $(@sprintf("%0.3g", -100*total_loss))%, $(@sprintf("%0.3g", -100*total_lossm))%\n")
+
+	lossYb = mean((series(p, :Y)/series(p,:Y)[1])[t2] for p in pv_bench)
+	lossYn = mean((series(p, :Y)/series(p,:Y)[1])[t2] for p in pv_samep)
+
+	share_Yloss = 1 - (1 - lossYn) / (1 - lossYb)
+
+	print("Loss of output explained by default risk: $(@sprintf("%0.3g", 100*share_Yloss))% ($(@sprintf("%0.3g", 100*(1-lossYn)))pp. of $(@sprintf("%0.3g", 100*(1-lossYb)))pp.)\n")
 
 	a = 1/3
 	b = 1/20
