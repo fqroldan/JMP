@@ -435,8 +435,8 @@ function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4
 	plot(data, layout, style=style)
 end
 
-function distribution_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, response="W", type="highspreads", k=6, k_back=k) where T<:AbstractPath
-	Nc, tvv = get_crises(pv, thres, sym, k, k_back, type=type)
+function distribution_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, response="W", type="highspreads", k=6, k_back=k, thres_back::Number=Inf) where T<:AbstractPath
+	Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type=type)
 
 	if response == "W"
 		keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
@@ -991,7 +991,7 @@ function plot_IRF(y_mat::Matrix{Float64}, t1, t2; style::Style=slides_def, kwarg
 	plot(scats, layout, style=style)
 end
 
-function scats_IRF(y_mat::Matrix{Float64}, t1, t2; relative=false, xtitle="", ytitle="", title="")
+function scats_IRF(y_mat::Matrix{Float64}, t1, t2; relative=false, xtitle="", ytitle="", title="", CIs=true)
 	T = size(y_mat,1)
 
 	if relative
@@ -1014,17 +1014,24 @@ function scats_IRF(y_mat::Matrix{Float64}, t1, t2; relative=false, xtitle="", yt
 		font_size = 18,
 		)
 
-	scats = [
-		scatter(x = (-1:T)./4, y = y_upper, hoverinfo="skip",showlegend=false, mode="lines",line=attr(color="rgb(31,119,180)", width=0.001))
-		scatter(x = (-1:T)./4, y = y_lower, hoverinfo="skip",name="IQR",mode="lines",line=attr(color="rgb(31,119,180)", width=0.001), fill="tonexty", fillcolor="rgba(31,119,180,0.25)")
-		scatter(x = (-1:T)./4, y = y_median, name = "Median", line=attr(color=col[3], dash="dash"))
-		scatter(x = (-1:T)./4, y = y_mean, name = "Mean", mode="lines", line=attr(color=col[4], dash="solid"))
+	if CIs
+		scats = [
+			scatter(x = (-1:T)./4, y = y_upper, hoverinfo="skip",showlegend=false, mode="lines",line=attr(color="rgb(31,119,180)", width=0.001))
+			scatter(x = (-1:T)./4, y = y_lower, hoverinfo="skip",name="IQR",mode="lines",line=attr(color="rgb(31,119,180)", width=0.001), fill="tonexty", fillcolor="rgba(31,119,180,0.25)")
+			scatter(x = (-1:T)./4, y = y_median, name = "Median", line=attr(color=col[3], dash="dash"))
+			scatter(x = (-1:T)./4, y = y_mean, name = "Mean", mode="lines", line=attr(color=col[4], dash="solid"))
 		]
+	else
+		scats = [
+			scatter(x = (-1:T)./4, y = y_median, name = "Median", line=attr(color=col[3], dash="dash"))
+			scatter(x = (-1:T)./4, y = y_mean, name = "Mean", mode="lines", line=attr(color=col[4], dash="solid"))
+		]
+	end
 
 	scats, layout
 end
 
-function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillcol, simname)
+function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillcol, simname; kwargs...)
 	rel = jk in [2,3]
 	if key == :BoY
 		y = 25*[(series(p, :B)./series(p,:Y))[tt] for tt in 1:T, p in pv]
@@ -1038,7 +1045,7 @@ function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillco
 		y = [series(p, key)[tt] for tt in 1:T, p in pv]
 	end
 
-	scat_vec, _ = scats_IRF(y, t1, t2, relative=rel, ytitle=ytitle[jk])
+	scat_vec, _ = scats_IRF(y, t1, t2, relative=rel, ytitle=ytitle[jk]; kwargs...)
 	for (js, scat) in enumerate(scat_vec)
 		scat[:legendgroup] = jg
 		scat[:showlegend] = (jk == 1) && (js == 2)
@@ -1048,7 +1055,11 @@ function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillco
 		scat[:xaxis] = "x$jk"
 		scat[:yaxis] = "y$jk"
 		scat[:line][:color] = color
-		scat[:fillcolor] = fillcol
+		if fillcol != color
+			scat[:fillcolor] = fillcol
+		else
+			scat[:fillcolor] = ""
+		end
 		push!(scats, scat)
 	end
 end
@@ -1167,6 +1178,43 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 		legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		; kwargs...
 		)
+
+	plot(scats, layout, style=style)
+end
+
+function distribution_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); β = 0.9865170273023061, t1 = 1, t2 = 12, cond_Y = -Inf, cond_spr = Inf, style::Style=slides_def, kwargs...) where Tp <: Path
+
+	T = periods(pv_bench[1])
+	colvec = [get(ColorSchemes.davos, vv) for vv in range(0, 0.75, length = 5)]
+	# fillbench = "rgba(0.36972225,0.47750525,0.62292125, 0.25)"
+	push!(colvec, get(ColorSchemes.lajolla, 0.5))
+
+	keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
+	namesvec = ["p10", "p25", "p50", "p75", "p90", "Average"]
+
+	if cond_Y > -Inf
+		K = length(pv_bench)
+		pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
+		print("Left with $(length(pv_bench)) out of $K simulations.\n")
+	end
+	if cond_spr < Inf
+		K = length(pv_bench)
+		pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if series(pv_bench[jk], :spread)[t2] > cond_spr]
+		print("Left with $(length(pv_bench)) out of $K simulations.\n")
+	end
+	ytitle = vcat("%", ["% deviation" for jj in 1:2], ["% of GDP" for jj in 1:3], "%", "bps", "")
+
+	scats = Vector{GenericTrace{Dict{Symbol, Any}}}()
+
+	for (jk, key) in enumerate(keyvec)
+
+		add_scats_IRF!(scats, pv_bench, key, ytitle, jk, 1, T, colvec[jk], colvec[jk], namesvec[jk], CIs = false)
+		loss = mean(series(p, key)[2] / series(p, key)[1] - 1 for p in pv_bench)
+
+		print("$key: $(@sprintf("%0.3g", 100*loss))%\n")
+	end
+
+	layout = Layout(legend = attr(x = 0.5, xref = "paper", xanchor = "center"))
 
 	plot(scats, layout, style=style)
 end
@@ -1502,8 +1550,8 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Boo
 	end
 
 	annotations = [
-		[attr(x=0, xanchor="center", xref="x$jb", y=1.01, yref="paper", yanchor="bottom", text="<i>B = $(@sprintf("%0.3g", sd.gr[:b][bv])), ξ = $(@sprintf("%0.3g",100*ξv[1]))%", showarrow=false) for (jb,bv) in enumerate(jbv)]
-		[attr(x=0, xanchor="center", xref="x$jb", y=0.44, yref="paper", yanchor="bottom", text="<i>B = $(@sprintf("%0.3g", sd.gr[:b][bv])), ξ = $(@sprintf("%0.3g",100*ξv[2]))%", showarrow=false) for (jb,bv) in enumerate(jbv)]
+		[attr(x=0, xanchor="center", xref="x$jb", y=1.01, yref="paper", yanchor="bottom", text="<i>B = $(@sprintf("%0.3g", sd.gr[:b][bv])), ξ = ξ<sub>L", showarrow=false) for (jb,bv) in enumerate(jbv)]
+		[attr(x=0, xanchor="center", xref="x$jb", y=0.44, yref="paper", yanchor="bottom", text="<i>B = $(@sprintf("%0.3g", sd.gr[:b][bv])), ξ = ξ<sub>H", showarrow=false) for (jb,bv) in enumerate(jbv)]
 		]
 
 	layout = Layout(
