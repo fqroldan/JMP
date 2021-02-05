@@ -73,7 +73,7 @@ function make_params_table(sd::SOEdef)
 end
 
 function make_calib_table(v_m)
-	table = "\\begin{tabular*}{.45\\textwidth}{@{\\extracolsep{20pt}}lcc@{}} \\toprule \n"
+	table = "\\begin{tabular*}{.5\\textwidth}{@{\\extracolsep{20pt}}lcc@{}} \\toprule \n"
 
 	colnames = ["\\textbf{Target}", "\\textbf{Model}", "\\textbf{Data}"]
 
@@ -107,7 +107,7 @@ end
 
 function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 	k = sum(length(v) > 0 for v in [ v_m, v_m_nodef, v_m_noΔ, v_m_nob ])
-	table = "\\begin{tabular*}{.85\\textwidth}{@{\\extracolsep{\\fill}}l*{$k}c@{}} \\toprule \n"
+	table = "\\begin{tabular*}{.65\\textwidth}{@{\\extracolsep{\\fill}}l*{$k}c@{}} \\toprule \n"
 
 	colnames = ["\\textbf{Moment}", "\\textbf{Benchmark}"]
 	rownames = ["AR(1) autocorr.~coef \$\\log(Y_t)\$"; "AR(1) std coef \$\\log(Y_t)\$"; "AR(1) autocorr.~coef \$\\log(C_t)\$"; "AR(1) std coef \$\\log(C_t)\$"; "AR(1) autocorr.~coef spread"; "AR(1) std coef spread"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"; "Avg wealth Gini"; "Default frequency"; "Welfare in repayment"]
