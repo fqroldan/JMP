@@ -831,7 +831,22 @@ function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k
 	jc = 0
 	for (jv,tv) in enumerate(tvv)
 		if length(tv) > 0
-			Y = series(pv[jv], key)
+			if key == :BoY
+				Y = 25 * series(pv[jv], :B) ./ series(pv[jv], :Y) 
+			elseif key == :meanY
+				Y = 25 * series(pv[jv], :mean) ./ series(pv[jv], :Y) 
+			elseif key == :GoY
+				Y = 25 * series(pv[jv], :G) ./ series(pv[jv], :Y) 
+			elseif key == :ToY
+				Y = 25 * series(pv[jv], :T) ./ series(pv[jv], :Y) 
+			elseif key == :unemp
+				Y = 100 * (1 .- series(pv[jv], :L))
+			elseif key == :z
+				Y = 100 * series(pv[jv], key)
+			else
+				Y = series(pv[jv], key)
+			end
+
 			for (jt, tt) in enumerate(tv)
 				if tt-k_back > 0
 					jc += 1

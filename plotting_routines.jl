@@ -476,6 +476,92 @@ function distribution_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::S
 	plot(data, layout, style=style)
 end
 
+function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf) where T<:AbstractPath
+	Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type=type)
+
+	println("$Nc episodes")
+
+	println("Suggested yh=0.7 for style=paper")
+	keyvec = [:z, :Y, :C, :spread, :BoY, :ψ, :unemp, :π, :ToY, :meanY, :Gini, :P]
+
+	titlevec = ["TFP", "Output", "Consumption", "Spreads", "Gov't Debt", "Proportion domestic", "Unemployment", "Default prob", "Lump-sum taxes", "Mean wealth dist", "Wealth Gini", "Price of nontradables"]
+
+	meanY = mean([mean(series(p, :Y)) for p in pv])
+	meanC = mean([mean(series(p, :C)) for p in pv])
+	meanCoY = mean([mean(series(p, :CoY)) for p in pv])
+	
+	funcvec = Vector{Function}(undef, length(keyvec))
+	funcvec .= identity
+	ytitle = ["" for jj in 1:length(keyvec)]
+
+	funcvec[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:Y, :T]]] .= (x->100*x/meanY)
+	funcvec[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:C]]] .= (x->100*x/meanC)
+
+	funcvec[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:π, :ψ, :Gini]]] .= (x->100*x)
+
+	ytitle[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:z, :ψ, :unemp, :π]]] .= "%"
+	ytitle[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:Y, :C]]] .= "% dev from mean"
+	ytitle[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:BoY, :ToY, :meanY]]] .= "% of GDP"
+	ytitle[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:spread]]] .= "bps"
+	
+	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+	for (jj, key) in enumerate(keyvec)
+		for scat in scats_crises(pv, tvv, key, funcvec[jj], axis=jj, indiv=indiv, k=k, k_back=k_back)
+			push!(data, scat)
+		end
+	end
+
+	a = 1/3
+	b = 1/20
+	ax = 1/4
+	bx = 1/40
+	shapes = [
+		# vline(0, line_width=1, marker_color="black")
+		]
+
+	ys = [1, 0.65, 0.3]
+	annotations = [
+		attr(text=titlevec[jj], x = -k_back/8+k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/4)], font_size=18, showarrow=false, yref="paper") for jj in eachindex(titlevec)
+		]
+	layout = Layout(shapes=shapes, annotations = annotations,
+		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
+		xaxis1 = attr(domain = [0ax, ax-2bx], range=[-k_back/4, k/4]),
+		xaxis2 = attr(domain = [1ax+bx, 2ax-bx], range=[-k_back/4, k/4]),
+		xaxis3 = attr(domain = [2ax+bx, 3ax-bx], range=[-k_back/4, k/4]),
+		xaxis4 = attr(domain = [3ax+2bx, 4ax], range=[-k_back/4, k/4]),
+		yaxis1 = attr(anchor = "x1", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[1]),
+		yaxis2 = attr(anchor = "x2", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[2]),
+		yaxis3 = attr(anchor = "x3", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[3]),
+		yaxis4 = attr(anchor = "x4", domain = [2a+b, 3a-b], titlefont_size = 16, title=ytitle[4]),
+		xaxis5 = attr(domain = [0ax, ax-2bx], anchor="y5", range=[-k_back/4, k/4]),
+		xaxis6 = attr(domain = [1ax+bx, 2ax-bx], anchor="y6", range=[-k_back/4, k/4]),
+		xaxis7 = attr(domain = [2ax+bx, 3ax-bx], anchor="y7", range=[-k_back/4, k/4]),
+		xaxis8 = attr(domain = [3ax+2bx, 4ax], anchor="y8", range=[-k_back/4, k/4]),
+		yaxis5 = attr(anchor = "x5", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[5]),
+		yaxis6 = attr(anchor = "x6", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[6]),
+		yaxis7 = attr(anchor = "x7", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[7]),
+		yaxis8 = attr(anchor = "x8", domain = [1a+b, 2a-b], titlefont_size = 16, title=ytitle[8]),
+		xaxis9 = attr(domain = [0ax, ax-2bx], anchor="y9", range=[-k_back/4, k/4]),
+		xaxis10 = attr(domain = [1ax+bx, 2ax-bx], anchor="y10", range=[-k_back/4, k/4]),
+		xaxis11 = attr(domain = [2ax+bx, 3ax-bx], anchor="y11", range=[-k_back/4, k/4]),
+		xaxis12 = attr(domain = [3ax+2bx, 4ax], anchor="y12", range=[-k_back/4, k/4]),
+		yaxis9 = attr(anchor = "x9", domain = [0a+b, 1a-b], titlefont_size = 16, title=ytitle[9]),
+		yaxis10 = attr(anchor = "x10", domain = [0a+b, 1a-b], titlefont_size = 16, title=ytitle[10]),
+		yaxis11 = attr(anchor = "x11", domain = [0a+b, 1a-b], titlefont_size = 16, title=ytitle[11]),
+		yaxis12 = attr(anchor = "x12", domain = [0a+b, 1a-b], titlefont_size = 16, title=ytitle[12]),
+		# xaxis13 = attr(domain = [0a, a-2bx], anchor="y13", range=[-k_back/4, k/4]),
+		# xaxis14 = attr(domain = [1a+bx, 2a-bx], anchor="y14", range=[-k_back/4, k/4]),
+		# xaxis15 = attr(domain = [2a+bx, 3a-bx], anchor="y15", range=[-k_back/4, k/4]),
+		# xaxis16 = attr(domain = [3a+2bx, 4a], anchor="y16", range=[-k_back/4, k/4]),
+		# yaxis13 = attr(anchor = "x13", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[13]),
+		# yaxis14 = attr(anchor = "x14", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[14]),
+		# yaxis15 = attr(anchor = "x15", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[15]),
+		# yaxis16 = attr(anchor = "x16", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[16]),
+		)
+
+	plot(data, layout, style=style)
+end
+
 panels_defaults(pv::Vector{T}; k=8, style::Style=slides_def, yh = 0.65, indiv=false) where T<:AbstractPath = panels_crises(pv, 0.0, :spread, style=style, yh=yh, type="default", indiv=indiv, k=k)
 function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type=type)
@@ -499,7 +585,7 @@ function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=s
 	funcvec[3] = (x->100*x/meanC)
 	funcvec[4] = (x->100 * (x .- meanCoY))
 	funcvec[[5, 10, 13]] .= (x->25 * x/meanY)
-	funcvec[[1, 6, 8]] .= (x->100*x)
+	funcvec[[6, 8]] .= (x->100*x)
 	funcvec[9] = (x->100*(1 .- x))
 	ytitle[[5, 10, 13, 15, 16]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
@@ -1041,8 +1127,8 @@ function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillco
 		y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv]
 	elseif key == :unemp
 		y = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv]
-	elseif key == :z
-		y = 100 * [series(p, :z)[tt] for tt in 1:T, p in pv]
+	elseif key == :z || key == :CoY
+		y = 100 * [series(p, key)[tt] for tt in 1:T, p in pv]
 	else
 		y = [series(p, key)[tt] for tt in 1:T, p in pv]
 	end
@@ -1075,8 +1161,8 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	colsamep = "rgb(0.82969225,0.39322875,0.30229275)"
 	fillsamep = "rgba(0.82969225,0.39322875,0.30229275, 0.25)"
 
-	keyvec = [:z, :Y, :C, :BoY, :GoY, :ToY, :unemp, :spread, :Wr]
-	namesvec = ["TFP", "Output", "Consumption", "Debt", "Gov't spending", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
+	keyvec = [:z, :Y, :C, :CoY, :BoY, :ToY, :unemp, :spread, :Wr]
+	namesvec = ["TFP", "Output", "Consumption", "<i>C/Y<sup>d", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
 
 	if cond_Y > -Inf
 		K = length(pv_bench)
@@ -1153,8 +1239,8 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	ydom = vcat([[2a+b, 3a-b] for jj in 1:3], [[1a+b, 2a-b] for jj in 1:3], [[0a+b, 1a-b] for jj in 1:3])
 
 	shapes = [
-		[vline((t1-1)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.5, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
-		[vline((t2-2)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.5, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
+		[vline((t1-1)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.75, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
+		[vline((t2-2)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.75, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
 		]
 
 	layout = Layout(font_size = 16, 
