@@ -1041,6 +1041,8 @@ function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillco
 		y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv]
 	elseif key == :unemp
 		y = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv]
+	elseif key == :z
+		y = 100 * [series(p, :z)[tt] for tt in 1:T, p in pv]
 	else
 		y = [series(p, key)[tt] for tt in 1:T, p in pv]
 	end
