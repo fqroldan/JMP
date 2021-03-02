@@ -1191,33 +1191,36 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 		end
 	end
 
-	Wr_bench1 = mean(series(p, :Wr)[1+t1] for p in pv_bench)
-	Wr_bench1m = median(series(p, :Wr)[1+t1] for p in pv_bench)
-	Wr_nodef1 = mean(series(p, :Wr)[1+t1] for p in pv_nodef)
-	Wr_nodef1m = median(series(p, :Wr)[1+t1] for p in pv_nodef)
-	Wr_bench2 = mean(series(p, :Wr)[t2] for p in pv_bench)
-	Wr_bench2m = median(series(p, :Wr)[t2] for p in pv_bench)
-	Wr_bench3 = mean(series(p, :Wr)[1+t2] for p in pv_bench)
-	Wr_bench3m = median(series(p, :Wr)[1+t2] for p in pv_bench)
+	# Wr_bench1 = mean(series(p, :Wr)[1+t1] for p in pv_bench)
+	# Wr_bench1m = median(series(p, :Wr)[1+t1] for p in pv_bench)
+	# Wr_nodef1 = mean(series(p, :Wr)[1+t1] for p in pv_nodef)
+	# Wr_nodef1m = median(series(p, :Wr)[1+t1] for p in pv_nodef)
+	# Wr_bench2 = mean(series(p, :Wr)[t2] for p in pv_bench)
+	# Wr_bench2m = median(series(p, :Wr)[t2] for p in pv_bench)
+	# Wr_bench3 = mean(series(p, :Wr)[1+t2] for p in pv_bench)
+	# Wr_bench3m = median(series(p, :Wr)[1+t2] for p in pv_bench)
 
-	gain1 = (Wr_bench1 - Wr_nodef1) / Wr_nodef1
-	gain2 = (Wr_bench3 - Wr_bench2) / Wr_bench2
 
-	loss1 = Wr_bench1 - Wr_nodef1
-	loss2 = Wr_bench3 - Wr_bench2
+	# gain1 = (Wr_bench1 - Wr_nodef1) / Wr_nodef1
+	gain1 = mean( series(pv_bench[jj], :Wr)[1+t1] / series(pv_nodef[jj], :Wr)[1+t1] - 1 for jj in eachindex(pv_bench) )
+	gain1m = median( series(pv_bench[jj], :Wr)[1+t1] / series(pv_nodef[jj], :Wr)[1+t1] - 1 for jj in eachindex(pv_bench) )
 
-	total_loss = (loss1 + β^11 * loss2) / Wr_nodef1
+	# gain2 = (Wr_bench3 - Wr_bench2) / Wr_bench2
+	gain2 = mean( series(pv_bench[jj], :Wr)[1+t2] / series(pv_bench[jj], :Wr)[t2] - 1 for jj in eachindex(pv_bench) )
+	gain2m = median( series(pv_bench[jj], :Wr)[1+t2] / series(pv_bench[jj], :Wr)[t2] - 1 for jj in eachindex(pv_bench) )
+	
+	# gain3 = β^11 * (Wr_bench3 - Wr_bench2) / Wr_nodef1
+	gain3 = β^11 * mean( (series(pv_bench[jj], :Wr)[1+t2] - series(pv_bench[jj], :Wr)[t2]) / series(pv_nodef[jj], :Wr)[1]  for jj in eachindex(pv_bench) )
+	gain3m = β^11 * median( (series(pv_bench[jj], :Wr)[1+t2] - series(pv_bench[jj], :Wr)[t2]) / series(pv_nodef[jj], :Wr)[1]  for jj in eachindex(pv_bench) )
 
-	gain1m = (Wr_bench1m - Wr_nodef1m) / Wr_nodef1m
-	gain2m = (Wr_bench3m - Wr_bench2m) / Wr_bench2m
 
-	loss1m = Wr_bench1m - Wr_nodef1m
-	loss2m = Wr_bench3m - Wr_bench2m
+	total_loss = mean( (series(pv_bench[jj], :Wr)[1+t1] - series(pv_nodef[jj], :Wr)[1+t1] + β^11 * (series(pv_bench[jj], :Wr)[1+t2] - series(pv_bench[jj], :Wr)[t2])) / series(pv_nodef[jj], :Wr)[1+t1] for jj in eachindex(pv_bench) )
 
-	total_lossm = (loss1m + β^11 * loss2m) / Wr_nodef1m
+	total_lossm = median( (series(pv_bench[jj], :Wr)[1+t1] - series(pv_nodef[jj], :Wr)[1+t1] + β^11 * (series(pv_bench[jj], :Wr)[1+t2] - series(pv_bench[jj], :Wr)[t2])) / series(pv_nodef[jj], :Wr)[1+t1] for jj in eachindex(pv_bench) )
 
 	print("Loss from switching to default risk (mean, median): $(@sprintf("%0.3g", -100*gain1))%, $(@sprintf("%0.3g", -100*gain1m))%\n")
 	print("Gain from switching to no default (WIT): $(@sprintf("%0.3g", 100*gain2))%, $(@sprintf("%0.3g", 100*gain2m))%\n")
+	println("Gain from switching to no default (WIT, t0 basis): $(@sprintf("%0.3g", 100*gain3))%, $(@sprintf("%0.3g", 100*gain3m))%\n")
 	print("Loss from 11 quarters of default risk: $(@sprintf("%0.3g", -100*total_loss))%, $(@sprintf("%0.3g", -100*total_lossm))%\n")
 
 	lossYb = mean((series(p, :Y)/series(p,:Y)[1])[t2] for p in pv_bench)
@@ -1282,11 +1285,13 @@ function distribution_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::
 
 	if cond_Y > -Inf
 		K = length(pv_bench)
+		pv_nodef = [pv_nodef[jk] for jk in eachindex(pv_nodef) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
 		pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
 		print("Left with $(length(pv_bench)) out of $K simulations.\n")
 	end
 	if cond_spr < Inf
 		K = length(pv_bench)
+		pv_nodef = [pv_nodef[jk] for jk in eachindex(pv_nodef) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
 		pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if series(pv_bench[jk], :spread)[t2] > cond_spr]
 		print("Left with $(length(pv_bench)) out of $K simulations.\n")
 	end
@@ -1297,7 +1302,8 @@ function distribution_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::
 	for (jk, key) in enumerate(keyvec)
 
 		add_scats_IRF!(scats, pv_bench, key, ytitle, jk, 1, T, colvec[jk], colvec[jk], namesvec[jk], CIs = false)
-		loss = mean(series(p, key)[2] / series(p, key)[1] - 1 for p in pv_bench)
+
+		loss = mean( (series(pv_bench[jj], key)[1+t1] - series(pv_nodef[jj], key)[1+t1] + β^11 * (series(pv_bench[jj], key)[1+t2] - series(pv_bench[jj], key)[t2])) / series(pv_nodef[jj], key)[1+t1] for jj in eachindex(pv_bench) )
 
 		print("$key: $(@sprintf("%0.3g", 100*loss))%\n")
 	end
