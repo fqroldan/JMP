@@ -1,4 +1,4 @@
-using QuantEcon, CSV, DataFrames, Dates, GLM, PlotlyJS, ColorSchemes, FixedEffectModels, RegressionTables, SparseArrays, ExcelReaders
+using QuantEcon, CSV, DataFrames, Dates, GLM, PlotlyJS, ColorSchemes, FixedEffectModels, RegressionTables, SparseArrays, ExcelReaders, XLSX
  
 """ Define styles """
 def_style = let
@@ -104,19 +104,23 @@ function load_all()
 	data.postDraghi = data.TIME .>= Date("2012-09-01")
 
 	sort!(data, [:GEO, :TIME])
-	data.debt_lag = by(data, :GEO, x = :debt => Base.Fix2(lag, 1)).x
-	data.debt_lead = by(data, :GEO, x = :debt => Base.Fix2(lead, 1)).x
-	data.debt_level_lead = by(data, :GEO, x = :debt_level => Base.Fix2(lead, 1)).x
+	data.debt0_temp = ifelse.(data.TIME .== Date("2007-01-01"), data.debt, missing)
+	data.GERint_temp = ifelse.(data.GEO.=="Germany", data.rates, missing)
+	gdf = groupby(data, :GEO)
+	data.debt_lag = combine(gdf, :debt => Base.Fix2(lag, 1) => :x).x
+	data.debt_lead = combine(gdf, :debt => Base.Fix2(lead, 1) => :x).x
+	data.debt_level_lead = combine(gdf, :debt_level => Base.Fix2(lead, 1) => :x).x
 
-	data.cpi_lag = by(data, :GEO, x = :cpi => Base.Fix2(lag, 4)).x
+	data.cpi_lag = combine(gdf, :cpi => Base.Fix2(lag, 4) => :x).x
 	data.inflation = ((data.cpi ./ data.cpi_lag).^1 .- 1) * 100
 
-	data.x = ifelse.(data.TIME .== Date("2007-01-01"), data.debt, missing)
-	temp = by(data, :GEO, b0=:x => x->maximum(skipmissing(x)))
+	temp = combine(gdf, :debt0_temp => (x->maximum(skipmissing(x))) => :debt0)
 	data = innerjoin(data, temp, on = [:GEO])
 
-	data.x = ifelse.(data.GEO.=="Germany", data.rates, missing)
-	temp = by(data, :TIME, GERint=:x => x->maximum(skipmissing(x)))
+	sort!(data, [:TIME, :GEO])
+	gdf = groupby(data, :TIME)
+	temp = combine(gdf, :GERint_temp => (x->maximum(skipmissing(x))) => :GERint)
+
 	data = innerjoin(data, temp, on = [:TIME])
 	data.spread = 100 * ( data.rates - data.GERint )
 
@@ -295,7 +299,7 @@ function load_GDP_SPA()
 
 	vardict = Dict(varnames[jj] => varlabels[jj] for jj in 1:length(varnames))
 
-	df = DataFrame(convert(Matrix{Float64},data_raw))
+	df = DataFrame(convert(Matrix{Float64},data_raw), :auto)
 	rename!(df, [jj => vardict[vn] for (jj, vn) in enumerate(varnames)])
 
 	df.date = dates_GDP
@@ -346,7 +350,7 @@ function SPA_targets()
 	df = df[df.GEO .== "Spain", :]
 	rename!(df, "TIME" => "date")
 
-	df_nw = load_SPA_nw()
+	df_nw = load_nw("Spain")
 
 	df = innerjoin(df, df_nw, on = ["date"])
 
@@ -362,7 +366,7 @@ function SPA_targets()
 	w_avg = mean(df.net_worth)
 
 	df_spa = load_SPA()
-	median_dom = 100 * quantile(df_spa[!,"Total domestic"] ./ ( df_spa[!,"Total domestic"] + df_spa[!,"Total Foreign"] ), 0.5)
+	median_dom = 100 * QuantEcon.quantile(df_spa[!,"Total domestic"] ./ ( df_spa[!,"Total domestic"] + df_spa[!,"Total Foreign"] ), 0.5)
 
 	SPA_gini = CSV.read("../Data/Gini/icw_sr_05_1_Data.csv", DataFrame)
 
@@ -436,7 +440,7 @@ function SPA_CvY(country::String="Spain"; style::Style=slides_def, yh = 1, sh=tr
 		height = style.layout[:height]*yh, title = "Output and Consumption in " * country,
 		yaxis1 = attr(title="%"),
 		yaxis2 = attr(titlefont_size=18, title="bps", overlaying = "y", side="right", zeroline=false),
-		legend = attr(x=0.5, xanchor = "center"),
+		legend = attr(x=0.5, xanchor = "center"), hovermode="x",
 		)
 
 	plot([
@@ -445,23 +449,23 @@ function SPA_CvY(country::String="Spain"; style::Style=slides_def, yh = 1, sh=tr
 		], layout, style=style)
 end
 
-function load_SPA_nw()
-	function load_SPA_nw(k::String)
-		data_raw = readxl("../Data/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xlsx", "Data$(k)!A12:F89");
-		# data_raw = XLSX.readdata("../Data/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xlsx", "Data$(k)", "A12:F89")
+function load_nw(country::String="Spain")
+	function load_nw(k::String)
+		# data_raw = readxl("../Data/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xls", "Data$(k)!A12:F89");
+		data_raw = XLSX.readdata("../Data/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xlsx", "Data$(k)", "A12:F89")
 
 		GEO = data_raw[1,:]
 		GEO[1] = "date"
 
-		data = DataFrame(data_raw[2:end, :])
+		data = DataFrame(data_raw[2:end, :], :auto)
 		rename!(data, [jj => geo for (jj, geo) in enumerate(GEO)])
 		data.date = Date.(["$(parse(Int, data.date[jt][1:4]))-$(parse(Int,data.date[jt][end])*3-2)" for jt in 1:length(data.date)], "yyyy-mm")
 
-		df = DataFrame(date = data.date, assets = convert(Vector{Float64},data.Spain))
+		df = DataFrame(date = data.date, assets = convert(Vector{Float64},data[!,country]))
 	end
 
-	df1 = load_SPA_nw("")
-	df2 = load_SPA_nw("2")
+	df1 = load_nw("")
+	df2 = load_nw("2")
 	rename!(df2, "assets" => "liabilities")
 
 	df = innerjoin(df1, df2, on = "date")
@@ -469,8 +473,48 @@ function load_SPA_nw()
 	return df
 end
 
-function make_SPA_nw(; style::Style=slides_def)
-	df = load_SPA_nw()
+function make_nw_levels(oth_args...; levels=false)
+
+	df1 = load_nw("Spain")
+	dfr = load_GDP_SPA()
+	df2 = DataFrame(date = dfr.date, GDP = dfr.GDP)
+
+	df = innerjoin(df1, df2, on="date")
+
+	df = df[df.date .>= Date("2000-01-01"),:]
+
+	ytitle = "% of GDP"
+	if levels
+		df.assets .*= df.GDP / 100
+		df.liabilities .*= df.GDP / 100
+		df.net_worth .*= df.GDP / 100
+		ytitle = "Million of euros"
+	end
+
+	shapes = [
+		rect([Date("2008-01-01"), Date("2010-10-01")], [Date("2009-10-01"), Date("2012-10-01")], 0, 1; fillcolor="gray", opacity=0.15, line_width=0.5, line_dash="dash", line_color="black", xref="x", yref="paper")
+
+	]
+
+	# plot([scatter(x=df.date, y=df[!,yvar] .* df[!,:GDP], name=yvar) for yvar in ("assets", "liabilities", "net_worth")], oth_args...)
+
+	plot([
+		bar(x=df.date, y=df.assets, name="Assets", opacity=0.5, marker_color=get(ColorSchemes.oslo, 0.5), legendgroup=1)
+		scatter(x=df.date, y=df.assets, name="Assets", marker_color=get(ColorSchemes.oslo, 0.5), legendgroup=1, line_width = 1.5, hoverinfo="skip", showlegend=false, line_shape="spline",)
+		bar(x=df.date, y=-df.liabilities, name="Liabilities", opacity=0.5, marker_color=get(ColorSchemes.lajolla, 0.6), legendgroup=2)
+		scatter(x=df.date, y=-df.liabilities, name="Assets", marker_color=get(ColorSchemes.lajolla, 0.6), legendgroup=2, line_width = 1.5, hoverinfo="skip", showlegend=false, line_shape="spline",)
+		scatter(x=df.date, y=df.net_worth, name="Net Worth", marker_color="black", line_width=3)
+	], style=slides_def,
+	Layout(barmode="overlay", title="Household sector balance sheet", yaxis_title=ytitle,
+	shapes = shapes,
+	font = attr(family = "Lato", size = 16),
+	legend = attr(orientation="h", x=0.05), hovermode = "x",
+	)
+	)
+end
+
+function make_nw(country::String="Spain"; style::Style=slides_def)
+	df = load_nw(country)
 
 	col = [	
 		get(ColorSchemes.davos, 0.2)
