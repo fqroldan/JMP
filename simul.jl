@@ -179,65 +179,73 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
 	b25 = zeros(N(sd,:ωf)*N(sd,:ϵ))
 	b90 = zeros(N(sd,:ωf)*N(sd,:ϵ))
 
-	cdf_ω[1] > 0.25  ? q25 = 1 : q25 = findfirst(cdf_ω .>= 0.25)
-	cdf_ω[end] < 0.9 ? q90 = length(cdf_ω) : q90 = findfirst(cdf_ω .>= 0.90)
-
-	for js in 1:size(ωϵv, 1)
-		ωv, ϵv = ωϵv[js, :]
-		yd = (wt*Ld*(1.0-sd.pars[:τ]) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
-		
-		sg = max(sd.pars[:ωmin], itp_ϕs(ωv, ϵv, Bt, μt, σt, ξt, ζt, zt))
-		θg = min(max(0.0, itp_ϕθ(sg, ϵv, Bt, μt, σt, ξt, ζt, zt)), 1.0)
-
-		abc = get_abc(yd, sd.pars[:ωmin], qhv, qg, pCt, sg, θg)
-		ap, bp, cc = abc[:a], abc[:b], abc[:c]
-
-		isnan(ap) ? ap = sd.pars[:ωmin] : nothing
-		isnan(bp) ? bp = 0 : nothing
-
-		ϕa[js] = max(sd.pars[:ωmin], ap)
-		ϕb[js] = max(0.0, bp)
-
-		ϕc[js] = cc
-		Crate[js] = ϕc[js] / yd
-
-		avgω_fromb[js] = ωv * max(0.0, bp)
-
-		if ωv < cdf_ω[q25]
-			b25[js] += max(0.0, bp)
-		elseif ωv > cdf_ω[q90]
-			b90[js] += max(0.0, bp)
-		end
+	if cdf_ω[1] > 0.25 || length(findall(cdf_ω .>= 0.25)) == 0
+		q25 = 1
+	else
+		q25 = findfirst(cdf_ω .>= 0.25)
+	end
+	if cdf_ω[end] < 0.9 || length(findall(cdf_ω .>= 0.90)) == 0
+		q90 = length(cdf_ω)
+	else
+		q90 = findfirst(cdf_ω .>= 0.90)
 	end
 
-	# Compute Gini index
-	# S_i = pdf times wealth from 1 to i
-	S = [sum( mλω[jj]*ωϵv[jj, 1] for jj in 1:i ) for i in 1:length(mλω)]
+    for js in 1:size(ωϵv, 1)
+        ωv, ϵv = ωϵv[js, :]
+        yd = (wt * Ld * (1.0 - sd.pars[:τ]) + profits) * exp(ϵv) / adjustment + ωv - lumpsumT
 
-	# S_0 = 0
-	S = [0;S]
+        sg = max(sd.pars[:ωmin], itp_ϕs(ωv, ϵv, Bt, μt, σt, ξt, ζt, zt))
+        θg = min(max(0.0, itp_ϕθ(sg, ϵv, Bt, μt, σt, ξt, ζt, zt)), 1.0)
 
-	Gini = 1 - (sum( mλω[jj] * (S[jj] + S[jj+1]) for jj in 1:length(mλω) ))/S[end]
+        abc = get_abc(yd, sd.pars[:ωmin], qhv, qg, pCt, sg, θg)
+        ap, bp, cc = abc[:a], abc[:b], abc[:c]
 
-	C = dot(λt, ϕc)
-	CoY = C / output
-	CoYd = dot(λt, Crate)
+        isnan(ap) ? ap = sd.pars[:ωmin] : nothing
+        isnan(bp) ? bp = 0 : nothing
 
-	p25 = dot(λt, b25) / dot(λt, ϕb)
-	p90 = dot(λt, b90) / dot(λt, ϕb)
+        ϕa[js] = max(sd.pars[:ωmin], ap)
+        ϕb[js] = max(0.0, bp)
 
-	aggC_T = C  * (1-sd.pars[:ϖ]) * pCt^sd.pars[:η] # = (1 / pCt)^(-sd.pars[:η])
-	NX = supply_T - aggC_T - Gt * (1 - sd.pars[:ϑ])
+        ϕc[js] = cc
+        Crate[js] = ϕc[js] / yd
 
-	Eω_fromb = dot(λt, avgω_fromb) / dot(λt, ϕb)
+        avgω_fromb[js] = ωv * max(0.0, bp)
 
-	meanω = dot(λt, ωϵv[:,1])
-	mω2 = dot(λt, (ωϵv[:,1]).^2)
-	varω = mω2 - meanω^2
+        if ωv < cdf_ω[q25]
+            b25[js] += max(0.0, bp)
+        elseif ωv > cdf_ω[q90]
+            b90[js] += max(0.0, bp)
+        end
+    end
 
-	fill_path!(p,t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY=> CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :mean => meanω, :var => varω, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5]))
-	
-	return ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef
+    # Compute Gini index
+    # S_i = pdf times wealth from 1 to i
+    S = [sum(mλω[jj] * ωϵv[jj, 1] for jj in 1:i) for i in 1:length(mλω)]
+
+    # S_0 = 0
+    S = [0; S]
+
+    Gini = 1 - (sum(mλω[jj] * (S[jj] + S[jj+1]) for jj in 1:length(mλω))) / S[end]
+
+    C = dot(λt, ϕc)
+    CoY = C / output
+    CoYd = dot(λt, Crate)
+
+    p25 = dot(λt, b25) / dot(λt, ϕb)
+    p90 = dot(λt, b90) / dot(λt, ϕb)
+
+    aggC_T = C * (1 - sd.pars[:ϖ]) * pCt^sd.pars[:η] # = (1 / pCt)^(-sd.pars[:η])
+    NX = supply_T - aggC_T - Gt * (1 - sd.pars[:ϑ])
+
+    Eω_fromb = dot(λt, avgω_fromb) / dot(λt, ϕb)
+
+    meanω = dot(λt, ωϵv[:, 1])
+    mω2 = dot(λt, (ωϵv[:, 1]) .^ 2)
+    varω = mω2 - meanω^2
+
+    fill_path!(p, t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY => CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :mean => meanω, :var => varω, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5]))
+
+    return ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef
 end
 
 function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef, itp_repay, itp_qᵍ, itp_vf, Qϵ)

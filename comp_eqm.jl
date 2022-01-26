@@ -73,7 +73,7 @@ function find_prices_direct(sd::SOEdef, pCC, G, Bpv, pNg, pNmin, pNmax, bv, μv,
 
 		pN = res.minimizer
 		wt = find_w_given_p(sd, zv, ζv, pN)
-		if wt < sd.pars[:wbar] || !(res.minimum < 1e-4)
+		if wt < sd.pars[:wbar] #|| !(res.minimum < 1e-4)
 			# print("\nWAGE VIOLATING CONSTRAINT")
 			res = Optim.optimize(
 			pNv -> (eval_prices_direct(sd, pCC, G, pNv, bv, μv, σv, ξv, ζv, zv, find_w=false, wbar=sd.pars[:wbar])[:F])^2,
@@ -82,8 +82,8 @@ function find_prices_direct(sd::SOEdef, pCC, G, Bpv, pNg, pNmin, pNmax, bv, μv,
 
 			pN = res.minimizer
 
-			if res.minimum > 1e-4
-				print("\nWARNING: No prices, dist $(res.minimum)")
+			if res.minimum > 1e-2
+				res.minimum > 5e-2 && print("\nWARNING: No prices, dist $(res.minimum)")
 				pN = eval_prices_direct(sd, pCC, G, pNg, bv, μv, σv, ξv, ζv, zv)[:pN_new]
 			end
 		end
@@ -524,8 +524,10 @@ function update_expectations!(sd::SOEdef, upd_η::Float64)
 
 	μ_new, σ_new = find_all_expectations(sd, itp_ϕa, itp_ϕb, itp_qᵍ)
 
-	new_μgrid = new_grid(μ_new, gr[:μ], lb = -1, ub = 1.75)
-	new_σgrid = new_grid(σ_new, gr[:σ], lb = 1e-2)
+	lσ = min(minimum(gr[:σ]), 5e-3)
+
+	new_μgrid = new_grid(μ_new, gr[:μ], lb = -1.5, ub = 2.75)
+	new_σgrid = new_grid(σ_new, gr[:σ], lb = lσ)
 
 	for js in 1:length(μ_new)
 		μ_new[js] = max.(min.(μ_new[js], maximum(gr[:μ])), minimum(gr[:μ]))
@@ -703,9 +705,9 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 
 		dist_exp = maximum(dist_exp)
 		if iter % iter_show == 0
-			print_save("\nDistances: (10dv, dLoM, dp) = ($(@sprintf("%0.3g",minimum(10*dist_v))), $(@sprintf("%0.3g",minimum(dist_exp))), $(@sprintf("%0.3g",minimum(dist_s))))")
+			print_save("\nDistances: (5dv, dLoM, dp) = ($(@sprintf("%0.3g",minimum(5*dist_v))), $(@sprintf("%0.3g",minimum(dist_exp))), $(@sprintf("%0.3g",minimum(dist_s))))")
 		end
-		dist = max(dist_s, dist_exp)
+		dist = max(dist_s, dist_exp/10)
 		dist = max(5*dist_v, dist)
 		tol_vfi = max(0.975 * dist/5, tol/10)
 

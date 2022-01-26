@@ -88,203 +88,207 @@ function quarterlize_AR1(ρ, σ)
 end
 
 function SOEdef(;
-	β = (1.0/1.05615)^0.25,
-	IES = 1.0,
-	RRA = 3,
-	τ = 0.28,
-	r_star = 1.04^0.25 - 1.0,
-	meanξ = 0.0005,
-	ωmax = 20,
-	wbar = 1.175,
-	curv = .4,
-	income_process = "Mendoza-D'Erasmo",
-	EpsteinZin = true,
-	order = 3,
-	Nω_fine = 1000,
-	Nω = 7,
-	Nϵ = 5,
-	Nμ = 5,
-	Nσ = 5,
-	Nb = 17,
-	Nξ = 2,
-	Nz = 9,
-	ρz = 0.63,
-	σz = 0.009,
-	ρξ = 0.95,
-	σξ = 0.00025,
-	ℏ = 0.45,
-	Δ = 0.1,
-	θ = .04167,
-	Np = 5,
-	μ_gov = 0.011,
-	upd_tol = 5e-3,
-	nodef = false,
-	noΔ = false,
-	rep_agent = false,
-	nob = false
-	)
+    β = (1.0 / 1.05615)^0.25,
+    IES = 1.0,
+    RRA = 3,
+    # τ = 0.28,
+    τ = 0.31,
+    r_star = 1.04^0.25 - 1.0,
+    meanξ = 0.0005,
+    ωmax = 20,
+    wbar = 1.175,
+    curv = 0.4,
+    income_process = "Mendoza-D'Erasmo",
+    EpsteinZin = true,
+    order = 3,
+    Nω_fine = 1000,
+    Nω = 7,
+    Nϵ = 5,
+    Nμ = 5,
+    Nσ = 5,
+    Nb = 17,
+    Nξ = 2,
+    Nz = 9,
+    ρz = 0.63,
+    # σz = 0.009,
+    σz = 0.0107,
+    ρξ = 0.95,
+    σξ = 0.00025,
+    ℏ = 0.45,
+    Δ = 0.1,
+    θ = 0.04167,
+    Np = 5,
+    # μ_gov = 0.011,
+    μ_gov = 0.0115,
+    upd_tol = 5e-3,
+    nodef = false,
+    noΔ = false,
+    rep_agent = false,
+    nob = false
+)
 
-	ψ = IES
-	γ = 0.
-	if EpsteinZin == true
-		γ = RRA
-	end
+    ψ = IES
+    γ = 0.0
+    if EpsteinZin == true
+        γ = RRA
+    end
 
-	if noΔ
-		Δ = 0.0
-	end
+    if noΔ
+        Δ = 0.0
+    end
 
-	# Debt parameters
-	ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
-	κ = ρ + r_star
+    # Debt parameters
+    ρ = 0.05 # Target average maturity of 7 years: ~0.05 at quarterly freq
+    κ = ρ + r_star
 
-	## Prepare discretized processes
-	# Aggregate risk
-	# zgrid, Pz = tauchen_fun(Nz, ρz, σz, m=1.5)
-	zchain = tauchen(Nz, ρz, σz, 0, 3)
-	Pz = zchain.p
-	zgrid = zchain.state_values
+    ## Prepare discretized processes
+    # Aggregate risk
+    # zgrid, Pz = tauchen_fun(Nz, ρz, σz, m=1.5)
+    zchain = tauchen(Nz, ρz, σz, 0, 3)
+    Pz = zchain.p
+    zgrid = zchain.state_values
 
-	ξgrid, Pξ = tauchen_fun(Nξ, ρξ, σξ, m=0.5, mu=meanξ)
+    ξgrid, Pξ = tauchen_fun(Nξ, ρξ, σξ, m = 0.5, mu = meanξ)
 
-	σmin, σmax = 0.01, 1.25
-	
-	ρϵ, σϵ = 0., 0.
-	if income_process == "Floden-Lindé"
-		ρϵ = 0.9136		# Floden-Lindé for US
-		σϵ = 0.0426		# Floden-Lindé for US
-	elseif income_process == "Mendoza-D'Erasmo"
-		ρϵ = 0.85		# Mendoza-D'Erasmo for Spain
-		σϵ = 0.2498		# Mendoza-D'Erasmo for Spain
-	else
-		throw(error("Must specify an income process"))
-	end
-	
-	if rep_agent
-		σϵ = 0.0001
-		Nϵ = 2
-		Nσ = 2
-		σmin, σmax = 0.01, 0.02
-	end
-	ρϵ, σϵ = quarterlize_AR1(ρϵ, σϵ)
+    σmin, σmax = 0.01, 1.25
 
-	ϵ_chain = tauchen(Nϵ, ρϵ, σϵ, 0, 1)
+    ρϵ, σϵ = 0.0, 0.0
+    if income_process == "Floden-Lindé"
+        ρϵ = 0.9136# Floden-Lindé for US
+        σϵ = 0.0426# Floden-Lindé for US
+    elseif income_process == "Mendoza-D'Erasmo"
+        ρϵ = 0.85# Mendoza-D'Erasmo for Spain
+        σϵ = 0.2498# Mendoza-D'Erasmo for Spain
+    else
+        throw(error("Must specify an income process"))
+    end
 
-	Pϵ = ϵ_chain.p
-	ϵgrid = ϵ_chain.state_values
+    if rep_agent
+        σϵ = 1e-4
+        ρϵ = 1 - 1e-3
+        Nϵ = 2
+        Nσ = 2
+        σmin, σmax = 1e-4, 1e-2
+    end
+    ρϵ, σϵ = quarterlize_AR1(ρϵ, σϵ)
 
-	pngrid = range(0.5, 1.1, length=Np)
-	ζgrid = 0:1
-	Nζ = length(ζgrid)
+    ϵ_chain = tauchen(Nϵ, ρϵ, σϵ, 0, 1)
 
-	α_T = 0.67
-	α_N = 0.67
+    Pϵ = ϵ_chain.p
+    ϵgrid = ϵ_chain.state_values
 
-	ϑ = 0.88 # Straight from Anzoategui
+    pngrid = range(0.5, 1.1, length = Np)
+    ζgrid = 0:1
+    Nζ = length(ζgrid)
 
-	μ_anzo = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
-	ω_anzo = 0.83  # Taken from Anzoategui, targets SS output share of nontradables at 88%
+    α_T = 0.67
+    α_N = 0.67
 
-	η = μ_anzo
-	ϖ = ω_anzo^(μ_anzo)
+    ϑ = 0.88 # Straight from Anzoategui
 
-	# Grids for endogenous aggregate states
-	Bmax  = 6.5
-	Bbar  = Bmax * 0.5
-	bgrid = range(0.0, Bmax, length=Nb)
-	μgrid = range(-2.5, 0.75, length=Nμ)
-	σgrid = range(σmin, σmax, length=Nσ)
+    μ_anzo = 0.74 # Taken straight from Anzoategui, from Stockman and Tesar (1995)
+    ω_anzo = 0.83  # Taken from Anzoategui, targets SS output share of nontradables at 88%
 
-	# Prepare grid for cash in hand.
-	ωmin	= -0.5
-	ωgrid0	= range(0.0, (ωmax-ωmin)^curv, length=Nω).^(1/curv)
-	ωgrid0	= ωgrid0 .+ ωmin
-	ωgrid 	= ωgrid0
+    η = μ_anzo
+    ϖ = ω_anzo^(μ_anzo)
 
-	ωgrid_fine	= range(0.0, (ωmax-ωmin)^curv, length=Nω_fine).^(1/curv)
-	ωgrid_fine	= ωgrid_fine .+ ωmin
+    # Grids for endogenous aggregate states
+    Bmax = 6.5
+    Bbar = Bmax * 0.5
+    bgrid = range(0.0, Bmax, length = Nb)
+    μgrid = range(-2.5, 0.75, length = Nμ)
+    σgrid = range(σmin, σmax, length = Nσ)
+
+    # Prepare grid for cash in hand.
+    ωmin = -0.5
+    ωgrid0 = range(0.0, (ωmax - ωmin)^curv, length = Nω) .^ (1 / curv)
+    ωgrid0 = ωgrid0 .+ ωmin
+    ωgrid = ωgrid0
+
+    ωgrid_fine = range(0.0, (ωmax - ωmin)^curv, length = Nω_fine) .^ (1 / curv)
+    ωgrid_fine = ωgrid_fine .+ ωmin
 
 
-	Jagg = gridmake(1:Nb, 1:Nμ, 1:Nσ, 1:Nξ, 1:Nζ, 1:Nz)
+    Jagg = gridmake(1:Nb, 1:Nμ, 1:Nσ, 1:Nξ, 1:Nζ, 1:Nz)
 
-	μ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	for (jμ, μv) in enumerate(μgrid)
-		μ[:,jμ,:,:,:,:,:] .= μv + 0.5 * ( mean(μgrid) - μv )
-	end
-	μ = reshape(μ, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
-	σ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	for (jσ, σv) in enumerate(σgrid)
-		σ[:,:,jσ,:,:,:,:] .= σv + 0.5 * ( mean(σgrid) - σv )
-	end
-	σ = reshape(σ, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
-	μ′ = Array{Vector{Float64}}(undef, Nb*Nμ*Nσ*Nξ*Nζ*Nz, Nξ, Nz)
-	σ′ = Array{Vector{Float64}}(undef, Nb*Nμ*Nσ*Nξ*Nζ*Nz, Nξ, Nz)
-	for js = 1:size(Jagg,1), jξ = 1:Nξ, jz = 1:Nz
-		μ′[js, jξ, jz] = [μ[js] for jj in 1:2]
-		σ′[js, jξ, jz] = [σ[js] for jj in 1:2]
-	end
-	w′ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	for (jw, wv) in enumerate(ξgrid)
-		w′[:,:,:,jw,:,:] .= wv
-	end
-	w′ = reshape(w′, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+    μ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+    for (jμ, μv) in enumerate(μgrid)
+        μ[:, jμ, :, :, :, :, :] .= μv + 0.5 * (mean(μgrid) - μv)
+    end
+    μ = reshape(μ, Nb * Nμ * Nσ * Nξ * Nζ * Nz)
+    σ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+    for (jσ, σv) in enumerate(σgrid)
+        σ[:, :, jσ, :, :, :, :] .= σv + 0.5 * (mean(σgrid) - σv)
+    end
+    σ = reshape(σ, Nb * Nμ * Nσ * Nξ * Nζ * Nz)
+    μ′ = Array{Vector{Float64}}(undef, Nb * Nμ * Nσ * Nξ * Nζ * Nz, Nξ, Nz)
+    σ′ = Array{Vector{Float64}}(undef, Nb * Nμ * Nσ * Nξ * Nζ * Nz, Nξ, Nz)
+    for js = 1:size(Jagg, 1), jξ = 1:Nξ, jz = 1:Nz
+        μ′[js, jξ, jz] = [μ[js] for jj = 1:2]
+        σ′[js, jξ, jz] = [σ[js] for jj = 1:2]
+    end
+    w′ = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+    for (jw, wv) in enumerate(ξgrid)
+        w′[:, :, :, jw, :, :] .= wv
+    end
+    w′ = reshape(w′, Nb * Nμ * Nσ * Nξ * Nζ * Nz)
 
-	Ld = ones(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
-	T  = ones(Nb*Nμ*Nσ*Nξ*Nζ*Nz) * 0.05
-	qʰ = ones(Nb*Nμ*Nσ*Nξ*Nζ*Nz) / (1.0+r_star)
-	qᵍ = ones(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
-	spread = zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+    Ld = ones(Nb * Nμ * Nσ * Nξ * Nζ * Nz)
+    T = ones(Nb * Nμ * Nσ * Nξ * Nζ * Nz) * 0.05
+    qʰ = ones(Nb * Nμ * Nσ * Nξ * Nζ * Nz) / (1.0 + r_star)
+    qᵍ = ones(Nb * Nμ * Nσ * Nξ * Nζ * Nz)
+    spread = zeros(Nb * Nμ * Nσ * Nξ * Nζ * Nz)
 
-	pN 		  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	wage 	  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	spending  =	Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	issuance  =	Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	output	  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
-	repay 	  = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz, Nξ, Nz)
-	for (jz, zv) in enumerate(zgrid)
-		pN[:,:,:,:,:,jz] .= mean(pngrid) - 0.1 * zv
-		output[:,:,:,:,:,jz] .= exp(zv)
-		spending[:,:,:,:,:,jz] .= 0.1 - 0.25 * zv
-		for (jb, bv) in enumerate(bgrid)
-			issuance[jb,:,:,:,1,jz] .= bv - 0.25 * zv + 0.1 * (Bbar-bv)
-			issuance[jb,:,:,:,2,jz] .= bv
-		end
-		for (jζ, ζv) in enumerate(ζgrid)
-			def = (ζv != 1.0)
-			wage[:,:,:,:,jζ,jz] .= max(exp(zv) * (1.0 - Δ * def), wbar)
-		end
-		repay[:,:,:,:,:,:,:,jz] .= 1.0 - (zv <= zgrid[1])
-	end
-	pN	 		= reshape(pN, 	 	 Nb*Nμ*Nσ*Nξ*Nζ*Nz)
-	repay	 	= reshape(repay, 	 Nb*Nμ*Nσ*Nξ*Nζ*Nz*Nz*Nξ)
-	if nodef
-		repay = ones(repay)
-	end
-	wage	 	= reshape(wage, 	 Nb*Nμ*Nσ*Nξ*Nζ*Nz)
-	spending 	= reshape(spending,	 Nb*Nμ*Nσ*Nξ*Nζ*Nz)
-	issuance 	= min.(max.(reshape(issuance,  Nb*Nμ*Nσ*Nξ*Nζ*Nz), minimum(bgrid)), maximum(bgrid))
-	output 		= reshape(output, Nb*Nμ*Nσ*Nξ*Nζ*Nz)
-	profits 	= output - wage .* Ld
-	welfare   	= zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
-	C 			= zeros(Nb*Nμ*Nσ*Nξ*Nζ*Nz)
+    pN = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+    wage = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+    spending = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+    issuance = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+    output = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz)
+    repay = Array{Float64}(undef, Nb, Nμ, Nσ, Nξ, Nζ, Nz, Nξ, Nz)
+    for (jz, zv) in enumerate(zgrid)
+        pN[:, :, :, :, :, jz] .= mean(pngrid) - 0.1 * zv
+        output[:, :, :, :, :, jz] .= exp(zv)
+        spending[:, :, :, :, :, jz] .= 0.1 - 0.25 * zv
+        for (jb, bv) in enumerate(bgrid)
+            issuance[jb, :, :, :, 1, jz] .= bv - 0.25 * zv + 0.1 * (Bbar - bv)
+            issuance[jb, :, :, :, 2, jz] .= bv
+        end
+        for (jζ, ζv) in enumerate(ζgrid)
+            def = (ζv != 1.0)
+            wage[:, :, :, :, jζ, jz] .= max(exp(zv) * (1.0 - Δ * def), wbar)
+        end
+        repay[:, :, :, :, :, :, :, jz] .= 1.0 - (zv <= zgrid[1])
+    end
+    pN = reshape(pN, Nb * Nμ * Nσ * Nξ * Nζ * Nz)
+    repay = reshape(repay, Nb * Nμ * Nσ * Nξ * Nζ * Nz * Nz * Nξ)
+    if nodef
+        repay = ones(repay)
+    end
+    wage = reshape(wage, Nb * Nμ * Nσ * Nξ * Nζ * Nz)
+    spending = reshape(spending, Nb * Nμ * Nσ * Nξ * Nζ * Nz)
+    issuance = min.(max.(reshape(issuance, Nb * Nμ * Nσ * Nξ * Nζ * Nz), minimum(bgrid)), maximum(bgrid))
+    output = reshape(output, Nb * Nμ * Nσ * Nξ * Nζ * Nz)
+    profits = output - wage .* Ld
+    welfare = zeros(Nb * Nμ * Nσ * Nξ * Nζ * Nz)
+    C = zeros(Nb * Nμ * Nσ * Nξ * Nζ * Nz)
 
-	pars = Dict(:β=>β, :γ=>γ, :ψ=>ψ, :wbar=>wbar, :ρ=>ρ, :κ=>κ, :r_star=>r_star, :τ=>τ, :η=>η, :ϖ=>ϖ, :α_T=>α_T, :α_N=>α_N, :ϑ=>ϑ, :ρϵ=>ρϵ, :σϵ=>σϵ, :ρξ=>ρξ, :σξ=>σξ, :ρz=>ρz, :σz=>σz, :ℏ=>ℏ, :θ=>θ, :Δ=>Δ, :ωmin=>ωmin, :ωmax=>ωmax, :meanξ=>meanξ, :μ_gov=>μ_gov)
-	opt = Dict(:EpsteinZin=>EpsteinZin, :nodef=>nodef, :noΔ=>noΔ, :rep_agent=>rep_agent, :nob=>nob)
-	gr = Dict(:ω=>ωgrid, :ϵ=>ϵgrid, :b=>bgrid, :μ=>μgrid, :σ=>σgrid, :ξ=>ξgrid, :ζ=>ζgrid, :z=>zgrid, :pN=>pngrid, :ωf => ωgrid_fine)
-	prob = Dict(:ϵ => Pϵ, :ξ => Pξ, :z => Pz)
+    pars = Dict(:β => β, :γ => γ, :ψ => ψ, :wbar => wbar, :ρ => ρ, :κ => κ, :r_star => r_star, :τ => τ, :η => η, :ϖ => ϖ, :α_T => α_T, :α_N => α_N, :ϑ => ϑ, :ρϵ => ρϵ, :σϵ => σϵ, :ρξ => ρξ, :σξ => σξ, :ρz => ρz, :σz => σz, :ℏ => ℏ, :θ => θ, :Δ => Δ, :ωmin => ωmin, :ωmax => ωmax, :meanξ => meanξ, :μ_gov => μ_gov)
+    opt = Dict(:EpsteinZin => EpsteinZin, :nodef => nodef, :noΔ => noΔ, :rep_agent => rep_agent, :nob => nob)
+    gr = Dict(:ω => ωgrid, :ϵ => ϵgrid, :b => bgrid, :μ => μgrid, :σ => σgrid, :ξ => ξgrid, :ζ => ζgrid, :z => zgrid, :pN => pngrid, :ωf => ωgrid_fine)
+    prob = Dict(:ϵ => Pϵ, :ξ => Pξ, :z => Pz)
 
-	ϕ = Dict(sym => zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz) for sym in [:a, :b, :c, :s, :θ])
-	ϕ[:c] .+= 1
-	v = Dict(sym => ones(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz) * 1e-2 for sym in [:v, :w])
+    ϕ = Dict(sym => zeros(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz) for sym in [:a, :b, :c, :s, :θ])
+    ϕ[:c] .+= 1
+    v = Dict(sym => ones(Nω, Nϵ, Nb, Nμ, Nσ, Nξ, Nζ, Nz) * 1e-2 for sym in [:v, :w])
 
-	eq = Dict(:Ld=>Ld, :T=>T,:qʰ=>qʰ,:qᵍ=>qᵍ,:spread=>spread,:pN=>pN,:wage=>wage,:spending=>spending,:issuance=>issuance,:output=>output,:welfare=>welfare,:C=>C)
-	gov = Dict(:repay => repay)
-	LoM = Dict(:μ => μ′, :σ => σ′)
+    eq = Dict(:Ld => Ld, :T => T, :qʰ => qʰ, :qᵍ => qᵍ, :spread => spread, :pN => pN, :wage => wage, :spending => spending, :issuance => issuance, :output => output, :welfare => welfare, :C => C)
+    gov = Dict(:repay => repay)
+    LoM = Dict(:μ => μ′, :σ => σ′)
 
-	Ktot = length(size(ϕ[:c]))
-	Kshocks = length(size(μ′))
+    Ktot = length(size(ϕ[:c]))
+    Kshocks = length(size(μ′))
 
-	return SOEdef{Ktot, Kshocks}(pars, opt, gr, prob, ϕ, v, eq, gov, LoM)
+    return SOEdef{Ktot,Kshocks}(pars, opt, gr, prob, ϕ, v, eq, gov, LoM)
 end
 
 function update_probs!(sd::SOEdef)
