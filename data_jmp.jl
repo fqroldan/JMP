@@ -513,33 +513,39 @@ function make_nw_levels(oth_args...; levels=false)
 	)
 end
 
-function make_nw(country::String="Spain"; style::Style=slides_def)
-	df = load_nw(country)
+function make_nw(country::String = "Spain"; with_annot = true, style::Style = slides_def)
+    df = load_nw(country)
 
-	col = [	
-		get(ColorSchemes.davos, 0.2)
-		get(ColorSchemes.lajolla, 0.6)
-		get(ColorSchemes.cork, 0.9)
-	]
+    col = [
+        get(ColorSchemes.davos, 0.15)
+        get(ColorSchemes.lajolla, 0.6)
+        get(ColorSchemes.cork, 0.9)
+    ]
+    wths = [2, 2, 2.5]
+	lsh = ["solid", "solid", "dashdot"]
 
-	annot = [
-		attr(x = Date("2009-02"), y = mean(df.assets) - 1
-			, ax = -40, ay = 40, xanchor = "right", yanchor = "top", text="Mean $(round(Int, mean(df.assets)))%");
-		attr(x = Date("2004-01"), y = mean(df.liabilities) + 1
-			, ax = 40, ay = -40, xanchor = "left", yanchor = "bottom", text="Mean $(round(Int, mean(df.liabilities)))%");
-		]
-	shapes = [
-		hline(mean(df.assets), line = attr(width = 1, dash = "dot", color=col[1]))
-		hline(mean(df.liabilities), line = attr(width = 1, dash = "dot", color=col[2]))
-		]
+    annot = []
+    shapes = []
 
-	layout = Layout(annotations = annot, shapes = shapes,
-		yaxis = attr(title="% of GDP"),
-		)
+    if with_annot
+        annot = [
+            attr(x = Date("2009-02"), y = mean(df.assets) - 1, ax = -40, ay = 40, xanchor = "right", yanchor = "top", text = "Mean $(round(Int, mean(df.assets)))%")
+            attr(x = Date("2004-01"), y = mean(df.liabilities) + 1, ax = 40, ay = -40, xanchor = "left", yanchor = "bottom", text = "Mean $(round(Int, mean(df.liabilities)))%")
+        ]
+        shapes = [
+            hline(mean(df.assets), line = attr(width = 1, dash = "dot", color = col[1]))
+            hline(mean(df.liabilities), line = attr(width = 1, dash = "dot", color = col[2]))
+        ]
+    end
 
-	pNW = plot([
-			scatter(;x = df.date, y=df[!,y], line_color=col[jj], name=uppercasefirst(y)) for (jj,y) in enumerate(["assets", "liabilities"])
-			], layout, style=style)
+    layout = Layout(annotations = annot, shapes = shapes,
+        yaxis = attr(title = "% of GDP"),
+    )
+
+    linenames = filter(x -> x != "date", names(df))
+    pNW = plot([
+            scatter(; x = df.date, y = df[!, y], line_color = col[jj], line_width = wths[jj], line_dash=lsh[jj], name = uppercasefirst(replace(y, "_" => " "))) for (jj, y) in enumerate(linenames)
+        ], layout, style = style)
 end
 
 
