@@ -686,7 +686,7 @@ function get_AR1(y::Vector, ζ::Vector)
 	σ2 = sum(ϵ.^2)/(length(ϵ))
 	σϵ = sqrt(σ2)
 
-	σy = sqrt(σ2 / (1-ρ^2))
+	σy = sqrt(max(1e-12, σ2 / (1-ρ^2)))
 	return ρ, σϵ
 end
 
