@@ -619,8 +619,7 @@ function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3, �
 	simul_switch!(p, sd1, sd2, jk, length1, length2, length3, B0, μ0, σ0, ξ0, ζ0, z0, λ0, itp_ϕc1, itp_ϕs1, itp_ϕθ1, itp_vf1, itp_C1, itp_B′1, itp_G1, itp_pN1, itp_qᵍ1, itp_W1, itp_repay1, itp_ϕc2, itp_ϕs2, itp_ϕθ2, itp_vf2, itp_C2, itp_B′2, itp_G2, itp_pN2, itp_qᵍ2, itp_W2, itp_repay2, Bvec = Bvec)
 end
 
-function parsimul(sd::SOEdef; ϕ=sd.ϕ, simul_length::Int64=1, burn_in::Int64=1)
-	K = Threads.nthreads()
+function parsimul(sd::SOEdef; ϕ=sd.ϕ, simul_length::Int64=1, burn_in::Int64=1, K=Threads.nthreads())
 	simul_length = ceil(Int, simul_length/K)
 
 	pv = Vector{Path}(undef, K)

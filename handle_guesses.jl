@@ -158,8 +158,8 @@ function prep_table(pp)
 	return g, targets, v_m
 end
 
-function make_simulated_path(sd::SOEdef, savedir, years=100; ϕ=sd.ϕ)
-	pp, Ndefs = parsimul(sd; ϕ=ϕ, simul_length=4*years, burn_in=1+4*100)
+function make_simulated_path(sd::SOEdef, savedir, years=100; ϕ=sd.ϕ, K=Threads.nthreads())
+	pp, Ndefs = parsimul(sd; ϕ=ϕ, simul_length=4*years, burn_in=1+4*100, K=K)
 	Tyears = floor(Int64,periods(pp)*0.25)
 	def_freq = Ndefs/Tyears
 	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(round(1000*def_freq)/10)%")
