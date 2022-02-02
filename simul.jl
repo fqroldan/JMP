@@ -745,8 +745,8 @@ function simul_stats(path::Path; nodef::Bool=false, ζ_vec::Vector=[], verbose::
 	# mean_wealth = 100*mean(m_vec./(4*Y_vec))
 	mean_wealth = 25 * mean( mean_vec ./ Y_vec )
 
-	ρy, σy = get_AR1(log.(Y_vec.+1e-8), ζ_vec)
-	ρc, σc = get_AR1(log.(C_vec.+1e-8), ζ_vec)
+	ρy, σy = get_AR1(log.(max.(1e-8,Y_vec)), ζ_vec)
+	ρc, σc = get_AR1(log.(max.(1e-8,C_vec)), ζ_vec)
 	if var(spr_vec) > 1e-6
 		ρs, σs = get_AR1(spr_vec, ζ_vec)
 	else
