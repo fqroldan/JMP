@@ -148,7 +148,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=20e-4, nodef::Bo
 
 		old_rep = copy(sd.gov[:repay])
 
-		if nodef || noΔ || nob
+		if nodef || noΔ #|| nob
 			# Keep the same default policy
 			dist = 0.0
 		else
