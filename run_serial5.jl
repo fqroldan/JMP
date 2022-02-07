@@ -6,7 +6,7 @@ update_probs!(sd)
 
 mpe_iter!(sd, run_number = 1)
 
-g, p_bench, _, v_m, def_freq = make_simulated_path(sd, "../Output/run1/", 30000);
+g, p_bench, _, v_m, def_freq = make_simulated_path(sd, "../Output/run1/", 10_000, K = 50)
 Wr = mean([mean(series(p, :Wr)) for p in p_bench])
 
 for (key, val) in pars(sd)
