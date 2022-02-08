@@ -28,167 +28,167 @@ function integrate_C(sd::SOEdef, Bt, μt, σt, ξt, ζt, zt, λt, itp_ϕc, itp_C
 	return C_from_λ, log(C_from_interp) - log(C_from_λ)
 end
 
-function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose::Bool=false; B2 = -Inf)
+function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose::Bool = false; B2 = -Inf)
 
-	# Enter with a state B, μ, σ, w0, ζ, z.
-	# h.zgrid[jz] must equal getfrompath(p, t, :z)
-	# B, ζ, and z are decided at the end of the last period
-	jz = jz_series[t]
+    # Enter with a state B, μ, σ, w0, ζ, z.
+    # h.zgrid[jz] must equal getfrompath(p, t, :z)
+    # B, ζ, and z are decided at the end of the last period
+    jz = jz_series[t]
 
-	Bt = getfrompath(p, t, :B)
-	μt = getfrompath(p, t, :μ)
-	σt = getfrompath(p, t, :σ)
-	ξt = getfrompath(p, t, :ξ)
-	jξ = findfirst(sd.gr[:ξ] .== ξt)
-	ζt = getfrompath(p, t, :ζ)
-	zt = getfrompath(p, t, :z)
+    Bt = getfrompath(p, t, :B)
+    μt = getfrompath(p, t, :μ)
+    σt = getfrompath(p, t, :σ)
+    ξt = getfrompath(p, t, :ξ)
+    jξ = findfirst(sd.gr[:ξ] .== ξt)
+    ζt = getfrompath(p, t, :ζ)
+    zt = getfrompath(p, t, :z)
 
-	zt == sd.gr[:z][jz] || print("something wrong with ztv and jzt")
-	abs(zt - sd.gr[:z][jz]) < 1e-8 || throw(error("something wrong with ztv and jzt"))
+    zt == sd.gr[:z][jz] || print("something wrong with ztv and jzt")
+    abs(zt - sd.gr[:z][jz]) < 1e-8 || throw(error("something wrong with ztv and jzt"))
 
-	# verbose && print("\n$(t), μ = $μt")
-	if verbose && t % 10000 == 0
-		print_save("\n[Bt, μt, σt, ξt, ζt, zt]\n")
-		print_save("$(@sprintf("%0.3g",Bt)), ")
-		print_save("$(@sprintf("%0.3g",μt)), ")
-		print_save("$(@sprintf("%0.3g",σt)), ")
-		print_save("$(@sprintf("%0.3g",ξt)), ")
-		print_save("$(@sprintf("%0.3g",ζt)), ")
-		print_save("$(@sprintf("%0.3g",zt))")
-	end
+    # verbose && print("\n$(t), μ = $μt")
+    if verbose && t % 10000 == 0
+        print_save("\n[Bt, μt, σt, ξt, ζt, zt]\n")
+        print_save("$(@sprintf("%0.3g",Bt)), ")
+        print_save("$(@sprintf("%0.3g",μt)), ")
+        print_save("$(@sprintf("%0.3g",σt)), ")
+        print_save("$(@sprintf("%0.3g",ξt)), ")
+        print_save("$(@sprintf("%0.3g",ζt)), ")
+        print_save("$(@sprintf("%0.3g",zt))")
+    end
 
-	lb = sd.gr[:b][end] - sd.gr[:b][1]
-	# println(B2)
-	if B2 == -Inf
-		Bpv = itp_B′(Bt, μt, σt, ξt, ζt, zt)
-		Bpv = max.(min.(Bpv, sd.gr[:b][end]-0.01*lb), sd.gr[:b][1]+0.01*lb)
-	else
-		Bpv = B2
-	end
+    lb = sd.gr[:b][end] - sd.gr[:b][1]
+    # println(B2)
+    if B2 == -Inf
+        Bpv = itp_B′(Bt, μt, σt, ξt, ζt, zt)
+        Bpv = max.(min.(Bpv, sd.gr[:b][end] - 0.01 * lb), sd.gr[:b][1] + 0.01 * lb)
+    else
+        Bpv = B2
+    end
 
-	Gt 		= itp_G(Bt, μt, σt, ξt, ζt, zt)
-	pNg 	= itp_pN(Bt, μt, σt, ξt, ζt, zt)
+    Gt = itp_G(Bt, μt, σt, ξt, ζt, zt)
+    pNg = itp_pN(Bt, μt, σt, ξt, ζt, zt)
 
-	if ζt == 0 # Default when ζ == 0., jζ == 1
-		Bpv = Bt
-	end
+    if ζt == 0 # Default when ζ == 0., jζ == 1
+        Bpv = Bt
+    end
 
-	exp_rep = zeros(N(sd,:ξ), N(sd,:z))
-	# itp_repay = extrapolate(itp_repay, Interpolations.Flat())
-	for (jξp, ξpv) in enumerate(sd.gr[:ξ]), (jzp, zpv) in enumerate(sd.gr[:z])
-		exp_rep[jξp, jzp] = max(0, min(1, itp_repay(Bt, μt, σt, ξt, ζt, zt, ξpv, zpv)))
-	end
+    exp_rep = zeros(N(sd, :ξ), N(sd, :z))
+    # itp_repay = extrapolate(itp_repay, Interpolations.Flat())
+    for (jξp, ξpv) in enumerate(sd.gr[:ξ]), (jzp, zpv) in enumerate(sd.gr[:z])
+        exp_rep[jξp, jzp] = max(0, min(1, itp_repay(Bt, μt, σt, ξt, ζt, zt, ξpv, zpv)))
+    end
 
-	# Find pN at the current state. Deduce w, L, Π, T.
-	pNmin, pNmax = minimum(sd.gr[:pN]), maximum(sd.gr[:pN])
-	jdef = (ζt == 0)
+    # Find pN at the current state. Deduce w, L, Π, T.
+    pNmin, pNmax = minimum(sd.gr[:pN]), maximum(sd.gr[:pN])
+    jdef = (ζt == 0)
 
-	val_int_C, discrepancy = integrate_C(sd, Bt, μt, σt, ξt, ζt, zt, λt, itp_ϕc, itp_C)
-	pCC = val_int_C * price_index(sd, pNg)
+    val_int_C, discrepancy = integrate_C(sd, Bt, μt, σt, ξt, ζt, zt, λt, itp_ϕc, itp_C)
+    pCC = val_int_C * price_index(sd, pNg)
 
-	discr[:C] = (abs(discrepancy) + (t-1) * discr[:C]) / t
+    discr[:C] = (abs(discrepancy) + (t - 1) * discr[:C]) / t
 
-	results, _ = find_prices_direct(sd, pCC, Gt, Bpv, pNg, pNmin, pNmax, Bt, μt, σt, ξt, ζt, zt)
+    results, _ = find_prices_direct(sd, pCC, Gt, Bpv, pNg, pNmin, pNmax, Bt, μt, σt, ξt, ζt, zt)
 
-	wt, pN, Ld, output = results
-	profits = output - wt*Ld
+    wt, pN, Ld, output = results
+    profits = output - wt * Ld
 
-	discr[:pN] = (abs(log(pN) - log(pNg)) + (t-1) * discr[:pN]) / t
+    discr[:pN] = (abs(log(pN) - log(pNg)) + (t - 1) * discr[:pN]) / t
 
-	pCt = price_index(sd, pN)
-	Ld_N, Ld_T  = labor_demand(sd, wt, zt, ζt, pN)
-	supply_T = TFP_T(zt, sd.pars[:Δ], ζt) * Ld_T^(sd.pars[:α_N])
-
-
-	# Govt BC
-	if ζt == 1
-		coupons = sd.pars[:κ] * Bt
-		new_debt = Bpv - (1.0 - sd.pars[:ρ]) * Bt
-	else
-		coupons = 0
-		new_debt = 0
-	end
-	qg = max(minimum(sd.eq[:qᵍ]), getfrompath(p, t, :qg))
-
-	lumpsumT = coupons + Gt - sd.pars[:τ]*wt*Ld - qg*new_debt
-
-	
-	if verbose && t % 10000 == 0
-		verbose && print_save("\npN = $(@sprintf("%0.3g",pN)), pN^e = $(@sprintf("%0.3g",pNg)), u = $(ceil(100*(1-Ld))) at t = $t")
-		verbose && print_save("\nDiscrepancy in ∫ϕcdμ, pN = $(@sprintf("%0.3g", discrepancy)), $(@sprintf("%0.3g", log(pN) - log(pNg)))")
-	end
-
-	def_prob = 0.
-	if ζt == 1
-		for (jξp, ξvp) in enumerate(sd.gr[:ξ]), (jzp, zvp) in enumerate(sd.gr[:z])
-			def_prob += sd.prob[:ξ][jξ, jξp] * sd.prob[:z][jz, jzp] * (1 - exp_rep[jξp, jzp])
-		end
-	end
+    pCt = price_index(sd, pN)
+    Ld_N, Ld_T = labor_demand(sd, wt, zt, ζt, pN)
+    supply_T = TFP_T(zt, sd.pars[:Δ], ζt) * Ld_T^(sd.pars[:α_N])
 
 
-	# Integrate the household's policy functions to get μ′, σ′ and C
-	ϕa = zeros(N(sd,:ωf)*N(sd,:ϵ))
-	ϕb = zeros(N(sd,:ωf)*N(sd,:ϵ))
-	ϕc = zeros(N(sd,:ωf)*N(sd,:ϵ))
-	Crate = zeros(N(sd,:ωf)*N(sd,:ϵ))
+    # Govt BC
+    if ζt == 1
+        coupons = sd.pars[:κ] * Bt
+        new_debt = Bpv - (1.0 - sd.pars[:ρ]) * Bt
+    else
+        coupons = 0
+        new_debt = 0
+    end
+    qg = max(minimum(sd.eq[:qᵍ]), getfrompath(p, t, :qg))
 
-	js = 0
-	ωϵv = gridmake(sd.gr[:ωf], sd.gr[:ϵ])
-	λ_mat  = reshape(λt, N(sd,:ωf), N(sd,:ϵ))
-	mλω = sum(λ_mat, dims=2)
-	cdf_ω = cumsum(mλω[:])
+    lumpsumT = coupons + Gt - sd.pars[:τ] * wt * Ld - qg * new_debt
 
-	quantiles_vec = [0.1, 0.25, 0.5, 0.75, 0.9]
-	quantiles_ω   = [ifelse(cdf_ω[end] > quantile, findfirst(cdf_ω.>=quantile), length(cdf_ω)) for quantile in quantiles_vec]
 
-	C_dist = zeros(length(quantiles_vec))
+    if verbose && t % 10000 == 0
+        verbose && print_save("\npN = $(@sprintf("%0.3g",pN)), pN^e = $(@sprintf("%0.3g",pNg)), u = $(ceil(100*(1-Ld))) at t = $t")
+        verbose && print_save("\nDiscrepancy in ∫ϕcdμ, pN = $(@sprintf("%0.3g", discrepancy)), $(@sprintf("%0.3g", log(pN) - log(pNg)))")
+    end
 
-	sav_a_ω = zeros(length(quantiles_vec))
-	sav_b_ω = zeros(length(quantiles_vec))
-	prob_ϵω = zeros(length(quantiles_vec), N(sd,:ϵ))
+    def_prob = 0.0
+    if ζt == 1
+        for (jξp, ξvp) in enumerate(sd.gr[:ξ]), (jzp, zvp) in enumerate(sd.gr[:z])
+            def_prob += sd.prob[:ξ][jξ, jξp] * sd.prob[:z][jz, jzp] * (1 - exp_rep[jξp, jzp])
+        end
+    end
 
-	adjustment = sum(ergodic_ϵ(sd).*exp.(sd.gr[:ϵ]))
-	qhv = sd.eq[:qʰ][1]
-	for (jq, quantile) in enumerate(quantiles_ω)
-		dist_ϵ = λ_mat[quantile, :]
-		ωv = sd.gr[:ωf][quantile]
-		sav_a = 0.0
-		sav_b = 0.0
-		cdist = 0.0
-		for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])
-			yd = (wt*Ld*(1.0-sd.pars[:τ]) + profits) * exp(ϵv)/adjustment + ωv - lumpsumT
-			sg = max(sd.pars[:ωmin], itp_ϕs(ωv, ϵv, Bt, μt, σt, ξt, ζt, zt))
-			θg = min(max(0.0, itp_ϕθ(sg, ϵv, Bt, μt, σt, ξt, ζt, zt)), 1.0)
-			abc = get_abc(yd, sd.pars[:ωmin], qhv, qg, pCt, sg, θg)
-			ap, bp, cc = abc[:a], abc[:b], abc[:c]
 
-			sav_a += ap * dist_ϵ[jϵ] / sum(dist_ϵ)
-			sav_b += bp * dist_ϵ[jϵ] / sum(dist_ϵ)
+    # Integrate the household's policy functions to get μ′, σ′ and C
+    ϕa = zeros(N(sd, :ωf) * N(sd, :ϵ))
+    ϕb = zeros(N(sd, :ωf) * N(sd, :ϵ))
+    ϕc = zeros(N(sd, :ωf) * N(sd, :ϵ))
+    Crate = zeros(N(sd, :ωf) * N(sd, :ϵ))
 
-			cdist += cc * dist_ϵ[jϵ] / sum(dist_ϵ)
-		end
+    js = 0
+    ωϵv = gridmake(sd.gr[:ωf], sd.gr[:ϵ])
+    λ_mat = reshape(λt, N(sd, :ωf), N(sd, :ϵ))
+    mλω = sum(λ_mat, dims = 2)
+    cdf_ω = cumsum(mλω[:])
 
-		C_dist[jq] = cdist
-		sav_a_ω[jq] = sav_a
-		sav_b_ω[jq] = sav_b
-		prob_ϵω[jq,:] = dist_ϵ / sum(dist_ϵ)
-	end
+    quantiles_vec = [0.1, 0.25, 0.5, 0.75, 0.9]
+    quantiles_ω = [ifelse(cdf_ω[end] > quantile, findfirst(cdf_ω .>= quantile), length(cdf_ω)) for quantile in quantiles_vec]
 
-	avgω_fromb = zeros(N(sd,:ωf)*N(sd,:ϵ))
+    C_dist = zeros(length(quantiles_vec))
 
-	b25 = zeros(N(sd,:ωf)*N(sd,:ϵ))
-	b90 = zeros(N(sd,:ωf)*N(sd,:ϵ))
+    sav_a_ω = zeros(length(quantiles_vec))
+    sav_b_ω = zeros(length(quantiles_vec))
+    prob_ϵω = zeros(length(quantiles_vec), N(sd, :ϵ))
 
-	if cdf_ω[1] > 0.25 || length(findall(cdf_ω .>= 0.25)) == 0
-		q25 = 1
-	else
-		q25 = findfirst(cdf_ω .>= 0.25)
-	end
-	if cdf_ω[end] < 0.9 || length(findall(cdf_ω .>= 0.90)) == 0
-		q90 = length(cdf_ω)
-	else
-		q90 = findfirst(cdf_ω .>= 0.90)
-	end
+    adjustment = sum(ergodic_ϵ(sd) .* exp.(sd.gr[:ϵ]))
+    qhv = sd.eq[:qʰ][1]
+    for (jq, quantile) in enumerate(quantiles_ω)
+        dist_ϵ = λ_mat[quantile, :]
+        ωv = sd.gr[:ωf][quantile]
+        sav_a = 0.0
+        sav_b = 0.0
+        cdist = 0.0
+        for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])
+            yd = (wt * Ld * (1.0 - sd.pars[:τ]) + profits) * exp(ϵv) / adjustment + ωv - lumpsumT
+            sg = max(sd.pars[:ωmin], itp_ϕs(ωv, ϵv, Bt, μt, σt, ξt, ζt, zt))
+            θg = min(max(0.0, itp_ϕθ(sg, ϵv, Bt, μt, σt, ξt, ζt, zt)), 1.0)
+            abc = get_abc(yd, sd.pars[:ωmin], qhv, qg, pCt, sg, θg)
+            ap, bp, cc = abc[:a], abc[:b], abc[:c]
+
+            sav_a += ap * dist_ϵ[jϵ] / sum(dist_ϵ)
+            sav_b += bp * dist_ϵ[jϵ] / sum(dist_ϵ)
+
+            cdist += cc * dist_ϵ[jϵ] / sum(dist_ϵ)
+        end
+
+        C_dist[jq] = cdist
+        sav_a_ω[jq] = sav_a
+        sav_b_ω[jq] = sav_b
+        prob_ϵω[jq, :] = dist_ϵ / sum(dist_ϵ)
+    end
+
+    avgω_fromb = zeros(N(sd, :ωf) * N(sd, :ϵ))
+
+    b25 = zeros(N(sd, :ωf) * N(sd, :ϵ))
+    b90 = zeros(N(sd, :ωf) * N(sd, :ϵ))
+
+    if cdf_ω[1] > 0.25 || length(findall(cdf_ω .>= 0.25)) == 0
+        q25 = 1
+    else
+        q25 = findfirst(cdf_ω .>= 0.25)
+    end
+    if cdf_ω[end] < 0.9 || length(findall(cdf_ω .>= 0.90)) == 0
+        q90 = length(cdf_ω)
+    else
+        q90 = findfirst(cdf_ω .>= 0.90)
+    end
 
     for js in 1:size(ωϵv, 1)
         ωv, ϵv = ωϵv[js, :]
@@ -243,7 +243,9 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
     mω2 = dot(λt, (ωϵv[:, 1]) .^ 2)
     varω = mω2 - meanω^2
 
-    fill_path!(p, t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY => CoY, :CoYd => CoYd, :C => C, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :mean => meanω, :var => varω, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5]))
+    C_atm = itp_ϕc(meanω, 0.0, Bt, μt, σt, ξt, ζt, zt)
+
+    fill_path!(p, t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY => CoY, :CoYd => CoYd, :C => C, :C_atm => C_atm, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :mean => meanω, :var => varω, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5]))
 
     return ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef
 end
@@ -314,8 +316,10 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, q
 		Rvec = [(1-sd.pars[:ℏ]) * qprime[1], sd.pars[:κ] + (1.0-sd.pars[:ρ]) * qprime[2]]
 	end
 
-	Wr = 0.0 # itp_W(Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv)
-	Wd = 0.0 # itp_W(Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv)
+	Wr = 0.0 
+	Wd = 0.0 
+	Wr_atm = 0.0
+	Wd_atm = 0.0
 
 	Wr_vec = [sum(itp_vf(sav_a_ω[jq] + Rvec[2]*sav_b_ω[jq], ϵpv, Bpvec[2], μprime[2], σprime[2], ξpv, sd.gr[:ζ][2], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])) for jq in 1:length(quantiles_ω)]
 	Wd_vec = [sum(itp_vf(sav_a_ω[jq] + Rvec[1]*sav_b_ω[jq], ϵpv, Bpvec[1], μprime[1], σprime[1], ξpv, sd.gr[:ζ][1], zpv) * prob_ϵω[jq,jϵp] for (jϵp, ϵpv) in enumerate(sd.gr[:ϵ])) for jq in 1:length(quantiles_ω)]
@@ -332,13 +336,17 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, q
 		λp = Q' * λt
 		λ_matp = reshape(λp, N(sd,:ωf), N(sd,:ϵ))
 		if jζp == 2 # repayment
-			Wr = sum(itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ]))
-			# println(Wr)
+		    Wr = sum(itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ]))
+		    # println(Wr)
+		    M, V = unmake_logN(μprime[jζp], σprime[jζp])
+		    Wr_atm = itp_vf(M, 0, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv)
 		else
-			Wd = sum(itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ]))
-			# println(Wd)
+		    Wd = sum(itp_vf(ωpv, ϵpv, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv) * λ_matp[jωp, jϵp] for (jωp, ωpv) in enumerate(sd.gr[:ωf]), (jϵp, ϵpv) in enumerate(sd.gr[:ϵ]))
+		    # println(Wd)
+		    M, V = unmake_logN(μprime[jζp], σprime[jζp])
+		    Wd_atm = itp_vf(M, 0, Bpvec[jζp], μprime[jζp], σprime[jζp], ξpv, sd.gr[:ζ][jζp], zpv)
 		end
-
+		
 		if repay_prime && jζp == 2
 			λpd = copy(λp)
 		elseif !repay_prime && jζp == 1
@@ -409,16 +417,10 @@ function iter_simul_tp!(sd::SOEdef, p::Path, t, jz_series, λt, ϕa, ϕb, Bpv, q
 
 	ζt == 1.0 && ζpv == 0.0 ? new_def = 1 : new_def = 0
 
-	# λpd = Q' * λt
-
-	# M, V = unmake_logN(μpv, σpv)
-	# println(t)
-	# println(spr)
-
 	# Fill the path for next period
 	if t < length(jz_series)
 		jz_series[t+1] = jzp
-		fill_path!(p,t+1, Dict(:B => Bpv, :μ => μpv, :σ => σpv, :ζ => ζpv, :ξ => ξpv, :z => zpv, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wd => Wd, :qg => qpv, :spread=>spr))
+		fill_path!(p,t+1, Dict(:B => Bpv, :μ => μpv, :σ => σpv, :ζ => ζpv, :ξ => ξpv, :z => zpv, :ψ => prop_domestic, :A => a, :Bh => b, :Bf => Bf, :Wr => Wr, :Wr_atm => Wr_atm, :Wd => Wd, :Wd_atm => Wd_atm, :qg => qpv, :spread=>spr))
 		fill_path!(p, t+1, Dict(:Wr10 => Wr_vec[1], :Wr25 => Wr_vec[2], :Wr50 => Wr_vec[3], :Wr75 => Wr_vec[4], :Wr90 => Wr_vec[5], :Wd10 => Wd_vec[1], :Wd25 => Wd_vec[2], :Wd50 => Wd_vec[3], :Wd75 => Wd_vec[4], :Wd90 => Wd_vec[5]))
 	end
 
@@ -550,11 +552,11 @@ function simul_switch!(p::Path, sd1::SOEdef, sd2::SOEdef, jk, length1, length2, 
 end
 
 function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; same_pol=false, burn_in = 4*100, B0 = mean(sd.gr[:b]), K, cond_Y = -Inf)
-	pv  = Vector{Path}(undef, K)
-	pv2 = Vector{Path}(undef, K)
-	pv3 = Vector{Path}(undef, K)
+	pv_bench  = Vector{Path}(undef, K)
+	pv_nodef = Vector{Path}(undef, K)
+	pv_samep = Vector{Path}(undef, K)
 
-	print_save("Starting $K simulations at $(Dates.format(now(), "HH:MM:SS")).\n")
+	print_save("Starting $K simulations at $(Dates.format(now(), "HH:MM")).\n")
 
 	t0 = time()
 	Threads.@threads for jk in 1:K
@@ -563,18 +565,18 @@ function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; sa
 		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=1+4*100)
 		p3, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=1+4*100, Bvec = Bpv)
 		
-		pv[jk]  = p
-		pv2[jk] = p2
-		pv3[jk] = p3
+		pv_bench[jk] = p
+		pv_nodef[jk] = p2
+		pv_samep[jk] = p3
 	end
 
-	pv2 = [pv2[jk] for jk in eachindex(pv2) if minimum(series(pv[jk], :ζ)) == 1]
-	pv3 = [pv3[jk] for jk in eachindex(pv3) if minimum(series(pv[jk], :ζ)) == 1]
-	pv = [pv[jk] for jk in eachindex(pv) if minimum(series(pv[jk], :ζ)) == 1]
+	pv_nodef = [pv_nodef[jk] for jk in eachindex(pv_nodef) if minimum(series(pv_bench[jk], :ζ)) == 1]
+	pv_samep = [pv_samep[jk] for jk in eachindex(pv_samep) if minimum(series(pv_bench[jk], :ζ)) == 1]
+	pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if minimum(series(pv_bench[jk], :ζ)) == 1]
 
-	print_save("Time in simulation: $(time_print(time()-t0)). Left with $(length(pv)) simulations.\n")
+	print_save("Time in simulation: $(time_print(time()-t0)). Left with $(length(pv_bench)) simulations.\n")
 
-	return pv, length1, length1+length2, pv2, pv3
+	return pv_bench, length1, length1+length2, pv_nodef, pv_samep
 end
 
 

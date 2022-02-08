@@ -435,6 +435,79 @@ function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4
 	plot(data, layout, style=style)
 end
 
+function distribution_crises_new(pv::Vector{T}, thres::Number, sym::Symbol; style::Style = slides_def, yh = 0.65, type = "highspreads", k = 6, k_back = k, thres_back::Number = Inf) where {T<:AbstractPath}
+    Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type = type)
+
+    colmed = get(ColorSchemes.corkO, 0.25)
+    colavg = get(ColorSchemes.corkO, 0.65)
+    colatm = get(ColorSchemes.vikO, 0.65)
+    cols = [colmed, colavg, colatm]
+
+	dashes = ["solid", "dash", "dot"]
+
+	names = ["Average", "<i>p</i>50", "at mean"]
+    data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+	C_drop = zeros(3)
+	for (jr, resp) in enumerate(["C", "Wr"])
+		for (jk, nv) in enumerate(["", "50", "_atm"])
+		    key = Symbol(resp * nv)
+		    ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, k_back)
+		    scats = [
+		        scatter(x = (-k_back:k) / 4, y = y_up, hoverinfo = "skip", showlegend = false, mode = "lines", line = attr(color = cols[jk], width = 0.001), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
+		        scatter(x = (-k_back:k) / 4, y = y_lo, hoverinfo = "skip", name = names[jk], mode = "lines", line = attr(color = cols[jk], width = 0.001), fill = "tonexty", showlegend = (jr == 1), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
+		        scatter(x = (-k_back:k) / 4, y = y_av, showlegend = false, name = names[jk], mode = "lines", line = attr(color = cols[jk], dash = dashes[jk]), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
+		    ]
+		    push!(data, scats...)
+			if resp == "C"
+				c_drop = y_av[end-k] / y_av[1] - 1
+				print("Consumption drop in $(names[jk]) = $(round(100*c_drop, sigdigits=2))%\n")
+				C_drop[jk] = c_drop
+			end
+		end
+	end
+
+	annotations = [
+		attr(text = "Consumption", xanchor = "center", x = 0.45 / 2, xref = "paper", y=1, yref="paper", yanchor="bottom", showarrow = false, font_size = 18)
+		attr(text = "Welfare in repayment", xanchor = "center", x = 1.55 / 2, xref = "paper", y=1, yref="paper", yanchor="bottom", showarrow = false, font_size = 18)
+	]
+
+	layout = Layout(
+		annotations = annotations,
+		xaxis1 = attr(domain = [0, 0.45], anchor="y1"),
+		xaxis2 = attr(domain = [0.55, 1], anchor="y2"),
+		yaxis1 = attr(anchor = "x1"),
+		yaxis2 = attr(anchor = "x2"),
+		legend = attr(x = 0.5, xanchor = "center"),
+	)
+
+    plot(data, layout, style = style)
+end
+
+function dist_consumption(pv::Vector{T}, thres::Number, sym::Symbol; style::Style = slides_def, yh = 0.65, type = "highspreads", k = 6, k_back = k, thres_back::Number = Inf) where {T<:AbstractPath}
+    Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type = type)
+
+    data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+	keyvec = [:C10, :C25, :C50, :C75, :C90, :C]
+	titlevec = ["<i>p</i>10", "<i>p</i>25", "<i>p</i>50", "<i>p</i>75", "<i>p</i>90", "Average"]
+
+	cols = [get(ColorSchemes.lapaz, jv) for jv in range(0, 0.8, length=5)]
+	push!(cols, get(ColorSchemes.lajolla, 0.5))
+
+	for (jk, key) in enumerate(keyvec)
+		ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, k_back)
+		y_av = y_av ./ y_av[1] .- 1
+		scat = scatter(x = (-k_back:k) / 4, y = 100*y_av, showlegend = true, name = titlevec[jk], mode = "lines", line = attr(color=cols[jk], width=ifelse(jk==6, 3, 2), dash=ifelse(jk==6, "dash", "solid")))
+		push!(data, scat)
+	end
+
+	layout=Layout(
+		yaxis = attr(title="<i>%</i> dev from start"),
+		legend = attr(x=0.5, xanchor="center"),
+	)
+
+	plot(data, layout, style=style)
+end
+
 function distribution_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, response="W", type="highspreads", k=6, k_back=k, thres_back::Number=Inf) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type=type)
 
@@ -724,7 +797,7 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 	f1vec .= identity
 	ytitle = ["" for jj in 1:length(keyvec)]
 
-	f1vec[[1,4]] .= x->100*x
+	f1vec[4] = x->100*x
 	f1vec[[2, 6]] .= (x->100*x/meanYb)
 	f1vec[3] = (x->100*x/meanCb)
 	f1vec[[5]] .= (x->25 * x/meanYb)
@@ -748,7 +821,7 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 		relvec[[2,3,5]] .= true
 		f1vec[[2,3,5]] .= x->100*x
 		f2vec[[2,3,5]] .= x->100*x
-		ytitle[[2,3,5]] .= "% dev from start"
+		ytitle[[2,3,5]] .= "<i>%</i> dev from start"
 	end
 
 
@@ -1223,12 +1296,12 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	println("Gain from switching to no default (WIT, t0 basis): $(@sprintf("%0.3g", 100*gain3))%, $(@sprintf("%0.3g", 100*gain3m))%\n")
 	print("Loss from 11 quarters of default risk: $(@sprintf("%0.3g", -100*total_loss))%, $(@sprintf("%0.3g", -100*total_lossm))%\n")
 
-	lossYb = mean((series(p, :Y)/series(p,:Y)[1])[t2] for p in pv_bench)
-	lossYn = mean((series(p, :Y)/series(p,:Y)[1])[t2] for p in pv_samep)
+	lossYb = mean((series(p, :Y)[t2]/series(p,:Y)[1] - 1) for p in pv_bench)
+	lossYn = mean((series(p, :Y)[t2]/series(p,:Y)[1] - 1) for p in pv_samep)
 
-	share_Yloss = 1 - (1 - lossYn) / (1 - lossYb)
+	share_Yloss = 1 - lossYn / lossYb
 
-	print("Loss of output explained by default risk: $(@sprintf("%0.3g", 100*share_Yloss))% ($(@sprintf("%0.3g", 100*(1-lossYn)))pp. of $(@sprintf("%0.3g", 100*(1-lossYb)))pp.)\n")
+	print("Loss of output explained by default risk: $(@sprintf("%0.3g", 100*share_Yloss))% ($(@sprintf("%0.3g", 100*lossYn))pp. without default of $(@sprintf("%0.3g", 100*lossYb))pp. in bench)\n")
 
 	a = 1/3
 	b = 1/20
@@ -1534,7 +1607,7 @@ end
 function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Bool=true)
 	Jgrid = agg_grid(sd)
 
-	jbv = [floor(Int, N(sd,:b)*0.25), 9, N(sd,:b)]
+	jbv = [floor(Int, N(sd,:b)*0.25), 10, N(sd,:b)]
 	_, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
 	# jμ = 1
 	jσ = 2

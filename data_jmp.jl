@@ -127,15 +127,14 @@ function load_all()
 	data
 end
 
-function regs_sec2(data::DataFrame)
+function regs_sec2(df_raw::DataFrame=load_all(); savedir="../Output/current_best/")
 
 	t0 = Date("2008-01-01") # Initial debt
 	t0 = Date("2008-01-01") 
 	t1 = Date("2010-01-01") # Initial output
 	t2 = Date("2013-01-01") # Final output
 
-	df = data[(data.TIME .>= t1) .& (data.TIME .<= t2),:]
-	# df = data	
+	df = df_raw[(df_raw.TIME .>= t1) .& (df_raw.TIME .<= t2),:]
 
 	df.spread *= 0.01 # Measured in percent
 
@@ -154,90 +153,92 @@ function regs_sec2(data::DataFrame)
 	res1 = reg(df, @formula(lcons_ ~ spread + lgdp + fe(GEO) + fe(TIME)))
 	res2 = reg(df, @formula(lcons_ ~ spread + debt + lgdp + fe(GEO) + fe(TIME)))
 
-	regtable(regY1, regY2, regC1, regC2, res1, res2, renderSettings = latexOutput("../Output/current_best/table1.txt"), regression_statistics = [:nobs, :r2_within], print_estimator_section = false, labels = Dict("__LABEL_FE_YES__" => "\\checkmark", "__LABEL_STATISTIC_adjr2__" => "Adj.~\$R^2\$", "TIME"=>"Time FE", "GEO"=>"Country FE", "lgdp"=>"\$\\log Y_t\$", "lcons"=>"\$\\log C_t\$", "lcons_"=>"\$\\log C_{t}\$", "spread"=>"Spread\$_t\$", "debt"=>"\$B_t/Y_t\$"))
+	regtable(regY1, regY2, regC1, regC2, res1, res2, renderSettings = latexOutput(savedir*"table1.txt"), regression_statistics = [:nobs, :r2_within], print_estimator_section = false, labels = Dict("__LABEL_FE_YES__" => "\\checkmark", "__LABEL_STATISTIC_adjr2__" => "Adj.~\$R^2\$", "TIME"=>"Time FE", "GEO"=>"Country FE", "lgdp"=>"\$\\log Y_t\$", "lcons"=>"\$\\log C_t\$", "lcons_"=>"\$\\log C_{t}\$", "spread"=>"Spread\$_t\$", "debt"=>"\$B_t/Y_t\$"))
 
 	regtable(regY1, regY2, regC1, regC2, regu1, regu2, res1, res2, regression_statistics = [:nobs, :adjr2, :r2_within], print_estimator_section = false, labels=Dict("TIME"=>"Time FE","GEO"=>"Country FE", "lgdp"=>"log Y_t", "lcons"=>"log C_t", "lcons_"=>" log C_t"))
 end
 
-function regs_fiscalrules(df::DataFrame; style::Style=slides_def, yh = 1)
+function regs_fiscalrules(df::DataFrame; style::Style = slides_def, yh = 1, savedir = "../Output/current_best/")
 
-	df = df[df.TIME .>= Date("2000-01-01"),:]
+    df = df[df.TIME.>=Date("2000-01-01"), :]
 
-	# df = df[df.TIME .<= Date("2010-01-01"),:]
+    # df = df[df.TIME .<= Date("2010-01-01"),:]
 
-	df.net_iss = (df.debt_level_lead - (1-0.05) * df.debt_level) ./ df.gdp
+    df.net_iss = (df.debt_level_lead - (1 - 0.05) * df.debt_level) ./ df.gdp
 
-	df.unemp2 = df.unemp.^2
-	df.BoverY2 = df.debt.^2
+    df.unemp2 = df.unemp .^ 2
+    df.BoverY2 = df.debt .^ 2
 
-	df.NXsq = df.NX.^2 .* sign.(df.NX)
+    df.NXsq = df.NX .^ 2 .* sign.(df.NX)
 
-	reg1G = reg(df, @formula(g_spend ~ unemp + unemp2 + debt + BoverY2 + NX + fe(GEO) + fe(TIME)), save=true)
-	reg2G = reg(df, @formula(g_spend ~ unemp + debt + NX + fe(GEO) + fe(TIME)), save=true)
-	reg1B = reg(df, @formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX + fe(GEO) + fe(TIME)), save=true)
-	reg2B = reg(df, @formula(net_iss ~ unemp + debt + NX + fe(GEO) + fe(TIME)), save=true)
+    reg1G = reg(df, @formula(g_spend ~ unemp + unemp2 + debt + BoverY2 + NX + fe(GEO) + fe(TIME)), save = true)
+    reg2G = reg(df, @formula(g_spend ~ unemp + debt + NX + fe(GEO) + fe(TIME)), save = true)
+    reg1B = reg(df, @formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX + fe(GEO) + fe(TIME)), save = true)
+    reg2B = reg(df, @formula(net_iss ~ unemp + debt + NX + fe(GEO) + fe(TIME)), save = true)
 
-	iss_hat = reg1B.fe.fe_GEO + reg1B.fe.fe_TIME
-	g_hat   = reg1G.fe.fe_GEO + reg1G.fe.fe_TIME
-	for jj in 1:length(reg1B.coefnames)
-		iss_hat += reg1B.coef[jj] * df[!,reg1B.coefnames[jj]]
-		g_hat += reg1G.coef[jj]  * df[!,reg1G.coefnames[jj]]
-	end
+    iss_hat = reg1B.fe.fe_GEO + reg1B.fe.fe_TIME
+    g_hat = reg1G.fe.fe_GEO + reg1G.fe.fe_TIME
+    for jj in 1:length(reg1B.coefnames)
+        iss_hat += reg1B.coef[jj] * df[!, reg1B.coefnames[jj]]
+        g_hat += reg1G.coef[jj] * df[!, reg1G.coefnames[jj]]
+    end
 
-	reg3G = lm(@formula(g_spend ~ unemp + debt + NX), df[df.GEO.=="Spain",:])
-	reg4G = lm(@formula(g_spend ~ unemp + unemp2 + debt + BoverY2 + NX), df[df.GEO.=="Spain",:])
-	reg3B = lm(@formula(net_iss ~ unemp + debt + NX), df[df.GEO.=="Spain",:])
-	# reg4B = lm(@formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX + NXsq), df[df.GEO.=="Spain",:])
-	reg4B = lm(@formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX), df[df.GEO.=="Spain",:])
+    reg3G = lm(@formula(g_spend ~ unemp + debt + NX), df[df.GEO.=="Spain", :])
+    reg4G = lm(@formula(g_spend ~ unemp + unemp2 + debt + BoverY2 + NX), df[df.GEO.=="Spain", :])
+    reg3B = lm(@formula(net_iss ~ unemp + debt + NX), df[df.GEO.=="Spain", :])
+    # reg4B = lm(@formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX + NXsq), df[df.GEO.=="Spain",:])
+    reg4B = lm(@formula(net_iss ~ unemp + unemp2 + debt + BoverY2 + NX), df[df.GEO.=="Spain", :])
 
-	# g_hat = predict(reg4G)
-	# iss_hat = predict(reg4B)
-	g_hat = predict(reg3G)
-	iss_hat = predict(reg3B)
+    # g_hat = predict(reg4G)
+    # iss_hat = predict(reg4B)
+    g_hat = predict(reg3G)
+    iss_hat = predict(reg3B)
 
-	println(regtable(reg1G, reg2G, reg3G, reg4G, reg1B, reg2B, reg3B, reg4B, renderSettings=asciiOutput(),regression_statistics = [:nobs, :r2, :adjr2, :r2_within], print_estimator_section = false, labels=Dict("TIME"=>"Time FE","GEO"=>"Country FE", "g_spend" => "G_t/Y_t", "unemp" => "Unemployment_t", "unemp2" => "Unemployment_t^2", "debt" => "B_t/Y_t", "BoverY2" => "(B_t/Y_t)^2", "NX" => "Net Exports_t", "NXsq" => "Net Exports_t^2", "net_iss" => "(B_t' - (1-ρ)B_t) / Y_t")))
+    println(regtable(reg1G, reg2G, reg3G, reg4G, reg1B, reg2B, reg3B, reg4B, renderSettings = asciiOutput(), regression_statistics = [:nobs, :r2, :adjr2, :r2_within], print_estimator_section = false, labels = Dict("TIME" => "Time FE", "GEO" => "Country FE", "g_spend" => "G_t/Y_t", "unemp" => "Unemployment_t", "unemp2" => "Unemployment_t^2", "debt" => "B_t/Y_t", "BoverY2" => "(B_t/Y_t)^2", "NX" => "Net Exports_t", "NXsq" => "Net Exports_t^2", "net_iss" => "(B_t' - (1-ρ)B_t) / Y_t")))
 
-	regtable(reg4G, reg3G, reg4B, reg3B, renderSettings = latexOutput("../Output/table_fiscal.txt"), regression_statistics = [:nobs, :r2], print_estimator_section = false, labels = Dict("__LABEL_STATISTIC_adjr2__" => "Adj.~\$R^2\$", "__LABEL_STATISTIC_N__" => "Observations", "TIME"=>"Time FE", "GEO"=>"Country FE", "(Intercept)" => "Constant", "g_spend" => "\$G_t/Y_t\$", "unemp" => "Unemployment\$_t\$", "unemp2" => "Unemployment\$_t^2\$", "debt" => "\$B_t/Y_t\$", "BoverY2" => "\$(B_t/Y_t)^2\$", "NX" => "Net Exports\$_t\$", "NXsq" => "Net Exports\$_t^2\$", "net_iss" => "\$(B_t' - (1-ρ)B_t) / Y_t\$"))
+    println(regtable(reg4G, reg3G, reg4B, reg3B, renderSettings = asciiOutput(), regression_statistics = [:nobs, :r2], print_estimator_section = false, labels = Dict("TIME" => "Time FE", "GEO" => "Country FE", "g_spend" => "G_t/Y_t", "unemp" => "Unemployment_t", "unemp2" => "Unemployment_t^2", "debt" => "B_t/Y_t", "BoverY2" => "(B_t/Y_t)^2", "NX" => "Net Exports_t", "NXsq" => "Net Exports_t^2", "net_iss" => "(B_t' - (1-ρ)B_t) / Y_t")))
+
+    regtable(reg4G, reg3G, reg4B, reg3B, renderSettings = latexOutput(savedir * "table_fiscal.txt"), regression_statistics = [:nobs, :r2], print_estimator_section = false, labels = Dict("__LABEL_STATISTIC_adjr2__" => "Adj.~\$R^2\$", "__LABEL_STATISTIC_N__" => "Observations", "TIME" => "Time FE", "GEO" => "Country FE", "(Intercept)" => "Constant", "g_spend" => "\$G_t/Y_t\$", "unemp" => "Unemployment\$_t\$", "unemp2" => "Unemployment\$_t^2\$", "debt" => "\$B_t/Y_t\$", "BoverY2" => "\$(B_t/Y_t)^2\$", "NX" => "Net Exports\$_t\$", "NXsq" => "Net Exports\$_t^2\$", "net_iss" => "\$(B_t' - (1-ρ)B_t) / Y_t\$"))
 
 
-	col = [	
-		get(ColorSchemes.davos, 0.2)
-		get(ColorSchemes.lajolla, 0.6)
-		get(ColorSchemes.cork, 0.9)
-	]
+    col = [
+        get(ColorSchemes.davos, 0.2)
+        get(ColorSchemes.lajolla, 0.6)
+        get(ColorSchemes.cork, 0.9)
+    ]
 
-	data = [
-		scatter(x=df[df.GEO.=="Spain",:].TIME, y=df[df.GEO.=="Spain",:].net_iss, name = "Observed", legendgroup = 1, yaxis="y1", marker_color=col[1])
-		scatter(x=df[df.GEO.=="Spain",:].TIME, y=df[df.GEO.=="Spain",:].g_spend, name = "Observed", legendgroup = 1, yaxis="y2", showlegend=false, marker_color=col[1])
-		scatter(x=df[df.GEO.=="Spain",:].TIME, y=iss_hat, name = "Fitted", line_dash="dashdot", legendgroup=2, yaxis="y1", marker_color=col[2])
-		scatter(x=df[df.GEO.=="Spain",:].TIME, y=g_hat, name = "Fitted", line_dash="dashdot", legendgroup=2, yaxis="y2", showlegend=false, marker_color=col[2])
-	]
+    data = [
+        scatter(x = df[df.GEO.=="Spain", :].TIME, y = df[df.GEO.=="Spain", :].net_iss, name = "Observed", legendgroup = 1, yaxis = "y1", marker_color = col[1])
+        scatter(x = df[df.GEO.=="Spain", :].TIME, y = df[df.GEO.=="Spain", :].g_spend, name = "Observed", legendgroup = 1, yaxis = "y2", showlegend = false, marker_color = col[1])
+        scatter(x = df[df.GEO.=="Spain", :].TIME, y = iss_hat, name = "Fitted", line_dash = "dashdot", legendgroup = 2, yaxis = "y1", marker_color = col[2])
+        scatter(x = df[df.GEO.=="Spain", :].TIME, y = g_hat, name = "Fitted", line_dash = "dashdot", legendgroup = 2, yaxis = "y2", showlegend = false, marker_color = col[2])
+    ]
 
-	annotations = [
-		attr(x=0.5, xref="paper", xanchor="center", y=1.025, yref="paper", text = "Government Spending", font_size=18, showarrow=false)
-		attr(x=0.5, xref="paper", xanchor="center", y=0.45, yref="paper", text = "Debt Issuances", font_size=18, showarrow=false)
-		]
+    annotations = [
+        attr(x = 0.5, xref = "paper", xanchor = "center", y = 1.025, yref = "paper", text = "Government Spending", font_size = 18, showarrow = false)
+        attr(x = 0.5, xref = "paper", xanchor = "center", y = 0.45, yref = "paper", text = "Debt Issuances", font_size = 18, showarrow = false)
+    ]
 
-	layout = Layout(annotations = annotations, height = style.layout[:height]*yh,
-		yaxis1 = attr(domain = [0, 0.4], title="% of GDP"),
-		yaxis2 = attr(domain = [0.55, 0.95], title="% of GDP"),
-		)
+    layout = Layout(annotations = annotations, height = style.layout[:height] * yh,
+        yaxis1 = attr(domain = [0, 0.4], title = "% of GDP"),
+        yaxis2 = attr(domain = [0.55, 0.95], title = "% of GDP"),
+    )
 
-	pg = plot([
-		scatter(x=df[df.GEO.=="Spain",:].TIME, y=df[df.GEO.=="Spain",:].net_iss, name = "Observed")
-		scatter(x=df[df.GEO.=="Spain",:].TIME, y=iss_hat, name = "Fitted")
-		]
-		)
-	pb = plot([
-		scatter(x=df[df.GEO.=="Spain",:].TIME, y=df[df.GEO.=="Spain",:].g_spend, name = "Observed")
-		scatter(x=df[df.GEO.=="Spain",:].TIME, y=g_hat, name = "Fitted")
-		]
-		)
+    pg = plot([
+        scatter(x = df[df.GEO.=="Spain", :].TIME, y = df[df.GEO.=="Spain", :].net_iss, name = "Observed")
+        scatter(x = df[df.GEO.=="Spain", :].TIME, y = iss_hat, name = "Fitted")
+    ]
+    )
+    pb = plot([
+        scatter(x = df[df.GEO.=="Spain", :].TIME, y = df[df.GEO.=="Spain", :].g_spend, name = "Observed")
+        scatter(x = df[df.GEO.=="Spain", :].TIME, y = g_hat, name = "Fitted")
+    ]
+    )
 
-	plot(data, layout, style=style)
+    plot(data, layout, style = style)
 
-	# return coef(reg4G), coef(reg4B)
-	# return coef(reg3G), coef(reg3B)
+    # return coef(reg4G), coef(reg4B)
+    # return coef(reg3G), coef(reg3B)
 end
 
 function hp_filter(y::Vector{Float64}, lambda::Float64=1600.)

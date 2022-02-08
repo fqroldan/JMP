@@ -41,12 +41,11 @@ function plot_data(varvec, title; style::Style=slides_def_noleg)
 	vals = dataraw[8:end,5:end-1]
 	vals[typeof.(vals).==String].=NaN
 
-	vals = convert(Matrix{Float64}, vals)
+	vals = convert(Matrix{Float64}, vals')
 
 	dates = Date.(replace.(dataraw[7,5:end-1], "M"=>"-"), "yyyy-mm")
 
-	df = DataFrame(vals')
-	rename!(df, varnames)
+	df = DataFrame(vals, varnames)
 	df.date = dates
 
 	layout = Layout(height = 0.5 * 1080, width=0.5*1920, yaxis_title="%", title=title)

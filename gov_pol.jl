@@ -97,6 +97,7 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=20e-4, nodef::Bo
 		init_msg *= " in nodef"
 	elseif noΔ
 		init_msg *= " in noΔ"
+		sd.pars[:Δ] = 0
 	elseif nob
 		init_msg *= " in nob"
 	end
@@ -120,6 +121,9 @@ function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=20e-4, nodef::Bo
 	end
 	if nob
 		sd.opt[:nob] = true
+	end
+	if noΔ
+		sd.opt[:noΔ] = true
 	end
 	Jgrid = agg_grid(sd);
 
