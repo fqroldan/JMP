@@ -443,26 +443,67 @@ function distribution_crises_new(pv::Vector{T}, thres::Number, sym::Symbol; styl
     colatm = get(ColorSchemes.vikO, 0.65)
     cols = [colmed, colavg, colatm]
 
-	dashes = ["solid", "dash", "dot"]
+    dashes = ["solid", "dash", "dot"]
 
-	names = ["Average", "<i>p</i>50", "at mean"]
+    names = ["Average", "<i>p</i>50", "at mean"]
     data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
-	C_drop = zeros(3)
+    C_drop = zeros(3)
+    for (jr, resp) in enumerate(["C"])
+    # for (jr, resp) in enumerate(["C", "Wr"])
+        for (jk, nv) in enumerate(["", "50"])
+        # for (jk, nv) in enumerate(["", "50", "_atm"])
+            key = Symbol(resp * nv)
+            ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, k_back)
+            scats = [
+                scatter(x = (-k_back:k) / 4, y = y_up, hoverinfo = "skip", showlegend = false, mode = "lines", line = attr(color = cols[jk], width = 0.001), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
+                scatter(x = (-k_back:k) / 4, y = y_lo, hoverinfo = "skip", name = names[jk], mode = "lines", line = attr(color = cols[jk], width = 0.001), fill = "tonexty", showlegend = (jr == 1), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
+                scatter(x = (-k_back:k) / 4, y = y_av, showlegend = false, name = names[jk], mode = "lines", line = attr(color = cols[jk], dash = dashes[jk]), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
+            ]
+            push!(data, scats...)
+            if resp == "C"
+                c_drop = y_av[end-k] / y_av[1] - 1
+                print("Consumption drop in $(names[jk]) = $(round(100*c_drop, sigdigits=2))%\n")
+                C_drop[jk] = c_drop
+            end
+        end
+    end
+
+    annotations = [
+        attr(text = "Consumption", xanchor = "center", x = 1 / 2, xref = "paper", y = 1, yref = "paper", yanchor = "bottom", showarrow = false, font_size = 18)
+        # attr(text = "Consumption", xanchor = "center", x = 0.45 / 2, xref = "paper", y = 1, yref = "paper", yanchor = "bottom", showarrow = false, font_size = 18)
+        # attr(text = "Welfare in repayment", xanchor = "center", x = 1.55 / 2, xref = "paper", y = 1, yref = "paper", yanchor = "bottom", showarrow = false, font_size = 18)
+    ]
+
+    layout = Layout(
+        annotations = annotations,
+        xaxis1 = attr(domain = [0, 1], anchor = "y1"),
+        # xaxis1 = attr(domain = [0, 0.45], anchor = "y1"),
+        xaxis2 = attr(domain = [0.55, 1], anchor = "y2"),
+        yaxis1 = attr(anchor = "x1"),
+        yaxis2 = attr(anchor = "x2"),
+        legend = attr(x = 0.5, xanchor = "center"),
+    )
+
+    plot(data, layout, style = style)
+end
+
+function dist_CW(pv::Vector{T}, thres::Number, sym::Symbol; style::Style = slides_def, yh = 0.65, type = "highspreads", k = 6, k_back = k, thres_back::Number = Inf) where {T<:AbstractPath}
+    Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type = type)
+
+    data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+	keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
+	titlevec = ["<i>p</i>10", "<i>p</i>25", "<i>p</i>50", "<i>p</i>75", "<i>p</i>90", "Average"]
+
+	cols = [get(ColorSchemes.lapaz, jv) for jv in range(0, 0.8, length=5)]
+	push!(cols, get(ColorSchemes.lajolla, 0.5))
+
 	for (jr, resp) in enumerate(["C", "Wr"])
-		for (jk, nv) in enumerate(["", "50", "_atm"])
-		    key = Symbol(resp * nv)
-		    ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, k_back)
-		    scats = [
-		        scatter(x = (-k_back:k) / 4, y = y_up, hoverinfo = "skip", showlegend = false, mode = "lines", line = attr(color = cols[jk], width = 0.001), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
-		        scatter(x = (-k_back:k) / 4, y = y_lo, hoverinfo = "skip", name = names[jk], mode = "lines", line = attr(color = cols[jk], width = 0.001), fill = "tonexty", showlegend = (jr == 1), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
-		        scatter(x = (-k_back:k) / 4, y = y_av, showlegend = false, name = names[jk], mode = "lines", line = attr(color = cols[jk], dash = dashes[jk]), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
-		    ]
-		    push!(data, scats...)
-			if resp == "C"
-				c_drop = y_av[end-k] / y_av[1] - 1
-				print("Consumption drop in $(names[jk]) = $(round(100*c_drop, sigdigits=2))%\n")
-				C_drop[jk] = c_drop
-			end
+		for (jk, nv) in enumerate(["10", "25", "50", "75", "90", ""])
+			key = Symbol(resp * nv)
+			ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, k_back)
+			y_av = y_av ./ y_av[1] .- 1
+			scat = scatter(x = (-k_back:k) / 4, y = 100*y_av, showlegend = (jr==1), name = titlevec[jk], mode = "lines", line = attr(color=cols[jk], width=ifelse(jk==6, 3, 2), dash=ifelse(jk==6, "dash", "solid")), xaxis="x$jr", yaxis="y$jr", legendgroup = jk)
+			push!(data, scat)
 		end
 	end
 
@@ -475,33 +516,8 @@ function distribution_crises_new(pv::Vector{T}, thres::Number, sym::Symbol; styl
 		annotations = annotations,
 		xaxis1 = attr(domain = [0, 0.45], anchor="y1"),
 		xaxis2 = attr(domain = [0.55, 1], anchor="y2"),
-		yaxis1 = attr(anchor = "x1"),
-		yaxis2 = attr(anchor = "x2"),
-		legend = attr(x = 0.5, xanchor = "center"),
-	)
-
-    plot(data, layout, style = style)
-end
-
-function dist_consumption(pv::Vector{T}, thres::Number, sym::Symbol; style::Style = slides_def, yh = 0.65, type = "highspreads", k = 6, k_back = k, thres_back::Number = Inf) where {T<:AbstractPath}
-    Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type = type)
-
-    data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
-	keyvec = [:C10, :C25, :C50, :C75, :C90, :C]
-	titlevec = ["<i>p</i>10", "<i>p</i>25", "<i>p</i>50", "<i>p</i>75", "<i>p</i>90", "Average"]
-
-	cols = [get(ColorSchemes.lapaz, jv) for jv in range(0, 0.8, length=5)]
-	push!(cols, get(ColorSchemes.lajolla, 0.5))
-
-	for (jk, key) in enumerate(keyvec)
-		ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, k_back)
-		y_av = y_av ./ y_av[1] .- 1
-		scat = scatter(x = (-k_back:k) / 4, y = 100*y_av, showlegend = true, name = titlevec[jk], mode = "lines", line = attr(color=cols[jk], width=ifelse(jk==6, 3, 2), dash=ifelse(jk==6, "dash", "solid")))
-		push!(data, scat)
-	end
-
-	layout=Layout(
-		yaxis = attr(title="<i>%</i> dev from start"),
+		yaxis1 = attr(anchor = "x1", title="<i>%</i> dev from start"),
+		yaxis2 = attr(anchor = "x2", title="<i>%</i> dev from start"),
 		legend = attr(x=0.5, xanchor="center"),
 	)
 
