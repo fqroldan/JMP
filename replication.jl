@@ -1,6 +1,6 @@
 ### Make sure folder "Replication" exists and is empty
 print("\n\nReplication package for 'The Aggregate-Demand Doom Loop.'\nLast updated Feb 9, 2022\n\n\n")
-print("Make sure folder 'Replication' exists and is empty. Then give 'resolve_resimulate()'.\n\n")
+print("Make sure folder '../Replication' exists and is empty and '../Output/' contains SOEdef.jld2, SOEdef_nodef.jld2, and IRF.jld2 (otherwise give 'resolve_resimulate()' with appropriate loaddir). Then give 'replicate()'.\n\n")
 
 include("main_serial.jl")
 include("data_jmp.jl")
