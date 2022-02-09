@@ -7,16 +7,18 @@ include("data_jmp.jl")
 include("data_rates.jl")
 include("minimal_oneagent.jl")
 
-function resolve_all(folder = "../Replication/")
-    sd_bench = load("../Output/SOEdef.jld", "sd")
+function resolve_resimulate(folder = "../Replication/")
+    sd_bench = load("../Output/SOEdef.jld2", "sd");
     mpe_iter!(sd_bench, run_number = 1)
-    g, p_bench, _, _, _ = make_simulated_path(sd_bench, "../Output/run1/", 100_000, K = 500)
+    K = 500
+    T = 200*K
+    g, p_bench, _, _, _ = make_simulated_path(sd_bench, "../Output/run1/", T, K = K);
     Wr_bench = mean([mean(series(p, :Wr)) for p in p_bench])
     save(folder * "SOEdef.jld2", "sd", sd_bench, "pp", p_bench, "Wr", Wr_bench)
 
-    sd_nodef = load("../Output/SOEdef.jld", "sd")
+    sd_nodef = load("../Output/SOEdef_nodef.jld", "sd")
     mpe_iter!(sd_nodef, run_number = 2, nodef = true)
-    g, p_nodef, _, _, _ = make_simulated_path(sd_nodef, "../Output/run2/", 10_000, K = 50)
+    g, p_nodef, _, _, _ = make_simulated_path(sd_nodef, "../Output/run2/", T, K = K)
     Wr_nodef = mean([mean(series(p, :Wr)) for p in p_nodef])
     save(folder * "SOEdef_nodef.jld2", "sd", sd_nodef, "pp", p_nodef, "Wr", Wr_nodef)
 
