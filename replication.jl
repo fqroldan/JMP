@@ -32,10 +32,10 @@ end
 function replicate(folder = "../Replication/"; loaddir = "../Output/")
     df_all = load_all()
 
-    sd_bench, p_bench, W_bench = load(loaddir*"SOEdef.jld2", "sd", "pp", "Wr");
-    sd_nodef, p_nodef, W_nodef = load(loaddir*"SOEdef_nodef.jld2", "sd", "pp", "Wr");
+    sd_bench, p_bench, W_bench = load(loaddir * "SOEdef.jld2", "sd", "pp", "Wr")
+    sd_nodef, p_nodef, W_nodef = load(loaddir * "SOEdef_nodef.jld2", "sd", "pp", "Wr")
 
-    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load(loaddir*"IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep");
+    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load(loaddir * "IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep")
 
     freq_bench = get_def_freq(p_bench)
     v_nodef = simul_stats(p_nodef)
@@ -137,7 +137,9 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/")
     fig17 = make_panels(sd_bench, "T", style = paper, leg = false)
     savefig(fig17, folder * "transfers_paper.pdf", width = 800, height = 400)
 
-    # Figure 18: Slack in the Spanish economy
+    # Figure 18: Factors limiting production
+    fig18 = make_FLP(; style = paper)
+    savefig(fig18, folder * "factorsLP_paper.pdf", width = 900, height = 350)
 
     # Figure 19: Estimated Fiscal rules
     ## Done along with table 2

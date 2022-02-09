@@ -576,3 +576,30 @@ function WEO_spark(; own, style::Style=slides_def)
 
 	plot(sc, layout, style=style)
 end
+
+function make_FLP(;style=slides_def)
+	vnraw = XLSX.readdata("../Data/Eurostat aggregates/ei_bsin_q_r2.xlsx", "Sheet 1!B9:G9")
+	dtraw = XLSX.readdata("../Data/Eurostat aggregates/ei_bsin_q_r2.xlsx", "Sheet 1!A71:G179")
+
+	varnames = ["date"]
+	for vn in vnraw
+		push!(varnames, vn[35:end])
+	end
+
+	df = DataFrame(dtraw, varnames)
+
+	df.date = Date.(["$(parse(Int, df.date[jt][1:4]))-$(parse(Int,df.date[jt][end])*3-2)" for jt in 1:length(df.date)], "yyyy-mm")
+
+	df = df[df.date .>= Date("2002-01-01"), :]
+	df = df[df.date .< Date("2020-01-01"), :]
+
+	scats = [
+		scatter(x=df.date, y=df[!,key], name = key) for key in names(df) if key != "date"
+	]
+	layout = Layout(
+		legend = attr(x=0.5, xanchor="center", xref="paper"),
+		yaxis = attr(title="<i>%")
+	)
+
+	plot(scats, layout, style=style)
+end
