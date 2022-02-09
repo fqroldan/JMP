@@ -1,5 +1,5 @@
 ### Make sure folder "Replication" exists and is empty
-print("\n\nReplication package for 'The Aggregate-Demand Doom Loop.'\nLast updated Feb 8, 2022\n\n\n")
+print("\n\nReplication package for 'The Aggregate-Demand Doom Loop.'\nLast updated Feb 9, 2022\n\n\n")
 print("Make sure folder 'Replication' exists and is empty. Then give 'resolve_resimulate()'.\n\n")
 
 include("main_serial.jl")
@@ -32,10 +32,10 @@ end
 function replicate(folder = "../Replication/"; loaddir = "../Output/")
     df_all = load_all()
 
-    sd_bench, p_bench, W_bench = load(loaddir*"SOEdef.jld2", "sd", "pp", "Wr")
-    sd_nodef, p_nodef, W_nodef = load(loaddir*"SOEdef_nodef.jld2", "sd", "pp", "Wr")
+    sd_bench, p_bench, W_bench = load(loaddir*"SOEdef.jld2", "sd", "pp", "Wr");
+    sd_nodef, p_nodef, W_nodef = load(loaddir*"SOEdef_nodef.jld2", "sd", "pp", "Wr");
 
-    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load(loaddir*"IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep")
+    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load(loaddir*"IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep");
 
     freq_bench = get_def_freq(p_bench)
     v_nodef = simul_stats(p_nodef)
@@ -71,7 +71,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/")
     savefig(fig19, folder * "fiscalrules_paper.pdf", width = 800, height = 400)
 
     # Table 3: Parameter Values
-    write(folder * "params_table.txt", make_params_table(sd))
+    write(folder * "params_table.txt", make_params_table(sd_bench))
 
     # Table 4: Model Fit
     v_bench = simul_stats(p_bench)
@@ -83,11 +83,11 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/")
 
     # Figure 7: Price of Debt
     fig7 = make_debtprice(sd_bench, style = paper, leg = false)
-    savefig(fig7, folder * "debtprice_paper.pdf", width = 900, height = 400)
+    savefig(fig7, folder * "debtprice_paper.pdf", width = 900, height = 350)
 
     # Figure 8: Unemployment
     fig8 = make_unemp(sd_bench, style = paper, leg = false)
-    savefig(fig8, folder * "unemp_paper.pdf", width = 900, height = 400)
+    savefig(fig8, folder * "unemp_paper.pdf", width = 900, height = 350)
 
     # Table 5: Models
     write(folder * "calib_table_comp.txt",
@@ -117,11 +117,11 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/")
     savefig(fig12, folder * "distribution_crises_paper.pdf", width = 600, height = 400)
 
     # Figure 13: Default-risk IRF
-    fig13 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.96, style = paper)
+    fig13 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.9474, style = paper)
     savefig(fig13, folder * "defaultriskIRF_paper.pdf", width = 1100, height = 550)
 
     # Figure 14: Value functions in the crisis
-    fig14 = distribution_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.96, style = paper)
+    fig14 = distribution_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.9474, style = paper)
     savefig(fig14, folder * "distribIRF_paper.pdf", width = 800, height = 400)
 
     # Figure 15: Subjective probabilities of default

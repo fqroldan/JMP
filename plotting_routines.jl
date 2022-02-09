@@ -462,11 +462,13 @@ function distribution_crises_new(pv::Vector{T}, thres::Number, sym::Symbol; styl
             push!(data, scats...)
             if resp == "C"
                 c_drop = y_av[end-k] / y_av[1] - 1
-                print("Consumption drop in $(names[jk]) = $(round(100*c_drop, sigdigits=2))%\n")
+                print("Consumption drop in $(names[jk]) = $(round(100*c_drop, sigdigits=4))%\n")
                 C_drop[jk] = c_drop
             end
         end
     end
+
+	print("Portion explained by amplification: $(round(100*(C_drop[1]/C_drop[2]-1), sigdigits=3))%\n")
 
     annotations = [
         attr(text = "Consumption", xanchor = "center", x = 1 / 2, xref = "paper", y = 1, yref = "paper", yanchor = "bottom", showarrow = false, font_size = 18)
