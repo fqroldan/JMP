@@ -215,11 +215,11 @@ function solve_period1(sm::SOEmin; debt=0.2, Δ=0.4, y1=1, planner, repurchase=f
 
 	obj_f(s1) = s1
 
-	if repurchase
-		obj_f(s1) = (Euler_eq_LHS(sm, 0.0, y1+q1(sm, debt-s1, Δ)*(-s1), planner=planner) - Euler_eq_RHS(sm, 0.0, debt-s1, Δ))^2
-	else
-		obj_f(s1) = (Euler_eq_LHS(sm, s1, y1+q1v*debt; planner=planner) - Euler_eq_RHS(sm, s1, debt, Δ))^2
-	end
+	# if repurchase
+	# 	obj_f(s1) = (Euler_eq_LHS(sm, 0.0, y1+q1(sm, debt-s1, Δ)*(-s1), planner=planner) - Euler_eq_RHS(sm, 0.0, debt-s1, Δ))^2
+	# else
+	# end
+	obj_f(s1) = (Euler_eq_LHS(sm, s1, y1+q1v*debt; planner=planner) - Euler_eq_RHS(sm, s1, debt, Δ))^2
 	q1v = q1(sm, debt, Δ) * 0.0
 
 	res = Optim.optimize(obj_f, 0, y1/(1+sm.pars[:r]) - 1e-4, Brent())
