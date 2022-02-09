@@ -16,7 +16,7 @@ function resolve_resimulate(folder = "../Replication/")
     Wr_bench = mean([mean(series(p, :Wr)) for p in p_bench])
     save(folder * "SOEdef.jld2", "sd", sd_bench, "pp", p_bench, "Wr", Wr_bench)
 
-    sd_nodef = load("../Output/SOEdef_nodef.jld", "sd")
+    sd_nodef = load("../Output/SOEdef_nodef.jld2", "sd")
     mpe_iter!(sd_nodef, run_number = 2, nodef = true)
     g, p_nodef, _, _, _ = make_simulated_path(sd_nodef, "../Output/run2/", T, K = K)
     Wr_nodef = mean([mean(series(p, :Wr)) for p in p_nodef])
