@@ -1,39 +1,41 @@
 ### Make sure folder "Replication" exists and is empty
-print("The Aggregate-Demand Doom Loop. Replication package. Last updated Feb 8, 2022\n")
-print("Make sure folder 'Replication' exists and is empty. Then give 'replicate()'.\n")
+print("\n\nReplication package for 'The Aggregate-Demand Doom Loop.'\nLast updated Feb 8, 2022\n\n\n")
+print("Make sure folder 'Replication' exists and is empty. Then give 'resolve_resimulate()'.\n\n")
 
 include("main_serial.jl")
 include("data_jmp.jl")
 include("data_rates.jl")
 include("minimal_oneagent.jl")
 
-function resolve_resimulate(folder = "../Replication/")
-    sd_bench = load("../Output/SOEdef.jld2", "sd");
+function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/")
+    sd_bench = load(loaddir*"SOEdef.jld2", "sd");
     mpe_iter!(sd_bench, run_number = 1)
     K = 500
     T = 200*K
-    g, p_bench, _, _, _ = make_simulated_path(sd_bench, "../Output/run1/", T, K = K);
+    g, p_bench, _, _, _ = make_simulated_path(sd_bench, loaddir*"run1/", T, K = K);
     Wr_bench = mean([mean(series(p, :Wr)) for p in p_bench])
     save(folder * "SOEdef.jld2", "sd", sd_bench, "pp", p_bench, "Wr", Wr_bench)
 
-    sd_nodef = load("../Output/SOEdef_nodef.jld2", "sd")
+    sd_nodef = load(loaddir*"SOEdef_nodef.jld2", "sd")
     mpe_iter!(sd_nodef, run_number = 2, nodef = true)
-    g, p_nodef, _, _, _ = make_simulated_path(sd_nodef, "../Output/run2/", T, K = K)
+    g, p_nodef, _, _, _ = make_simulated_path(sd_nodef, loaddir*"run2/", T, K = K)
     Wr_nodef = mean([mean(series(p, :Wr)) for p in p_nodef])
     save(folder * "SOEdef_nodef.jld2", "sd", sd_nodef, "pp", p_nodef, "Wr", Wr_nodef)
 
     pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = IRF_default(sd_bench, sd_nodef, 1, 11, 9, B0 = 5.5, K = 5000)
     save(folder * "IRF.jld2", "pIRF_bench", pIRF_bench, "t1", t1, "t2", t2, "pIRF_nodef", pIRF_nodef, "pIRF_samep", pIRF_samep)
+
+    nothing
 end
 
 
-function replicate(folder = "../Replication/")
+function replicate(folder = "../Replication/"; loaddir = "../Output/")
     df_all = load_all()
 
-    sd_bench, p_bench, W_bench = load("../Output/SOEdef.jld2", "sd", "pp", "Wr")
-    sd_nodef, p_nodef, W_nodef = load("../Output/SOEdef_nodef.jld2", "sd", "pp", "Wr")
+    sd_bench, p_bench, W_bench = load(loaddir*"SOEdef.jld2", "sd", "pp", "Wr")
+    sd_nodef, p_nodef, W_nodef = load(loaddir*"SOEdef_nodef.jld2", "sd", "pp", "Wr")
 
-    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load("../Output/IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep")
+    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load(loaddir*"IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep")
 
     freq_bench = get_def_freq(p_bench)
     v_nodef = simul_stats(p_nodef)
