@@ -73,7 +73,7 @@ function make_params_table(sd::SOEdef)
 end
 
 function make_calib_table(v_m)
-	table = "\\begin{tabular*}{.5\\textwidth}{@{\\extracolsep{20pt}}lcc@{}} \\toprule \n"
+	table = "\\begin{tabular}{lcc@{}} \\toprule \n"
 
 	colnames = ["\\textbf{Target}", "\\textbf{Model}", "\\textbf{Data}"]
 
@@ -101,7 +101,7 @@ function make_calib_table(v_m)
 
 	# table *= " \\multicolumn{3}{@{}p{.5\\textwidth}@{}}{\\footnotesize All data from Eurostat 2000Q1:2017Q4, except private consumption from OECD 2000Q1:2017Q4, domestic holdings from Banco de España, 2004Q1:2017Q4}\n"
 
-	table *= "\\end{tabular*}"
+	table *= "\\end{tabular}"
 	return table
 end
 

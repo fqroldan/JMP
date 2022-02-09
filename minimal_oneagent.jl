@@ -54,7 +54,7 @@ function SOEmin(;
 	ϖ=0.55,			# Relative weight of nontradables
 	η=1/0.83-1,		# Elasticity of substitution btw T and N
 	Δ=.075,			# Productivity loss in default
-	wbar=0.38,		# Wage rigidity
+	wbar=0.35,		# Wage rigidity
 
 	Nz = 500,
 )
@@ -313,7 +313,7 @@ function minimal_twoagents(γ = 4; style::Style=slides_def)
 		yaxis = attr(title = "Size of transfer (% of agg. consumption)", tick_padding=200),
 		)
 
-	plot(contour(x=100πvec, y=100kvec, z=100 * [c(k,π,γ)/c(0,0,γ) - 1 for π in πvec, k in kvec], line_width=0.1, contours=Dict(:start=>0,:end=>-2.5, :size=>0.125, :coloring=>"fill")), style=Style(style, contsty(ColorSchemes.davos)), layout)
+	plot(contour(x=100πvec, y=100kvec, z=100 * [c(k,π,γ)/c(0,0,γ) - 1 for π in πvec, k in kvec], line_width=0.1, contours=Dict(:start=>0,:end=>-2.5, :size=>0.125, :coloring=>"fill"), colorbar=attr(tick0=0, dtick=0.5)), style=Style(style, contsty(ColorSchemes.davos)), layout)
 end
 
 function equil_period1(sm::SOEmin, f::Function; Δv, dv, planner)

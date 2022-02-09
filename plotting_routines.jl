@@ -451,13 +451,13 @@ function distribution_crises_new(pv::Vector{T}, thres::Number, sym::Symbol; styl
     for (jr, resp) in enumerate(["C"])
     # for (jr, resp) in enumerate(["C", "Wr"])
         for (jk, nv) in enumerate(["", "50"])
-        # for (jk, nv) in enumerate(["", "50", "_atm"])
+            # for (jk, nv) in enumerate(["", "50", "_atm"])
             key = Symbol(resp * nv)
             ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, k_back)
             scats = [
                 scatter(x = (-k_back:k) / 4, y = y_up, hoverinfo = "skip", showlegend = false, mode = "lines", line = attr(color = cols[jk], width = 0.001), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
-                scatter(x = (-k_back:k) / 4, y = y_lo, hoverinfo = "skip", name = names[jk], mode = "lines", line = attr(color = cols[jk], width = 0.001), fill = "tonexty", showlegend = (jr == 1), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
-                scatter(x = (-k_back:k) / 4, y = y_av, showlegend = false, name = names[jk], mode = "lines", line = attr(color = cols[jk], dash = dashes[jk]), legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
+                scatter(x = (-k_back:k) / 4, y = y_av, showlegend = (jr == 1), name = names[jk], mode = "lines", line = attr(color = cols[jk], dash = dashes[jk]), legendgroup = jk, fill = "tonexty", xaxis = "x$jr", yaxis = "y$jr")
+                scatter(x = (-k_back:k) / 4, y = y_lo, hoverinfo = "skip", name = names[jk], mode = "lines", line = attr(color = cols[jk], width = 0.001), fill = "tonexty", showlegend = false, legendgroup = jk, xaxis = "x$jr", yaxis = "y$jr")
             ]
             push!(data, scats...)
             if resp == "C"
