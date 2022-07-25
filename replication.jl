@@ -1,5 +1,5 @@
 ### Make sure folder "Replication" exists and is empty
-print("\n\nReplication package for 'The Aggregate-Demand Doom Loop.'\nLast updated Feb 9, 2022\n\n\n")
+print("\n\nReplication package for 'The Aggregate-Demand Doom Loop.'\nLast updated Jul 25, 2022\n\n\n")
 print("Make sure folder '../Replication' exists and is empty and '../Output/' contains SOEdef.jld2, SOEdef_nodef.jld2, and IRF.jld2 (otherwise give 'resolve_resimulate()' with appropriate loaddir). Then give 'replicate()'.\n\n")
 
 include("main_serial.jl")
@@ -32,10 +32,10 @@ end
 function replicate(folder = "../Replication/"; loaddir = "../Output/")
     df_all = load_all()
 
-    sd_bench, p_bench, W_bench = load(loaddir * "SOEdef.jld2", "sd", "pp", "Wr")
-    sd_nodef, p_nodef, W_nodef = load(loaddir * "SOEdef_nodef.jld2", "sd", "pp", "Wr")
+    sd_bench, p_bench, W_bench = load(loaddir * "SOEdef.jld2", "sd", "pp", "Wr");
+    sd_nodef, p_nodef, W_nodef = load(loaddir * "SOEdef_nodef.jld2", "sd", "pp", "Wr");
 
-    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load(loaddir * "IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep")
+    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load(loaddir * "IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep");
 
     freq_bench = get_def_freq(p_bench)
     v_nodef = simul_stats(p_nodef)
@@ -57,6 +57,10 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/")
     sm = SOEmin()
     fig3 = makeplots_minimal(sm, move = "d", style = paper)
     savefig(fig3, folder * "minimal_tfp_d.pdf", width = 900, height = 300)
+
+    sm_norep = SOEmin(ξ_d = 0)
+    fig13_app = makeplots_minimal(sm_norep, move="d", style=paper)
+    savefig(fig13_app, folder * "minimal_tfp_d_norep.pdf", width=900, height=300)
 
     # Figure 4: Anticipation of redistribution in case of default
     fig4 = minimal_twoagents(style = paper)
@@ -109,19 +113,23 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/")
     savefig(fig10, folder * "panels_comp_paper.pdf", width = 1100, height = 550)
 
     # Figure 11: Crises across the Distribution
-    fig11 = dist_CW(p_bench, 400, :spread, k = 1, k_back = 11, thres_back = 350, style = paper)
+    fig11 = dist_CW(p_bench, 400, :spread, k=1, k_back=11, thres_back=350, style=paper, cw = true)
     savefig(fig11, folder * "dist_CW_paper.pdf", width = 900, height = 350)
 
-    # Figure 12: Distributional Amplification
-    fig12 = distribution_crises_new(p_bench, 400, :spread, k = 1, k_back = 11, thres_back = 350, style = paper)
-    savefig(fig12, folder * "distribution_crises_paper.pdf", width = 600, height = 400)
+    fig11b = dist_CW(p_bench, 400, :spread, k=1, k_back=11, thres_back=350, style=paper, cw = false)
+    savefig(fig11b, folder * "dist_AB_paper.pdf", width = 900, height = 350)
 
-    # Figure 13: Default-risk IRF
-    fig13 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.9474, style = paper)
-    savefig(fig13, folder * "defaultriskIRF_paper.pdf", width = 1100, height = 550)
+
+    # Figure 12: Distributional Amplification
+    # fig12 = distribution_crises_new(p_bench, 400, :spread, k = 1, k_back = 11, thres_back = 350, style = paper)
+    # savefig(fig12, folder * "distribution_crises_paper.pdf", width = 600, height = 400)
+
+    # Figure 12: Default-risk IRF
+    fig12 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.95, style = slides_def)
+    savefig(fig12, folder * "defaultriskIRF_paper.pdf", width = 1100, height = 550)
 
     # Figure 14: Value functions in the crisis
-    fig14 = distribution_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.9474, style = paper)
+    fig14 = distribution_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.95, style = paper)
     savefig(fig14, folder * "distribIRF_paper.pdf", width = 800, height = 400)
 
     # Figure 15: Subjective probabilities of default

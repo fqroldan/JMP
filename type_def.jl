@@ -19,7 +19,7 @@ mutable struct Path{T} <: AbstractPath
 	data::Dict{Symbol, Vector{Float64}}
 end
 function Path(; T::Int64 = 1)
-	data = Dict( key => Vector{Float64}(undef, T) for key in [:B,:μ,:σ,:w,:ζ,:z,:π,:Y,:L,:ψ,:P,:A,:Bh,:Bf,:Pe,:Wr,:Wd,:qg,:spread,:G,:mean,:var,:CoY,:C,:CoYd,:C_atm,:T,:NX,:ξ,:p25,:p90,:avgω,:Gini,:Wr10,:Wr25,:Wr50,:Wr75,:Wr90,:Wr_atm,:Wd10,:Wd25,:Wd50,:Wd75,:Wd90,:Wd_atm,:C10,:C25,:C50,:C75,:C90])
+	data = Dict(key => Vector{Float64}(undef, T) for key in [:B, :μ, :σ, :w, :ζ, :z, :π, :Y, :L, :ψ, :P, :A, :Bh, :Bf, :Pe, :Wr, :Wd, :qg, :spread, :G, :mean, :var, :CoY, :C, :CoYd, :C_atm, :T, :NX, :ξ, :p25, :p90, :avgω, :Gini, :Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr_atm, :Wd10, :Wd25, :Wd50, :Wd75, :Wd90, :Wd_atm, :C10, :C25, :C50, :C75, :C90, :A10, :A25, :A50, :A75, :A90, :A_avg, :B10, :B25, :B50, :B75, :B90, :B_avg])
 	return Path{T}(data)
 end
 

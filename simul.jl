@@ -28,7 +28,7 @@ function integrate_C(sd::SOEdef, Bt, μt, σt, ξt, ζt, zt, λt, itp_ϕc, itp_C
 	return C_from_λ, log(C_from_interp) - log(C_from_λ)
 end
 
-function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose::Bool = false; B2 = -Inf)
+function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_ϕθ, itp_C, itp_B′, itp_G, itp_pN, itp_repay, λt, discr, verbose::Bool=false; B2=-Inf)
 
     # Enter with a state B, μ, σ, w0, ζ, z.
     # h.zgrid[jz] must equal getfrompath(p, t, :z)
@@ -135,7 +135,7 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
     js = 0
     ωϵv = gridmake(sd.gr[:ωf], sd.gr[:ϵ])
     λ_mat = reshape(λt, N(sd, :ωf), N(sd, :ϵ))
-    mλω = sum(λ_mat, dims = 2)
+    mλω = sum(λ_mat, dims=2)
     cdf_ω = cumsum(mλω[:])
 
     quantiles_vec = [0.1, 0.25, 0.5, 0.75, 0.9]
@@ -218,6 +218,19 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
         end
     end
 
+    # # Obtain marginal distributions of ϕa and ϕb along ω
+    # ϕa_mat = reshape(ϕa, N(sd, :ωf), N(sd, :ϵ))
+    # ϕb_mat = reshape(ϕb, N(sd, :ωf), N(sd, :ϵ))
+
+	# This computes E[a | ω]
+    # marg_λ = sum(λ_mat, dims=2)
+    # Ea_g_ω = sum(ϕa_mat .* λ_mat, dims=2) ./ marg_λ
+    # Eb_g_ω = sum(ϕb_mat .* λ_mat, dims=2) ./ marg_λ
+
+	# but then to histogram the distribution I would need to multiply by the marginal over ω anyway
+    # dist_a = sum(ϕa_mat .* λ_mat, dims=2) ./ marg_λ
+    # dist_b = sum(ϕb_mat .* λ_mat, dims=2) ./ marg_λ
+
     # Compute Gini index
     # S_i = pdf times wealth from 1 to i
     S = [sum(mλω[jj] * ωϵv[jj, 1] for jj in 1:i) for i in 1:length(mλω)]
@@ -228,6 +241,8 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
     Gini = 1 - (sum(mλω[jj] * (S[jj] + S[jj+1]) for jj in 1:length(mλω))) / S[end]
 
     C = dot(λt, ϕc)
+	A_avg = dot(λt, ϕa)
+	B_avg = dot(λt, ϕb)
     CoY = C / output
     CoYd = dot(λt, Crate)
 
@@ -245,7 +260,7 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
 
     C_atm = itp_ϕc(meanω, 0.0, Bt, μt, σt, ξt, ζt, zt)
 
-    fill_path!(p, t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY => CoY, :CoYd => CoYd, :C => C, :C_atm => C_atm, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :mean => meanω, :var => varω, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5]))
+    fill_path!(p, t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY => CoY, :CoYd => CoYd, :C => C, :C_atm => C_atm, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :mean => meanω, :var => varω, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5], :A10 => sav_a_ω[1], :A25 => sav_a_ω[2],:A50 => sav_a_ω[3], :A75 => sav_a_ω[4], :A90 => sav_a_ω[5], :A_avg => A_avg, :B10 => sav_b_ω[1], :B25 => sav_b_ω[2],:B50 => sav_b_ω[3], :B75 => sav_b_ω[4], :B90 => sav_b_ω[5], :B_avg=>B_avg))
 
     return ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef
 end

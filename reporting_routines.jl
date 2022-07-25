@@ -73,7 +73,7 @@ function make_params_table(sd::SOEdef)
 end
 
 function make_calib_table(v_m)
-	table = "\\begin{tabular}{lcc@{}} \\toprule \n"
+	table = "\\begin{tabular}{@{}lcc} \\toprule \n"
 
 	colnames = ["\\textbf{Target}", "\\textbf{Model}", "\\textbf{Data}"]
 
@@ -96,8 +96,12 @@ function make_calib_table(v_m)
 	table *= rpad(colnames[1],pad_n, " ") *  "& " * rpad(colnames[2], pad_v, " ") * "& " *	rpad(colnames[3], pad_d, " ") * "\\\\ \\midrule \n"
 	for jj in 1:length(data_stats)
 		table *= rpad(rownames[jj],pad_n," ") * "& " * rpad(vs[jj], pad_v, " ") * "& "* rpad(ds[jj], pad_d, " ") * "\\\\\n"
+		if jj == 7
+			table *= "\\bottomrule\n\\end{tabular}\n\\begin{tabular}{lcc@{}} \\toprule\n"
+			table *= rpad(colnames[1], pad_n, " ") * "& " * rpad(colnames[2], pad_v, " ") * "& " * rpad(colnames[3], pad_d, " ") * "\\\\ \\midrule \n"
+		end
 	end
-	table *= "\\bottomrule\n"
+	table *= "\\\\ \n\\bottomrule\n"
 
 	# table *= " \\multicolumn{3}{@{}p{.5\\textwidth}@{}}{\\footnotesize All data from Eurostat 2000Q1:2017Q4, except private consumption from OECD 2000Q1:2017Q4, domestic holdings from Banco de España, 2004Q1:2017Q4}\n"
 
@@ -110,7 +114,7 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 	table = "\\begin{tabular*}{.65\\textwidth}{@{\\extracolsep{\\fill}}l*{$k}c@{}} \\toprule \n"
 
 	colnames = ["\\textbf{Moment}", "\\textbf{Benchmark}"]
-	rownames = ["AR(1) autocorr.~coef \$\\log(Y_t)\$"; "AR(1) std coef \$\\log(Y_t)\$"; "AR(1) autocorr.~coef \$\\log(C_t)\$"; "AR(1) std coef \$\\log(C_t)\$"; "AR(1) autocorr.~coef spread"; "AR(1) std coef spread"; "Avg Debt-to-GDP	"; "Std Debt-to-GDP	"; "Avg unemployment"; "Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"; "Avg wealth Gini"; "Default frequency"; "Welfare in repayment"]
+	rownames = ["%AR(1) autocorr.~coef \$\\log(Y_t)\$"; "AR(1) std coef \$\\log(Y_t)\$"; "%AR(1) autocorr.~coef \$\\log(C_t)\$"; "AR(1) std coef \$\\log(C_t)\$"; "%AR(1) autocorr.~coef spread"; "AR(1) std coef spread"; "Avg Debt-to-GDP	"; "%Std Debt-to-GDP	"; "Avg unemployment"; "%Std unemployment"; "Median dom holdings"; "Avg wealth-to-GDP"; "Avg wealth Gini"; "Default frequency"; "Welfare in repayment"]
 	pad_n = maximum(length.(rownames)) + 1
 
 	if length(v_m_noΔ) > 0

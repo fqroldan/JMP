@@ -57,9 +57,11 @@ function SOEmin(;
 	wbar=0.35,		# Wage rigidity
 
 	Nz = 500,
+
+	ξ_d = 1, 
 )
 
-	pars = Dict(:β => β, :r => r, :γ => γ, :α=>α, :ϖN => ϖ, :ϖT => 1-ϖ, :η => η, :wbar => wbar)
+	pars = Dict(:β => β, :r => r, :γ => γ, :α=>α, :ϖN => ϖ, :ϖT => 1-ϖ, :η => η, :wbar => wbar, :ξ_d => ξ_d)
 	zgrid = range(0.01, 1.2, length=Nz)
 
 	pz = pdf.(LogNormal(1, 0.75), zgrid)
@@ -69,6 +71,7 @@ function SOEmin(;
 end
 
 function eval_f_period2(sm::SOEmin, s1, d, Δ, f::Function)
+	ξ_d = sm.pars[:ξ_d]
 
 	u = 0.0
 	sum_prob = 0.0
@@ -84,7 +87,7 @@ function eval_f_period2(sm::SOEmin, s1, d, Δ, f::Function)
 			c2 = y2 * (1-Δ) + s1
 		else
 			def = false
-			c2 = y2 - d + s1
+			c2 = y2 - ξ_d * d + s1
 		end
 
 		u += f(sm, c2) * prob
@@ -250,7 +253,7 @@ end
 
 function makeplots_minimal(sm::SOEmin; move, optim_debt = false, style=slides_def, yh=1)
 
-	Δvec = range(0,0.8,length=151)
+	Δvec = range(0,0.4,length=151)
 	# Δvec = Δvec[2:end]
 
 	cT, h, cN, s, v, μ, q, d, π = [zeros(length(Δvec), 2) for jj in 1:9]
@@ -273,15 +276,15 @@ function makeplots_minimal(sm::SOEmin; move, optim_debt = false, style=slides_de
 	]
 
 	data = [
-		# [scatter(x=Δvec, y=v[:, jj], name=ifelse(pl, "Planner", "Household"), legend_group=jj, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x1", yaxis="y1") for (jj, pl) in enumerate([true, false])]
-		[scatter(x=Δvec, y=cN[:, jj].^(1/sm.pars[:α]), name=ifelse(pl, "Planner", "Household"), legend_group=jj, showlegend=true, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x2", yaxis="y2") for (jj, pl) in enumerate([true, false])]
-		[scatter(x=Δvec, y=s[:, jj], name=ifelse(pl, "Planner", "Household"), legend_group=jj, showlegend=false, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x3", yaxis="y3") for (jj, pl) in enumerate([true, false])]
-		[scatter(x=Δvec, y=π[:, jj], name=ifelse(pl, "Planner", "Household"), legend_group=jj, showlegend=false, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x4", yaxis="y4") for (jj, pl) in enumerate([true, false])]
+		# [scatter(x=Δvec, y=v[:, jj], name=ifelse(pl, "Planner", "Decentralized"), legend_group=jj, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x1", yaxis="y1") for (jj, pl) in enumerate([true, false])]
+		[scatter(x=Δvec, y=cN[:, jj].^(1/sm.pars[:α]), name=ifelse(pl, "Planner", "Decentralized"), legend_group=jj, showlegend=true, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x2", yaxis="y2") for (jj, pl) in enumerate([true, false])]
+		[scatter(x=Δvec, y=s[:, jj], name=ifelse(pl, "Planner", "Decentralized"), legend_group=jj, showlegend=false, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x3", yaxis="y3") for (jj, pl) in enumerate([true, false])]
+		[scatter(x=Δvec, y=π[:, jj], name=ifelse(pl, "Planner", "Decentralized"), legend_group=jj, showlegend=false, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x4", yaxis="y4") for (jj, pl) in enumerate([true, false])]
 	]
 
 	layout = Layout(annotations = annotations,
 		height = style.layout[:height] * yh,
-		legend = attr(orientation="v", x=0.65, xanchor="right", y=0.35),
+		legend = attr(orientation="v", x=0.65, xanchor="right", y=0.1),
 		# yaxis1=attr(domain=[0.575, 1], anchor="x1"),
 		yaxis2=attr(domain=[0,1], anchor="x2"),
 		yaxis3=attr(domain=[0,1], anchor="x3"),

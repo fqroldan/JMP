@@ -468,8 +468,8 @@ end
 
 # pars(sd::SOEdef) = [(1/sd.pars[:β])^4-1; sd.pars[:γ]; sd.pars[:τ]; sd.pars[:wbar]; sd.pars[:ρz]; sd.pars[:σz]; sd.pars[:meanξ]; sd.pars[:ρξ]; sd.pars[:σξ]]
 
-function load_SPA_targets()
-	df = CSV.read("SPA_targets.csv", DataFrame)
+function load_SPA_targets(folder = "")
+	df = CSV.read(folder*"SPA_targets.csv", DataFrame)
 	return df.x
 end
 

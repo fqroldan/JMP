@@ -489,7 +489,7 @@ function distribution_crises_new(pv::Vector{T}, thres::Number, sym::Symbol; styl
     plot(data, layout, style = style)
 end
 
-function dist_CW(pv::Vector{T}, thres::Number, sym::Symbol; style::Style = slides_def, yh = 0.65, type = "highspreads", k = 6, k_back = k, thres_back::Number = Inf) where {T<:AbstractPath}
+function dist_CW(pv::Vector{T}, thres::Number, sym::Symbol; cw = true, style::Style = slides_def, yh = 0.65, type = "highspreads", k = 6, k_back = k, thres_back::Number = Inf) where {T<:AbstractPath}
     Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type = type)
 
     data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
@@ -499,8 +499,13 @@ function dist_CW(pv::Vector{T}, thres::Number, sym::Symbol; style::Style = slide
 	cols = [get(ColorSchemes.lapaz, jv) for jv in range(0, 0.8, length=5)]
 	push!(cols, get(ColorSchemes.lajolla, 0.5))
 
-	for (jr, resp) in enumerate(["C", "Wr"])
+	resp_vec = ifelse(cw, ["C", "Wr"], ["A", "B"])
+	
+	for (jr, resp) in enumerate(resp_vec)
 		for (jk, nv) in enumerate(["10", "25", "50", "75", "90", ""])
+			if nv == "" && resp in ["A", "B"]
+				nv = "_avg"
+			end
 			key = Symbol(resp * nv)
 			ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, k_back)
 			y_av = y_av ./ y_av[1] .- 1
@@ -509,9 +514,11 @@ function dist_CW(pv::Vector{T}, thres::Number, sym::Symbol; style::Style = slide
 		end
 	end
 
+	titles = ifelse(cw, ["Consumption", "Welfare in repayment"], ["Risk-free debt", "Government bonds"])
+
 	annotations = [
-		attr(text = "Consumption", xanchor = "center", x = 0.45 / 2, xref = "paper", y=1, yref="paper", yanchor="bottom", showarrow = false, font_size = 18)
-		attr(text = "Welfare in repayment", xanchor = "center", x = 1.55 / 2, xref = "paper", y=1, yref="paper", yanchor="bottom", showarrow = false, font_size = 18)
+		attr(text = titles[1], xanchor = "center", x = 0.45 / 2, xref = "paper", y=1, yref="paper", yanchor="bottom", showarrow = false, font_size = 18)
+		attr(text = titles[2], xanchor = "center", x = 1.55 / 2, xref = "paper", y=1, yref="paper", yanchor="bottom", showarrow = false, font_size = 18)
 	]
 
 	layout = Layout(
@@ -795,9 +802,9 @@ end
 function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol=:π; thres_back::Number=Inf, style::Style=slides_def, yh = 0.65, k=8, k_back=2k, transf::Bool=true, relative=false, CIs=true) where T<:AbstractPath
 	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back, thres_back)
 	println("Suggested yh=0.7 for style=paper")
-	keyvec = [:z, :Y, :C, :CoY, :B, :T, :L, :spread, :Wr]
+	keyvec = [:z, :Y, :C, :P, :B, :T, :L, :spread, :Wr]
 
-	titlevec = ["TFP", "Output", "Consumption", "<i>C/Y<sup>d</sup>", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
+	titlevec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
 
 	meanYb = mean([mean(series(p, :Y)) for p in pv_bench])
 	meanCb = mean([mean(series(p, :C)) for p in pv_bench])
@@ -836,10 +843,10 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 
 	relvec = [false for jj in eachindex(keyvec)]
 	if relative
-		relvec[[2,3,5]] .= true
-		f1vec[[2,3,5]] .= x->100*x
-		f2vec[[2,3,5]] .= x->100*x
-		ytitle[[2,3,5]] .= "<i>%</i> dev from start"
+		relvec[[2,3,4,5]] .= true
+		f1vec[[2,3,4,5]] .= x->100*x
+		f2vec[[2,3,4,5]] .= x->100*x
+		ytitle[[2,3,4,5]] .= "<i>%</i> dev from start"
 	end
 
 
@@ -1252,8 +1259,8 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	colsamep = "rgb(0.82969225,0.39322875,0.30229275)"
 	fillsamep = "rgba(0.82969225,0.39322875,0.30229275, 0.25)"
 
-	keyvec = [:z, :Y, :C, :CoY, :BoY, :ToY, :unemp, :spread, :Wr]
-	namesvec = ["TFP", "Output", "Consumption", "<i>C/Y<sup>d", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
+	keyvec = [:z, :Y, :C, :P, :BoY, :ToY, :unemp, :spread, :Wr]
+	namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
 
 	if cond_Y > -Inf
 		K = length(pv_bench)
@@ -1269,7 +1276,7 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 		pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if series(pv_bench[jk], :spread)[t2] > cond_spr]
 		print("Left with $(length(pv_bench)) out of $K simulations.\n")
 	end
-	ytitle = vcat("%", ["% deviation" for jj in 1:2], ["% of GDP" for jj in 1:3], "%", "bps", "")
+	ytitle = vcat("%", ["% deviation" for jj in 1:2], "", ["% of GDP" for jj in 1:2], "%", "bps", "")
 
 	scats = Vector{GenericTrace{Dict{Symbol, Any}}}()
 
