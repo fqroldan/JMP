@@ -1,47 +1,52 @@
 using QuantEcon, CSV, DataFrames, Dates, GLM, PlotlyJS, ColorSchemes, FixedEffectModels, RegressionTables, SparseArrays, ExcelReaders, XLSX
  
 """ Define styles """
-def_style = let
-	axis = attr(showgrid = true, gridcolor="#e2e2e2", gridwidth=0.5, zeroline=false)
-	layout = Layout(xaxis = axis, yaxis=axis)
-	Style(layout=layout)
+sand() = "#F5F3F1"
+darkbgd() = "#272929"
+lightgrid() = "#353535"
+darkgrid() = "#e2e2e2"
+gridcol(dark=false) = ifelse(dark, lightgrid(), darkgrid())
+
+q_axis(dark) = attr(showgrid = true, gridcolor=gridcol(dark), gridwidth = 0.5, zeroline=false)
+bgcol(slides, dark) = ifelse(slides, ifelse(dark, darkbgd(), sand()), "white")
+qleg() = attr(orientation = "h", x=0.05, xanchor="left")
+
+qwidth(slides) = 864
+qheight(slides) = ceil(Int, qwidth(slides) * ifelse(slides, 10/16, 7/16))
+
+function qtemplate(;dark=false, slides=!dark)
+    axis = q_axis(dark)
+    width = 864 #1920 * 0.45
+    l = Layout(
+        xaxis = axis, yaxis = axis,
+        width = width,
+        height = width * ifelse(slides, 10/16, 7/16),
+        font = attr(
+            family = ifelse(slides, "Lato", "Linux Libertine"),
+            size = 16, color = ifelse(dark, sand(), darkbgd())
+        ),
+        paper_bgcolor = bgcol(slides, dark), plot_bgcolor = bgcol(slides, dark),
+        legend = qleg(),
+    )
+    return Template(layout = l)
 end
 
-slides_def = let
-	layout = Layout(plot_bgcolor="#fafafa", paper_bgcolor="#fafafa",
-		width=1920*0.45, height=1080*0.45, font_size=16, font_family="Lato",
-		legend = attr(orientation = "h", x=0.05))
-	Style(def_style, layout=layout)
-end
 
-dark_bg = let
-	axis = attr(gridcolor="#353535")
-	layout = Layout(plot_bgcolor="#1e1e1e", paper_bgcolor="#1e1e1e", font_color="white", xaxis=axis,yaxis=axis)
-	Style(layout=layout)
-end
-slides_dark = Style(slides_def, dark_bg)
+function load_all(loaddir = "../Data/")
 
-paper = let
-	layout = Layout(width = 1920 * 0.5, height = 1080 * 0.35, font_size=16, font_family = "Linux Libertine",
-		legend = attr(orientation = "h", x=0.05))
-	Style(def_style, layout=layout)
-end
-
-function load_all()
-
-	gdp_base = CSV.read("../Data/Eurostat aggregates/gdp_all.csv", DataFrame, missingstring=":")
-	rates_base = CSV.read("../Data/Eurostat aggregates/rates_all.csv", DataFrame, missingstring=":")	
-	debt_base = CSV.read("../Data/Eurostat aggregates/debt_all.csv", DataFrame, missingstring=":")
+	gdp_base = CSV.read(loaddir * "/Eurostat aggregates/gdp_all.csv", DataFrame, missingstring=":")
+	rates_base = CSV.read(loaddir * "/Eurostat aggregates/rates_all.csv", DataFrame, missingstring=":")	
+	debt_base = CSV.read(loaddir * "/Eurostat aggregates/debt_all.csv", DataFrame, missingstring=":")
 	# debt_base.Value[is.na(debt_base$Value)] = 0
-	unemp_base = CSV.read("../Data/Eurostat aggregates/unemp_all.csv", DataFrame, missingstring=":")
+	unemp_base = CSV.read(loaddir * "/Eurostat aggregates/unemp_all.csv", DataFrame, missingstring=":")
 	# unemp_base$Value[is.na(unemp_base$Value)] = 0
-	exports_base = CSV.read("../Data/Eurostat aggregates/exports_all_namq_10_gdp.csv", DataFrame, missingstring=":")
-	imports_base = CSV.read("../Data/Eurostat aggregates/imports_all_namq_10_gdp.csv", DataFrame, missingstring=":")
-	g_base = CSV.read("../Data/Eurostat aggregates/g_all_namq_10_gdp.csv", DataFrame, missingstring=":")
-	sav_base = CSV.read("../Data/Eurostat aggregates/nasq_10_ki_1_Data.csv", DataFrame, missingstring=":")
-	c_base = CSV.read("../Data/Eurostat aggregates/HhC_all_namq_10_gdp_1_Data.csv", DataFrame, missingstring=":")
-	coy_base = CSV.read("../Data/Eurostat aggregates/CoY_namq_10_gdp_1_Data.csv", DataFrame, missingstring=":")
-	DeltaC_base = CSV.read("../Data/Eurostat aggregates/HHDC_namq_10_gdp_1_Data.csv", DataFrame, missingstring=":")
+	exports_base = CSV.read(loaddir * "/Eurostat aggregates/exports_all_namq_10_gdp.csv", DataFrame, missingstring=":")
+	imports_base = CSV.read(loaddir * "/Eurostat aggregates/imports_all_namq_10_gdp.csv", DataFrame, missingstring=":")
+	g_base = CSV.read(loaddir * "/Eurostat aggregates/g_all_namq_10_gdp.csv", DataFrame, missingstring=":")
+	sav_base = CSV.read(loaddir * "/Eurostat aggregates/nasq_10_ki_1_Data.csv", DataFrame, missingstring=":")
+	c_base = CSV.read(loaddir * "/Eurostat aggregates/HhC_all_namq_10_gdp_1_Data.csv", DataFrame, missingstring=":")
+	coy_base = CSV.read(loaddir * "/Eurostat aggregates/CoY_namq_10_gdp_1_Data.csv", DataFrame, missingstring=":")
+	DeltaC_base = CSV.read(loaddir * "/Eurostat aggregates/HHDC_namq_10_gdp_1_Data.csv", DataFrame, missingstring=":")
 
 	for x in [gdp_base, rates_base, debt_base, unemp_base, exports_base, imports_base, g_base, sav_base, c_base, coy_base, DeltaC_base]
 		x.TIME = Date.(["$(parse(Int, x.TIME[jt][1:4]))-$(parse(Int,x.TIME[jt][end])*3-2)" for jt in 1:length(x.TIME)], "yyyy-mm")
@@ -67,14 +72,14 @@ function load_all()
 	data = data[data.GEO .!= "Greece",:]
 
 
-	temp = CSV.read("../Data/fred_data.csv", DataFrame, missingstring=":")
+	temp = CSV.read(loaddir * "/fred_data.csv", DataFrame, missingstring=":")
 	temp.TIME = Date.([temp.TIME[jt][1:6] * ifelse(parse(Int,temp.TIME[jt][7:8]) < 60, "20","19") * temp.TIME[jt][7:8] for jt in 1:length(temp.TIME)], "mm/dd/yyyy")
 	temp = stack(temp, Not(:TIME))
 	rename!(temp, :variable=>:GEO, :value=>:consnom)
 
 	data = innerjoin(data, temp, on = [:GEO, :TIME])
 
-	temp = CSV.read("../Data/fred_cpi.csv", DataFrame, missingstring=":")
+	temp = CSV.read(loaddir * "/fred_cpi.csv", DataFrame, missingstring=":")
 	temp = stack(temp, Not(:TIME))
 	rename!(temp, :variable=>:GEO, :value=>:cpi)
 
@@ -87,7 +92,7 @@ function load_all()
 
 	data.debt_level = data.debt .* data.gdp
 
-	temp = CSV.read("../Data/fred_gdp.csv", DataFrame, missingstring=":")
+	temp = CSV.read(loaddir * "/fred_gdp.csv", DataFrame, missingstring=":")
 	temp = stack(temp, Not(:TIME))
 	rename!(temp, :variable=>:GEO, :value=>:gdp2)
 
@@ -158,7 +163,7 @@ function regs_sec2(df_raw::DataFrame=load_all(); savedir="../Output/current_best
 	regtable(regY1, regY2, regC1, regC2, regu1, regu2, res1, res2, regression_statistics = [:nobs, :adjr2, :r2_within], print_estimator_section = false, labels=Dict("TIME"=>"Time FE","GEO"=>"Country FE", "lgdp"=>"log Y_t", "lcons"=>"log C_t", "lcons_"=>" log C_t"))
 end
 
-function regs_fiscalrules(df::DataFrame; style::Style = slides_def, yh = 1, savedir = "../Output/current_best/")
+function regs_fiscalrules(df::DataFrame; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 1, savedir = "../Output/current_best/")
 
     df = df[df.TIME.>=Date("2000-01-01"), :]
 
@@ -202,9 +207,9 @@ function regs_fiscalrules(df::DataFrame; style::Style = slides_def, yh = 1, save
 
 
     col = [
-        get(ColorSchemes.davos, 0.2)
-        get(ColorSchemes.lajolla, 0.6)
-        get(ColorSchemes.cork, 0.9)
+        get(ColorSchemes.davos, 0.2, :extrema)
+        get(ColorSchemes.lajolla, 0.6, :extrema)
+        get(ColorSchemes.cork, 0.9, :extrema)
     ]
 
     data = [
@@ -219,7 +224,10 @@ function regs_fiscalrules(df::DataFrame; style::Style = slides_def, yh = 1, save
         attr(x = 0.5, xref = "paper", xanchor = "center", y = 0.45, yref = "paper", text = "Debt Issuances", font_size = 18, showarrow = false)
     ]
 
-    layout = Layout(annotations = annotations, height = style.layout[:height] * yh,
+    layout = Layout(
+		template = template,
+		annotations = annotations, 
+		# height = style.layout[:height] * yh,
         yaxis1 = attr(domain = [0, 0.4], title = "% of GDP"),
         yaxis2 = attr(domain = [0.55, 0.95], title = "% of GDP"),
     )
@@ -235,7 +243,7 @@ function regs_fiscalrules(df::DataFrame; style::Style = slides_def, yh = 1, save
     ]
     )
 
-    plot(data, layout, style = style)
+    plot(data, layout)
 
     # return coef(reg4G), coef(reg4B)
     # return coef(reg3G), coef(reg3B)
@@ -285,20 +293,20 @@ function get_AR1(y::Vector; trend::Bool=false)
 end
 
 function load_GDP_SPA()
-	data_raw 		= readxl("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2!B12:I103");
-	# data_raw = XLSX.readdata("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2", "B12:I103")
+	data_raw 		= readxl(loaddir * "/Eurostat aggregates/Spain_gdp.xls", "Data2!B12:I103");
+	# data_raw = XLSX.readdata(loaddir * "/Eurostat aggregates/Spain_gdp.xls", "Data2", "B12:I103")
 
-	d = readxl("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2!A12:A103");
-	# d = XLSX.readdata("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2", "A12:A103")
+	d = readxl(loaddir * "/Eurostat aggregates/Spain_gdp.xls", "Data2!A12:A103");
+	# d = XLSX.readdata(loaddir * "/Eurostat aggregates/Spain_gdp.xls", "Data2", "A12:A103")
 
-	dates_GDP 		= Date.(["$(parse(Int, d[jt][1:4]))-$(parse(Int,d[jt][end])*3-2)" for jt in 1:length(d)], "yyyy-mm")
+	dates_GDP 		= Date.(["$(parse(Int, d[jt][1:4]))-$(parse(Int,d[jt][end])*3-2)" for jt in eachindex(d)], "yyyy-mm")
 
-	varnames = readxl("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2!B11:I11")[:]
-	# varnames = XLSX.readdata("../Data/Eurostat aggregates/Spain_gdp.xls", "Data2", "B11:I11")[:]
+	varnames = readxl(loaddir * "/Eurostat aggregates/Spain_gdp.xls", "Data2!B11:I11")[:]
+	# varnames = XLSX.readdata(loaddir * "/Eurostat aggregates/Spain_gdp.xls", "Data2", "B11:I11")[:]
 
 	varlabels = ["GDP", "C", "G", "C_hh", "C_npish", "Kform", "X", "M"]
 
-	vardict = Dict(varnames[jj] => varlabels[jj] for jj in 1:length(varnames))
+	vardict = Dict(varnames[jj] => varlabels[jj] for jj in eachindex(varnames))
 
 	df = DataFrame(convert(Matrix{Float64},data_raw), :auto)
 	rename!(df, [jj => vardict[vn] for (jj, vn) in enumerate(varnames)])
@@ -317,24 +325,24 @@ end
 function load_SPA()
 	df = load_GDP_SPA()
 
-	data_rates = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!B10:D101")
-	# data_rates = XLSX.readdata("../Data/Eurostat aggregates/Spain_rates.xls", "Data", "B10:D101")
-	d2 = readxl("../Data/Eurostat aggregates/Spain_rates.xls", "Data!A10:A101")
-	# d2 = XLSX.readdata("../Data/Eurostat aggregates/Spain_rates.xls", "Data", "A10:A101")
+	data_rates = readxl(loaddir * "/Eurostat aggregates/Spain_rates.xls", "Data!B10:D101")
+	# data_rates = XLSX.readdata(loaddir * "/Eurostat aggregates/Spain_rates.xls", "Data", "B10:D101")
+	d2 = readxl(loaddir * "/Eurostat aggregates/Spain_rates.xls", "Data!A10:A101")
+	# d2 = XLSX.readdata(loaddir * "/Eurostat aggregates/Spain_rates.xls", "Data", "A10:A101")
 
-	dates_rates = Date.(["$(parse(Int, d2[jt][1:4]))-$(parse(Int,d2[jt][end])*3-2)" for jt in 1:length(d2)], "yyyy-mm")
+	dates_rates = Date.(["$(parse(Int, d2[jt][1:4]))-$(parse(Int,d2[jt][end])*3-2)" for jt in eachindex(d2)], "yyyy-mm")
 	spread = 100 * convert(Vector{Float64}, data_rates[:,2] - data_rates[:,1]);
 
 	SPR = DataFrame("date" => dates_rates, "spread" => spread)
 
 	df = innerjoin(df, SPR, on=["date"])
 
-	unemp_base = CSV.read("../Data/Eurostat aggregates/Unemployment/une_rt_q_2_Data.csv", DataFrame, datarow=6)
-	unemp_base.TIME = Date.(["$(parse(Int, unemp_base.TIME[jt][1:4]))-$(parse(Int,unemp_base.TIME[jt][end])*3-2)" for jt in 1:length(unemp_base.TIME)], "yyyy-mm")
+	unemp_base = CSV.read(loaddir * "/Eurostat aggregates/Unemployment/une_rt_q_2_Data.csv", DataFrame, datarow=6)
+	unemp_base.TIME = Date.(["$(parse(Int, unemp_base.TIME[jt][1:4]))-$(parse(Int,unemp_base.TIME[jt][end])*3-2)" for jt in eachindex(unemp_base.TIME)], "yyyy-mm")
 	unemp_base = DataFrame(date = unemp_base.TIME, unemp = unemp_base.Value)
 	df = innerjoin(df, unemp_base, on=["date"])
 
-	debt_base = CSV.read("../Data/spain_debt/data_spain.csv", DataFrame, datarow=2)[1:end-3,:]
+	debt_base = CSV.read(loaddir * "/spain_debt/data_spain.csv", DataFrame, datarow=2)[1:end-3,:]
 
 	debt_base.Column1 = Date.(debt_base.Column1, "u-yy") .+ Year(2000) .- Month(2)
 	rename!(debt_base, "Column1" => "date")
@@ -369,7 +377,7 @@ function SPA_targets()
 	df_spa = load_SPA()
 	median_dom = 100 * QuantEcon.quantile(df_spa[!,"Total domestic"] ./ ( df_spa[!,"Total domestic"] + df_spa[!,"Total Foreign"] ), 0.5)
 
-	SPA_gini = CSV.read("../Data/Gini/icw_sr_05_1_Data.csv", DataFrame)
+	SPA_gini = CSV.read(loaddir * "/Gini/icw_sr_05_1_Data.csv", DataFrame)
 
 	Gini = SPA_gini.Value[end]
 
@@ -382,11 +390,11 @@ function save_SPA_targets()
 	CSV.write("SPA_targets.csv", df);
 end
 
-function SPA_CvY(country::String="Spain"; style::Style=slides_def, yh = 1, sh=true)
+function SPA_CvY(country::String="Spain"; loaddir = "../Data/", slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 1, sh=true)
 
 	# df = load_SPA()
 	# if country != "Spain"
-	df = load_all()
+	df = load_all(loaddir)
 	df = df[df.GEO.==country,:]
 	rename!(df, "gdp" => "GDP", "cons" => "C_hh", "TIME" => "date")
 	# end
@@ -399,9 +407,9 @@ function SPA_CvY(country::String="Spain"; style::Style=slides_def, yh = 1, sh=tr
 	df.Consumption = 100 * df.C_hh ./ df.C_hh[jT]
 
 	col = [	
-		get(ColorSchemes.davos, 0.2)
-		get(ColorSchemes.lajolla, 0.5)
-		get(ColorSchemes.cork, 0.9)
+		get(ColorSchemes.davos, 0.2, :extrema)
+		get(ColorSchemes.lajolla, 0.5, :extrema)
+		get(ColorSchemes.cork, 0.9, :extrema)
 	]
 
 	lineattr = Dict("Output" => attr(width = 2.5, color=col[1]), "Consumption" => attr(width = 2.5, color=col[2], dash="dashdot"), "Spread" => attr(width = 2.5, color=col[3], dash="dot"))
@@ -437,8 +445,10 @@ function SPA_CvY(country::String="Spain"; style::Style=slides_def, yh = 1, sh=tr
 	end
 
 
-	layout = Layout(shapes = shapes, annotations = annotations,
-		height = style.layout[:height]*yh, title = "Output and Consumption in " * country,
+	layout = Layout(
+		template = template,
+		shapes = shapes, annotations = annotations,
+		title = "Output and Consumption in " * country,
 		yaxis1 = attr(title="%"),
 		yaxis2 = attr(titlefont_size=18, title="bps", overlaying = "y", side="right", zeroline=false),
 		legend = attr(x=0.5, xanchor = "center"), hovermode="x",
@@ -447,13 +457,13 @@ function SPA_CvY(country::String="Spain"; style::Style=slides_def, yh = 1, sh=tr
 	plot([
 		[scatter(x=df.date, y=df[!,y], line = lineattr[y], name=y) for y in ["Output", "Consumption"]]
 		scatter(x=df.date, y=df.spread, name="Spread (right axis)", line = lineattr["Spread"], yaxis="y2")
-		], layout, style=style)
+		], layout)
 end
 
-function load_nw(country::String="Spain")
-	function load_nw(k::String)
-		# data_raw = readxl("../Data/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xls", "Data$(k)!A12:F89");
-		data_raw = XLSX.readdata("../Data/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xlsx", "Data$(k)", "A12:F89")
+function load_nw(country::String="Spain", loaddir ="../Data/")
+	function load_nw(k::String, loaddir)
+		# data_raw = readxl(loaddir * "/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xls", "Data$(k)!A12:F89");
+		data_raw = XLSX.readdata(loaddir * "/Eurostat aggregates/wealth_statistics_nasq_10_f_bs.xlsx", "Data$(k)", "A12:F89")
 
 		GEO = data_raw[1,:]
 		GEO[1] = "date"
@@ -465,8 +475,8 @@ function load_nw(country::String="Spain")
 		df = DataFrame(date = data.date, assets = convert(Vector{Float64},data[!,country]))
 	end
 
-	df1 = load_nw("")
-	df2 = load_nw("2")
+	df1 = load_nw("", loaddir)
+	df2 = load_nw("2", loaddir)
 	rename!(df2, "assets" => "liabilities")
 
 	df = innerjoin(df1, df2, on = "date")
@@ -474,7 +484,7 @@ function load_nw(country::String="Spain")
 	return df
 end
 
-function make_nw_levels(oth_args...; levels=false)
+function make_nw_levels(; levels=false)
 
 	df1 = load_nw("Spain")
 	dfr = load_GDP_SPA()
@@ -500,10 +510,10 @@ function make_nw_levels(oth_args...; levels=false)
 	# plot([scatter(x=df.date, y=df[!,yvar] .* df[!,:GDP], name=yvar) for yvar in ("assets", "liabilities", "net_worth")], oth_args...)
 
 	plot([
-		bar(x=df.date, y=df.assets, name="Assets", opacity=0.5, marker_color=get(ColorSchemes.oslo, 0.5), legendgroup=1)
-		scatter(x=df.date, y=df.assets, name="Assets", marker_color=get(ColorSchemes.oslo, 0.5), legendgroup=1, line_width = 1.5, hoverinfo="skip", showlegend=false, line_shape="spline",)
-		bar(x=df.date, y=-df.liabilities, name="Liabilities", opacity=0.5, marker_color=get(ColorSchemes.lajolla, 0.6), legendgroup=2)
-		scatter(x=df.date, y=-df.liabilities, name="Assets", marker_color=get(ColorSchemes.lajolla, 0.6), legendgroup=2, line_width = 1.5, hoverinfo="skip", showlegend=false, line_shape="spline",)
+		bar(x=df.date, y=df.assets, name="Assets", opacity=0.5, marker_color=get(ColorSchemes.oslo, 0.5, :extrema), legendgroup=1)
+		scatter(x=df.date, y=df.assets, name="Assets", marker_color=get(ColorSchemes.oslo, 0.5, :extrema), legendgroup=1, line_width = 1.5, hoverinfo="skip", showlegend=false, line_shape="spline",)
+		bar(x=df.date, y=-df.liabilities, name="Liabilities", opacity=0.5, marker_color=get(ColorSchemes.lajolla, 0.6, :extrema), legendgroup=2)
+		scatter(x=df.date, y=-df.liabilities, name="Assets", marker_color=get(ColorSchemes.lajolla, 0.6, :extrema), legendgroup=2, line_width = 1.5, hoverinfo="skip", showlegend=false, line_shape="spline",)
 		scatter(x=df.date, y=df.net_worth, name="Net Worth", marker_color="black", line_width=3)
 	], style=slides_def,
 	Layout(barmode="overlay", title="Household sector balance sheet", yaxis_title=ytitle,
@@ -514,13 +524,13 @@ function make_nw_levels(oth_args...; levels=false)
 	)
 end
 
-function make_nw(country::String = "Spain"; with_annot = true, style::Style = slides_def)
-    df = load_nw(country)
+function make_nw(country::String = "Spain"; loaddir = "../Data/", with_annot = true, slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark))
+    df = load_nw(country, loaddir)
 
     col = [
-        get(ColorSchemes.davos, 0.15)
-        get(ColorSchemes.lajolla, 0.6)
-        get(ColorSchemes.cork, 0.9)
+        get(ColorSchemes.davos, 0.15, :extrema)
+        get(ColorSchemes.lajolla, 0.6, :extrema)
+        get(ColorSchemes.cork, 0.9, :extrema)
     ]
     wths = [2, 2, 2.5]
 	lsh = ["solid", "solid", "dashdot"]
@@ -539,20 +549,22 @@ function make_nw(country::String = "Spain"; with_annot = true, style::Style = sl
         ]
     end
 
-    layout = Layout(annotations = annot, shapes = shapes,
+    layout = Layout(
+		template = template,
+		annotations = annot, shapes = shapes,
         yaxis = attr(title = "% of GDP"),
     )
 
     linenames = filter(x -> x != "date", names(df))
     pNW = plot([
             scatter(; x = df.date, y = df[!, y], line_color = col[jj], line_width = wths[jj], line_dash=lsh[jj], name = uppercasefirst(replace(y, "_" => " "))) for (jj, y) in enumerate(linenames)
-        ], layout, style = style)
+        ], layout)
 end
 
 
-function WEO_spark(; own, style::Style=slides_def)
+function WEO_spark(loaddir = "../Data/"; own, slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark))
 
-	df = CSV.read("../Data/WEO/debts_spark.csv", DataFrame)
+	df = CSV.read(loaddir * "/WEO/debts_spark.csv", DataFrame)
 
 	df = df[df.year.>=2003,:]
 
@@ -572,14 +584,17 @@ function WEO_spark(; own, style::Style=slides_def)
 		# scatter(x=df[df.ifscode.==1,:].year, y = df[df.ifscode.==1,:].debt_usd ./ df[df.ifscode.==1,:].ngdpd)
 		]
 
-	layout = Layout(barmode=ifelse(own, "", "stack"), yaxis_title=ytitle, title="Government debts globally (WEO Oct 2020)")
+	layout = Layout(
+		template=template,
+		barmode=ifelse(own, "", "stack"), yaxis_title=ytitle, title="Government debts globally (WEO Oct 2020)",
+		)
 
-	plot(sc, layout, style=style)
+	plot(sc, layout)
 end
 
-function make_FLP(;style=slides_def)
-	vnraw = XLSX.readdata("../Data/Eurostat aggregates/ei_bsin_q_r2.xlsx", "Sheet 1!B9:G9")
-	dtraw = XLSX.readdata("../Data/Eurostat aggregates/ei_bsin_q_r2.xlsx", "Sheet 1!A71:G179")
+function make_FLP(loaddir = "../Data/"; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark))
+	vnraw = XLSX.readdata(loaddir * "/Eurostat aggregates/ei_bsin_q_r2.xlsx", "Sheet 1!B9:G9")
+	dtraw = XLSX.readdata(loaddir * "/Eurostat aggregates/ei_bsin_q_r2.xlsx", "Sheet 1!A71:G179")
 
 	varnames = ["date"]
 	for vn in vnraw
@@ -597,9 +612,10 @@ function make_FLP(;style=slides_def)
 		scatter(x=df.date, y=df[!,key], name = key) for key in names(df) if key != "date"
 	]
 	layout = Layout(
+		template = template,
 		legend = attr(x=0.5, xanchor="center", xref="paper"),
 		yaxis = attr(title="<i>%")
 	)
 
-	plot(scats, layout, style=style)
+	plot(scats, layout)
 end

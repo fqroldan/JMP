@@ -141,6 +141,8 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
     quantiles_vec = [0.1, 0.25, 0.5, 0.75, 0.9]
     quantiles_ω = [ifelse(cdf_ω[end] > quantile, findfirst(cdf_ω .>= quantile), length(cdf_ω)) for quantile in quantiles_vec]
 
+	ω10, ω25, ω50, ω75, ω90 = (sd.gr[:ωf][q] for q in quantiles_ω)
+
     C_dist = zeros(length(quantiles_vec))
 
     sav_a_ω = zeros(length(quantiles_vec))
@@ -190,7 +192,7 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
         q90 = findfirst(cdf_ω .>= 0.90)
     end
 
-    for js in 1:size(ωϵv, 1)
+    for js in axes(ωϵv, 1)
         ωv, ϵv = ωϵv[js, :]
         yd = (wt * Ld * (1.0 - sd.pars[:τ]) + profits) * exp(ϵv) / adjustment + ωv - lumpsumT
 
@@ -218,27 +220,14 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
         end
     end
 
-    # # Obtain marginal distributions of ϕa and ϕb along ω
-    # ϕa_mat = reshape(ϕa, N(sd, :ωf), N(sd, :ϵ))
-    # ϕb_mat = reshape(ϕb, N(sd, :ωf), N(sd, :ϵ))
-
-	# This computes E[a | ω]
-    # marg_λ = sum(λ_mat, dims=2)
-    # Ea_g_ω = sum(ϕa_mat .* λ_mat, dims=2) ./ marg_λ
-    # Eb_g_ω = sum(ϕb_mat .* λ_mat, dims=2) ./ marg_λ
-
-	# but then to histogram the distribution I would need to multiply by the marginal over ω anyway
-    # dist_a = sum(ϕa_mat .* λ_mat, dims=2) ./ marg_λ
-    # dist_b = sum(ϕb_mat .* λ_mat, dims=2) ./ marg_λ
-
     # Compute Gini index
     # S_i = pdf times wealth from 1 to i
-    S = [sum(mλω[jj] * ωϵv[jj, 1] for jj in 1:i) for i in 1:length(mλω)]
+    S = [sum(mλω[jj] * ωϵv[jj, 1] for jj in 1:i) for i in eachindex(mλω)]
 
     # S_0 = 0
     S = [0; S]
 
-    Gini = 1 - (sum(mλω[jj] * (S[jj] + S[jj+1]) for jj in 1:length(mλω))) / S[end]
+    Gini = 1 - (sum(mλω[jj] * (S[jj] + S[jj+1]) for jj in eachindex(mλω))) / S[end]
 
     C = dot(λt, ϕc)
 	A_avg = dot(λt, ϕa)
@@ -260,7 +249,7 @@ function iter_simul_t!(sd::SOEdef, p::Path, t, jz_series, itp_ϕc, itp_ϕs, itp_
 
     C_atm = itp_ϕc(meanω, 0.0, Bt, μt, σt, ξt, ζt, zt)
 
-    fill_path!(p, t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY => CoY, :CoYd => CoYd, :C => C, :C_atm => C_atm, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :mean => meanω, :var => varω, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5], :A10 => sav_a_ω[1], :A25 => sav_a_ω[2],:A50 => sav_a_ω[3], :A75 => sav_a_ω[4], :A90 => sav_a_ω[5], :A_avg => A_avg, :B10 => sav_b_ω[1], :B25 => sav_b_ω[2],:B50 => sav_b_ω[3], :B75 => sav_b_ω[4], :B90 => sav_b_ω[5], :B_avg=>B_avg))
+    fill_path!(p, t, Dict(:P => pN, :Pe => pNg, :Y => output, :L => Ld, :π => def_prob, :w => wt, :G => Gt, :CoY => CoY, :CoYd => CoYd, :C => C, :C_atm => C_atm, :T => lumpsumT, :NX => NX, :p25 => p25, :p90 => p90, :mean => meanω, :var => varω, :avgω => Eω_fromb, :Gini => Gini, :C10 => C_dist[1], :C25 => C_dist[2], :C50 => C_dist[3], :C75 => C_dist[4], :C90 => C_dist[5], :A10 => sav_a_ω[1], :A25 => sav_a_ω[2],:A50 => sav_a_ω[3], :A75 => sav_a_ω[4], :A90 => sav_a_ω[5], :A_avg => A_avg, :B10 => sav_b_ω[1], :B25 => sav_b_ω[2],:B50 => sav_b_ω[3], :B75 => sav_b_ω[4], :B90 => sav_b_ω[5], :B_avg=>B_avg, :q10 => ω10, :q25 => ω25, :q50 => ω50, :q75 => ω75, :q90 => ω90))
 
     return ϕa, ϕb, Bpv, exp_rep, quantiles_ω, sav_a_ω, sav_b_ω, prob_ϵω, jdef
 end
@@ -575,10 +564,14 @@ function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; sa
 
 	t0 = time()
 	Threads.@threads for jk in 1:K
-		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, B0=B0, T = 1+4*100)
+        _, _, _, _, λ0 = simul(sd_nodef, jk, 1 + 4 * 100, 1)
+        λ1 = deepcopy(λ0)
+        λ2 = deepcopy(λ0)
+        λ3 = deepcopy(λ0)
+        p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, λ1, B0)
 		Bpv = series(p, :B)
-		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=1+4*100)
-		p3, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, B0=B0, T=1+4*100, Bvec = Bpv)
+		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, λ2, B0)
+        p3, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, λ3, B0, Bvec=Bpv)
 		
 		pv_bench[jk] = p
 		pv_nodef[jk] = p2
@@ -594,10 +587,49 @@ function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; sa
 	return pv_bench, length1, length1+length2, pv_nodef, pv_samep
 end
 
+function IRF_default_comp(sd::SOEdef, sd_nodef::SOEdef, sd_alt::SOEdef, length1, length2, length3; same_pol=false, burn_in = 4*100, B0 = mean(sd.gr[:b]), K, cond_Y = -Inf)
+	pv_bench  = Vector{Path}(undef, K)
+	pv_nodef = Vector{Path}(undef, K)
+	pv_samep = Vector{Path}(undef, K)
+	pv_alt = Vector{Path}(undef, K)
+
+	print_save("Starting $K simulations at $(Dates.format(now(), "HH:MM")).\n")
+
+	t0 = time()
+	Threads.@threads for jk in 1:K
+		_, _, _, _, λ0 = simul(sd_nodef, jk, 1+4*100, 1)
+		λ = copy(λ0)
+		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, λ, B0)
+		Bpv = series(p, :B)
+		λ = copy(λ0)
+		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, λ, B0)
+		λ = copy(λ0)
+		p3, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, λ, B0, Bvec = Bpv)
+		λ = copy(λ0)
+		p4, _, _, _ = simul_switch(sd_nodef, sd_alt, jk, length1, length2, length3, λ, B0, Bvec = Bpv)
+		
+		pv_bench[jk] = p
+		pv_nodef[jk] = p2
+		pv_samep[jk] = p3
+		pv_alt[jk]   = p4
+	end
+
+	pv_alt = [pv_alt[jk] for jk in eachindex(pv_alt) if minimum(series(pv_bench[jk], :ζ)) == 1]
+	pv_nodef = [pv_nodef[jk] for jk in eachindex(pv_nodef) if minimum(series(pv_bench[jk], :ζ)) == 1]
+	pv_samep = [pv_samep[jk] for jk in eachindex(pv_samep) if minimum(series(pv_bench[jk], :ζ)) == 1]
+	pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if minimum(series(pv_bench[jk], :ζ)) == 1]
+
+	print_save("Time in simulation: $(time_print(time()-t0)). Left with $(length(pv_bench)) simulations.\n")
+
+	return pv_bench, length1, length1+length2, pv_nodef, pv_samep, pv_alt
+end
+
 
 function simul_switch(sd1::SOEdef, sd2::SOEdef, jk, length1, length2, length3; B0=mean(sd1.gr[:b]), μ0=mean(sd1.gr[:μ]), σ0=mean(sd1.gr[:σ]), ξ0=sd1.gr[:ξ][1], ζ0=sd1.gr[:ζ][2], z0=mean(sd1.gr[:z]), T, Bvec=[-Inf for jt in 1:length1+length2+length3])
 
 	_, _, _, _, λ = simul(sd1, jk, T, 1)
+    # λ = initial_dist(sd, μ0, σ0)
+
 
 	simul_switch(sd1, sd2, jk, length1, length2, length3, λ, B0, μ0, σ0, ξ0, ζ0, z0, Bvec=Bvec)
 end
@@ -851,7 +883,7 @@ function get_crises(pv::Vector{T}, thres::Number, sym::Symbol=:π, k::Int64=7, k
 	return Nc, tmat
 end
 
-get_crises(pp::Path, thres::Number, k::Int64=7) = get_crises([pp], πthres, k)
+get_crises(pp::Path, thres::Number, sym::Symbol, k::Int64=7) = get_crises([pp], πthres, sym, k)
 
 series_crises(pp::Path, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9, k_back=k, relative=false) = series_crises([pp], tvv, key, k, k_back, relative=relative)
 function series_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, k::Int64=9, k_back = k; relative=false) where T <: AbstractPath

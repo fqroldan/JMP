@@ -22,12 +22,24 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
     Wr_nodef = mean([mean(series(p, :Wr)) for p in p_nodef])
     save(folder * "SOEdef_nodef.jld2", "sd", sd_nodef, "pp", p_nodef, "Wr", Wr_nodef)
 
-    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = IRF_default(sd_bench, sd_nodef, 1, 11, 9, B0 = 5.5, K = 5000)
+    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = IRF_default(sd_bench, sd_nodef, 1, 11, 9, B0 = 4, K = 2500) # used to be B0=5.5, K = 5000
     save(folder * "IRF.jld2", "pIRF_bench", pIRF_bench, "t1", t1, "t2", t2, "pIRF_nodef", pIRF_nodef, "pIRF_samep", pIRF_samep)
 
 
-    pIRF_bench2, t1, t2, pIRF_nodef2, _, pIRF_alt = IRF_default_comp(sd_bench, sd_nodef, sd_alt, 1, 11, 9, B0 = 5.5, K = 1000)
-    save("../Rep2/IRF_nodefcost.jld2", "pIRF_bench", pIRF_bench2, "pIRF_nodef", pIRF_nodef2, "pIRF_alt", pIRF_alt)
+    sd_alt = load(loaddir*"SOEdef.jld2", "sd");
+    # sd_alt.pars[:τ] = 0.23
+    sd_alt.pars[:τ] = 0.35
+    comp_eqm!(sd_alt, re_q = false, verbose = true)
+    # g_alt, p_alt, _, _, _ = make_simulated_path(sd_alt, loaddir*"run2/", T, K = K, datadir = datadir);
+    # Wr_alt = mean([mean(series(p, :Wr)) for p in p_alt])
+    # save("../Rep2/SOEdef_alt.jld2", "sd", sd_alt, "pp", p_alt, "Wr", Wr_alt)
+
+    pIRF_bench2, t1, t2, pIRF_nodef2, _, pIRF_alt = IRF_default_comp(sd_bench, sd_nodef, sd_alt, 1, 11, 9, B0 = 4, K = 1000);
+    panels_IRF(pIRF_bench2, pIRF_nodef2, pIRF_alt, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.95, slides = false)
+
+    save("../Rep2/IRF_nodefcost_noq.jld2", "pIRF_bench", pIRF_bench2, "pIRF_nodef", pIRF_nodef2, "pIRF_alt", pIRF_alt)
+
+    # pIRF_bench2, pIRF_nodef2, pIRF_alt = load("../Rep2/IRF_nodefcost_noq.jld2", "pIRF_bench", "pIRF_nodef", "pIRF_alt");
     nothing
 end
 
@@ -128,13 +140,13 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     # savefig(fig12, folder * "distribution_crises_paper.pdf", width = 600, height = 400)
 
     # Figure 12: Default-risk IRF
-    fig12 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.95, slides = false)
+    fig12 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.96, slides = false)
     savefig(fig12, folder * "defaultriskIRF_paper.pdf", width = 1100, height = 550)
 
     # fig12 = panels_IRF(pIRF_highτ, pIRF_highτ, pIRF_highτ, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.95, slides = false)
 
     # Figure 14: Value functions in the crisis
-    fig14 = distribution_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.95, slides = false)
+    fig14 = distribution_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.96, slides = false)
     savefig(fig14, folder * "distribIRF_paper.pdf", width = 800, height = 400)
 
     # Figure 15: Subjective probabilities of default
@@ -165,15 +177,31 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
 end
 
 
+
 function compstats_inequality(; τr = 0.05, Nτ = 5, loaddir = "../Output/")
     sd_bench = load(loaddir * "SOEdef.jld2", "sd")
-
     sd_nodef = load(loaddir * "SOEdef_nodef.jld2", "sd")
+    sd_alt = load(loaddir * "SOEdef.jld2", "sd")
 
     τ0 = sd_bench.pars[:τ]
-
     τvec1 = range(τ0, τ0 - τr, length = Nτ)
 
+    Gmat1 = zeros(Nτ, 3)
+    Ymat1 = zeros(Nτ, 3)
+    Wmat1 = zeros(Nτ, 3)
+    
+    for (jτ, τv) in enumerate(τvec1)
 
+        sd_alt.pars[:τ] = τv
 
+        comp_eqm!(sd_alt, re_q = false, verbose = true)
+
+        pIRF_bench, t1, t2, pIRF_nodef, _, pIRF_alt = IRF_default_comp(sd_bench, sd_nodef, sd_alt, 1, 11, 9, B0 = 4, K = 1000);
+        Wr1, Wr2, G1, G2, Y1, Y2 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_alt, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.95, give_stats = true)
+
+        Wmat1[jτ, :] .= Wr1, Wr2, Wr2 / Wr1 - 1
+        Gmat1[jτ, :] .= G1, G2, G2 / G1 - 1
+        Ymat1[jτ, :] .= Y1, Y2, Y2 / Y1 - 1
+    end
+    return τvec1, Gmat1, Wmat1, Ymat1
 end

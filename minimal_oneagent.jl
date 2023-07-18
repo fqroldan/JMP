@@ -1,37 +1,35 @@
 using QuantEcon, Distributions, ForwardDiff, Optim, PlotlyJS, ColorSchemes, ProgressBars
 
 """ Define styles """
-def_style = let
-	axis = attr(showgrid = true, gridcolor="#e2e2e2", gridwidth=0.5, zeroline=false)
-	layout = Layout(xaxis = axis, yaxis=axis)
-	Style(layout=layout)
-end
 
-slides_def = let
-	layout = Layout(plot_bgcolor="#fafafa", paper_bgcolor="#fafafa",
-		width=1920*0.45, height=1080*0.45, font_size=16, font_family="Lato",
-		legend = attr(orientation = "h", x=0.05))
-	Style(def_style, layout=layout)
-end
+sand() = "#F5F3F1"
+darkbgd() = "#272929"
+lightgrid() = "#353535"
+darkgrid() = "#e2e2e2"
+gridcol(dark=false) = ifelse(dark, lightgrid(), darkgrid())
 
-dark_bg = let
-	axis = attr(gridcolor="#1b1b1b")
-	layout = Layout(plot_bgcolor="#020202", paper_bgcolor="#020202", font_color="white", xaxis=axis,yaxis=axis)
-	Style(layout=layout)
-end
-slides_dark = Style(slides_def, dark_bg)
+q_axis(dark) = attr(showgrid = true, gridcolor=gridcol(dark), gridwidth = 0.5, zeroline=false)
+bgcol(slides, dark) = ifelse(slides, ifelse(dark, darkbgd(), sand()), "white")
+qleg() = attr(orientation = "h", x=0.05, xanchor="left")
 
-paper = let
-	layout = Layout(width = 1920 * 0.5, height = 1080 * 0.35, font_size=16, font_family = "Linux Libertine",
-		legend = attr(orientation = "h", x=0.05))
-	Style(def_style, layout=layout)
-end
+qwidth(slides) = 864
+qheight(slides) = ceil(Int, qwidth(slides) * ifelse(slides, 10/16, 7/16))
 
-contsty(colp::ColorScheme=ColorSchemes.lajolla;diverg::Bool=false) = let
-	colpal = ifelse(diverg, ColorSchemes.oleron, colp)
-	colscale = [[vv, get(colpal, vv)] for vv in range(0,1,length=100)]
-	c_att = attr(colorscale=colscale, autocontour=false)
-	Style(trace=Dict(:contour=>c_att))
+function qtemplate(;dark=false, slides=!dark)
+    axis = q_axis(dark)
+    width = 864 #1920 * 0.45
+    l = Layout(
+        xaxis = axis, yaxis = axis,
+        width = width,
+        height = width * ifelse(slides, 10/16, 7/16),
+        font = attr(
+            family = ifelse(slides, "Lato", "Linux Libertine"),
+            size = 16, color = ifelse(dark, sand(), darkbgd())
+        ),
+        paper_bgcolor = bgcol(slides, dark), plot_bgcolor = bgcol(slides, dark),
+        legend = qleg(),
+    )
+    return Template(layout = l)
 end
 
 abstract type SOE
@@ -251,7 +249,7 @@ function solve_opt_period1(sm::SOEmin; Δ=0.2, y1=1, planner=true, verbose=plann
 	return solve_period1(sm, debt=res.minimizer, Δ=Δ, planner=planner)
 end
 
-function makeplots_minimal(sm::SOEmin; move, optim_debt = false, style=slides_def, yh=1)
+function makeplots_minimal(sm::SOEmin; move, optim_debt = false, slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh=1)
 
 	Δvec = range(0,0.4,length=151)
 	# Δvec = Δvec[2:end]
@@ -277,13 +275,15 @@ function makeplots_minimal(sm::SOEmin; move, optim_debt = false, style=slides_de
 
 	data = [
 		# [scatter(x=Δvec, y=v[:, jj], name=ifelse(pl, "Planner", "Decentralized"), legend_group=jj, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x1", yaxis="y1") for (jj, pl) in enumerate([true, false])]
-		[scatter(x=Δvec, y=cN[:, jj].^(1/sm.pars[:α]), name=ifelse(pl, "Planner", "Decentralized"), legend_group=jj, showlegend=true, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x2", yaxis="y2") for (jj, pl) in enumerate([true, false])]
-		[scatter(x=Δvec, y=s[:, jj], name=ifelse(pl, "Planner", "Decentralized"), legend_group=jj, showlegend=false, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x3", yaxis="y3") for (jj, pl) in enumerate([true, false])]
-		[scatter(x=Δvec, y=π[:, jj], name=ifelse(pl, "Planner", "Decentralized"), legend_group=jj, showlegend=false, line_color=get(ColorSchemes.southwest, (jj-1)), xaxis="x4", yaxis="y4") for (jj, pl) in enumerate([true, false])]
+		[scatter(x=Δvec, y=cN[:, jj].^(1/sm.pars[:α]), name=ifelse(pl, "Planner", "Decentralized"), legend_group=jj, showlegend=true, line_color=get(ColorSchemes.southwest, (jj-1), :extrema), xaxis="x2", yaxis="y2") for (jj, pl) in enumerate([true, false])]
+		[scatter(x=Δvec, y=s[:, jj], name=ifelse(pl, "Planner", "Decentralized"), legend_group=jj, showlegend=false, line_color=get(ColorSchemes.southwest, (jj-1), :extrema), xaxis="x3", yaxis="y3") for (jj, pl) in enumerate([true, false])]
+		[scatter(x=Δvec, y=π[:, jj], name=ifelse(pl, "Planner", "Decentralized"), legend_group=jj, showlegend=false, line_color=get(ColorSchemes.southwest, (jj-1), :extrema), xaxis="x4", yaxis="y4") for (jj, pl) in enumerate([true, false])]
 	]
 
-	layout = Layout(annotations = annotations,
-		height = style.layout[:height] * yh,
+	layout = Layout(
+		template = template,
+		annotations = annotations,
+		# height = style.layout[:height] * yh,
 		legend = attr(orientation="v", x=0.65, xanchor="right", y=0.1),
 		# yaxis1=attr(domain=[0.575, 1], anchor="x1"),
 		yaxis2=attr(domain=[0,1], anchor="x2"),
@@ -299,24 +299,26 @@ function makeplots_minimal(sm::SOEmin; move, optim_debt = false, style=slides_de
 		layout[:yaxis2_range] = [0.75, 1]
 	end
 
-	plot(data, layout, style=style)
+	plot(data, layout)
 end
 
 
 
-function minimal_twoagents(γ = 4; style::Style=slides_def)
+function minimal_twoagents(γ = 4; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark))
 
 	πvec = range(0, 0.12, length=101);
 	kvec = range(0, 0.16, length=101);
 
 	c(k,π,γ) = 1 - 1/γ * log(1-π + π * exp(γ*k))
 
-	layout = Layout(title = "Output in first period",
+	layout = Layout(
+		template = template,
+		title = "Output in first period",
 		xaxis_title = "Probability of transfer (%)",
 		yaxis = attr(title = "Size of transfer (% of agg. consumption)", tick_padding=200),
 		)
 
-	plot(contour(x=100πvec, y=100kvec, z=100 * [c(k,π,γ)/c(0,0,γ) - 1 for π in πvec, k in kvec], line_width=0.1, contours=Dict(:start=>0,:end=>-2.5, :size=>0.125, :coloring=>"fill"), colorbar=attr(tick0=0, dtick=0.5)), style=Style(style, contsty(ColorSchemes.davos)), layout)
+	plot(contour(x=100πvec, y=100kvec, z=100 * [c(k,π,γ)/c(0,0,γ) - 1 for π in πvec, k in kvec], line_width=0.1, contours=Dict(:start=>0,:end=>-2.5, :size=>0.125, :coloring=>"fill"), colorbar=attr(tick0=0, dtick=0.5)), layout)
 end
 
 function equil_period1(sm::SOEmin, f::Function; Δv, dv, planner)
@@ -328,44 +330,4 @@ function equil_period1(sm::SOEmin, f::Function; Δv, dv, planner)
 	end
 
 	eval_period1(sm, s1=s, debt=dv, Δ=Δv, planner=planner)
-end
-
-function minimal_oneagent(; style::Style=slides_def)
-	yvec = range(0.5, 1.5, length=2000);
-	d = Normal(1, 0.02)
-
-	# Parameters from large model
-	ϖ = 0.8^0.74
-	α = 0.67
-	η = 0.74
-
-	γ = 3
-
-	py = pdf.(D, yvec); py /= sum(py);
-
-	upr(s,d,Δ,py) = sum([exp.(-1 * (y2 - s - min(d, y2*Δ))) for y2 in yvec] .* py)
-	upr_rep(s,d,Δ,py) = upr(0.0, d-s, Δ, py)
-	
-	dvec = range(0, 0.2, length=200);
-	Δvec = range(0, 0.3, length=200);
-
-
-	cT(s, y1=1) = y1 - s
-
-	H(cT) = ( (ϖ/(1-ϖ) * cT)^(1/(η+α*η-α)) * (α/w)^(η/(η+α*η-α)) )
-
-	CES(cT, cN) = (ϖN * cN^-η + ϖT * cT^-η)^(-1/η)
-
-	u1(C) = C(1-γ)/(1-γ)
-	u1(cT, cN) = u1(CES(cT, cN))
-
-
-
-	# ∇u(cT, cN) = ForwardDiff.gradient(x->u1(x[1], x[2]), [cT, cN])
-	uT(cT, cN) = ∇u(cT,cN)[1]
-	uN(cT, cN) = ∇u(cT,cN)[2]
-
-	# upr(cT, h) = 
-
-
 end

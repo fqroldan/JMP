@@ -35,7 +35,7 @@ function update_govpol(sd::SOEdef)
 
 	Jgrid = agg_grid(sd);
 	rep_prob = zeros(N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z), N(sd,:ξ), N(sd,:z))
-	for js in 1:size(Jgrid, 1)
+	for js in axes(Jgrid, 1)
 		μ′_arr = sd.LoM[:μ][js,:,:]
 		σ′_arr = sd.LoM[:σ][js,:,:]
 
@@ -75,7 +75,7 @@ function update_W(sd::SOEdef)
 
 	Jgrid = agg_grid(sd)
 	W = zeros(size(Jgrid, 1))
-	for js in 1:size(Jgrid, 1)
+	for js in axes(Jgrid, 1)
 		bv = sd.gr[:b][Jgrid[js, 1]]
 		μv = sd.gr[:μ][Jgrid[js, 2]]
 		σv = sd.gr[:σ][Jgrid[js, 3]]
@@ -90,7 +90,7 @@ function update_W(sd::SOEdef)
 end
 
 
-function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=20e-4, nodef::Bool=sd.opt[:nodef], noΔ::Bool=sd.opt[:noΔ], rep_agent::Bool=sd.opt[:rep_agent], run_number::Int64=1, save_copies::Bool=false, nob::Bool=false, verbose::Bool=false)
+function mpe_iter!(sd::SOEdef; maxiter::Int64=500, tol::Float64=5e-4, nodef::Bool=sd.opt[:nodef], noΔ::Bool=sd.opt[:noΔ], rep_agent::Bool=sd.opt[:rep_agent], run_number::Int64=1, save_copies::Bool=false, nob::Bool=false, verbose::Bool=false)
 
 	init_msg = "\nIterating on the government's policy"
 	if nodef

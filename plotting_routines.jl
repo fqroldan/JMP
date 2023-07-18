@@ -16,42 +16,41 @@ col = [	"#1f77b4",  # muted blue
 		]
 
 """ Define styles """
-def_style = let
-	axis = attr(showgrid = true, gridcolor="#e2e2e2", gridwidth=0.5, zeroline=false)
-	layout = Layout(xaxis = axis, yaxis=axis)
-	Style(layout=layout)
+
+sand() = "#F5F3F1"
+darkbgd() = "#272929"
+lightgrid() = "#353535"
+darkgrid() = "#e2e2e2"
+gridcol(dark=false) = ifelse(dark, lightgrid(), darkgrid())
+
+q_axis(dark) = attr(showgrid = true, gridcolor=gridcol(dark), gridwidth = 0.5, zeroline=false)
+bgcol(slides, dark) = ifelse(slides, ifelse(dark, darkbgd(), sand()), "white")
+qleg() = attr(orientation = "h", x=0.05, xanchor="left")
+
+qwidth(slides) = 864
+qheight(slides) = ceil(Int, qwidth(slides) * ifelse(slides, 10/16, 7/16))
+
+function qtemplate(;dark=false, slides=!dark)
+    axis = q_axis(dark)
+    width = 864 #1920 * 0.45
+    l = Layout(
+        xaxis = axis, yaxis = axis,
+        width = width,
+        height = width * ifelse(slides, 10/16, 7/16),
+        font = attr(
+            family = ifelse(slides, "Lato", "Linux Libertine"),
+            size = 16, color = ifelse(dark, sand(), darkbgd())
+        ),
+        paper_bgcolor = bgcol(slides, dark), plot_bgcolor = bgcol(slides, dark),
+        legend = qleg(),
+    )
+    return Template(layout = l)
 end
 
-slides_def = let
-	layout = Layout(plot_bgcolor="#fafafa", paper_bgcolor="#fafafa",
-		width=1920*0.45, height=1080*0.45, font_size=16, font_family="Lato",
-		legend = attr(orientation = "h", x=0.05))
-	Style(def_style, layout=layout)
-end
-
-dark_bg = let
-	axis = attr(gridcolor="#1b1b1b")
-	layout = Layout(plot_bgcolor="#020202", paper_bgcolor="#020202", font_color="white", xaxis=axis,yaxis=axis)
-	Style(layout=layout)
-end
-slides_dark = Style(slides_def, dark_bg)
-
-paper = let
-	layout = Layout(width = 1920 * 0.5, height = 1080 * 0.35, font_size=16, font_family = "Linux Libertine",
-		legend = attr(orientation = "h", x=0.05))
-	Style(def_style, layout=layout)
-end
-
-contsty(;div::Bool=false) = let
-	colpal = ifelse(div, ColorSchemes.oleron, ColorSchemes.lajolla)
-	colscale = [[vv, get(colpal, vv)] for vv in range(0,1,length=100)]
-	c_att = attr(colorscale=colscale, autocontour=false)
-	Style(trace=Dict(:contour=>c_att))
-end
 
 default_eval_points(sd::SOEdef) = floor(Int, N(sd,:b)*0.9), floor(Int, N(sd,:μ)*0.95), max(1,floor(Int, N(sd,:σ)*0.8)), 1, 2, floor(Int, N(sd,:z)*0.15)
 
-function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
+function plot_hh_policies(sd::SOEdef; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark))
 	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
 	jb, jμ, jσ, jξ, jζ, jz = 6, 2, 2, 2, 2, 4
 	μv, σv = sd.gr[:μ][jμ], sd.gr[:σ][jσ]
@@ -91,7 +90,8 @@ function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 		attr(text = "<i>Proportion risk-free", x = 0.55 + 0.45/2, xanchor="center", xref="paper", y = 0.435, yref="paper", showarrow=false, font_size=18)
 		]
 
-	layout = Layout(shapes = shapes, annotations=annotations,
+	layout = Layout(template = template, 
+	shapes = shapes, annotations=annotations,
 		height = 1080*0.55,
 		xaxis1 = attr(domain=[0, 0.425], anchor="y1", zeroline=false),
 		xaxis2 = attr(domain=[0.525, 0.975], anchor="y2", zeroline=false),
@@ -103,7 +103,7 @@ function plot_hh_policies(sd::SOEdef; style::Style=slides_def)
 		yaxis4 = attr(domain=[0, 0.425], anchor="x4", zeroline=false),
 		)
 
-	plot(l[:], layout, style=style)
+	plot(l[:], layout)
 end	
 
 function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol, min_z, max_z; f1::Function=identity, f2::Function=identity, divergent::Bool=false, reversescale::Bool=false, suffix="", xpad=10)
@@ -116,7 +116,8 @@ function makecontour(sd::SOEdef, y::Matrix, dim1::Symbol, dim2::Symbol, min_z, m
 
 	colscale = [[vv, get(colpal, vv)] for vv in range(0,1,length=100)]
 
-	contour(;x = f1.(sd.gr[dim1]), y = f2.(sd.gr[dim2]), z=y, colorscale = colscale, reversescale=reversescale, autocontour=false, colorbar_ticksuffix=suffix, colorbar_xpad = xpad, colorbar_showticksuffix="all", contours=Dict(:start=>min_z,:end=>max_z), xaxis="x1", yaxis="y1")
+	# Need to transpose y for contour to understand first dimension as x and second as y (otherwise uses matrix notation)
+	contour(;x = f1.(sd.gr[dim1]), y = f2.(sd.gr[dim2]), z=y', colorscale = colscale, reversescale=reversescale, autocontour=false, colorbar_ticksuffix=suffix, colorbar_xpad = xpad, colorbar_showticksuffix="all", contours=Dict(:start=>min_z,:end=>max_z), xaxis="x1", yaxis="y1")
 end
 
 function makecontour_μσ(sd::SOEdef, y::Matrix, min_z, max_z; divergent::Bool=false, reversescale::Bool=false, fz::Function=identity, suffix="", xpad=10)
@@ -133,9 +134,10 @@ function makecontour_μσ(sd::SOEdef, y::Matrix, min_z, max_z; divergent::Bool=f
 	end
 	colscale = [[vv, get(colpal, vv)] for vv in range(0,1,length=100)]
 
+	# Need to transpose y for contour to understand first dimension as x and second as y (otherwise uses matrix notation)
 	ctμσ = contour(;
 	x = xgrid, y = ygrid,
-	z = fz.(y_mat), xaxis="x2", yaxis="y2",
+	z = fz.(y_mat'), xaxis="x2", yaxis="y2",
 	colorscale = colscale, reversescale=reversescale, colorbar_ticksuffix=suffix, colorbar_xpad = xpad, colorbar_showticksuffix="all", autocontour=false, contours=Dict(:start=>min_z,:end=>max_z))
 end
 
@@ -164,7 +166,7 @@ function reeval_mat_MV(sd::SOEdef, itp_obj; lb=-Inf, ub=Inf)
 end
 
 
-function make_unemp(sd::SOEdef; style::Style=slides_def, leg=true)
+function make_unemp(sd::SOEdef; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), leg=true)
 	jb, jμ, jσ, jξ, jζ, jz = [10, 3,2,1,2,5]
 
 	unemp = (1 .- reshape_long(sd, sd.eq[:Ld])) * 100
@@ -188,17 +190,18 @@ function make_unemp(sd::SOEdef; style::Style=slides_def, leg=true)
 	data = [data1, data2]
 	# data = data1
 
-	layout = Layout(title=ifelse(leg,"<i>Unemployment", ""),
+	layout = Layout(template = template,
+		title=ifelse(leg,"<i>Unemployment", ""),
 		xaxis1 = attr(domain=[0, 0.45], anchor="y1", title="<i>B"),
 		xaxis2 = attr(domain=[0.55, 1], anchor="y2", title="<i>Mean"),
 		yaxis1 = attr(anchor="x1", title="<i>z"),
 		yaxis2 = attr(anchor="x2", title="<i>Variance"),
 		)
-	plot(data, layout, style=style)
+	plot(data, layout)
 	# data1
 end
 
-function make_debtprice(sd::SOEdef; style::Style=slides_def, leg=true)
+function make_debtprice(sd::SOEdef; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), leg=true)
 	jb, jμ, jσ, jξ, jζ, jz = [10, 3,2,1,2,5]
 
 	qg_matbz = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
@@ -211,17 +214,18 @@ function make_debtprice(sd::SOEdef; style::Style=slides_def, leg=true)
 	data = [data1, data2]
 	# data = data1
 
-	layout = Layout(title=ifelse(leg,"<i>Price of Debt", ""),
+	layout = Layout(template = template,
+		title=ifelse(leg,"<i>Price of Debt", ""),
 		xaxis1 = attr(domain=[0, 0.45], anchor="y1", title="<i>B"),
 		xaxis2 = attr(domain=[0.55, 1], anchor="y2", title="<i>Mean"),
 		yaxis1 = attr(anchor="x1", title="<i>z"),
 		yaxis2 = attr(anchor="x2", title="<i>Variance"),
 		)
 
-	plot(data, layout, style=style)
+	plot(data, layout)
 end
 
-function make_def_incentive(sd::SOEdef; style::Style=slides_def)
+function make_def_incentive(sd::SOEdef)
 	jb, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
 	μv = sd.gr[:μ][jμ]
 	σv = sd.gr[:σ][jσ]
@@ -231,10 +235,13 @@ function make_def_incentive(sd::SOEdef; style::Style=slides_def)
 	itp_vD = make_itp(sd, sd.eq[:welfare], agg=true)
 	vD = [itp_vD(1-sd.pars[:ℏ]*bv, μv, σv, ξv, 0.0, zv) for (jb, bv) in enumerate(sd.gr[:b]), (jz,zv) in enumerate(sd.gr[:z])]
 
-	p1 = makecontour(sd, vR-vD, :b, :z, f2=x->100x, style=style, title="<i>V<sup>R</sup> - V<sup>D</sup>", reversescale=false)
+	p1 = makecontour(sd, vR-vD, :b, :z, -Inf, Inf, f2=x->100x,
+	 	# title="<i>V<sup>R</sup> - V<sup>D</sup>", 
+	 	reversescale=false)
 end
 
 scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, X::Float64) where T <: AbstractPath = scats_crises(pv, tvv, key, x->x/X)
+
 function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f::Function=identity; axis::Int64=1, indiv=false, k=8, k_back=k) where T <: AbstractPath
 
 	ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, k_back)
@@ -257,11 +264,11 @@ function scats_crises(pv::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, f:
 	s1
 end
 
-function plot_crises(pv::Vector{T}, πthres::Float64, key::Symbol, f::Function=identity; style::Style=slides_def) where T <: AbstractPath
-	Nc, tvv = get_crises(pv, πthres, 8)
+function plot_crises(pv::Vector{T}, πthres::Number, key::Symbol, f::Function=identity; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark)) where T <: AbstractPath
+	Nc, tvv = get_crises(pv, πthres, key, 8)
 	shapes = [vline(0, line_width=1, marker_color="black")]
-	scats_crises(pv, tvv, key, f)
-	plot(scats_crises(pv, tvv, key, f), style=style, Layout(shapes=shapes))
+	# scats_crises(pv, tvv, key, f)
+	plot(scats_crises(pv, tvv, key, f), Layout(template = template, shapes=shapes))
 end
 
 scats_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, tvv::Vector{Vector{Int64}}, key::Symbol, x1::Float64, x2::Float64=x1; CI::Bool=false, avg::Bool=false) where T <: AbstractPath = scats_comp(pv_bench, pv_nodef, tvv, key, x->x/x1, x->x/x2, CI=CI, avg=avg)
@@ -362,7 +369,7 @@ function scats_MIT(pvb::Vector{T}, pvh::Vector{T}, key::Symbol, f::Function, g::
 	]
 end
 
-function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4*5, burn_in = 4*100, yh = 0.65, verbose=false, nodef=true, style::Style=slides_def)
+function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4*5, burn_in = 4*100, yh = 0.65, verbose=false, nodef=true, slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark))
 
 	pvb, pvh = MIT_shock(sd, B0, ϵb; K=K, T=T, burn_in=burn_in, verbose=verbose)
 
@@ -410,7 +417,8 @@ function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4
 		attr(text=titlevec[jj], x = 2.5, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size=18, yref="paper") for jj in 1:length(titlevec)
 		]
 
-	layout = Layout(annotations = annotations,
+	layout = Layout(template = template,
+		annotations = annotations,
 		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		xaxis1 = attr(domain = [0a+bx, a-bx], anchor="y1"),
 		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
@@ -432,10 +440,10 @@ function make_MIT_shock(sd::SOEdef, B0 = mean(sd.gr[:b]), ϵb = 0.05; K=100, T=4
 		yaxis9 = attr(anchor = "x9", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[9]),
 	)
 	data
-	plot(data, layout, style=style)
+	plot(data, layout)
 end
 
-function distribution_crises_new(pv::Vector{T}, thres::Number, sym::Symbol; style::Style = slides_def, yh = 0.65, type = "highspreads", k = 6, k_back = k, thres_back::Number = Inf) where {T<:AbstractPath}
+function distribution_crises_new(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 0.65, type = "highspreads", k = 6, k_back = k, thres_back::Number = Inf) where {T<:AbstractPath}
     Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type = type)
 
     colmed = get(ColorSchemes.corkO, 0.25)
@@ -477,6 +485,7 @@ function distribution_crises_new(pv::Vector{T}, thres::Number, sym::Symbol; styl
     ]
 
     layout = Layout(
+		template = template,
         annotations = annotations,
         xaxis1 = attr(domain = [0, 1], anchor = "y1"),
         # xaxis1 = attr(domain = [0, 0.45], anchor = "y1"),
@@ -486,18 +495,18 @@ function distribution_crises_new(pv::Vector{T}, thres::Number, sym::Symbol; styl
         legend = attr(x = 0.5, xanchor = "center"),
     )
 
-    plot(data, layout, style = style)
+    plot(data, layout)
 end
 
-function dist_CW(pv::Vector{T}, thres::Number, sym::Symbol; cw = true, style::Style = slides_def, yh = 0.65, type = "highspreads", k = 6, k_back = k, thres_back::Number = Inf) where {T<:AbstractPath}
+function dist_CW(pv::Vector{T}, thres::Number, sym::Symbol; cw = true, slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 0.65, type = "highspreads", k = 6, k_back = k, thres_back::Number = Inf) where {T<:AbstractPath}
     Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type = type)
 
     data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
 	keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
 	titlevec = ["<i>p</i>10", "<i>p</i>25", "<i>p</i>50", "<i>p</i>75", "<i>p</i>90", "Average"]
 
-	cols = [get(ColorSchemes.lapaz, jv) for jv in range(0, 0.8, length=5)]
-	push!(cols, get(ColorSchemes.lajolla, 0.5))
+	cols = [get(ColorSchemes.lapaz, jv, :extrema) for jv in range(0, 0.8, length=5)]
+	push!(cols, get(ColorSchemes.lajolla, 0.5, :extrema))
 
 	resp_vec = ifelse(cw, ["C", "Wr"], ["A", "B"])
 	
@@ -507,10 +516,12 @@ function dist_CW(pv::Vector{T}, thres::Number, sym::Symbol; cw = true, style::St
 				nv = "_avg"
 			end
 			key = Symbol(resp * nv)
-			ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, k_back)
-			y_av = y_av ./ y_av[1] .- 1
-			scat = scatter(x = (-k_back:k) / 4, y = 100*y_av, showlegend = (jr==1), name = titlevec[jk], mode = "lines", line = attr(color=cols[jk], width=ifelse(jk==6, 3, 2), dash=ifelse(jk==6, "dash", "solid")), xaxis="x$jr", yaxis="y$jr", legendgroup = jk)
-			push!(data, scat)
+			if haskey(pv[1].data, key)
+				ymat, y_up, y_me, y_lo, y_av = series_crises(pv, tvv, key, k, k_back)
+				y_av = y_av ./ y_av[1] .- 1
+				scat = scatter(x = (-k_back:k) / 4, y = 100*y_av, showlegend = (jr==1), name = titlevec[jk], mode = "lines", line = attr(color=cols[jk], width=ifelse(jk==6, 3, 2), dash=ifelse(jk==6, "dash", "solid")), xaxis="x$jr", yaxis="y$jr", legendgroup = jk)
+				push!(data, scat)
+			end
 		end
 	end
 
@@ -522,6 +533,7 @@ function dist_CW(pv::Vector{T}, thres::Number, sym::Symbol; cw = true, style::St
 	]
 
 	layout = Layout(
+		template = template,
 		annotations = annotations,
 		xaxis1 = attr(domain = [0, 0.45], anchor="y1"),
 		xaxis2 = attr(domain = [0.55, 1], anchor="y2"),
@@ -530,10 +542,10 @@ function dist_CW(pv::Vector{T}, thres::Number, sym::Symbol; cw = true, style::St
 		legend = attr(x=0.5, xanchor="center"),
 	)
 
-	plot(data, layout, style=style)
+	plot(data, layout)
 end
 
-function distribution_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, response="W", type="highspreads", k=6, k_back=k, thres_back::Number=Inf) where T<:AbstractPath
+function distribution_crises(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 0.65, response="W", type="highspreads", k=6, k_back=k, thres_back::Number=Inf) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type=type)
 
 	if response == "W"
@@ -556,6 +568,7 @@ function distribution_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::S
 	]
 
 	layout = Layout(
+		template = template,
 		annotations=annotations,
 		xaxis1 = attr(domain = [0, 0.29]),
 		xaxis2 = attr(domain = [0.34, 0.62]),
@@ -571,10 +584,10 @@ function distribution_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::S
 		yaxis6 = attr(domain = [0, 0.425], anchor="x6"),
 		)
 
-	plot(data, layout, style=style)
+	plot(data, layout)
 end
 
-function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf) where T<:AbstractPath
+function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type=type)
 
 	println("$Nc episodes")
@@ -621,7 +634,8 @@ function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; style::S
 	annotations = [
 		attr(text=titlevec[jj], x = -k_back/8+k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/4)], font_size=18, showarrow=false, yref="paper") for jj in eachindex(titlevec)
 		]
-	layout = Layout(shapes=shapes, annotations = annotations,
+	layout = Layout(template = template,
+		shapes = shapes, annotations = annotations,
 		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		xaxis1 = attr(domain = [0ax, ax-2bx], range=[-k_back/4, k/4]),
 		xaxis2 = attr(domain = [1ax+bx, 2ax-bx], range=[-k_back/4, k/4]),
@@ -657,11 +671,11 @@ function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; style::S
 		# yaxis16 = attr(anchor = "x16", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[16]),
 		)
 
-	plot(data, layout, style=style)
+	plot(data, layout)
 end
 
-panels_defaults(pv::Vector{T}; k=8, style::Style=slides_def, yh = 0.65, indiv=false) where T<:AbstractPath = panels_crises(pv, 0.0, :spread, style=style, yh=yh, type="default", indiv=indiv, k=k)
-function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf) where T<:AbstractPath
+panels_defaults(pv::Vector{T}; k=8, slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark), yh=0.65, indiv=false) where T<:AbstractPath = panels_crises(pv, 0.0, :spread, template = template, yh=yh, type="default", indiv=indiv, k=k)
+function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type=type)
 
 	println("$Nc episodes")
@@ -716,7 +730,9 @@ function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=s
 	annotations = [
 		attr(text=titlevec[jj], x = -k_back/8+k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/4)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
 		]
-	layout = Layout(shapes=shapes, annotations = annotations,
+	layout = Layout(
+		template = template,
+		shapes = shapes, annotations = annotations,
 		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		xaxis1 = attr(domain = [0a, a-2bx], range=[-k_back/4, k/4]),
 		xaxis2 = attr(domain = [1a+bx, 2a-bx], range=[-k_back/4, k/4]),
@@ -752,9 +768,9 @@ function panels_crises(pv::Vector{T}, thres::Number, sym::Symbol; style::Style=s
 		yaxis16 = attr(anchor = "x16", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[16]),
 		)
 
-	plot(data, layout, style=style)
+	plot(data, layout)
 end
-function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol; style::Style=slides_def, thres_back::Number=Inf, yh = 0.6, k=8, k_back=2k, response="W", transf = false) where T<:AbstractPath
+function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), thres_back::Number=Inf, yh = 0.6, k=8, k_back=2k, response="W", transf = false) where T<:AbstractPath
 	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back, thres_back)
 	println("Suggested yh=0.7 for style=paper")
 	if response == "W"
@@ -777,10 +793,12 @@ function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Numb
 
 	ys = [1, 0.46]
 	annotations = [
-		attr(text = "<i>"*titlevec[jj], x = -k_back/8 + k/8, xanchor="center", xref = "x$jj",y = ys[ceil(Int, jj/3)], font_size=18, showarrow=false, yref="paper") for jj in 1:length(titlevec)
+		attr(text = "<i>"*titlevec[jj], x = -k_back/8 + k/8, xanchor="center", xref = "x$jj",y = ys[ceil(Int, jj/3)], font_size=18, showarrow=false, yref="paper") for jj in eachindex(titlevec)
 	]
 
-	layout = Layout(annotations=annotations,
+	layout = Layout(
+		template = template,
+		annotations=annotations,
 		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		xaxis1 = attr(domain = [0, 0.3]),
 		xaxis2 = attr(domain = [0.35, 0.65]),
@@ -796,10 +814,10 @@ function distribution_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Numb
 		yaxis6 = attr(domain = [0.05, 0.425], anchor="x6"),
 		)
 
-	plot(data, layout, style=style)
+	plot(data, layout)
 end
 
-function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol=:π; thres_back::Number=Inf, style::Style=slides_def, yh = 0.65, k=8, k_back=2k, transf::Bool=true, relative=false, CIs=true) where T<:AbstractPath
+function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol=:π; thres_back::Number=Inf, slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 0.65, k=8, k_back=2k, transf::Bool=true, relative=false, CIs=true) where T<:AbstractPath
 	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back, thres_back)
 	println("Suggested yh=0.7 for style=paper")
 	keyvec = [:z, :Y, :C, :P, :B, :T, :L, :spread, :Wr]
@@ -875,10 +893,12 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 
 	ys = [1, 0.64, 0.3]
 	annotations = [
-		attr(text=titlevec[jj], x = -k_back/8 + k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in 1:length(titlevec)
+		attr(text=titlevec[jj], x = -k_back/8 + k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in eachindex(titlevec)
 		]
 
-	layout = Layout(shapes=shapes, annotations = annotations,
+	layout = Layout(
+		template = template,
+		shapes=shapes, annotations = annotations,
 		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		xaxis1 = attr(domain = [0a, a-2bx], anchor="y1"),
 		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
@@ -899,18 +919,18 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 		yaxis8 = attr(anchor = "x8", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[8]),
 		yaxis9 = attr(anchor = "x9", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[9]),
 	)
-	plot(data, layout, style=style)
+	plot(data, layout)
 	# plot(data[12+1:12+6])
 end
 
-function plot_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres, key::Symbol, f::Function=identity; style::Style=slides_def) where T <: AbstractPath
+function plot_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, πthres, key::Symbol, f::Function=identity; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark)) where T <: AbstractPath
 	Nc, tvv = get_crises(pv_bench, πthres, 8)
 	shapes = [vline(0, line_width=1, marker_color="black")]
 	scats_comp(pv_bench, pv_nodef, tvv, key, f)
-	plot(scats_comp(pv_bench, pv_nodef, tvv, key, f), style=style, Layout(shapes=shapes))
+	plot(scats_comp(pv_bench, pv_nodef, tvv, key, f), Layout(template=template, shapes=shapes))
 end
 
-function panels_full_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector{T}, pv_nodef::Vector{T}, πthres::Float64; style::Style=slides_def, yh = 0.65) where T<:AbstractPath
+function panels_full_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector{T}, pv_nodef::Vector{T}, πthres::Float64; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 0.65) where T<:AbstractPath
 	Nc, tvv = get_crises(pv_bench, πthres, 8)
 	println("Suggested yh=0.7 for style=paper")
 	keyvec = [:z, :Y, :C, :B, :G, :T, :L, :spread, :Wr]
@@ -971,10 +991,12 @@ function panels_full_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vecto
 
 	ys = [1, 0.64, 0.3]
 	annotations = [
-		attr(text=titlevec[jj], x = -1, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in 1:length(titlevec)
+		attr(text=titlevec[jj], x = -1, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in eachindex(titlevec)
 		]
 
-	layout = Layout(shapes=shapes, annotations = annotations,
+	layout = Layout(
+		template = template,
+		shapes = shapes, annotations = annotations,
 		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		xaxis1 = attr(domain = [0a, a-2bx], anchor="y1"),
 		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
@@ -995,7 +1017,7 @@ function panels_full_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vecto
 		yaxis8 = attr(anchor = "x8", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[8]),
 		yaxis9 = attr(anchor = "x9", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[9]),
 	)
-	plot(data, layout, style=style)
+	plot(data, layout)
 end
 
 
@@ -1041,7 +1063,7 @@ function full_scats_comp(pv_bench::Vector{T}, pv_noΔ::Vector{T}, pv_nob::Vector
 	s1
 end
 
-function panels_comp3(pv_bench::Vector{T}, pv_nodef::Vector{T}, pv_mixed::Vector{T}, thres::Number, sym::Symbol=:π; thres_back::Number=Inf, style::Style=slides_def, yh = 0.65, k=8, k_back=2k, transf::Bool=true, relative=false, CIs=true) where T<:AbstractPath
+function panels_comp3(pv_bench::Vector{T}, pv_nodef::Vector{T}, pv_mixed::Vector{T}, thres::Number, sym::Symbol=:π; thres_back::Number=Inf, slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 0.65, k=8, k_back=2k, transf::Bool=true, relative=false, CIs=true) where T<:AbstractPath
 	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back, thres_back)
 	println("Suggested yh=0.7 for style=paper")
 	keyvec = [:z, :Y, :C, :CoY, :B, :T, :L, :spread, :Wr]
@@ -1127,10 +1149,12 @@ function panels_comp3(pv_bench::Vector{T}, pv_nodef::Vector{T}, pv_mixed::Vector
 
 	ys = [1, 0.64, 0.3]
 	annotations = [
-		attr(text=titlevec[jj], x = -k_back/8 + k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in 1:length(titlevec)
+		attr(text=titlevec[jj], x = -k_back/8 + k/8, xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in eachindex(titlevec)
 		]
 
-	layout = Layout(shapes=shapes, annotations = annotations,
+	layout = Layout(
+		template = template,
+		shapes=shapes, annotations = annotations,
 		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		xaxis1 = attr(domain = [0a, a-2bx], anchor="y1"),
 		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
@@ -1151,7 +1175,7 @@ function panels_comp3(pv_bench::Vector{T}, pv_nodef::Vector{T}, pv_mixed::Vector
 		yaxis8 = attr(anchor = "x8", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[8]),
 		yaxis9 = attr(anchor = "x9", domain = [0a+b, 1a-b], titlefont_size = 14, title=ytitle[9]),
 	)
-	plot(data, layout, style=style)
+	plot(data, layout)
 	# plot(data[12+1:12+6])
 end
 
@@ -1170,12 +1194,12 @@ function plot_IRF(pv::Vector{Tp}, key::Symbol, t1, t2; kwargs...) where Tp <: Pa
 	plot_IRF(y_mat, t1, t2; kwargs...)
 end
 
-function plot_IRF(y_mat::Matrix{Float64}, t1, t2; style::Style=slides_def, kwargs...)
-	scats, layout = scats_IRF(y_mat, t1, t2; kwargs...)
-	plot(scats, layout, style=style)
+function plot_IRF(y_mat::Matrix{Float64}, t1, t2; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), kwargs...)
+	scats, layout = scats_IRF(y_mat, t1, t2, template; kwargs...)
+	plot(scats, layout)
 end
 
-function scats_IRF(y_mat::Matrix{Float64}, t1, t2; relative=false, xtitle="", ytitle="", title="", CIs=true)
+function scats_IRF(y_mat::Matrix{Float64}, t1, t2, template::Template; relative=false, xtitle="", ytitle="", title="", CIs=true)
 	T = size(y_mat,1)
 
 	if relative
@@ -1193,6 +1217,7 @@ function scats_IRF(y_mat::Matrix{Float64}, t1, t2; relative=false, xtitle="", yt
 		]
 
 	layout = Layout(
+		template = template,
 		shapes = shapes,
 		xaxis_title=xtitle, yaxis_title=ytitle, title=title,
 		font_size = 18,
@@ -1215,14 +1240,14 @@ function scats_IRF(y_mat::Matrix{Float64}, t1, t2; relative=false, xtitle="", yt
 	scats, layout
 end
 
-function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillcol, simname; kwargs...)
+function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, t1, t2, T, color, fillcol, simname; template::Template=qtemplate(), kwargs...)
 	rel = jk in [2,3]
-	if key == :BoY
-		y = 25*[(series(p, :B)./series(p,:Y))[tt] for tt in 1:T, p in pv]
-	elseif key == :GoY
-		y = 25*[(series(p, :G)./series(p,:Y))[tt] for tt in 1:T, p in pv]
-	elseif key == :ToY
-		y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv]
+	if key in (:BoY, :GoY, :ToY)
+		y = 25*[(series(p, Symbol(string(key)[1]))./series(p,:Y))[tt] for tt in 1:T, p in pv]
+	# elseif key == :GoY
+	# 	y = 25*[(series(p, :G)./series(p,:Y))[tt] for tt in 1:T, p in pv]
+	# elseif key == :ToY
+	# 	y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv]
 	elseif key == :unemp
 		y = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv]
 	elseif key == :z || key == :CoY
@@ -1231,7 +1256,7 @@ function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillco
 		y = [series(p, key)[tt] for tt in 1:T, p in pv]
 	end
 
-	scat_vec, _ = scats_IRF(y, t1, t2, relative=rel, ytitle=ytitle[jk]; kwargs...)
+	scat_vec, _ = scats_IRF(y, t1, t2, template, relative=rel, ytitle=ytitle[jk]; kwargs...)
 	for (js, scat) in enumerate(scat_vec)
 		scat[:legendgroup] = jg
 		scat[:showlegend] = (jk == 1) && (js == 2)
@@ -1250,7 +1275,7 @@ function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, T, color, fillco
 	end
 end
 
-function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); β = 0.9865170273023061, t1 = 1, t2 = 12, cond_Y = -Inf, cond_spr = Inf, style::Style=slides_def, kwargs...) where Tp <: Path
+function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); β = 0.9865170273023061, t1 = 1, t2 = 12, cond_Y = -Inf, cond_spr = Inf, slides = true, dark = slides, give_stats = false, template::Template=qtemplate(slides=slides, dark=dark), kwargs...) where Tp <: Path
 	T = periods(pv_bench[1])
 	colbench = "rgb(0.36972225,0.47750525,0.62292125)"
 	fillbench = "rgba(0.36972225,0.47750525,0.62292125, 0.25)"
@@ -1259,8 +1284,10 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	colsamep = "rgb(0.82969225,0.39322875,0.30229275)"
 	fillsamep = "rgba(0.82969225,0.39322875,0.30229275, 0.25)"
 
-	keyvec = [:z, :Y, :C, :P, :BoY, :ToY, :unemp, :spread, :Wr]
-	namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
+	keyvec = [:z, :Y, :C, :P, :BoY, :mean, :Gini, :spread, :Wr]
+	namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Mean ω", "Gini", "Spread", "Welfare in repayment"]
+	# keyvec = [:z, :Y, :C, :P, :BoY, :ToY, :unemp, :spread, :Wr]
+	# namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
 
 	if cond_Y > -Inf
 		K = length(pv_bench)
@@ -1278,14 +1305,27 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	end
 	ytitle = vcat("%", ["% deviation" for jj in 1:2], "", ["% of GDP" for jj in 1:2], "%", "bps", "")
 
+	if give_stats
+		Wr1 = mean(series(p, :Wr)[t1] for p in pv_samep)
+		Wr2 = mean(series(p, :Wr)[t2] for p in pv_samep)
+
+		G1 = mean(series(p, :Gini)[t1] for p in pv_samep)
+		G2 = mean(series(p, :Gini)[t2] for p in pv_samep)
+
+		Y1 = mean(series(p, :Y)[t1] for p in pv_samep)
+		Y2 = mean(series(p, :Y)[t2] for p in pv_samep)
+
+		return Wr1, Wr2, G1, G2, Y1, Y2
+	end
+
 	scats = Vector{GenericTrace{Dict{Symbol, Any}}}()
 
 	for (jk, key) in enumerate(keyvec)
 
-		add_scats_IRF!(scats, pv_bench, key, ytitle, 1, jk, T, colbench, fillbench, "Benchmark")
-		add_scats_IRF!(scats, pv_nodef, key, ytitle, 2, jk, T, colnodef, fillnodef, "No default")
+		add_scats_IRF!(scats, pv_bench, key, ytitle, 1, jk, t1, t2, T, colbench, fillbench, "Benchmark")
+		add_scats_IRF!(scats, pv_nodef, key, ytitle, 2, jk, t1, t2, T, colnodef, fillnodef, "No default")
 		if length(pv_samep) > 0
-			add_scats_IRF!(scats, pv_samep, key, ytitle, 3, jk, T, colsamep, fillsamep, "No default (same debt issuances)")
+			add_scats_IRF!(scats, pv_samep, key, ytitle, 3, jk, t1, t2, T, colsamep, fillsamep, "No default (same debt issuances)")
 		end
 	end
 
@@ -1334,7 +1374,7 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 
 	ys = [1, 0.64, 0.3]
 	annotations = [
-		attr(text=namesvec[jj], x = mean((-1:T)./4), xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in 1:length(namesvec)
+		attr(text=namesvec[jj], x = mean((-1:T)./4), xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/3)], showarrow=false, font_size = 18, yref="paper") for jj in eachindex(namesvec)
 		]
 
 	ydom = vcat([[2a+b, 3a-b] for jj in 1:3], [[1a+b, 2a-b] for jj in 1:3], [[0a+b, 1a-b] for jj in 1:3])
@@ -1344,7 +1384,9 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 		[vline((t2-2)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.75, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
 		]
 
-	layout = Layout(font_size = 16, 
+	layout = Layout(
+		template = template,
+		font_size = 16, 
 		shapes = shapes, annotations = annotations,
 		xaxis1 = attr(domain = [0a, a-2bx], anchor="y1"),
 		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
@@ -1368,15 +1410,15 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 		; kwargs...
 		)
 
-	plot(scats, layout, style=style)
+	plot(scats, layout)
 end
 
-function distribution_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); β = 0.9865170273023061, t1 = 1, t2 = 12, cond_Y = -Inf, cond_spr = Inf, style::Style=slides_def, kwargs...) where Tp <: Path
+function distribution_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); β = 0.9865170273023061, t1 = 1, t2 = 12, cond_Y = -Inf, cond_spr = Inf, slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), kwargs...) where Tp <: Path
 
 	T = periods(pv_bench[1])
-	colvec = [get(ColorSchemes.davos, vv) for vv in range(0, 0.75, length = 5)]
+	colvec = [get(ColorSchemes.davos, vv, :extrema) for vv in range(0, 0.75, length = 5)]
 	# fillbench = "rgba(0.36972225,0.47750525,0.62292125, 0.25)"
-	push!(colvec, get(ColorSchemes.lajolla, 0.5))
+	push!(colvec, get(ColorSchemes.lajolla, 0.5, :extrema))
 
 	keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
 	namesvec = ["p10", "p25", "p50", "p75", "p90", "Average"]
@@ -1399,16 +1441,18 @@ function distribution_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::
 
 	for (jk, key) in enumerate(keyvec)
 
-		add_scats_IRF!(scats, pv_bench, key, ytitle, jk, 1, T, colvec[jk], colvec[jk], namesvec[jk], CIs = false)
+		add_scats_IRF!(scats, pv_bench, key, ytitle, jk, 1, t1, t2, T, colvec[jk], colvec[jk], namesvec[jk], CIs = false)
 
 		loss = mean( (series(pv_bench[jj], key)[1+t1] - series(pv_nodef[jj], key)[1+t1] + β^11 * (series(pv_bench[jj], key)[1+t2] - series(pv_bench[jj], key)[t2])) / series(pv_nodef[jj], key)[1+t1] for jj in eachindex(pv_bench) )
 
 		print("$key: $(@sprintf("%0.3g", 100*loss))%\n")
 	end
 
-	layout = Layout(legend = attr(x = 0.5, xref = "paper", xanchor = "center"))
+	layout = Layout(
+		template = template,
+		legend = attr(x = 0.5, xref = "paper", xanchor = "center"))
 
-	plot(scats, layout, style=style)
+	plot(scats, layout)
 end
 
 function twisted_π(sd::SOEdef, jϵ=floor(Int, N(sd,:ϵ)/2), eval_points::Vector{Int64}=[default_eval_points(sd)...])
@@ -1474,7 +1518,7 @@ function twisted_π(sd::SOEdef, jϵ=floor(Int, N(sd,:ϵ)/2), eval_points::Vector
 	return Tπ, actual_prob
 end
 
-function make_twisted(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(sd)...]; style::Style=slides_def, custom_points::Bool=true, leg::Bool=false)
+function make_twisted(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(sd)...]; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), custom_points::Bool=true, leg::Bool=false)
 	Tπ = zeros(N(sd,:ω), N(sd,:ϵ))
 
 	if custom_points
@@ -1492,10 +1536,15 @@ function make_twisted(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_point
 	end
 	_, actual_prob = twisted_π(sd, 1, eval_points)
 
-	plot([
-		scatter(x=extrema(sd.gr[:ω]), y=ones(2) * 100*actual_prob, line_dash="dash", mode="lines", line_color=col[3], name="Actual")
-		[scatter(x=sd.gr[:ω], y=100*Tπ[:,jϵ], name="<i>ϵ = $(@sprintf("%0.3g", ϵv))", showlegend=leg, line_color=get(ColorSchemes.lajolla, 1-(jϵ-1)/N(sd,:ϵ))) for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])]
-		], style=style, Layout(xaxis_title="<i>ω", yaxis_title="<i>%", title="Twisted default probabilities", legend=legattr))
+	plot(
+		[
+			scatter(x=extrema(sd.gr[:ω]), y=ones(2) * 100*actual_prob, line_dash="dash", mode="lines", line_color=col[3], name="Actual")
+			[scatter(x=sd.gr[:ω], y=100*Tπ[:,jϵ], name="<i>ϵ = $(@sprintf("%0.3g", ϵv))", showlegend=leg, line_color=get(ColorSchemes.lajolla, 1-(jϵ-1)/N(sd,:ϵ), :extrema)) for (jϵ, ϵv) in enumerate(sd.gr[:ϵ])]
+		],
+		Layout(
+			template = template, xaxis_title="<i>ω", yaxis_title="<i>%", title="Twisted default probabilities", legend=legattr
+			)
+		)
 end
 
 function Wr_Wd(sd::SOEdef, type::String)
@@ -1516,7 +1565,7 @@ function Wr_Wd(sd::SOEdef, type::String)
 
 	Jgrid = agg_grid(sd);
 	rep_prob = zeros(N(sd,:b), N(sd,:μ), N(sd,:σ), N(sd,:ξ), N(sd,:ζ), N(sd,:z), N(sd,:ξ), N(sd,:z))
-	for js in 1:size(Jgrid, 1)
+	for js in axes(Jgrid, 1)
 		μ′_arr = sd.LoM[:μ][js,:,:]
 		σ′_arr = sd.LoM[:σ][js,:,:]
 
@@ -1557,7 +1606,7 @@ function earnings_default(sd::SOEdef)
 	Eyd = zeros(size(sd.eq[:wage])..., N(sd,:z))
 	Jgrid = agg_grid(sd)
 
-	for js in 1:size(Jgrid,1)
+	for js in axes(Jgrid,1)
 		jξ = Jgrid[js, 4]
 		jζ = Jgrid[js, 5]
 		jz = Jgrid[js, 6]
@@ -1606,7 +1655,7 @@ end
 function find_points(sd::SOEdef, jlong)
 	Jgrid = agg_grid(sd)
 
-	js = findfirst([Jgrid[jjs, :] == jlong for jjs in 1:size(Jgrid,1)])
+	js = findfirst([Jgrid[jjs, :] == jlong for jjs in axes(Jgrid,1)])
 end
 
 function get_earnings_default(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(sd)...])
@@ -1629,7 +1678,7 @@ function get_Wr_Wd(sd::SOEdef, eval_points::Vector{Int64}=[default_eval_points(s
 	return Wr[js,:], Wd[js,:]
 end
 
-function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Bool=true)
+function make_panels_with_ξ(sd::SOEdef, type::String; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), leg::Bool=true)
 	Jgrid = agg_grid(sd)
 
 	jbv = [floor(Int, N(sd,:b)*0.25), 10, N(sd,:b)]
@@ -1646,18 +1695,18 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Boo
 	Er2 = Vector{Vector{Float64}}(undef, 0)
 	for (jj,jb) in enumerate(jbv)
 		if type == "Earnings_Default"
-			Ey, Er, Eyd = get_earnings_default(sd, [jb,jμ, jσ, jξ, 1, jz])
-			Eyy, Err, Eyyd = get_earnings_default(sd, [jb,jμ, jσ, jξ, 2, jz])
+			Ey, Er, Eyd = get_earnings_default(sd, [jb,jμ, jσ, 1, 2, jz])
+			Eyy, Err, Eyyd = get_earnings_default(sd, [jb,jμ, jσ, 2, 2, jz])
 			cor = "(y,ret)"
 		elseif type == "Wr-Wd"
-			Ey, Er = get_Wr_Wd(sd, [jb,jμ, jσ, jξ, 1, jz])
-			Eyy, Err = get_Wr_Wd(sd, [jb,jμ, jσ, jξ, 2, jz])
+			Ey, Er = get_Wr_Wd(sd, [jb,jμ, jσ, 1, 2, jz])
+			Eyy, Err = get_Wr_Wd(sd, [jb,jμ, jσ, 2, 2, jz])
 			Eyd = Ey.*NaN
 			Eyyd = Ey.*NaN
 			cor = "(Wr, Wd)"
 		elseif type == "T"
-			Ey, Er = get_Wr_Wd(sd, [jb,jμ, jσ, jξ, 1, jz], type="T")
-			Eyy, Err = get_Wr_Wd(sd, [jb,jμ, jσ, jξ, 2, jz], type="T")
+			Ey, Er = get_Wr_Wd(sd, [jb,jμ, jσ, 1, 2, jz], type="T")
+			Eyy, Err = get_Wr_Wd(sd, [jb,jμ, jσ, 2, 2, jz], type="T")
 			Eyd = Ey.*NaN
 			Eyyd = Ey.*NaN
 			cor = "(Tr, Td)"
@@ -1676,9 +1725,9 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Boo
 		push!(Er2, Err)
 	end
 
-	col1 = get(ColorSchemes.romaO, 0.8)
-	col2 = get(ColorSchemes.vikO, 0.75)
-	col3 = get(ColorSchemes.romaO, 0.3)
+	col1 = get(ColorSchemes.romaO, 0.8, :extrema)
+	col2 = get(ColorSchemes.vikO, 0.75, :extrema)
+	col3 = get(ColorSchemes.romaO, 0.3, :extrema)
 
 	if type == "Earnings_Default"
 		title = "Income and returns on government debt"
@@ -1747,12 +1796,13 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Boo
 		]
 
 	layout = Layout(
-		yaxis1=attr(anchor="x1", domain = [0.575,1]),
-		yaxis2=attr(anchor="x2", domain = [0.575,1]),
-		yaxis3=attr(anchor="x3", domain = [0.575,1]),
-		yaxis4=attr(anchor="x4", domain = [0,0.425]),
-		yaxis5=attr(anchor="x5", domain = [0,0.425]),
-		yaxis6=attr(anchor="x6", domain = [0,0.425]),
+		template = template,
+		yaxis1=attr(anchor="x1", domain = [0.575,1], range = [miny, maxy]),
+		yaxis2=attr(anchor="x2", domain = [0.575,1], range = [miny, maxy]),
+		yaxis3=attr(anchor="x3", domain = [0.575,1], range = [miny, maxy]),
+		yaxis4=attr(anchor="x4", domain = [0,0.425], range = [miny, maxy]),
+		yaxis5=attr(anchor="x5", domain = [0,0.425], range = [miny, maxy]),
+		yaxis6=attr(anchor="x6", domain = [0,0.425], range = [miny, maxy]),
 		xaxis1=attr(zeroline=false, domain=[0,0.3], anchor="y1"),
 		xaxis2=attr(zeroline=false, domain=[0.33, 0.67], anchor="y2"),
 		xaxis3=attr(zeroline=false, domain=[0.7, 1], anchor="y3"),
@@ -1763,11 +1813,127 @@ function make_panels(sd::SOEdef, type::String; style::Style=slides_def, leg::Boo
 		legend = attr(orientation="v", x=0.95, xanchor="right", y=0.95),
 		annotations = annotations
 		)
-	plot(data, layout, style=style)
+	plot(data, layout)
 end
 
 
+function make_panels(sd::SOEdef, type::String; slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark), leg::Bool=true)
+    Jgrid = agg_grid(sd)
 
+    jbv = [floor(Int, N(sd, :b) * 0.25), 10, N(sd, :b)]
+    _, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
+    # jμ = 1
+    jσ = 2
+    # jξ = 2
+
+    Eyv = Vector{Vector{Float64}}(undef, 0)
+    Eydv = Vector{Vector{Float64}}(undef, 0)
+    Erv = Vector{Vector{Float64}}(undef, 0)
+    for (jj, jb) in enumerate(jbv)
+        if type == "Earnings_Default"
+            Ey, Er, Eyd = get_earnings_default(sd, [jb, jμ, jσ, jξ, 2, jz])
+            cor = "(y,ret)"
+        elseif type == "Wr-Wd"
+            Ey, Er = get_Wr_Wd(sd, [jb, jμ, jσ, jξ, 2, jz])
+            Eyd = Ey .* NaN
+            Eyyd = Ey .* NaN
+            cor = "(Wr, Wd)"
+        elseif type == "T"
+            Ey, Er = get_Wr_Wd(sd, [jb, jμ, jσ, jξ, 2, jz], type="T")
+            Eyd = Ey .* NaN
+            Eyyd = Ey .* NaN
+            cor = "(Tr, Td)"
+        end
+
+        co = [cov(Ey, Er) / (std(Ey) * std(Er)) for js in 1:size(Jgrid, 1)]
+        println("Corr" * cor * " = $(mean(co))")
+        println("Corr" * cor * " = $(mean(co))")
+
+        push!(Eyv, Ey)
+        push!(Eydv, Eyd)
+        push!(Erv, Er)
+    end
+
+    col1 = get(ColorSchemes.romaO, 0.8, :extrema)
+    col2 = get(ColorSchemes.vikO, 0.75, :extrema)
+    col3 = get(ColorSchemes.romaO, 0.3, :extrema)
+
+    if type == "Earnings_Default"
+        title = "Income and returns on government debt"
+        ytitle1 = "𝔼[<i>y<sup>r</sup></i>]"
+        ytitle1d = "𝔼[<i>y<sup>d</sup></i>]"
+        ytitle2 = "𝔼[<i>R<sup>b</sup></i>]"
+        modelines = "lines"
+    elseif type == "Wr-Wd"
+        title = "Value of repayment and default"
+        ytitle1 = "<i>W<sup>r"
+        ytitle1d = ""
+        ytitle2 = "<i>W<sup>d"
+        col2, col3 = col3, col2
+        modelines = "lines+markers"
+    elseif type == "T"
+        title = "Transfers"
+        ytitle1 = "<i>T<sup>r"
+        ytitle1d = ""
+        ytitle2 = "<i>T<sup>d"
+        col2, col3 = col3, col2
+        modelines = "lines+markers"
+    end
+
+
+    minyy, maxyy = extrema(vcat(Eyv[:]...))
+    minyy = minyy - 0.05 * (maxyy - minyy)
+    maxyy = maxyy + 0.05 * (maxyy - minyy)
+
+    minyr, maxyr = extrema(vcat(Erv[:]...))
+    minyr = minyr - 0.05 * (maxyr - minyr)
+    maxyr = maxyr + 0.05 * (maxyr - minyr)
+
+    maxy = max(maxyy, maxyr)
+    miny = min(minyy, minyr)
+
+    if type == "Earnings_Default"
+        minyd, maxyd = extrema(vcat(Eydv[:]...))
+        minyd = minyd - 0.05 * (maxyd - minyd)
+        maxyd = maxyd + 0.05 * (maxyd - minyd)
+
+        maxy = max(maxy, maxyd)
+        miny = min(miny, minyd)
+    end
+
+    ξv = sd.gr[:ξ]
+
+    data = [
+        [scatter(x=sd.gr[:z], y=Eyv[jb], xaxis="x$jb", yaxis="y$jb", name=ytitle1, marker_color=col1, showlegend=((jb == 1) & (leg)), line_width=2.5) for jb in eachindex(Eyv)]
+        [scatter(x=sd.gr[:z], y=Erv[jb], xaxis="x$jb", yaxis="y$jb", name=ytitle2, marker_color=col3, mode=modelines, line_dash="dot", showlegend=((jb == 1) & (leg)), line_width=2.5) for jb in eachindex(Eyv)]
+    ]
+
+    if type == "Earnings_Default"
+        for jb in 1:length(Eyv)
+            push!(data, scatter(x=sd.gr[:z], y=Eydv[jb], xaxis="x$jb", yaxis="y$jb", name=ytitle1d, marker_color=col2, line_dash="dashdot", showlegend=((jb == 1) & (leg)), line_width=2.5))
+        end
+    end
+
+    annotations = [
+        attr(x=0, xanchor="center", xref="x$jb", y=1.01, yref="paper", yanchor="bottom", text="<i>B = $(@sprintf("%0.3g", sd.gr[:b][bv]))", showarrow=false) for (jb, bv) in enumerate(jbv)
+    ]
+
+    layout = Layout(
+        template=template,
+        yaxis1=attr(anchor="x1", range=[miny, maxy]),
+        yaxis2=attr(anchor="x2", range=[miny, maxy]),
+        yaxis3=attr(anchor="x3", range=[miny, maxy]),
+        xaxis1=attr(zeroline=false, domain=[0, 0.3], anchor="y1"),
+        xaxis2=attr(zeroline=false, domain=[0.33, 0.67], anchor="y2"),
+        xaxis3=attr(zeroline=false, domain=[0.7, 1], anchor="y3"),
+        title=ifelse(leg, title, ""), height=1080 * 0.45,
+        legend=attr(orientation="v", x=0.95, xanchor="right", y=0.95),
+        annotations=annotations
+    )
+    plot(data, layout)
+end
+
+#=
 
 
 
@@ -3456,3 +3622,4 @@ function make_IRF_plots(p::Path; slides::Bool=true, response::String="Y", impuls
     nothing
     pYz, pYzz, pYzB
 end
+=#

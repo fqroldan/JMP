@@ -178,7 +178,7 @@ function update_state_functions!(sd::SOEdef, upd_η; verbose::Bool=false)
 
 	t1 = time()
 	results, minf, exc_dem, exc_sup = find_all_prices(sd, itp_ϕc);
-	!verbose || print_save(" (new prices in $(time_print(time()-t1)))")
+	verbose && print_save(" (new prices in $(time_print(time()-t1)))")
 
 	dist = Array{Float64,1}(undef, 3)
 	dist[1] = sqrt.(sum( (results[:, 1] - eq[:wage]).^2 )) / sqrt.(sum(eq[:wage].^2))
@@ -638,7 +638,7 @@ function update_grids!(sd::SOEdef; new_μgrid::Vector=[], new_σgrid::Vector=[],
 	nothing
 end
 
-function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false, iter_show::Int64 = 50)
+function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::Bool=false, iter_show::Int64 = 50, re_q::Bool = true)
 	dist = 1+tol
 	iter = 0
 	upd_η = 0.4
@@ -657,13 +657,13 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		end
 
 		""" NEW DEBT PRICES + FISCAL """
-		iterate_qᵍ!(sd, verbose = verbose)
-		update_fiscalrules!(sd)
+		re_q && iterate_qᵍ!(sd, verbose = verbose)
+		re_q && update_fiscalrules!(sd)
 
 		Jgrid = agg_grid(sd);
 		var(sd.eq[:qʰ]) .< 1e-16 || print_save("\nWARNING: qʰ is not constant. $(var(sd.eq[:qʰ]))")
-		!verbose || print_save("\nqᵍ between $(round(minimum(sd.eq[:qᵍ][Jgrid[:,5].==1]),digits=4)) and $(round(maximum(sd.eq[:qᵍ]),digits=4)). risk-free is $(round(mean(sd.eq[:qʰ]),digits=4))")
-		!verbose || print_save(" (spread between $(floor(Int,10000*minimum(sd.eq[:spread]))) bps and $(floor(Int,10000*maximum(sd.eq[:spread][Jgrid[:,5].==1]))) bps)")
+		verbose && print_save("\nqᵍ between $(round(minimum(sd.eq[:qᵍ][Jgrid[:,5].==1]),digits=4)) and $(round(maximum(sd.eq[:qᵍ]),digits=4)). risk-free is $(round(mean(sd.eq[:qʰ]),digits=4))")
+		verbose && print_save(" (spread between $(floor(Int,10000*minimum(sd.eq[:spread]))) bps and $(floor(Int,10000*maximum(sd.eq[:spread][Jgrid[:,5].==1]))) bps)")
 
 		""" SOLVE INCOME FLUCTUATIONS PROBLEM """
 		consw, dist_v = vfi!(sd, tol = tol_vfi, verbose = verbose);
@@ -675,21 +675,21 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		consw = 100*floor(Int,mean(consw))
 		consw > 0 ? msg = "\nWARNING: " : msg="\n"
 		msg *= "Can't affort consumption $(consw)% of the time"
-		!verbose || print_save(msg)
+		verbose && print_save(msg)
 
 		""" UPDATE STATE FUNCTIONS """
 		t1 = time()
-		!verbose || print_save("\nUpdating functions of the state")
+		verbose && print_save("\nUpdating functions of the state")
 		exc_dem_prop, exc_sup_prop, mean_excS, max_excS, dists = update_state_functions!(sd, upd_η)
-		!verbose || print_save(": done in $(time_print(time()-t1))")
-		!verbose || print_save("\nStates with exc supply, demand = $(round(100*exc_sup_prop,digits=2))%, $(round(100*exc_dem_prop,digits=2))%")
-		!verbose || print_save("\nAverage, max exc supply = $(@sprintf("%0.3g",mean_excS)), $(@sprintf("%0.3g",max_excS))")
+		verbose && print_save(": done in $(time_print(time()-t1))")
+		verbose && print_save("\nStates with exc supply, demand = $(round(100*exc_sup_prop,digits=2))%, $(round(100*exc_dem_prop,digits=2))%")
+		verbose && print_save("\nAverage, max exc supply = $(@sprintf("%0.3g",mean_excS)), $(@sprintf("%0.3g",max_excS))")
 
 		""" UPDATE GRID FOR PN """
 		t1 = time()
 		update_grid_p!(sd, exc_dem_prop, exc_sup_prop)
-		!verbose || print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:pN]))), $(@sprintf("%0.3g",maximum(sd.gr[:pN])))]")
-		!verbose || print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
+		verbose && print_save("\nNew pN_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:pN]))), $(@sprintf("%0.3g",maximum(sd.gr[:pN])))]")
+		verbose && print_save("\nDistance in state functions: (dw,dpN,dLd) = ($(@sprintf("%0.3g",mean(dists[1]))),$(@sprintf("%0.3g",mean(dists[2]))),$(@sprintf("%0.3g",mean(dists[3]))))")
 		
 		dist_s = maximum(dists)
 
@@ -697,11 +697,11 @@ function comp_eqm!(sd::SOEdef; tol::Float64=5e-3, maxiter::Int64=2500, verbose::
 		dist_exp, new_μgrid, new_σgrid = update_expectations!(sd, 0.5 * upd_η)
 		update_grids!(sd, new_μgrid = new_μgrid, new_σgrid = new_σgrid)
 
-		!verbose || print_save("\nDistance in expectations: (dμ,dσ) = ($(@sprintf("%0.3g",mean(dist_exp[1]))),$(@sprintf("%0.3g",mean(dist_exp[2]))))")
-		!verbose || print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:μ]))), $(@sprintf("%0.3g",maximum(sd.gr[:μ])))]")
-		!verbose || print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:σ]))), $(@sprintf("%0.3g",maximum(sd.gr[:σ])))]")
-		# !verbose || print_save("\nNew σ′ ∈ [$(@sprintf("%0.3g",minimum(fl(sd.LoM[:σ])))), $(@sprintf("%0.3g",maximum(fl(sd.LoM[:σ]))))]")
-		!verbose || print_save("\nGrids and expectations updated in $(time_print(time()-t1))")
+		verbose && print_save("\nDistance in expectations: (dμ,dσ) = ($(@sprintf("%0.3g",mean(dist_exp[1]))),$(@sprintf("%0.3g",mean(dist_exp[2]))))")
+		verbose && print_save("\nNew μ_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:μ]))), $(@sprintf("%0.3g",maximum(sd.gr[:μ])))]")
+		verbose && print_save("\nNew σ_grid = [$(@sprintf("%0.3g",minimum(sd.gr[:σ]))), $(@sprintf("%0.3g",maximum(sd.gr[:σ])))]")
+		# verbose && print_save("\nNew σ′ ∈ [$(@sprintf("%0.3g",minimum(fl(sd.LoM[:σ])))), $(@sprintf("%0.3g",maximum(fl(sd.LoM[:σ]))))]")
+		verbose && print_save("\nGrids and expectations updated in $(time_print(time()-t1))")
 
 		dist_exp = maximum(dist_exp)
 		if iter % iter_show == 0

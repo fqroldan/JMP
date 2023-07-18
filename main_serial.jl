@@ -11,7 +11,6 @@ include("gov_pol.jl")
 include("reporting_routines.jl")
 include("simul.jl")
 include("plotting_routines.jl")
-# include("data_jmp.jl")
 
 # print("mpe_iter!(sd)")
 params_center = Dict{Symbol, Float64}(
@@ -161,9 +160,9 @@ function SMM(p_dict; do_all::Bool=true)
 	if do_all
 		mins = 	      [1.15^(-0.25) ; 5   ; 0.05 ; 0.82 ; 0.85 ; 0.0001; 0.0001; 0.92 ; 1e-8 ]
 		maxs = 		  [1.05^(-0.25) ; 20  ; 0.35 ; 1.00 ; 0.99 ; 0.008 ; 0.02  ; 0.999; 0.003]
-	else
-		mins = 	      [1.15^(-0.25) ; 5   ;      ; 0.82 ;      ; 0.0001; 0.0001;      ;      ]
-		maxs = 		  [1.05^(-0.25) ; 20  ;      ; 1.00 ;      ; 0.012 ; 0.05  ;      ;      ]
+	else # Check if the vector size is fine
+		mins = 	      [1.15^(-0.25) ; 5   ; 0.82 ; 0.0001; 0.0001]
+		maxs = 		  [1.05^(-0.25) ; 20  ; 1.00 ; 0.012 ; 0.05  ]
 		params_center = [p_dict[:β], p_dict[:γ], p_dict[:wbar], p_dict[:σz], p_dict[:meanξ]]
 	end
 

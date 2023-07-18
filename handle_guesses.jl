@@ -145,10 +145,10 @@ function eval_GMM(v_o, target_o = vec([0.96580506  0.01294576  0.96172496  0.016
 	return g
 end
 
-function prep_table(pp)
+function prep_table(pp, folder="../Data/")
 	v_m = simul_stats(pp)
 
-	targets = load_SPA_targets()
+	targets = load_SPA_targets(folder)
 
 	g = eval_GMM(v_m, targets)
 
@@ -158,7 +158,7 @@ function prep_table(pp)
 	return g, targets, v_m
 end
 
-function make_simulated_path(sd::SOEdef, savedir, years=100; ϕ=sd.ϕ, K=Threads.nthreads())
+function make_simulated_path(sd::SOEdef, savedir, years=100; ϕ=sd.ϕ, K=Threads.nthreads(), datadir = "../Data/")
 	pp, Ndefs = parsimul(sd; ϕ=ϕ, simul_length=4*years, burn_in=1+4*100, K=K)
 	Tyears = floor(Int64,periods(pp)*0.25)
 	def_freq = Ndefs/Tyears
@@ -171,7 +171,7 @@ function make_simulated_path(sd::SOEdef, savedir, years=100; ϕ=sd.ϕ, K=Threads
 	# pl, πthres = plot_episodes(path; episode_type="onlyspread", slides=true, πthres=0.95) # Also here need to make it so there are at least 10 episodes
 	πthres = 1.0
 	# make_IRF_plots(path; slides = true, create_plots = true, response = resp, savedir=savedir) # for resp = Y, C
-	g, targets, v_m = prep_table(pp)
+	g, targets, v_m = prep_table(pp, datadir)
 
 	calib_table = make_calib_table(v_m)
 	write(savedir * "calib_table.txt", calib_table)
@@ -257,7 +257,7 @@ function try_simul(run_number, current_best, sim_name, nodef, nodelta, nob, rep_
 	return pp, Ndefs
 end
 
-function make_repagent_simul(sd::SOEdef, run_number, years) where T <: AbstractPath
+function make_repagent_simul(sd::SOEdef, run_number, years)
 
 	sd_rep = SOEdef(rep_agent = true);
 
@@ -486,10 +486,10 @@ pars(sd::SOEdef) = Dict(
 	:μ_gov  => sd.pars[:μ_gov],
 	)
 
-function showtable(run_number::Int)
+function showtable(run_number::Int; datadir="../Data/")
 	p_bench, pars = load("../HPC_output/run$run_number/SOEdef.jld", "pp", "pars");
 	for (key, val) in pars
        print("$(rpad(key, 6, " ")) => $val\n")
 	end
-	prep_table(p_bench)
+	prep_table(p_bench, datadir)
 end

@@ -1,61 +1,63 @@
 using DataFrames, Dates, PlotlyJS, ExcelReaders, ColorSchemes
 
 """ Define styles """
-def_style = let
-	axis = attr(showgrid = true, gridcolor="#e2e2e2", gridwidth=0.5, zeroline=false)
-	layout = Layout(xaxis = axis, yaxis=axis)
-	Style(layout=layout)
+sand() = "#F5F3F1"
+darkbgd() = "#272929"
+lightgrid() = "#353535"
+darkgrid() = "#e2e2e2"
+gridcol(dark=false) = ifelse(dark, lightgrid(), darkgrid())
+
+q_axis(dark) = attr(showgrid=true, gridcolor=gridcol(dark), gridwidth=0.5, zeroline=false)
+bgcol(slides, dark) = ifelse(slides, ifelse(dark, darkbgd(), sand()), "white")
+qleg() = attr(orientation="h", x=0.05, xanchor="left")
+
+qwidth(slides) = 864
+qheight(slides) = ceil(Int, qwidth(slides) * ifelse(slides, 10 / 16, 7 / 16))
+
+function qtemplate(; dark=false, slides=!dark)
+    axis = q_axis(dark)
+    width = 864 #1920 * 0.45
+    l = Layout(
+        xaxis=axis, yaxis=axis,
+        width=width,
+        height=width * ifelse(slides, 10 / 16, 7 / 16),
+        font=attr(
+            family=ifelse(slides, "Lato", "Linux Libertine"),
+            size=16, color=ifelse(dark, sand(), darkbgd())
+        ),
+        paper_bgcolor=bgcol(slides, dark), plot_bgcolor=bgcol(slides, dark),
+        legend=qleg(),
+    )
+    return Template(layout=l)
 end
 
-slides_def_noleg = let
-	layout = Layout(plot_bgcolor="#fafafa", paper_bgcolor="#fafafa",
-		width=1920*0.45, height=1080*0.45, font_size=16, font_family="Lato",
-		)
-	Style(def_style, layout=layout)
-end
 
-slides_def = Style(slides_def_noleg, layout=Layout(legend = attr(orientation = "h", x=0.05)))
+plot_borrowing(; slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark)) = plot_data([3, 8, 9, 10, 11, 12], "Borrowing rates", template=template)
+plot_deposit(; slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark)) = plot_data([3, 4, 5, 6, 7], "Deposit rates", template=template)
 
-dark_bg = let
-	axis = attr(gridcolor="#1b1b1b")
-	layout = Layout(plot_bgcolor="#020202", paper_bgcolor="#020202", font_color="white", xaxis=axis,yaxis=axis)
-	Style(layout=layout)
-end
-slides_dark = Style(slides_def, dark_bg)
+function plot_data(varvec, title; slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark))
+    dataraw = readxlsheet("../Data/IMFIFS/Interest_Rates.xls", "Interest Rates")
 
-paper = let
-	layout = Layout(width = 1920 * 0.5, height = 1080 * 0.35, font_size=16, font_family = "Linux Libertine",
-		legend = attr(orientation = "h", x=0.05))
-	Style(def_style, layout=layout)
-end
+    varlabels = convert(Vector{String}, dataraw[8:end, 1])
+    varnames = convert(Vector{String}, dataraw[8:end, 3])
+    vals = dataraw[8:end, 5:end-1]
+    vals[typeof.(vals).==String] .= NaN
 
+    vals = convert(Matrix{Float64}, vals')
 
-plot_borrowing(;style::Style=slides_def) = plot_data([3,8,9,10,11,12], "Borrowing rates", style=style)
-plot_deposit(;style::Style=slides_def) = plot_data([3,4,5,6,7], "Deposit rates", style=style)
+    dates = Date.(replace.(dataraw[7, 5:end-1], "M" => "-"), "yyyy-mm")
 
-function plot_data(varvec, title; style::Style=slides_def_noleg)
-	dataraw = readxlsheet("../Data/IMFIFS/Interest_Rates.xls", "Interest Rates")
+    df = DataFrame(vals, varnames)
+    df.date = dates
 
-	varlabels = convert(Vector{String}, dataraw[8:end,1])
-	varnames = convert(Vector{String}, dataraw[8:end,3])
-	vals = dataraw[8:end,5:end-1]
-	vals[typeof.(vals).==String].=NaN
+    layout = Layout(template=template, height=0.5 * 1080, width=0.5 * 1920, yaxis_title="%", title=title)
 
-	vals = convert(Matrix{Float64}, vals')
+    totcol = length(varvec)
 
-	dates = Date.(replace.(dataraw[7,5:end-1], "M"=>"-"), "yyyy-mm")
+    data = [
+        scatter(x=df.date, y=df[!, names(df)[varvec[1]]], name=varlabels[varvec[1]], line_width=3)
+        [scatter(x=df.date, y=df[!, names(df)[jj]], name=varlabels[jj], line_color=get(ColorSchemes.lajolla, (jn + 1) / totcol)) for (jn, jj) in enumerate(varvec[2:end])]
+    ]
 
-	df = DataFrame(vals, varnames)
-	df.date = dates
-
-	layout = Layout(height = 0.5 * 1080, width=0.5*1920, yaxis_title="%", title=title)
-
-	totcol = length(varvec)
-
-	data = [
-	scatter(x=df.date, y=df[!,names(df)[varvec[1]]], name=varlabels[varvec[1]], line_width = 3)
-	[scatter(x=df.date, y=df[!,names(df)[jj]], name=varlabels[jj], line_color=get(ColorSchemes.lajolla, (jn+1)/totcol)) for (jn,jj) in enumerate(varvec[2:end])]
-	]
-
-	plot(data, layout, style=style)
+    plot(data, layout)
 end

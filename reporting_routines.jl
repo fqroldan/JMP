@@ -72,7 +72,7 @@ function make_params_table(sd::SOEdef)
 	return table
 end
 
-function make_calib_table(v_m)
+function make_calib_table(v_m; loaddir = "../Data/")
 	table = "\\begin{tabular}{@{}lcc} \\toprule \n"
 
 	colnames = ["\\textbf{Target}", "\\textbf{Model}", "\\textbf{Data}"]
@@ -81,7 +81,7 @@ function make_calib_table(v_m)
 
 	# data_stats = [ 0.96580506; 0.01294576; 0.96172496; 0.01663608; 0.96656486; 0.10252351; 64.57638889; 23.48323041; 15.94722222; 6.08732167; 56.49; 94.48]
 
-	data_stats = load_SPA_targets()
+	data_stats = load_SPA_targets(loaddir)
 
 	list_perc = ones(size(data_stats))
 	list_perc[[1,3,5,6]] .= 0
