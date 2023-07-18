@@ -555,7 +555,7 @@ function simul_switch!(p::Path, sd1::SOEdef, sd2::SOEdef, jk, length1, length2, 
     return trim_path(p, 1), jz_series, Ndefs, discr
 end
 
-function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; same_pol=false, burn_in = 4*100, B0 = mean(sd.gr[:b]), K, cond_Y = -Inf)
+function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; same_pol=false, burn_in = 4*50, B0 = mean(sd.gr[:b]), K, cond_Y = -Inf)
 	pv_bench  = Vector{Path}(undef, K)
 	pv_nodef = Vector{Path}(undef, K)
 	pv_samep = Vector{Path}(undef, K)
@@ -564,7 +564,7 @@ function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; sa
 
 	t0 = time()
 	Threads.@threads for jk in 1:K
-        _, _, _, _, λ0 = simul(sd_nodef, jk, 1 + 4 * 100, 1)
+        _, _, _, _, λ0 = simul(sd_nodef, jk, burn_in, 1)
         λ1 = deepcopy(λ0)
         λ2 = deepcopy(λ0)
         λ3 = deepcopy(λ0)
@@ -587,7 +587,7 @@ function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; sa
 	return pv_bench, length1, length1+length2, pv_nodef, pv_samep
 end
 
-function IRF_default_comp(sd::SOEdef, sd_nodef::SOEdef, sd_alt::SOEdef, length1, length2, length3; same_pol=false, burn_in = 4*100, B0 = mean(sd.gr[:b]), K, cond_Y = -Inf)
+function IRF_default_comp(sd::SOEdef, sd_nodef::SOEdef, sd_alt::SOEdef, length1, length2, length3; same_pol=false, burn_in = 4*50, B0 = mean(sd.gr[:b]), K, cond_Y = -Inf)
 	pv_bench  = Vector{Path}(undef, K)
 	pv_nodef = Vector{Path}(undef, K)
 	pv_samep = Vector{Path}(undef, K)
@@ -597,16 +597,16 @@ function IRF_default_comp(sd::SOEdef, sd_nodef::SOEdef, sd_alt::SOEdef, length1,
 
 	t0 = time()
 	Threads.@threads for jk in 1:K
-		_, _, _, _, λ0 = simul(sd_nodef, jk, 1+4*100, 1)
-		λ = copy(λ0)
-		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, λ, B0)
+		_, _, _, _, λ0 = simul(sd_nodef, jk, burn_in, 1)
+		λ1 = deepcopy(λ0)
+		λ2 = deepcopy(λ0)
+		λ3 = deepcopy(λ0)
+		λ4 = deepcopy(λ0)
+		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, λ1, B0)
 		Bpv = series(p, :B)
-		λ = copy(λ0)
-		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, λ, B0)
-		λ = copy(λ0)
-		p3, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, λ, B0, Bvec = Bpv)
-		λ = copy(λ0)
-		p4, _, _, _ = simul_switch(sd_nodef, sd_alt, jk, length1, length2, length3, λ, B0, Bvec = Bpv)
+		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, λ2, B0)
+		p3, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, λ3, B0, Bvec = Bpv)
+		p4, _, _, _ = simul_switch(sd_nodef, sd_alt, jk, length1, length2, length3, λ4, B0, Bvec = Bpv)
 		
 		pv_bench[jk] = p
 		pv_nodef[jk] = p2
