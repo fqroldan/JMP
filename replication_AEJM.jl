@@ -35,7 +35,7 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
     # save("../Rep2/SOEdef_alt.jld2", "sd", sd_alt, "pp", p_alt, "Wr", Wr_alt)
 
     pIRF_bench2, t1, t2, pIRF_nodef2, _, pIRF_alt = IRF_default_comp(sd_bench, sd_nodef, sd_alt, 1, 11, 9, B0 = 4, K = 1000);
-    panels_IRF(pIRF_bench2, pIRF_nodef2, pIRF_alt, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.95, slides = false)
+    panels_IRF(pIRF_bench2, pIRF_nodef2, pIRF_alt, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.96, slides = false)
 
     save("../Rep2/IRF_nodefcost_noq.jld2", "pIRF_bench", pIRF_bench2, "pIRF_nodef", pIRF_nodef2, "pIRF_alt", pIRF_alt)
 
@@ -178,30 +178,42 @@ end
 
 
 
-function compstats_inequality(; τr = 0.05, Nτ = 5, loaddir = "../Output/")
+function compstats_inequality(; τr = 0.05, Nτ = 6, loaddir = "../Output/")
     sd_bench = load(loaddir * "SOEdef.jld2", "sd")
     sd_nodef = load(loaddir * "SOEdef_nodef.jld2", "sd")
     sd_alt = load(loaddir * "SOEdef.jld2", "sd")
 
     τ0 = sd_bench.pars[:τ]
-    τvec1 = range(τ0, τ0 - τr, length = Nτ)
+    τvec1 = range(τ0, τ0 - τr, length=Nτ)
+    τvec2 = range(τ0, τ0 + τr, length=Nτ)[2:end]
 
-    Gmat1 = zeros(Nτ, 3)
-    Ymat1 = zeros(Nτ, 3)
-    Wmat1 = zeros(Nτ, 3)
+    Gmat = zeros(2*Nτ-1, 3)
+    Ymat = zeros(2*Nτ-1, 3)
+    Wmat = zeros(2*Nτ-1, 3)
+    τvec = zeros(2*Nτ-1)
     
-    for (jτ, τv) in enumerate(τvec1)
-
+    for jτ in axes(Gmat,1)
+        if jτ <= Nτ
+            τv = τvec1[jτ]
+        else
+            if jτ == Nτ + 1
+                sd_alt = load(loaddir * "SOEdef.jld2", "sd")
+            end
+            τv = τvec2[jτ - Nτ]
+        end
+        print("Iter $jτ\n")
+        
         sd_alt.pars[:τ] = τv
-
         comp_eqm!(sd_alt, re_q = false, verbose = true)
 
         pIRF_bench, t1, t2, pIRF_nodef, _, pIRF_alt = IRF_default_comp(sd_bench, sd_nodef, sd_alt, 1, 11, 9, B0 = 4, K = 1000);
-        Wr1, Wr2, G1, G2, Y1, Y2 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_alt, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.95, give_stats = true)
+        Wr1, Wr2, G1, G2, Y1, Y2 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_alt, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.96, give_stats = true)
 
-        Wmat1[jτ, :] .= Wr1, Wr2, Wr2 / Wr1 - 1
-        Gmat1[jτ, :] .= G1, G2, G2 / G1 - 1
-        Ymat1[jτ, :] .= Y1, Y2, Y2 / Y1 - 1
+        Wmat[jτ, :] .= Wr1, Wr2, Wr2 / Wr1 - 1
+        Gmat[jτ, :] .= G1, G2, G2 / G1 - 1
+        Ymat[jτ, :] .= Y1, Y2, Y2 / Y1 - 1
+        τvec[jτ] = τv
     end
-    return τvec1, Gmat1, Wmat1, Ymat1
+
+    return τvec, Gmat, Wmat, Ymat
 end
