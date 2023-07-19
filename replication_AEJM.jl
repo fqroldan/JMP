@@ -179,7 +179,7 @@ end
 
 
 
-function compstats_inequality(; τr = 0.05, Nτ = 6, loaddir = "../Output/")
+function compstats_inequality(; τr = 0.03, Nτ = 4, loaddir = "../Output/")
     sd_bench = load(loaddir * "SOEdef.jld2", "sd")
     sd_nodef = load(loaddir * "SOEdef_nodef.jld2", "sd")
     sd_alt = load(loaddir * "SOEdef.jld2", "sd")
