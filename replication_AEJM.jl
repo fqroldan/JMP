@@ -205,10 +205,10 @@ function compstats_inequality(; τr = 0.05, Nτ = 6, loaddir = "../Output/")
         print("Iter $jτ\n")
         
         sd_alt.pars[:τ] = τv
-        comp_eqm!(sd_alt, re_q = false, verbose = true)
+        comp_eqm!(sd_alt, re_q = false, verbose = false)
 
         pIRF_bench, t1, t2, pIRF_nodef, _, pIRF_alt = IRF_default_comp(sd_bench, sd_nodef, sd_alt, 1, 11, 9, B0 = 4, K = 1000);
-        Wr1, Wr2, G1, G2, Y1, Y2 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_alt, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.96, give_stats = true)
+        Wr1, Wr2, G1, G2, Y1, Y2 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_alt, cond_Y = 0.96, give_stats = true)
 
         Wmat[jτ, :] .= Wr1, Wr2, Wr2 / Wr1 - 1
         Gmat[jτ, :] .= G1, G2, G2 / G1 - 1
