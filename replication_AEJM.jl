@@ -34,8 +34,9 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
     # Wr_alt = mean([mean(series(p, :Wr)) for p in p_alt])
     # save("../Rep2/SOEdef_alt.jld2", "sd", sd_alt, "pp", p_alt, "Wr", Wr_alt)
 
-    pIRF_bench2, t1, t2, pIRF_nodef2, _, pIRF_alt = IRF_default_comp(sd_bench, sd_nodef, sd_alt, 1, 11, 9, B0 = 4, K = 1000);
-    panels_IRF(pIRF_bench2, pIRF_nodef2, pIRF_alt, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.96, slides = false)
+    pIRF_bench2, t1, t2, pIRF_nodef2, pIRF_samep2, pIRF_alt = IRF_default_comp(sd_bench, sd_nodef, sd_alt, 1, 11, 9, B0 = 4, K = 1000);
+    panels_IRF(pIRF_bench2, pIRF_nodef2, pIRF_alt, cond_Y=0.96, slides=false, name_samep="<i>τ</i> = $(sd_alt.pars[:τ])")
+    panels_IRF(pIRF_bench2, pIRF_nodef2, pIRF_samep2, cond_Y = 0.96, slides = false)
 
     save("../Rep2/IRF_nodefcost_noq.jld2", "pIRF_bench", pIRF_bench2, "pIRF_nodef", pIRF_nodef2, "pIRF_alt", pIRF_alt)
 

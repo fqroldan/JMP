@@ -1275,7 +1275,7 @@ function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, t1, t2, T, color
 	end
 end
 
-function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); β = 0.9865170273023061, t1 = 1, t2 = 12, cond_Y = -Inf, cond_spr = Inf, slides = true, dark = slides, give_stats = false, template::Template=qtemplate(slides=slides, dark=dark), kwargs...) where Tp <: Path
+function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); β = 0.9865170273023061, t1 = 1, t2 = 12, cond_Y = -Inf, cond_spr = Inf, slides = true, dark = slides, give_stats = false, template::Template=qtemplate(slides=slides, dark=dark), name_samep = "No default (same debt issuances)", kwargs...) where Tp <: Path
 	T = periods(pv_bench[1])
 	colbench = "rgb(0.36972225,0.47750525,0.62292125)"
 	fillbench = "rgba(0.36972225,0.47750525,0.62292125, 0.25)"
@@ -1291,16 +1291,24 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 
 	if cond_Y > -Inf
 		K = length(pv_bench)
-		pv_nodef = [pv_nodef[jk] for jk in eachindex(pv_nodef) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
-		pv_samep = [pv_samep[jk] for jk in eachindex(pv_samep) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
-		pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
+
+		index_Y = [jk for jk in eachindex(pv_bench) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
+
+		pv_nodef = [pv_nodef[jk] for jk in index_Y]
+		pv_samep = [pv_samep[jk] for jk in index_Y]
+		pv_bench = [pv_bench[jk] for jk in index_Y]
+
 		print("Left with $(length(pv_bench)) out of $K simulations.\n")
 	end
 	if cond_spr < Inf
 		K = length(pv_bench)
-		pv_nodef = [pv_nodef[jk] for jk in eachindex(pv_nodef) if series(pv_bench[jk], :spread)[t2] > cond_spr]
-		pv_samep = [pv_samep[jk] for jk in eachindex(pv_samep) if series(pv_bench[jk], :spread)[t2] > cond_spr]
-		pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if series(pv_bench[jk], :spread)[t2] > cond_spr]
+
+        index_spr = [jk for jk in eachindex(pv_bench) if series(pv_bench[jk], :spread)[t2] > cond_spr]
+
+		pv_nodef = [pv_nodef[jk] for jk in index_spr]
+		pv_samep = [pv_samep[jk] for jk in index_spr]
+		pv_bench = [pv_bench[jk] for jk in index_spr]
+
 		print("Left with $(length(pv_bench)) out of $K simulations.\n")
 	end
 	ytitle = vcat("%", ["% deviation" for jj in 1:2], "", ["% of GDP" for jj in 1:2], "%", "bps", "")
@@ -1325,7 +1333,7 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 		add_scats_IRF!(scats, pv_bench, key, ytitle, 1, jk, t1, t2, T, colbench, fillbench, "Benchmark")
 		add_scats_IRF!(scats, pv_nodef, key, ytitle, 2, jk, t1, t2, T, colnodef, fillnodef, "No default")
 		if length(pv_samep) > 0
-			add_scats_IRF!(scats, pv_samep, key, ytitle, 3, jk, t1, t2, T, colsamep, fillsamep, "No default (same debt issuances)")
+			add_scats_IRF!(scats, pv_samep, key, ytitle, 3, jk, t1, t2, T, colsamep, fillsamep, name_samep)
 		end
 	end
 

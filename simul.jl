@@ -592,12 +592,13 @@ function IRF_default_comp(sd::SOEdef, sd_nodef::SOEdef, sd_alt::SOEdef, length1,
 	pv_nodef = Vector{Path}(undef, K)
 	pv_samep = Vector{Path}(undef, K)
 	pv_alt = Vector{Path}(undef, K)
+	pp_check = Vector{Bool}(undef, K)
 
 	print_save("Starting $K simulations at $(Dates.format(now(), "HH:MM")).\n")
 
 	t0 = time()
 	Threads.@threads for jk in 1:K
-		_, _, _, _, λ0 = simul(sd_nodef, jk, burn_in, 1)
+		_, _, _, _, λ0 = simul(sd_nodef, jk, burn_in)
 		λ1 = deepcopy(λ0)
 		λ2 = deepcopy(λ0)
 		λ3 = deepcopy(λ0)
@@ -612,12 +613,17 @@ function IRF_default_comp(sd::SOEdef, sd_nodef::SOEdef, sd_alt::SOEdef, length1,
 		pv_nodef[jk] = p2
 		pv_samep[jk] = p3
 		pv_alt[jk]   = p4
+
+		pp_check[jk] = var(series(x, :Gini)[1] for x in (p,p2,p3,p4)) < 0.1
 	end
 
-	pv_alt = [pv_alt[jk] for jk in eachindex(pv_alt) if minimum(series(pv_bench[jk], :ζ)) == 1]
-	pv_nodef = [pv_nodef[jk] for jk in eachindex(pv_nodef) if minimum(series(pv_bench[jk], :ζ)) == 1]
-	pv_samep = [pv_samep[jk] for jk in eachindex(pv_samep) if minimum(series(pv_bench[jk], :ζ)) == 1]
-	pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if minimum(series(pv_bench[jk], :ζ)) == 1]
+	# p_index = eachindex(pv_bench)
+    p_index = [jk for jk in eachindex(pv_bench) if minimum(series(pv_bench[jk], :ζ)) == 1 && pp_check[jk]]
+
+	pv_alt = [pv_alt[jk] for jk in p_index]
+	pv_nodef = [pv_nodef[jk] for jk in p_index]
+	pv_samep = [pv_samep[jk] for jk in p_index]
+	pv_bench = [pv_bench[jk] for jk in p_index]
 
 	print_save("Time in simulation: $(time_print(time()-t0)). Left with $(length(pv_bench)) simulations.\n")
 
