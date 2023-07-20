@@ -625,7 +625,7 @@ function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; slides =
 	a = 1/3
 	b = 1/20
 	ax = 1/4
-	bx = 1/40
+	bx = 1/35
 	shapes = [
 		# vline(0, line_width=1, marker_color="black")
 		]
