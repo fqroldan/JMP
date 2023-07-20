@@ -1242,8 +1242,9 @@ end
 
 function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, t1, t2, T, color, fillcol, simname; template::Template=qtemplate(), kwargs...)
 	rel = jk in [2,3]
-	if key in (:BoY, :GoY, :ToY)
-		y = 25*[(series(p, Symbol(string(key)[1]))./series(p,:Y))[tt] for tt in 1:T, p in pv]
+	if key in (:BoY, :GoY, :ToY, :mean)
+        key == :mean ? shortkey = key : shortkey = Symbol(string(key)[1])
+		y = 25*[(series(p, shortkey)./series(p,:Y))[tt] for tt in 1:T, p in pv]
 	# elseif key == :GoY
 	# 	y = 25*[(series(p, :G)./series(p,:Y))[tt] for tt in 1:T, p in pv]
 	# elseif key == :ToY
@@ -1285,7 +1286,7 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	fillsamep = "rgba(0.82969225,0.39322875,0.30229275, 0.25)"
 
 	keyvec = [:z, :Y, :C, :P, :BoY, :mean, :Gini, :spread, :Wr]
-	namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Mean ω", "Gini", "Spread", "Welfare in repayment"]
+	namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Mean wealth", "Gini", "Spread", "Welfare in repayment"]
 	# keyvec = [:z, :Y, :C, :P, :BoY, :ToY, :unemp, :spread, :Wr]
 	# namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
 
