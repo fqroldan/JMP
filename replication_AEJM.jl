@@ -48,6 +48,9 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
     nothing
 end
 
+# Need: output, gini, spreads, welfare/pN for bench, hi, and lo
+# Need: unemployment out, Gini in fig 12
+
 
 function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir = "../Data/")
     df_all = load_all(datadir);
