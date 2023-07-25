@@ -587,11 +587,10 @@ function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; sa
 	return pv_bench, length1, length1+length2, pv_nodef, pv_samep
 end
 
-function IRF_default_comp(sd::SOEdef, sd_nodef::SOEdef, sd_alt::SOEdef, length1, length2, length3; same_pol=false, burn_in = 4*50, B0 = mean(sd.gr[:b]), K, cond_Y = -Inf)
+function IRF_default_comp(sd::SOEdef, sd_nodef::SOEdef, sd_hi::SOEdef, sd_lo::SOEdef, length1, length2, length3; same_pol=false, burn_in = 4*50, B0 = mean(sd.gr[:b]), K, cond_Y = -Inf)
 	pv_bench  = Vector{Path}(undef, K)
-	pv_nodef = Vector{Path}(undef, K)
-	pv_samep = Vector{Path}(undef, K)
-	pv_alt = Vector{Path}(undef, K)
+	pv_hi = Vector{Path}(undef, K)
+	pv_lo = Vector{Path}(undef, K)
 	pp_check = Vector{Bool}(undef, K)
 
 	print_save("Starting $K simulations at $(Dates.format(now(), "HH:MM")).\n")
@@ -600,34 +599,30 @@ function IRF_default_comp(sd::SOEdef, sd_nodef::SOEdef, sd_alt::SOEdef, length1,
 	Threads.@threads for jk in 1:K
 		_, _, _, _, λ0 = simul(sd_nodef, jk, burn_in)
 		λ1 = deepcopy(λ0)
-		λ2 = deepcopy(λ0)
-		λ3 = deepcopy(λ0)
-		λ4 = deepcopy(λ0)
-		p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, λ1, B0)
+        λ2 = deepcopy(λ0)
+        λ3 = deepcopy(λ0)
+        p, _, _, _ = simul_switch(sd_nodef, sd, jk, length1, length2, length3, λ1, B0)
 		Bpv = series(p, :B)
-		p2, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, λ2, B0)
-		p3, _, _, _ = simul_switch(sd_nodef, sd_nodef, jk, length1, length2, length3, λ3, B0, Bvec = Bpv)
-		p4, _, _, _ = simul_switch(sd_nodef, sd_alt, jk, length1, length2, length3, λ4, B0, Bvec = Bpv)
+		p2, _, _, _ = simul_switch(sd_nodef, sd_hi, jk, length1, length2, length3, λ2, B0)
+		p3, _, _, _ = simul_switch(sd_nodef, sd_lo, jk, length1, length2, length3, λ3, B0)
 		
 		pv_bench[jk] = p
-		pv_nodef[jk] = p2
-		pv_samep[jk] = p3
-		pv_alt[jk]   = p4
+		pv_hi[jk] = p2
+		pv_lo[jk] = p3
 
-		pp_check[jk] = var(series(x, :Gini)[1] for x in (p,p2,p3,p4)) < 0.001
+		pp_check[jk] = var(series(x, :Gini)[1] for x in (p,p2,p3)) < 0.001
 	end
 
 	# p_index = eachindex(pv_bench)
     p_index = [jk for jk in eachindex(pv_bench) if minimum(series(pv_bench[jk], :ζ)) == 1 && pp_check[jk]]
 
-	pv_alt = [pv_alt[jk] for jk in p_index]
-	pv_nodef = [pv_nodef[jk] for jk in p_index]
-	pv_samep = [pv_samep[jk] for jk in p_index]
+	pv_hi = [pv_hi[jk] for jk in p_index]
+	pv_lo = [pv_lo[jk] for jk in p_index]
 	pv_bench = [pv_bench[jk] for jk in p_index]
 
 	print_save("Time in simulation: $(time_print(time()-t0)). Left with $(length(pv_bench)) simulations.\n")
 
-	return pv_bench, length1, length1+length2, pv_nodef, pv_samep, pv_alt
+	return pv_bench, length1, length1+length2, pv_hi, pv_lo
 end
 
 

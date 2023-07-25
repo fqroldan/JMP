@@ -1315,16 +1315,12 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	ytitle = vcat("%", ["% deviation" for jj in 1:2], "", ["% of GDP" for jj in 1:2], "%", "bps", "")
 
 	if give_stats
-		Wr1 = mean(series(p, :Wr)[t1] for p in pv_samep)
-		Wr2 = mean(series(p, :Wr)[t2] for p in pv_samep)
 
-		G1 = mean(series(p, :Gini)[t1] for p in pv_samep)
-		G2 = mean(series(p, :Gini)[t2] for p in pv_samep)
+		p = plot([
+			scatter(x = [mean(series(p, :Gini)[t] for p in pv) for t in (1+t1, t2)], y = [mean(series(p, :Y)[t]./series(p,:Y)[1] for p in pv) for t in (1+t1, t2)]) for pv in (pv_bench, pv_nodef, pv_samep)
+		])
 
-		Y1 = mean(series(p, :Y)[t1] for p in pv_samep)
-		Y2 = mean(series(p, :Y)[t2] for p in pv_samep)
-
-		return Wr1, Wr2, G1, G2, Y1, Y2
+		return p
 	end
 
 	scats = Vector{GenericTrace{Dict{Symbol, Any}}}()
