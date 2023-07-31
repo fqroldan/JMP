@@ -1438,9 +1438,9 @@ function panels_IRF_cs(pv_bench::Vector{Tp}, pv_hi::Vector{Tp}, pv_lo::Vector{Tp
 	collo = "rgb(0.82969225,0.39322875,0.30229275)"
 	filllo = "rgba(0.82969225,0.39322875,0.30229275, 0.25)"
 
-	keyvec = [:Y, :C, :Gini, :spread]
-	namesvec = ["Output", "Consumption", "Wealth Gini", "Spread"]
-    ytitle = vcat(["% deviation" for jj in 1:2], "%", "bps")
+	keyvec = [:Y, :C, :Gini, :mean]
+    namesvec = ["Output", "Consumption", "Wealth Gini", "Mean wealth"]
+    ytitle = vcat(["% deviation" for jj in 1:2], "%", "% of GDP")
 
 	if cond_Y > -Inf
 		K = length(pv_bench)
@@ -1465,22 +1465,22 @@ function panels_IRF_cs(pv_bench::Vector{Tp}, pv_hi::Vector{Tp}, pv_lo::Vector{Tp
 		print("Left with $(length(pv_bench)) out of $K simulations.\n")
 	end
 
-	index = [jk for jk in eachindex(pv_bench) if series(pv_bench[jk], :Gini)[1] == series(pv_hi[jk], :Gini)[1] == series(pv_lo[jk], :Gini)[1]]
-
-	pv_bench = pv_bench[index]
-	pv_hi = pv_hi[index]
-	pv_lo = pv_lo[index]
-
-    print("Left with $(length(pv_bench)) out of $K simulations.\n")
-
 	if give_stats
 
-		p = plot([
-			scatter(x = [mean(series(p, :Gini)[t] for p in pv) for t in (1+t1, t2)], y = [mean(series(p, :Y)[t]./series(p,:Y)[1] for p in pv) for t in (1+t1, t2)]) for pv in (pv_bench, pv_nodef, pv_lo)
-		])
+		DiDY_hi = mean(((series(pv_hi[jk], :Y)[t2] - series(pv_bench[jk], :Y)[t2]) - (series(pv_hi[jk], :Y)[t1+1] - series(pv_bench[jk], :Y)[t1+1])) / (series(pv_hi[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
 
-		return p
-	end
+		DiDY_lo = mean(((series(pv_lo[jk], :Y)[t2] - series(pv_bench[jk], :Y)[t2]) - (series(pv_lo[jk], :Y)[t1+1] - series(pv_bench[jk], :Y)[t1+1])) / (series(pv_lo[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
+
+		DiD_Y = (DiDY_hi + DiDY_lo) / 2
+		print("Diff-in-diff for output: $(round(DiD_Y, sigdigits=2))% for each extra point in Gini\n")
+
+        DiDC_hi = mean(((series(pv_hi[jk], :C)[t2] - series(pv_bench[jk], :C)[t2]) - (series(pv_hi[jk], :C)[t1+1] - series(pv_bench[jk], :C)[t1+1])) / (series(pv_hi[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
+
+        DiDC_lo = mean(((series(pv_lo[jk], :C)[t2] - series(pv_bench[jk], :C)[t2]) - (series(pv_lo[jk], :C)[t1+1] - series(pv_bench[jk], :C)[t1+1])) / (series(pv_lo[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
+
+        DiD_C = (DiDC_hi + DiDC_lo) / 2
+        print("Diff-in-diff for consumption: $(round(DiD_C, sigdigits=2))% for each extra point in Gini\n")
+    end
 
 	scats = Vector{GenericTrace{Dict{Symbol, Any}}}()
 

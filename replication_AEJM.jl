@@ -41,7 +41,7 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
     sd_hi, sd_lo = load("../Rep2/SOEdef_alt.jld2", "sd_hi", "sd_lo");
     pIRF_bench1, length1, t12, pIRF_hi, pIRF_lo = IRF_default_comp(sd_bench, sd_nodef, sd_hi, sd_lo, 1, 11, 9, B0=4, K=2000)
     # panels_IRF(pIRF_bench2, pIRF_nodef2, pIRF_samep2, cond_Y = 0.96, slides = false)
-    panels_IRF_cs(pIRF_bench1, pIRF_hi, pIRF_lo, cond_Y=0.96, slides=false, τ_hi = sd_hi.pars[:τ], τ_lo = sd_lo.pars[:τ])
+    panels_IRF_cs(pIRF_bench1, pIRF_hi, pIRF_lo, cond_Y=0.96, slides=false, τ_hi = sd_hi.pars[:τ], τ_lo = sd_lo.pars[:τ], give_stats = true)
     panels_IRF(pIRF_bench1, pIRF_hi, pIRF_lo, cond_Y=0.96, slides=false, name_samep="<i>τ</i> = $(sd_lo.pars[:τ])")
 
     # pIRF_bench2, pIRF_nodef2, pIRF_alt = load("../Rep2/IRF_nodefcost_noq.jld2", "pIRF_bench", "pIRF_nodef", "pIRF_alt");
