@@ -1199,7 +1199,7 @@ function plot_IRF(y_mat::Matrix{Float64}, t1, t2; slides = true, dark = slides, 
 	plot(scats, layout)
 end
 
-function scats_IRF(y_mat::Matrix{Float64}, t1, t2, template::Template; relative=false, xtitle="", ytitle="", title="", CIs=true)
+function scats_IRF(y_mat::Matrix{Float64}, t1, t2, template::Template; relative=false, xtitle="", ytitle="", title="", CIs=true, cut=false)
 	T = size(y_mat,1)
 
 	if relative
@@ -1211,9 +1211,19 @@ function scats_IRF(y_mat::Matrix{Float64}, t1, t2, template::Template; relative=
 	y_median = [quantile(y_mat[tt, :], 0.5) for tt in 1:T]
 	y_mean   = [mean(y_mat[tt, :]) for tt in 1:T]
 
+	xvec = (-1:T) ./ 4
+
+	if cut
+		xvec = (0:t2-1) / 4
+		y_upper = y_upper[t1+1:t2]
+		y_lower = y_lower[t1+1:t2]
+		y_median = y_median[t1+1:t2]
+		y_mean = y_mean[t1+1:t2]
+	end
+
 	shapes = [
 		vline((t1-1)/4, line_dash="dot", line_width=0.5)
-		vline((t2-2)/4, line_dash="dot", line_width=0.5)
+		vline((t2-t1-1)/4, line_dash="dot", line_width=0.5)
 		]
 
 	layout = Layout(
@@ -1225,15 +1235,15 @@ function scats_IRF(y_mat::Matrix{Float64}, t1, t2, template::Template; relative=
 
 	if CIs
 		scats = [
-			scatter(x = (-1:T)./4, y = y_upper, hoverinfo="skip",showlegend=false, mode="lines",line=attr(color="rgb(31,119,180)", width=0.001))
-			scatter(x = (-1:T)./4, y = y_lower, hoverinfo="skip",name="IQR",mode="lines",line=attr(color="rgb(31,119,180)", width=0.001), fill="tonexty", fillcolor="rgba(31,119,180,0.25)")
-			scatter(x = (-1:T)./4, y = y_median, name = "Median", line=attr(color=col[3], dash="dash"))
-			scatter(x = (-1:T)./4, y = y_mean, name = "Mean", mode="lines", line=attr(color=col[4], dash="solid"))
+			scatter(x = xvec, y = y_upper, hoverinfo="skip",showlegend=false, mode="lines",line=attr(color="rgb(31,119,180)", width=0.001))
+			scatter(x = xvec, y = y_lower, hoverinfo="skip",name="IQR",mode="lines",line=attr(color="rgb(31,119,180)", width=0.001), fill="tonexty", fillcolor="rgba(31,119,180,0.25)")
+			scatter(x = xvec, y = y_median, name = "Median", line=attr(color=col[3], dash="dash"))
+			scatter(x = xvec, y = y_mean, name = "Mean", mode="lines", line=attr(color=col[4], dash="solid"))
 		]
 	else
 		scats = [
-			scatter(x = (-1:T)./4, y = y_median, name = "Median", line=attr(color=col[3], dash="dash"))
-			scatter(x = (-1:T)./4, y = y_mean, name = "Mean", mode="lines", line=attr(color=col[4], dash="solid"))
+			scatter(x = xvec, y = y_median, name = "Median", line=attr(color=col[3], dash="dash"))
+			scatter(x = xvec, y = y_mean, name = "Mean", mode="lines", line=attr(color=col[4], dash="solid"))
 		]
 	end
 
@@ -1411,6 +1421,97 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 		yaxis7 = attr(anchor = "x7", domain = ydom[7], titlefont_size = 16, title=ytitle[7]),
 		yaxis8 = attr(anchor = "x8", domain = ydom[8], titlefont_size = 16, title=ytitle[8]),
 		yaxis9 = attr(anchor = "x9", domain = ydom[9], titlefont_size = 16, title=ytitle[9]),
+		legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
+		; kwargs...
+		)
+
+	plot(scats, layout)
+end
+
+function panels_IRF_cs(pv_bench::Vector{Tp}, pv_hi::Vector{Tp}, pv_lo::Vector{Tp}=Vector{Path}(undef, 0); β = 0.9865170273023061, t1 = 1, t2 = 12, cond_Y = -Inf, cond_spr = Inf, slides = true, dark = slides, give_stats = false, template::Template=qtemplate(slides=slides, dark=dark), τ_hi = 0, τ_lo = 0, kwargs...) where Tp <: Path
+	T = periods(pv_bench[1])
+	colbench = "rgb(0.36972225,0.47750525,0.62292125)"
+	fillbench = "rgba(0.36972225,0.47750525,0.62292125, 0.25)"
+	colhi = "rgb(0.47854225,0.66285575,0.46836925)"
+	fillhi = "rgba(0.47854225,0.66285575,0.46836925, 0.25)"
+	collo = "rgb(0.82969225,0.39322875,0.30229275)"
+	filllo = "rgba(0.82969225,0.39322875,0.30229275, 0.25)"
+
+	keyvec = [:Y, :C, :Gini, :spread]
+	namesvec = ["Output", "Consumption", "Wealth Gini", "Spread"]
+    ytitle = vcat(["% deviation" for jj in 1:2], "%", "bps")
+
+	if cond_Y > -Inf
+		K = length(pv_bench)
+
+		index_Y = [jk for jk in eachindex(pv_bench) if series(pv_bench[jk], :Y)[t2]/series(pv_bench[jk], :Y)[1] < cond_Y]
+
+		pv_hi = [pv_hi[jk] for jk in index_Y]
+		pv_lo = [pv_lo[jk] for jk in index_Y]
+		pv_bench = [pv_bench[jk] for jk in index_Y]
+
+		print("Left with $(length(pv_bench)) out of $K simulations.\n")
+	end
+	if cond_spr < Inf
+		K = length(pv_bench)
+
+        index_spr = [jk for jk in eachindex(pv_bench) if series(pv_bench[jk], :spread)[t2] > cond_spr]
+
+		pv_hi = [pv_hi[jk] for jk in index_spr]
+		pv_lo = [pv_lo[jk] for jk in index_spr]
+		pv_bench = [pv_bench[jk] for jk in index_spr]
+
+		print("Left with $(length(pv_bench)) out of $K simulations.\n")
+	end
+
+	if give_stats
+
+		p = plot([
+			scatter(x = [mean(series(p, :Gini)[t] for p in pv) for t in (1+t1, t2)], y = [mean(series(p, :Y)[t]./series(p,:Y)[1] for p in pv) for t in (1+t1, t2)]) for pv in (pv_bench, pv_nodef, pv_lo)
+		])
+
+		return p
+	end
+
+	scats = Vector{GenericTrace{Dict{Symbol, Any}}}()
+
+	for (jk, key) in enumerate(keyvec)
+
+		add_scats_IRF!(scats, pv_bench, key, ytitle, 1, jk, t1, t2, T, colbench, fillbench, "Benchmark", CIs = false, cut = true)
+		add_scats_IRF!(scats, pv_hi, key, ytitle, 2, jk, t1, t2, T, colhi, fillhi, "τ = $(τ_hi)", CIs = false, cut = true)
+		if length(pv_lo) > 0
+            add_scats_IRF!(scats, pv_lo, key, ytitle, 3, jk, t1, t2, T, collo, filllo, "τ = $(τ_lo)", CIs = false, cut=true)
+		end
+	end
+
+	a = 1/2
+	b = 1/20
+	bx = 1/30
+
+	ys = [1, 0.48]
+	annotations = [
+		attr(text=namesvec[jj], x = mean((0:t2-2)./4), xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/2)], showarrow=false, font_size = 18, yref="paper") for jj in eachindex(namesvec)
+		]
+
+	ydom = vcat([[1a+b, 2a-b] for jj in 1:2], [[0a+b, 1a-b] for jj in 1:2])
+
+	shapes = [
+		# [vline((t1-1)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.75, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
+		# [vline((t2-2)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.75, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
+		]
+
+	layout = Layout(
+		template = template,
+		font_size = 16, 
+		shapes = shapes, annotations = annotations,
+		xaxis1 = attr(domain = [0a, a-2bx], anchor="y1"),
+		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
+		xaxis3 = attr(domain = [0a, a-2bx], anchor = "y3"),
+		xaxis4 = attr(domain = [1a+bx, 2a-bx], anchor="y4"),
+		yaxis1 = attr(anchor = "x1", domain = ydom[1], titlefont_size = 16, title=ytitle[1]),
+		yaxis2 = attr(anchor = "x2", domain = ydom[2], titlefont_size = 16, title=ytitle[2]),
+		yaxis3 = attr(anchor = "x3", domain = ydom[3], titlefont_size = 16, title=ytitle[3]),
+		yaxis4 = attr(anchor = "x4", domain = ydom[4], titlefont_size = 16, title=ytitle[4]),
 		legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		; kwargs...
 		)
