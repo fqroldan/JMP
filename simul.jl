@@ -610,7 +610,7 @@ function IRF_default_comp(sd::SOEdef, sd_nodef::SOEdef, sd_hi::SOEdef, sd_lo::SO
 		pv_hi[jk] = p2
 		pv_lo[jk] = p3
 
-		pp_check[jk] = var(series(x, :Gini)[1] for x in (p,p2,p3)) < 0.001
+		pp_check[jk] = (series(p, :Gini)[1] == series(p2, :Gini)[1] == series(p3, :Gini)[1])
 	end
 
 	# p_index = eachindex(pv_bench)

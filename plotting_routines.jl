@@ -1251,7 +1251,6 @@ function scats_IRF(y_mat::Matrix{Float64}, t1, t2, template::Template; relative=
 end
 
 function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, t1, t2, T, color, fillcol, simname; template::Template=qtemplate(), kwargs...)
-	rel = jk in [2,3]
 	if key in (:BoY, :GoY, :ToY, :mean)
         key == :mean ? shortkey = key : shortkey = Symbol(string(key)[1])
 		y = 25*[(series(p, shortkey)./series(p,:Y))[tt] for tt in 1:T, p in pv]
@@ -1261,11 +1260,13 @@ function add_scats_IRF!(scats, pv, key::Symbol, ytitle, jg, jk, t1, t2, T, color
 	# 	y = 25*[(series(p, :T)./series(p,:Y))[tt] for tt in 1:T, p in pv]
 	elseif key == :unemp
 		y = 100 * [1 .- series(p, :L)[tt] for tt in 1:T, p in pv]
-	elseif key == :z || key == :CoY
+	elseif key in (:z, :CoY, :Gini)
 		y = 100 * [series(p, key)[tt] for tt in 1:T, p in pv]
 	else
 		y = [series(p, key)[tt] for tt in 1:T, p in pv]
 	end
+	
+	rel = key in (:Y, :C)
 
 	scat_vec, _ = scats_IRF(y, t1, t2, template, relative=rel, ytitle=ytitle[jk]; kwargs...)
 	for (js, scat) in enumerate(scat_vec)
@@ -1463,6 +1464,14 @@ function panels_IRF_cs(pv_bench::Vector{Tp}, pv_hi::Vector{Tp}, pv_lo::Vector{Tp
 
 		print("Left with $(length(pv_bench)) out of $K simulations.\n")
 	end
+
+	index = [jk for jk in eachindex(pv_bench) if series(pv_bench[jk], :Gini)[1] == series(pv_hi[jk], :Gini)[1] == series(pv_lo[jk], :Gini)[1]]
+
+	pv_bench = pv_bench[index]
+	pv_hi = pv_hi[index]
+	pv_lo = pv_lo[index]
+
+    print("Left with $(length(pv_bench)) out of $K simulations.\n")
 
 	if give_stats
 
