@@ -1467,17 +1467,29 @@ function panels_IRF_cs(pv_bench::Vector{Tp}, pv_hi::Vector{Tp}, pv_lo::Vector{Tp
 
 	if give_stats
 
+        diffY_hi = mean((series(pv_hi[jk], :Y)[t1+1] - series(pv_bench[jk], :Y)[t1+1]) / (series(pv_hi[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
+        diffY_lo = mean((series(pv_lo[jk], :Y)[t1+1] - series(pv_bench[jk], :Y)[t1+1]) / (series(pv_lo[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
+
 		DiDY_hi = mean(((series(pv_hi[jk], :Y)[t2] - series(pv_bench[jk], :Y)[t2]) - (series(pv_hi[jk], :Y)[t1+1] - series(pv_bench[jk], :Y)[t1+1])) / (series(pv_hi[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
 
 		DiDY_lo = mean(((series(pv_lo[jk], :Y)[t2] - series(pv_bench[jk], :Y)[t2]) - (series(pv_lo[jk], :Y)[t1+1] - series(pv_bench[jk], :Y)[t1+1])) / (series(pv_lo[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
 
+		diff_Y = (diffY_hi + diffY_lo) / 2
+        print("Diff for output: $(round(diff_Y, sigdigits=2))% for each extra point in Gini\n")
+
 		DiD_Y = (DiDY_hi + DiDY_lo) / 2
 		print("Diff-in-diff for output: $(round(DiD_Y, sigdigits=2))% for each extra point in Gini\n")
+
+
+        diffC_hi = mean((series(pv_hi[jk], :C)[t1+1] - series(pv_bench[jk], :C)[t1+1]) / (series(pv_hi[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
+        diffC_lo = mean((series(pv_lo[jk], :C)[t1+1] - series(pv_bench[jk], :C)[t1+1]) / (series(pv_lo[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
 
         DiDC_hi = mean(((series(pv_hi[jk], :C)[t2] - series(pv_bench[jk], :C)[t2]) - (series(pv_hi[jk], :C)[t1+1] - series(pv_bench[jk], :C)[t1+1])) / (series(pv_hi[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
 
         DiDC_lo = mean(((series(pv_lo[jk], :C)[t2] - series(pv_bench[jk], :C)[t2]) - (series(pv_lo[jk], :C)[t1+1] - series(pv_bench[jk], :C)[t1+1])) / (series(pv_lo[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
 
+        diff_C = (diffC_hi + diffC_lo) / 2
+        print("Diff for consumption: $(round(diff_C, sigdigits=2))% for each extra point in Gini\n")
         DiD_C = (DiDC_hi + DiDC_lo) / 2
         print("Diff-in-diff for consumption: $(round(DiD_C, sigdigits=2))% for each extra point in Gini\n")
     end

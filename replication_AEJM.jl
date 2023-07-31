@@ -22,7 +22,7 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
     Wr_nodef = mean([mean(series(p, :Wr)) for p in p_nodef])
     save(folder * "SOEdef_nodef.jld2", "sd", sd_nodef, "pp", p_nodef, "Wr", Wr_nodef)
 
-    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = IRF_default(sd_bench, sd_nodef, 1, 11, 9, B0 = 4, K = 2500) # used to be B0=5.5, K = 5000
+    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = IRF_default(sd_bench, sd_nodef, 1, 11, 9, B0 = 4, K = 5000) # used to be B0=5.5, K = 5000
     save(folder * "IRF.jld2", "pIRF_bench", pIRF_bench, "t1", t1, "t2", t2, "pIRF_nodef", pIRF_nodef, "pIRF_samep", pIRF_samep)
 
 
@@ -37,12 +37,15 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
     # Wr_alt = mean([mean(series(p, :Wr)) for p in p_alt])
     # save("../Rep2/SOEdef_alt.jld2", "sd", sd_alt, "pp", p_alt, "Wr", Wr_alt)
 
-
     sd_hi, sd_lo = load("../Rep2/SOEdef_alt.jld2", "sd_hi", "sd_lo");
-    pIRF_bench1, length1, t12, pIRF_hi, pIRF_lo = IRF_default_comp(sd_bench, sd_nodef, sd_hi, sd_lo, 1, 11, 9, B0=4, K=2000)
+
+    pIRF_bench1, _, _, pIRF_hi, pIRF_lo = IRF_default_comp(sd_bench, sd_nodef, sd_hi, sd_lo, 1, 11, 9, B0=4, K = 5000)
+    save(folder * "IRF_cs.jld2", "pIRF_bench", pIRF_bench1, "pIRF_hi", pIRF_hi, "pIRF_lo", pIRF_lo)
+
     # panels_IRF(pIRF_bench2, pIRF_nodef2, pIRF_samep2, cond_Y = 0.96, slides = false)
-    panels_IRF_cs(pIRF_bench1, pIRF_hi, pIRF_lo, cond_Y=0.96, slides=false, τ_hi = sd_hi.pars[:τ], τ_lo = sd_lo.pars[:τ], give_stats = true)
-    panels_IRF(pIRF_bench1, pIRF_hi, pIRF_lo, cond_Y=0.96, slides=false, name_samep="<i>τ</i> = $(sd_lo.pars[:τ])")
+
+
+    # panels_IRF(pIRF_bench1, pIRF_hi, pIRF_lo, cond_Y=0.96, slides=false, name_samep="<i>τ</i> = $(sd_lo.pars[:τ])")
 
     # pIRF_bench2, pIRF_nodef2, pIRF_alt = load("../Rep2/IRF_nodefcost_noq.jld2", "pIRF_bench", "pIRF_nodef", "pIRF_alt");
     nothing
@@ -148,13 +151,17 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     # savefig(fig12, folder * "distribution_crises_paper.pdf", width = 600, height = 400)
 
     # Figure 12: Default-risk IRF
-    fig12 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.96, slides = false)
+    fig12 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y = 0.96, slides = false)
     savefig(fig12, folder * "defaultriskIRF_paper.pdf", width = 1100, height = 550)
 
-    # fig12 = panels_IRF(pIRF_highτ, pIRF_highτ, pIRF_highτ, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.95, slides = false)
+    # fig12 = panels_IRF(pIRF_highτ, pIRF_highτ, pIRF_highτ, cond_Y = 0.95, slides = false)
+
+    # Figure 13: Default-risk IRFs and tax progressivity
+    fig13 = panels_IRF_cs(pIRF_bench1, pIRF_hi, pIRF_lo, cond_Y=0.96, slides=false, τ_hi=sd_hi.pars[:τ], τ_lo=sd_lo.pars[:τ], give_stats=true)
+    # savefig(fig13, "../Rep2/panels_IRF_cs.pdf", width = 900, height = 500)
 
     # Figure 14: Value functions in the crisis
-    fig14 = distribution_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, height = 900 * 0.65, width = 1900 * 0.65, cond_Y = 0.96, slides = false)
+    fig14 = distribution_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y = 0.96, slides = false)
     savefig(fig14, folder * "distribIRF_paper.pdf", width = 800, height = 400)
 
     # Figure 15: Subjective probabilities of default
