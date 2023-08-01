@@ -1298,8 +1298,9 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 
 	# keyvec = [:z, :Y, :C, :P, :BoY, :mean, :Gini, :spread, :Wr]
 	# namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Mean wealth", "Gini", "Spread", "Welfare in repayment"]
-	keyvec = [:z, :Y, :C, :P, :BoY, :ToY, :unemp, :spread, :Wr]
-	namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
+	keyvec = [:z, :Y, :C, :P, :BoY, :ToY, :Gini, :spread, :Wr]
+	namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Lump-sum taxes", "Gini", "Spread", "Welfare in repayment"]
+	ytitle = vcat("%", ["% deviation" for jj in 1:2], "", ["% of GDP" for jj in 1:2], "%", "bps", "")
 
 	if cond_Y > -Inf
 		K = length(pv_bench)
@@ -1323,7 +1324,12 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 
 		print("Left with $(length(pv_bench)) out of $K simulations.\n")
 	end
-	ytitle = vcat("%", ["% deviation" for jj in 1:2], "", ["% of GDP" for jj in 1:2], "%", "bps", "")
+
+	index = [jk for jk in eachindex(pv_bench) if series(pv_bench[jk], :Gini)[1] == series(pv_samep[jk], :Gini)[1] == series(pv_nodef[jk], :Gini)[1]]
+
+	pv_nodef = pv_nodef[index]
+	pv_samep = pv_samep[index]
+	pv_bench = pv_bench[index]
 
 	if give_stats
 
