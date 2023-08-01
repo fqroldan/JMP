@@ -737,7 +737,7 @@ function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = 
 
     ys = [1, ys2]
     annotations = [
-        attr(text=titlevec[jj], x=-k_back / 8 + k / 8, xanchor="center", xref="x$jj", y=ys[ceil(Int, jj / 2)], font_size=18, showarrow=false, yref="paper") for jj in eachindex(titlevec)
+        attr(text=titlevec[jj], x=-k_back / 8 + k / 8, xanchor="center", xref="x$jj", y=ys[ceil(Int, jj / 2)], font_size=20, showarrow=false, yref="paper") for jj in eachindex(titlevec)
     ]
 
 	layout = Layout(template = template,
@@ -752,7 +752,7 @@ function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = 
 		yaxis3 = attr(domain = [cy, ay-by+cy], anchor = "x3", title = ytitle[3]),
 		yaxis4 = attr(domain = [cy, ay-by+cy], anchor = "x4", title = ytitle[4]),
 	)
-	
+
 	plot(data, layout)
 end
 

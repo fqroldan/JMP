@@ -136,7 +136,8 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     savefig(fig9, folder * "panels_crises_paper.pdf", width = 1100, height = 550)
 
     fig9b = panels_crises_data(p_bench, 400, :spread, k = 1, k_back = 11, thres_back = 350, slides = false)
-    
+    savefig(fig9b, folder * "panels_wdata_paper.pdf", width=1100, height=600)
+
     # Figure 10: Crises
     fig10 = panels_comp(p_bench, p_nodef, 400, :spread, thres_back = 350, k = 1, k_back = 11, slides = false, yh = 0.55, relative = true)
     savefig(fig10, folder * "panels_comp_paper.pdf", width = 1100, height = 550)
