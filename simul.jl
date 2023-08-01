@@ -578,9 +578,11 @@ function IRF_default(sd::SOEdef, sd_nodef::SOEdef, length1, length2, length3; sa
 		pv_samep[jk] = p3
 	end
 
-	pv_nodef = [pv_nodef[jk] for jk in eachindex(pv_nodef) if minimum(series(pv_bench[jk], :ζ)) == 1]
-	pv_samep = [pv_samep[jk] for jk in eachindex(pv_samep) if minimum(series(pv_bench[jk], :ζ)) == 1]
-	pv_bench = [pv_bench[jk] for jk in eachindex(pv_bench) if minimum(series(pv_bench[jk], :ζ)) == 1]
+	index = [jk for jk in eachindex(pv_bench) if minimum(series(pv_bench[jk], :ζ)) == 1]
+	
+	pv_nodef = pv_nodef[index]
+	pv_samep = pv_samep[index]
+	pv_bench = pv_bench[index]
 
 	print_save("Time in simulation: $(time_print(time()-t0)). Left with $(length(pv_bench)) simulations.\n")
 
