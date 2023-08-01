@@ -150,13 +150,13 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     # savefig(fig12, folder * "distribution_crises_paper.pdf", width = 600, height = 400)
 
     # Figure 12: Default-risk IRF
-    fig12 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y = 0.96, slides = false)
+    fig12 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y = 0.95, slides = false)
     savefig(fig12, folder * "defaultriskIRF_paper.pdf", width = 1100, height = 550)
 
     # fig12 = panels_IRF(pIRF_highτ, pIRF_highτ, pIRF_highτ, cond_Y = 0.95, slides = false)
 
     # Figure 13: Default-risk IRFs and tax progressivity
-    fig13 = panels_IRF_cs(pIRF_bench1, pIRF_hi, pIRF_lo, cond_Y=0.96, slides=false, τ_hi=sd_hi.pars[:τ], τ_lo=sd_lo.pars[:τ], give_stats=true)
+    fig13 = panels_IRF_cs(pIRF_bench1, pIRF_hi, pIRF_lo, cond_Y=0.95, slides=false, τ_hi=sd_hi.pars[:τ], τ_lo=sd_lo.pars[:τ], give_stats=true)
     savefig(fig13, "../Rep2/panels_IRF_cs.pdf", width = 900, height = 500)
 
     # Figure 14: Value functions in the crisis
