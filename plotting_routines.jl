@@ -1296,10 +1296,10 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	colsamep = "rgb(0.82969225,0.39322875,0.30229275)"
 	fillsamep = "rgba(0.82969225,0.39322875,0.30229275, 0.25)"
 
-	keyvec = [:z, :Y, :C, :P, :BoY, :mean, :Gini, :spread, :Wr]
-	namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Mean wealth", "Gini", "Spread", "Welfare in repayment"]
-	# keyvec = [:z, :Y, :C, :P, :BoY, :ToY, :unemp, :spread, :Wr]
-	# namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
+	# keyvec = [:z, :Y, :C, :P, :BoY, :mean, :Gini, :spread, :Wr]
+	# namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Mean wealth", "Gini", "Spread", "Welfare in repayment"]
+	keyvec = [:z, :Y, :C, :P, :BoY, :ToY, :unemp, :spread, :Wr]
+	namesvec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
 
 	if cond_Y > -Inf
 		K = length(pv_bench)

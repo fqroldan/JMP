@@ -43,8 +43,6 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
     pIRF_bench1, _, _, pIRF_hi, pIRF_lo = IRF_default_comp(sd_bench, sd_nodef, sd_hi, sd_lo, 1, 11, 9, B0=4, K = 5000)
     save("../Rep2/IRF_cs.jld2", "pIRF_bench", pIRF_bench1, "pIRF_hi", pIRF_hi, "pIRF_lo", pIRF_lo)
 
-    # panels_IRF(pIRF_bench2, pIRF_nodef2, pIRF_samep2, cond_Y = 0.96, slides = false)
-
 
     # panels_IRF(pIRF_bench1, pIRF_hi, pIRF_lo, cond_Y=0.96, slides=false, name_samep="<i>τ</i> = $(sd_lo.pars[:τ])")
 
@@ -62,7 +60,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     sd_bench, p_bench, W_bench = load(loaddir * "SOEdef.jld2", "sd", "pp", "Wr");
     sd_nodef, p_nodef, W_nodef = load(loaddir * "SOEdef_nodef.jld2", "sd", "pp", "Wr");
 
-    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load(loaddir * "IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep");
+    pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load("../Rep2/IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep");
 
     freq_bench = get_def_freq(p_bench)
     v_nodef = simul_stats(p_nodef)
@@ -159,7 +157,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
 
     # Figure 13: Default-risk IRFs and tax progressivity
     fig13 = panels_IRF_cs(pIRF_bench1, pIRF_hi, pIRF_lo, cond_Y=0.96, slides=false, τ_hi=sd_hi.pars[:τ], τ_lo=sd_lo.pars[:τ], give_stats=true)
-    # savefig(fig13, "../Rep2/panels_IRF_cs.pdf", width = 900, height = 500)
+    savefig(fig13, "../Rep2/panels_IRF_cs.pdf", width = 900, height = 500)
 
     # Figure 14: Value functions in the crisis
     fig14 = distribution_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y = 0.96, slides = false)
