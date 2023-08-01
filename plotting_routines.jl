@@ -502,7 +502,6 @@ function dist_CW(pv::Vector{T}, thres::Number, sym::Symbol; cw = true, slides = 
     Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type = type)
 
     data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
-	keyvec = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
 	titlevec = ["<i>p</i>10", "<i>p</i>25", "<i>p</i>50", "<i>p</i>75", "<i>p</i>90", "Average"]
 
 	cols = [get(ColorSchemes.lapaz, jv, :extrema) for jv in range(0, 0.8, length=5)]
@@ -950,12 +949,11 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 
 
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
-	print("1 - (1-y_bench) / (1-y_nodef) for different variables:\n")
 	for (jj, key) in enumerate(keyvec)
 		_, _, b_me, _, b_av = series_crises(pv_bench, tvv, key, k, relative=relvec[jj])
 		_, _, n_me, _, n_av = series_crises(pv_nodef, tvv, key, k, relative=relvec[jj])
 		if key in [:Y, :C]
-			print("$key: $(@sprintf("%0.8g", 100 * (1- (100-f2vec[jj](n_me[end]))/(100-f1vec[jj](b_me[end])))))%\n")
+			# print("$key: $(@sprintf("%0.8g", 100 * (1- (100-f2vec[jj](n_me[end]))/(100-f1vec[jj](b_me[end])))))%\n")
 		elseif key == :Wr
 			print("$key median: $(@sprintf("%0.5g", 100 * (1-n_me[end]/b_me[end])))%\n")
 			print("$key mean: $(@sprintf("%0.5g", 100 * (1-n_av[end]/b_av[end])))%\n")

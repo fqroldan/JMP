@@ -159,7 +159,7 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 	table *= "\\\\ \\midrule \n"
 
 
-	for jj in 1:length(rownames)
+	for jj in eachindex(rownames)
 		table *= rpad(rownames[jj],pad_n," ") * "& " * rpad(vs[jj], pad_v, " ")
 		if length(v_m_noΔ) > 0
 			table *= "& " * rpad(v_noΔ[jj], pad_Δ, " ")
@@ -171,6 +171,15 @@ function make_calib_table_comp(v_m, v_m_nodef, v_m_noΔ=[], v_m_nob=[])
 		table *= "\\\\\n"
 
 	end
+
+	Y = v_m_nodef[2] / v_m[2] - 1
+    C = v_m_nodef[4] / v_m[4] - 1
+    W = v_m_nodef[15] / v_m[15] - 1
+
+    print("Extra volatility in output = $(@sprintf("%.3g", 100*Y))%\n")
+    print("Extra volatility in consumpmtion = $(@sprintf("%.3g", 100*C))%\n")
+    print("Extra welfare in consumpmtion = $(@sprintf("%.3g", 100*W))%\n")
+
 
 	table *= "\\bottomrule \n\\end{tabular*}"
 	return table
