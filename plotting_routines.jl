@@ -679,7 +679,7 @@ function sc_data(y; k_back, k, legendgroup::Int, ax::Int)
 	yaxis = "y$(ax)"
 	xaxis = "x$(ax)"
 
-	scatter(x=(-k_back:k) / 4, y=y; yaxis, xaxis, mode="lines", line_color="black", line_dash = "dash", name = "data", legendgroup, showlegend = (ax==1))
+	scatter(x=(-k_back:k) / 4, y=y; yaxis, xaxis, mode="lines", line_color="black", line_dash = "dashdot", line_width = 2, name = "Data", legendgroup, showlegend = (ax==1))
 end
 
 function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf) where T<:AbstractPath
@@ -752,8 +752,7 @@ function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = 
 		yaxis3 = attr(domain = [cy, ay-by+cy], anchor = "x3", title = ytitle[3]),
 		yaxis4 = attr(domain = [cy, ay-by+cy], anchor = "x4", title = ytitle[4]),
 	)
-
-
+	
 	plot(data, layout)
 end
 
