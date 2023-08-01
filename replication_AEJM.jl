@@ -23,7 +23,8 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
     save(folder * "SOEdef_nodef.jld2", "sd", sd_nodef, "pp", p_nodef, "Wr", Wr_nodef)
 
     pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = IRF_default(sd_bench, sd_nodef, 1, 11, 9, B0 = 4, K = 5000) # used to be B0=5.5, K = 5000
-    save(folder * "IRF.jld2", "pIRF_bench", pIRF_bench, "t1", t1, "t2", t2, "pIRF_nodef", pIRF_nodef, "pIRF_samep", pIRF_samep)
+    # save(folder * "IRF.jld2", "pIRF_bench", pIRF_bench, "t1", t1, "t2", t2, "pIRF_nodef", pIRF_nodef, "pIRF_samep", pIRF_samep)
+    save("../Rep2/IRF.jld2", "pIRF_bench", pIRF_bench, "t1", t1, "t2", t2, "pIRF_nodef", pIRF_nodef, "pIRF_samep", pIRF_samep)
 
 
     sd_hi = load(loaddir*"SOEdef.jld2", "sd");
@@ -40,7 +41,7 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
     sd_hi, sd_lo = load("../Rep2/SOEdef_alt.jld2", "sd_hi", "sd_lo");
 
     pIRF_bench1, _, _, pIRF_hi, pIRF_lo = IRF_default_comp(sd_bench, sd_nodef, sd_hi, sd_lo, 1, 11, 9, B0=4, K = 5000)
-    save(folder * "IRF_cs.jld2", "pIRF_bench", pIRF_bench1, "pIRF_hi", pIRF_hi, "pIRF_lo", pIRF_lo)
+    save("../Rep2/IRF_cs.jld2", "pIRF_bench", pIRF_bench1, "pIRF_hi", pIRF_hi, "pIRF_lo", pIRF_lo)
 
     # panels_IRF(pIRF_bench2, pIRF_nodef2, pIRF_samep2, cond_Y = 0.96, slides = false)
 
