@@ -62,7 +62,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
 
     pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load("../Rep2/IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep");
 
-    pIRF_bench1, pIRF_hi, pIRF_lo = load("../Rep2/IRF_cs.jld2", "pIRF_bench", "pIRF_hi", "pIRF_lo")
+    pIRF_bench1, pIRF_hi, pIRF_lo = load("../Rep2/IRF_cs.jld2", "pIRF_bench", "pIRF_hi", "pIRF_lo");
 
     freq_bench = get_def_freq(p_bench)
     v_nodef = simul_stats(p_nodef)
@@ -95,7 +95,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
 
     # Figure 5: Labor Income and Expected returns
     fig5 = make_panels(sd_bench, "Earnings_Default", slides = false, leg = false)
-    savefig(fig5, folder * "wages_paper.pdf", width = 800, height = 250)
+    savefig(fig5, folder * "wages_paper.pdf", width = 800, height = 300)
 
     # Table 2: Estimated Fiscal Rules
     fig19 = regs_fiscalrules(df_all, savedir = folder, slides = false)
@@ -110,7 +110,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
 
     # Figure 6: Welfare Functions
     fig6 = make_panels(sd_bench, "Wr-Wd", slides = false, leg = false)
-    savefig(fig6, folder * "WrWd_paper.pdf", width = 800, height = 250)
+    savefig(fig6, folder * "WrWd_paper.pdf", width = 800, height = 300)
 
     # Figure 7: Price of Debt
     fig7 = make_debtprice(sd_bench, slides = false, leg = false)
@@ -136,7 +136,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     savefig(fig9, folder * "panels_crises_paper.pdf", width = 1100, height = 550)
 
     fig9b = panels_crises_data(p_bench, 400, :spread, k = 1, k_back = 11, thres_back = 350, slides = false)
-    savefig(fig9b, folder * "panels_wdata_paper.pdf", width=1100, height=600)
+    savefig(fig9b, folder * "panels_wdata_paper.pdf", width=900, height=500)
 
     # Figure 10: Crises
     fig10 = panels_comp(p_bench, p_nodef, 400, :spread, thres_back = 350, k = 1, k_back = 11, slides = false, yh = 0.55, relative = true)
@@ -157,6 +157,9 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     # Figure 12: Default-risk IRF
     fig12 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y = 0.95, slides = false)
     savefig(fig12, folder * "defaultriskIRF_paper.pdf", width = 1100, height = 550)
+
+    fig12b = panels_IRF_wdata(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y=0.95, slides=false)
+    savefig(fig12b, folder * "panelsIRF_wdata_paper.pdf", width=900, height=500)
 
     # fig12 = panels_IRF(pIRF_highτ, pIRF_highτ, pIRF_highτ, cond_Y = 0.95, slides = false)
 

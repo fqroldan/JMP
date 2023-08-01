@@ -682,14 +682,14 @@ function sc_data(y; k_back, k, legendgroup::Int, ax::Int)
 	scatter(x=(-k_back:k) / 4, y=y; yaxis, xaxis, mode="lines", line_color="black", line_dash = "dashdot", line_width = 2, name = "Data", legendgroup, showlegend = (ax==1))
 end
 
-function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf) where T<:AbstractPath
+function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf, kwargs...) where T<:AbstractPath
     Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type="highspreads")
 
     println("$Nc episodes")
 
     println("Suggested yh=0.7 for style=paper")
     keyvec = [:Y, :C, :spread, :BoY]
-    titlevec = ["Output", "Consumption", "Spreads", "Gov't Debt"]
+    namesvec = ["Output", "Consumption", "Spreads", "Gov't Debt"]
 
     meanY = mean([mean(series(p, :Y)) for p in pv])
     meanC = mean([mean(series(p, :C)) for p in pv])
@@ -715,7 +715,6 @@ function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = 
 
 	df = SPA_comp()
 
-
 	for sc in [
         sc_data(df.Y; k_back, k, legendgroup=4, ax=1)
         sc_data(df.C; k_back, k, legendgroup=4, ax=2)
@@ -725,33 +724,32 @@ function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = 
 		push!(data,sc)
     end
 
+    a = 1 / 2
+    b = 1 / 20
+    bx = 1 / 20
 
-	ax = 0.5
-	bx = 0.035
-	cy = 0.05
-
-	ay = (1 - cy) / 2
-	by = cy/2 + 0.05
-
-	ys2 = ay + 0.5cy
-
-    ys = [1, ys2]
+    ys = [1, 0.48]
     annotations = [
-        attr(text=titlevec[jj], x=-k_back / 8 + k / 8, xanchor="center", xref="x$jj", y=ys[ceil(Int, jj / 2)], font_size=20, showarrow=false, yref="paper") for jj in eachindex(titlevec)
+        attr(text=namesvec[jj], x=mean((-k_back:k) ./ 4), xanchor="center", xref="x$jj", y=ys[ceil(Int, jj / 2)], yanchor = "bottom", showarrow=false, font_size=18, yref="paper") for jj in eachindex(namesvec)
     ]
 
-	layout = Layout(template = template,
-		annotations = annotations,
-        legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
-        xaxis1 = attr(domain = [0, ax-bx], anchor="y1"),
-		xaxis2 = attr(domain = [ax+bx, 1], anchor = "y2"),
-        xaxis3 = attr(domain = [0, ax-bx], anchor = "y3"),
-        xaxis4 = attr(domain = [ax+bx, 1], anchor="y4"),
-		yaxis1 = attr(domain = [ay+by+cy, 1-cy], anchor = "x1", title = ytitle[1]),
-		yaxis2 = attr(domain = [ay+by+cy, 1-cy], anchor = "x2", title = ytitle[2]),
-		yaxis3 = attr(domain = [cy, ay-by+cy], anchor = "x3", title = ytitle[3]),
-		yaxis4 = attr(domain = [cy, ay-by+cy], anchor = "x4", title = ytitle[4]),
-	)
+    ydom = vcat([[1a + 1.5b, 2a] for jj in 1:2], [[0a + b, 1a - 0.5b] for jj in 1:2])
+
+    layout = Layout(
+        template=template,
+        font_size=16,
+        annotations=annotations,
+        xaxis1=attr(domain=[0a, a - bx], anchor="y1"),
+        xaxis2=attr(domain=[1a + bx, 2a], anchor="y2"),
+        xaxis3=attr(domain=[0a, a - bx], anchor="y3"),
+        xaxis4=attr(domain=[1a + bx, 2a], anchor="y4"),
+        yaxis1=attr(anchor="x1", domain=ydom[1], titlefont_size=16, title=ytitle[1]),
+        yaxis2=attr(anchor="x2", domain=ydom[2], titlefont_size=16, title=ytitle[2]),
+        yaxis3=attr(anchor="x3", domain=ydom[3], titlefont_size=16, title=ytitle[3]),
+        yaxis4=attr(anchor="x4", domain=ydom[4], titlefont_size=16, title=ytitle[4]),
+        legend=attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper")
+        ; kwargs...
+    )
 
 	plot(data, layout)
 end
@@ -902,9 +900,9 @@ end
 function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sym::Symbol=:π; thres_back::Number=Inf, slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 0.65, k=8, k_back=2k, transf::Bool=true, relative=false, CIs=true) where T<:AbstractPath
 	Nc, tvv = get_crises(pv_bench, thres, sym, k, k_back, thres_back)
 	println("Suggested yh=0.7 for style=paper")
-	keyvec = [:z, :Y, :C, :P, :B, :T, :L, :spread, :Wr]
+	keyvec = [:z, :Y, :C, :P, :B, :T, :Gini, :spread, :Wr]
 
-	titlevec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Lump-sum taxes", "Unemployment", "Spread", "Welfare in repayment"]
+	titlevec = ["TFP", "Output", "Consumption", "Price of nontradables", "Gov't Debt", "Lump-sum taxes", "Gini", "Spread", "Welfare in repayment"]
 
 	meanYb = mean([mean(series(p, :Y)) for p in pv_bench])
 	meanCb = mean([mean(series(p, :C)) for p in pv_bench])
@@ -926,7 +924,8 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 	f1vec[[2, 6]] .= (x->100*x/meanYb)
 	f1vec[3] = (x->100*x/meanCb)
 	f1vec[[5]] .= (x->25 * x/meanYb)
-	f1vec[7] = (x->100*(1 .- x))
+	# f1vec[7] = (x->100*(1 .- x))
+	f1vec[7] = x->100x
 	ytitle[[5,6]] .= "% of mean GDP"
 	ytitle[[2, 3]] .= "% dev from mean"
 	ytitle[[1,4,7]] .= "%"
@@ -1517,6 +1516,130 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	plot(scats, layout)
 end
 
+function panels_IRF_wdata(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); β=0.9865170273023061, t1=1, t2=12, cond_Y=-Inf, cond_spr=Inf, slides=true, dark=slides, give_stats=false, template::Template=qtemplate(slides=slides, dark=dark), name_samep="No default (same debt issuances)", kwargs...) where {Tp<:Path}
+    T = periods(pv_bench[1])
+    colbench = "rgb(0.36972225,0.47750525,0.62292125)"
+    fillbench = "rgba(0.36972225,0.47750525,0.62292125, 0.25)"
+    colnodef = "rgb(0.47854225,0.66285575,0.46836925)"
+    fillnodef = "rgba(0.47854225,0.66285575,0.46836925, 0.25)"
+    colsamep = "rgb(0.82969225,0.39322875,0.30229275)"
+    fillsamep = "rgba(0.82969225,0.39322875,0.30229275, 0.25)"
+
+	keyvec = [:Y, :C, :spread, :BoY]
+	namesvec = ["Output", "Consumption", "Spreads", "Gov't Debt"]
+    ytitle = vcat(["% deviation" for jj in 1:2], "bps", "% of GDP")
+
+    if cond_Y > -Inf
+        K = length(pv_bench)
+
+        index_Y = [jk for jk in eachindex(pv_bench) if series(pv_bench[jk], :Y)[t2] / series(pv_bench[jk], :Y)[1] < cond_Y]
+
+        pv_nodef = [pv_nodef[jk] for jk in index_Y]
+        pv_samep = [pv_samep[jk] for jk in index_Y]
+        pv_bench = [pv_bench[jk] for jk in index_Y]
+
+        print("Left with $(length(pv_bench)) out of $K simulations.\n")
+    end
+    if cond_spr < Inf
+        K = length(pv_bench)
+
+        index_spr = [jk for jk in eachindex(pv_bench) if series(pv_bench[jk], :spread)[t2] > cond_spr]
+
+        pv_nodef = [pv_nodef[jk] for jk in index_spr]
+        pv_samep = [pv_samep[jk] for jk in index_spr]
+        pv_bench = [pv_bench[jk] for jk in index_spr]
+
+        print("Left with $(length(pv_bench)) out of $K simulations.\n")
+    end
+
+    index = [jk for jk in eachindex(pv_bench) if series(pv_bench[jk], :Gini)[1] == series(pv_samep[jk], :Gini)[1] == series(pv_nodef[jk], :Gini)[1]]
+
+    pv_nodef = pv_nodef[index]
+    pv_samep = pv_samep[index]
+    pv_bench = pv_bench[index]
+
+    scats = Vector{GenericTrace{Dict{Symbol,Any}}}()
+
+    for (jk, key) in enumerate(keyvec)
+
+        add_scats_IRF!(scats, pv_bench, key, ytitle, 1, jk, t1, t2, T, colbench, fillbench, "Benchmark")
+        add_scats_IRF!(scats, pv_nodef, key, ytitle, 2, jk, t1, t2, T, colnodef, fillnodef, "No default")
+        if length(pv_samep) > 0
+            add_scats_IRF!(scats, pv_samep, key, ytitle, 3, jk, t1, t2, T, colsamep, fillsamep, name_samep)
+        end
+    end
+
+    df = SPA_comp()
+
+    for sc in [
+        sc_data(df.Y; k_back = 1, k=t2-2, legendgroup=4, ax=1)
+        sc_data(df.C; k_back = 1, k=t2-2, legendgroup=4, ax=2)
+        sc_data(df.spread; k_back = 1, k=t2-2, legendgroup=4, ax=3)
+        sc_data(df.debt; k_back = 1, k=t2-2, legendgroup=4, ax=4)
+    ]
+        push!(scats, sc)
+    end
+
+
+    a = 1 / 2
+    b = 1 / 20
+    bx = 1 / 20
+
+    ys = [1, 0.48]
+    annotations = [
+        attr(text=namesvec[jj], x=mean((0:T-2) ./ 4), xanchor="center", xref="x$jj", y=ys[ceil(Int, jj / 2)], yanchor="bottom", showarrow=false, font_size=18, yref="paper") for jj in eachindex(namesvec)
+    ]
+
+    ydom = vcat([[1a + 1.5b, 2a] for jj in 1:2], [[0a + b, 1a - 0.5b] for jj in 1:2])
+
+    layout = Layout(
+        template=template,
+        font_size=16,
+        annotations=annotations,
+        xaxis1=attr(domain=[0a, a - bx], anchor="y1"),
+        xaxis2=attr(domain=[1a + bx, 2a], anchor="y2"),
+        xaxis3=attr(domain=[0a, a - bx], anchor="y3"),
+        xaxis4=attr(domain=[1a + bx, 2a], anchor="y4"),
+        yaxis1=attr(anchor="x1", domain=ydom[1], titlefont_size=16, title=ytitle[1]),
+        yaxis2=attr(anchor="x2", domain=ydom[2], titlefont_size=16, title=ytitle[2]),
+        yaxis3=attr(anchor="x3", domain=ydom[3], titlefont_size=16, title=ytitle[3]),
+        yaxis4=attr(anchor="x4", domain=ydom[4], titlefont_size=16, title=ytitle[4]),
+        legend=attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
+        ; kwargs...
+    )
+
+	plot(scats, layout)
+end
+
+function compute_give_stats(pv_be, pv_hi, pv_lo, t1, t2)
+
+        diffY_hi = mean((series(pv_hi[jk], :Y)[t2] - series(pv_be[jk], :Y)[t2]) / (series(pv_hi[jk], :Gini)[t2] - series(pv_be[jk], :Gini)[t2]) for jk in eachindex(pv_be))
+        diffY_lo = mean((series(pv_lo[jk], :Y)[t2] - series(pv_be[jk], :Y)[t2]) / (series(pv_lo[jk], :Gini)[t2] - series(pv_be[jk], :Gini)[t2]) for jk in eachindex(pv_be))
+
+		DiDY_hi = mean(((series(pv_hi[jk], :Y)[t2] - series(pv_be[jk], :Y)[t2]) - (series(pv_hi[jk], :Y)[t1+1] - series(pv_be[jk], :Y)[t1+1])) / (series(pv_hi[jk], :Gini)[t2] - series(pv_be[jk], :Gini)[t2]) for jk in eachindex(pv_be))
+
+		DiDY_lo = mean(((series(pv_lo[jk], :Y)[t2] - series(pv_be[jk], :Y)[t2]) - (series(pv_lo[jk], :Y)[t1+1] - series(pv_be[jk], :Y)[t1+1])) / (series(pv_lo[jk], :Gini)[t2] - series(pv_be[jk], :Gini)[t2]) for jk in eachindex(pv_be))
+
+		diff_Y = (diffY_hi + diffY_lo) / 2
+        print("Diff for output: $(round(diff_Y, sigdigits=2))% for each extra point in Gini\n")
+
+		DiD_Y = (DiDY_hi + DiDY_lo) / 2
+		print("Diff-in-diff for output: $(round(DiD_Y, sigdigits=2))% for each extra point in Gini\n")
+
+
+        diffC_hi = mean((series(pv_hi[jk], :C)[t2] - series(pv_be[jk], :C)[t2]) / (series(pv_hi[jk], :Gini)[t2] - series(pv_be[jk], :Gini)[t2]) for jk in eachindex(pv_be))
+        diffC_lo = mean((series(pv_lo[jk], :C)[t2] - series(pv_be[jk], :C)[t2]) / (series(pv_lo[jk], :Gini)[t2] - series(pv_be[jk], :Gini)[t2]) for jk in eachindex(pv_be))
+
+        DiDC_hi = mean(((series(pv_hi[jk], :C)[t2] - series(pv_be[jk], :C)[t2]) - (series(pv_hi[jk], :C)[t1+1] - series(pv_be[jk], :C)[t1+1])) / (series(pv_hi[jk], :Gini)[t2] - series(pv_be[jk], :Gini)[t2]) for jk in eachindex(pv_be))
+
+        DiDC_lo = mean(((series(pv_lo[jk], :C)[t2] - series(pv_be[jk], :C)[t2]) - (series(pv_lo[jk], :C)[t1+1] - series(pv_be[jk], :C)[t1+1])) / (series(pv_lo[jk], :Gini)[t2] - series(pv_be[jk], :Gini)[t2]) for jk in eachindex(pv_be))
+
+        diff_C = (diffC_hi + diffC_lo) / 2
+        print("Diff for consumption: $(round(diff_C, sigdigits=2))% for each extra point in Gini\n")
+        DiD_C = (DiDC_hi + DiDC_lo) / 2
+        print("Diff-in-diff for consumption: $(round(DiD_C, sigdigits=2))% for each extra point in Gini\n")
+end
+
 function panels_IRF_cs(pv_bench::Vector{Tp}, pv_hi::Vector{Tp}, pv_lo::Vector{Tp}=Vector{Path}(undef, 0); β = 0.9865170273023061, t1 = 1, t2 = 12, cond_Y = -Inf, cond_spr = Inf, slides = true, dark = slides, give_stats = false, template::Template=qtemplate(slides=slides, dark=dark), τ_hi = 0, τ_lo = 0, kwargs...) where Tp <: Path
 	T = periods(pv_bench[1])
 	colbench = "rgb(0.36972225,0.47750525,0.62292125)"
@@ -1554,32 +1677,7 @@ function panels_IRF_cs(pv_bench::Vector{Tp}, pv_hi::Vector{Tp}, pv_lo::Vector{Tp
 	end
 
 	if give_stats
-
-        diffY_hi = mean((series(pv_hi[jk], :Y)[t1+1] - series(pv_bench[jk], :Y)[t1+1]) / (series(pv_hi[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
-        diffY_lo = mean((series(pv_lo[jk], :Y)[t1+1] - series(pv_bench[jk], :Y)[t1+1]) / (series(pv_lo[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
-
-		DiDY_hi = mean(((series(pv_hi[jk], :Y)[t2] - series(pv_bench[jk], :Y)[t2]) - (series(pv_hi[jk], :Y)[t1+1] - series(pv_bench[jk], :Y)[t1+1])) / (series(pv_hi[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
-
-		DiDY_lo = mean(((series(pv_lo[jk], :Y)[t2] - series(pv_bench[jk], :Y)[t2]) - (series(pv_lo[jk], :Y)[t1+1] - series(pv_bench[jk], :Y)[t1+1])) / (series(pv_lo[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
-
-		diff_Y = (diffY_hi + diffY_lo) / 2
-        print("Diff for output: $(round(diff_Y, sigdigits=2))% for each extra point in Gini\n")
-
-		DiD_Y = (DiDY_hi + DiDY_lo) / 2
-		print("Diff-in-diff for output: $(round(DiD_Y, sigdigits=2))% for each extra point in Gini\n")
-
-
-        diffC_hi = mean((series(pv_hi[jk], :C)[t1+1] - series(pv_bench[jk], :C)[t1+1]) / (series(pv_hi[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
-        diffC_lo = mean((series(pv_lo[jk], :C)[t1+1] - series(pv_bench[jk], :C)[t1+1]) / (series(pv_lo[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
-
-        DiDC_hi = mean(((series(pv_hi[jk], :C)[t2] - series(pv_bench[jk], :C)[t2]) - (series(pv_hi[jk], :C)[t1+1] - series(pv_bench[jk], :C)[t1+1])) / (series(pv_hi[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
-
-        DiDC_lo = mean(((series(pv_lo[jk], :C)[t2] - series(pv_bench[jk], :C)[t2]) - (series(pv_lo[jk], :C)[t1+1] - series(pv_bench[jk], :C)[t1+1])) / (series(pv_lo[jk], :Gini)[t2] - series(pv_bench[jk], :Gini)[t2]) for jk in eachindex(pv_bench))
-
-        diff_C = (diffC_hi + diffC_lo) / 2
-        print("Diff for consumption: $(round(diff_C, sigdigits=2))% for each extra point in Gini\n")
-        DiD_C = (DiDC_hi + DiDC_lo) / 2
-        print("Diff-in-diff for consumption: $(round(DiD_C, sigdigits=2))% for each extra point in Gini\n")
+		compute_give_stats(pv_bench, pv_hi, pv_lo, t1, t2)
     end
 
 	scats = Vector{GenericTrace{Dict{Symbol, Any}}}()
@@ -1595,28 +1693,23 @@ function panels_IRF_cs(pv_bench::Vector{Tp}, pv_hi::Vector{Tp}, pv_lo::Vector{Tp
 
 	a = 1/2
 	b = 1/20
-	bx = 1/30
+	bx = 1/20
 
-	ys = [1, 0.48]
-	annotations = [
-		attr(text=namesvec[jj], x = mean((0:t2-2)./4), xanchor="center", xref = "x$jj", y = ys[ceil(Int, jj/2)], showarrow=false, font_size = 18, yref="paper") for jj in eachindex(namesvec)
-		]
+    ys = [1, 0.48]
+    annotations = [
+        attr(text=namesvec[jj], x=mean((0:t2-2) ./ 4), xanchor="center", xref="x$jj", y=ys[ceil(Int, jj / 2)], yanchor="bottom", showarrow=false, font_size=18, yref="paper") for jj in eachindex(namesvec)
+    ]
 
-	ydom = vcat([[1a+b, 2a-b] for jj in 1:2], [[0a+b, 1a-b] for jj in 1:2])
-
-	shapes = [
-		# [vline((t1-1)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.75, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
-		# [vline((t2-2)/4, ydom[jj][1], ydom[jj][2], line_dash="dot", line_width=0.75, xref="x$jj", yref="paper") for jj in eachindex(keyvec)]
-		]
+    ydom = vcat([[1a + 1.5b, 2a] for jj in 1:2], [[0a + b, 1a - 0.5b] for jj in 1:2])
 
 	layout = Layout(
 		template = template,
 		font_size = 16, 
-		shapes = shapes, annotations = annotations,
-		xaxis1 = attr(domain = [0a, a-2bx], anchor="y1"),
-		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
-		xaxis3 = attr(domain = [0a, a-2bx], anchor = "y3"),
-		xaxis4 = attr(domain = [1a+bx, 2a-bx], anchor="y4"),
+		annotations = annotations,
+		xaxis1 = attr(domain = [0a, a-bx], anchor="y1"),
+		xaxis2 = attr(domain = [1a+bx, 2a], anchor="y2"),
+		xaxis3 = attr(domain = [0a, a-bx], anchor = "y3"),
+		xaxis4 = attr(domain = [1a+bx, 2a], anchor="y4"),
 		yaxis1 = attr(anchor = "x1", domain = ydom[1], titlefont_size = 16, title=ytitle[1]),
 		yaxis2 = attr(anchor = "x2", domain = ydom[2], titlefont_size = 16, title=ytitle[2]),
 		yaxis3 = attr(anchor = "x3", domain = ydom[3], titlefont_size = 16, title=ytitle[3]),
@@ -2035,10 +2128,11 @@ end
 function make_panels(sd::SOEdef, type::String; slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark), leg::Bool=true)
     Jgrid = agg_grid(sd)
 
-    jbv = [floor(Int, N(sd, :b) * 0.25), 10, N(sd, :b)]
+    @show jbv = [floor(Int, N(sd, :b) * 0.1), 6, floor(Int, N(sd, :b) * .6)]
     _, jμ, jσ, jξ, jζ, jz = default_eval_points(sd)
     # jμ = 1
-    jσ = 2
+	jμ = 1
+    jσ = 3
     # jξ = 2
 
     Eyv = Vector{Vector{Float64}}(undef, 0)
@@ -2130,7 +2224,7 @@ function make_panels(sd::SOEdef, type::String; slides=true, dark=slides, templat
     end
 
     annotations = [
-        attr(x=0, xanchor="center", xref="x$jb", y=1.01, yref="paper", yanchor="bottom", text="<i>B = $(@sprintf("%0.3g", sd.gr[:b][bv]))", showarrow=false) for (jb, bv) in enumerate(jbv)
+        attr(x=0, xanchor="center", xref="x$jb", y=1.01, yref="paper", yanchor="bottom", text="<i>B / Ȳ = $(@sprintf("%0.3g", sd.gr[:b][bv] / sd.eq[:output][find_points(sd, [jbv[1], jμ, jσ, jξ, jζ, jz])]))", showarrow=false) for (jb, bv) in enumerate(jbv)
     ]
 
     layout = Layout(
@@ -2138,10 +2232,10 @@ function make_panels(sd::SOEdef, type::String; slides=true, dark=slides, templat
         yaxis1=attr(anchor="x1", range=[miny, maxy]),
         yaxis2=attr(anchor="x2", range=[miny, maxy]),
         yaxis3=attr(anchor="x3", range=[miny, maxy]),
-        xaxis1=attr(zeroline=false, domain=[0, 0.3], anchor="y1"),
-        xaxis2=attr(zeroline=false, domain=[0.33, 0.67], anchor="y2"),
-        xaxis3=attr(zeroline=false, domain=[0.7, 1], anchor="y3"),
-        title=ifelse(leg, title, ""), height=1080 * 0.45,
+        xaxis1=attr(title = "<i>z'", zeroline=false, domain=[0, 0.3], anchor="y1"),
+        xaxis2=attr(title = "<i>z'", zeroline=false, domain=[0.33, 0.67], anchor="y2"),
+        xaxis3=attr(title = "<i>z'", zeroline=false, domain=[0.7, 1], anchor="y3"),
+        title=ifelse(leg, title, ""),
         legend=attr(orientation="v", x=0.95, xanchor="right", y=0.95),
         annotations=annotations
     )
