@@ -599,7 +599,7 @@ function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; slides =
 
 	meanY = mean([mean(series(p, :Y)) for p in pv])
 	meanC = mean([mean(series(p, :C)) for p in pv])
-	meanCoY = mean([mean(series(p, :CoY)) for p in pv])
+	# meanCoY = mean([mean(series(p, :CoY)) for p in pv])
 	
 	funcvec = Vector{Function}(undef, length(keyvec))
 	funcvec .= identity
@@ -636,7 +636,7 @@ function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; slides =
 		]
 	layout = Layout(template = template,
 		shapes = shapes, annotations = annotations,
-		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
+		legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		xaxis1 = attr(domain = [0ax, ax-2bx], range=[-k_back/4, k/4]),
 		xaxis2 = attr(domain = [1ax+bx, 2ax-bx], range=[-k_back/4, k/4]),
 		xaxis3 = attr(domain = [2ax+bx, 3ax-bx], range=[-k_back/4, k/4]),
@@ -670,6 +670,89 @@ function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; slides =
 		# yaxis15 = attr(anchor = "x15", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[15]),
 		# yaxis16 = attr(anchor = "x16", domain = [0a+b, a-b], titlefont_size = 16, title=ytitle[16]),
 		)
+
+	plot(data, layout)
+end
+
+function sc_data(y; k_back, k, legendgroup::Int, ax::Int)
+
+	yaxis = "y$(ax)"
+	xaxis = "x$(ax)"
+
+	scatter(x=(-k_back:k) / 4, y=y; yaxis, xaxis, mode="lines", line_color="black", line_dash = "dash", name = "data", legendgroup, showlegend = (ax==1))
+end
+
+function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf) where T<:AbstractPath
+    Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type="highspreads")
+
+    println("$Nc episodes")
+
+    println("Suggested yh=0.7 for style=paper")
+    keyvec = [:Y, :C, :spread, :BoY]
+    titlevec = ["Output", "Consumption", "Spreads", "Gov't Debt"]
+
+    meanY = mean([mean(series(p, :Y)) for p in pv])
+    meanC = mean([mean(series(p, :C)) for p in pv])
+
+    funcvec = Vector{Function}(undef, length(keyvec))
+    funcvec .= identity
+    ytitle = ["" for jj in 1:length(keyvec)]
+
+    funcvec[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:Y]]] .= (x -> 100 * x / meanY)
+    funcvec[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:C]]] .= (x -> 100 * x / meanC)
+
+    ytitle[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:unemp]]] .= "%"
+    ytitle[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:Y, :C]]] .= "% dev from mean"
+    ytitle[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:BoY]]] .= "% of GDP"
+    ytitle[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:spread]]] .= "bps"
+
+    data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
+    for (jj, key) in enumerate(keyvec)
+        for scat in scats_crises(pv, tvv, key, funcvec[jj], axis=jj, indiv=false, k=k, k_back=k_back)
+            push!(data, scat)
+        end
+    end
+
+	df = SPA_comp()
+
+
+	for sc in [
+        sc_data(df.Y; k_back, k, legendgroup=4, ax=1)
+        sc_data(df.C; k_back, k, legendgroup=4, ax=2)
+        sc_data(df.spread; k_back, k, legendgroup=4, ax=3)
+        sc_data(df.debt; k_back, k, legendgroup=4, ax=4)
+	]
+		push!(data,sc)
+    end
+
+
+	ax = 0.5
+	bx = 0.035
+	cy = 0.05
+
+	ay = (1 - cy) / 2
+	by = cy/2 + 0.05
+
+	ys2 = ay + 0.5cy
+
+    ys = [1, ys2]
+    annotations = [
+        attr(text=titlevec[jj], x=-k_back / 8 + k / 8, xanchor="center", xref="x$jj", y=ys[ceil(Int, jj / 2)], font_size=18, showarrow=false, yref="paper") for jj in eachindex(titlevec)
+    ]
+
+	layout = Layout(template = template,
+		annotations = annotations,
+        legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
+        xaxis1 = attr(domain = [0, ax-bx], anchor="y1"),
+		xaxis2 = attr(domain = [ax+bx, 1], anchor = "y2"),
+        xaxis3 = attr(domain = [0, ax-bx], anchor = "y3"),
+        xaxis4 = attr(domain = [ax+bx, 1], anchor="y4"),
+		yaxis1 = attr(domain = [ay+by+cy, 1-cy], anchor = "x1", title = ytitle[1]),
+		yaxis2 = attr(domain = [ay+by+cy, 1-cy], anchor = "x2", title = ytitle[2]),
+		yaxis3 = attr(domain = [cy, ay-by+cy], anchor = "x3", title = ytitle[3]),
+		yaxis4 = attr(domain = [cy, ay-by+cy], anchor = "x4", title = ytitle[4]),
+	)
+
 
 	plot(data, layout)
 end
@@ -899,7 +982,7 @@ function panels_comp(pv_bench::Vector{T}, pv_nodef::Vector{T}, thres::Number, sy
 	layout = Layout(
 		template = template,
 		shapes=shapes, annotations = annotations,
-		height = 1080*yh, width = 1920*0.65, legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
+		legend = attr(y=0, yref="paper", x=0.5, xanchor="center", xref="paper"),
 		xaxis1 = attr(domain = [0a, a-2bx], anchor="y1"),
 		xaxis2 = attr(domain = [1a+bx, 2a-bx], anchor="y2"),
 		xaxis3 = attr(domain = [2a+2bx, 3a], anchor="y3"),

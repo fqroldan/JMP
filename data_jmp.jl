@@ -390,6 +390,27 @@ function save_SPA_targets()
 	CSV.write("SPA_targets.csv", df);
 end
 
+function SPA_comp(; datadir = "../Data/", init = Date("2010-01-01"))
+	df = load_all(datadir)
+	df = df[df.GEO.=="Spain",:]
+	rename!(df, "gdp" => "GDP", "cons" => "C_hh", "TIME" => "date")
+
+	df = df[df.date .>= Date("2008-01-01"),:]
+	df = df[df.date .<= Date("2013-01-01"),:]
+
+	GDP08 = df.GDP[df.date .== init]
+	cons = df.C_hh
+	cons08 = cons[df.date .== init]
+
+	Yn = 100 * df.GDP ./ GDP08
+	Cn = 100 * cons ./ cons08
+	
+	dfn = DataFrame(:date => df.date, :Y => Yn, :C => Cn, :spread => df.spread, :debt => df.debt, :unemp => df.unemp)
+
+	dfn = dfn[dfn.date .>= init,:]
+	dfn
+end
+
 function SPA_CvY(country::String="Spain"; loaddir = "../Data/", slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 1, sh=true)
 
 	# df = load_SPA()

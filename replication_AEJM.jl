@@ -62,6 +62,8 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
 
     pIRF_bench, t1, t2, pIRF_nodef, pIRF_samep = load("../Rep2/IRF.jld2", "pIRF_bench", "t1", "t2", "pIRF_nodef", "pIRF_samep");
 
+    pIRF_bench1, pIRF_hi, pIRF_lo = load("../Rep2/IRF_cs.jld2", "pIRF_bench", "pIRF_hi", "pIRF_lo")
+
     freq_bench = get_def_freq(p_bench)
     v_nodef = simul_stats(p_nodef)
     freq_nodef = get_def_freq(p_nodef)
@@ -133,6 +135,8 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     fig9 = panels_crises_small(p_bench, 400, :spread, k = 1, k_back = 11, thres_back = 350, slides = false)
     savefig(fig9, folder * "panels_crises_paper.pdf", width = 1100, height = 550)
 
+    fig9b = panels_crises_data(p_bench, 400, :spread, k = 1, k_back = 11, thres_back = 350, slides = false)
+    
     # Figure 10: Crises
     fig10 = panels_comp(p_bench, p_nodef, 400, :spread, thres_back = 350, k = 1, k_back = 11, slides = false, yh = 0.55, relative = true)
     savefig(fig10, folder * "panels_comp_paper.pdf", width = 1100, height = 550)
