@@ -322,7 +322,7 @@ function load_GDP_SPA()
 	return df
 end
 
-function load_SPA()
+function load_SPA(; loaddir = "../Data/")
 	df = load_GDP_SPA()
 
 	data_rates = readxl(loaddir * "/Eurostat aggregates/Spain_rates.xls", "Data!B10:D101")
@@ -505,10 +505,13 @@ function load_nw(country::String="Spain", loaddir ="../Data/")
 	return df
 end
 
-function make_nw_levels(; levels=false)
+function make_nw_levels(; levels=false, slides = true, dark = false, template = qtemplate(;slides, dark))
 
 	df1 = load_nw("Spain")
-	dfr = load_GDP_SPA()
+	dfr = load_all("../Data/")
+	dfr = dfr[dfr.GEO.=="Spain",:]
+	rename!(dfr, "gdp" => "GDP", "TIME" => "date")
+
 	df2 = DataFrame(date = dfr.date, GDP = dfr.GDP)
 
 	df = innerjoin(df1, df2, on="date")
@@ -536,10 +539,9 @@ function make_nw_levels(; levels=false)
 		bar(x=df.date, y=-df.liabilities, name="Liabilities", opacity=0.5, marker_color=get(ColorSchemes.lajolla, 0.6, :extrema), legendgroup=2)
 		scatter(x=df.date, y=-df.liabilities, name="Assets", marker_color=get(ColorSchemes.lajolla, 0.6, :extrema), legendgroup=2, line_width = 1.5, hoverinfo="skip", showlegend=false, line_shape="spline",)
 		scatter(x=df.date, y=df.net_worth, name="Net Worth", marker_color="black", line_width=3)
-	], style=slides_def,
-	Layout(barmode="overlay", title="Household sector balance sheet", yaxis_title=ytitle,
-	shapes = shapes,
-	font = attr(family = "Lato", size = 16),
+	], 
+	Layout(template = template, barmode="overlay", title="Household sector balance sheet", yaxis_title=ytitle,
+	shapes = shapes, xaxis_domain = [0.02, 1],
 	legend = attr(orientation="h", x=0.05), hovermode = "x",
 	)
 	)

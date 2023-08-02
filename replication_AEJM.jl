@@ -40,7 +40,7 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
 
     sd_hi, sd_lo = load("../Rep2/SOEdef_alt.jld2", "sd_hi", "sd_lo");
 
-    pIRF_bench1, _, _, pIRF_hi, pIRF_lo = IRF_default_comp(sd_bench, sd_nodef, sd_hi, sd_lo, 1, 11, 9, B0=4, K = 5000)
+    pIRF_bench1, _, _, pIRF_hi, pIRF_lo = IRF_default_comp(sd_bench, sd_nodef, sd_hi, sd_lo, 1, 11, 9, B0=4, K = 5000) # Default B = 4
     save("../Rep2/IRF_cs.jld2", "pIRF_bench", pIRF_bench1, "pIRF_hi", pIRF_hi, "pIRF_lo", pIRF_lo)
 
 
@@ -76,6 +76,9 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     # Figure 2: Net Worth of Spanish Households
     fig2 = make_nw(loaddir = datadir, with_annot = false, slides = false)
     savefig(fig2, folder * "networth_ALN_SPA.pdf", width = 900, height = 300)
+
+    fig23_app = make_nw_levels(;levels = true, slides = false)
+    savefig(fig23_app, folder * "networth_levels.pdf", width = 900, height = 350)
 
     # Table 1: Correlation of Spreads and Macroeconomic Outcomes
     regs_sec2(df_all, savedir = folder)
@@ -185,12 +188,12 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     fig22 = make_FLP(; slides = false)
     savefig(fig22, folder * "factorsLP_paper.pdf", width = 900, height = 350)
 
-    # Figure 23: Estimated Fiscal rules
+    # Figure 24: Estimated Fiscal rules
     ## Done along with table 2
 
-    # Figure 24: Interest rates in Spain
-    fig24_bor = plot_borrowing(slides = false)
-    savefig(fig24_bor, folder * "borrowingrates_paper.pdf", width = 1000, height = 500)
-    fig24_dep = plot_deposit(slides = false)
-    savefig(fig24_dep, folder * "depositrates_paper.pdf", width = 1000, height = 500)
+    # Figure 25: Interest rates in Spain
+    fig25_bor = plot_borrowing(slides = false)
+    savefig(fig25_bor, folder * "borrowingrates_paper.pdf", width = 1000, height = 500)
+    fig25_dep = plot_deposit(slides = false)
+    savefig(fig25_dep, folder * "depositrates_paper.pdf", width = 1000, height = 500)
 end
