@@ -627,16 +627,31 @@ function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; slides =
         C1 = Cmat[1, :]
         G1 = Gmat[1, :]
 
-		df = DataFrame(:Y1 => Y1, :C1 => C1, :G1 => G1, :Y2 => Y2, :C2 => C2, :G2 => G2)
+        Ys = Y2 ./ Y1 .- 1
+        Cs = C2 ./ C1 .- 1
 
-		r1 = reg(df, @formula(Y2 ~ Y1 + G1))
-        r2 = reg(df, @formula(Y2 ~ Y1 + G2))
-		r4 = reg(df, @formula(Y2 ~ (G2 ~ G1) + Y1))
+		df = DataFrame(:Y1 => Y1, :C1 => C1, :G1 => G1, :Y2 => Y2, :C2 => C2, :G2 => G2, :Ys => Ys, :Cs => Cs)
 
-		regtable(r1, r2, r4, regression_statistics = [:nobs, :r2])
+		r1 = reg(df, @formula(Ys ~ Y1 + G1))
+        r2 = reg(df, @formula(Ys ~ Y1 + G2))
+		r3 = reg(df, @formula(Ys ~ (G2 ~ G1) + Y1))
+
+        r4 = reg(df, @formula(Cs ~ C1 + G1))
+        r5 = reg(df, @formula(Cs ~ C1 + G2))
+        r6 = reg(df, @formula(Cs ~ (G2 ~ G1) + C1))
+
+		regtable(r1, r2, r3, r4, r5, r6, regression_statistics = [:nobs, :r2])
+
+		Gv = range(extrema(G1)..., length = 100)
+		Yhat = coef(r1)[1] .+ coef(r1)[3] * Gv .+ coef(r1)[2] * mean(Y1)
+
+		# return plot([
+		# 	scatter(x = G1, y = Ys, mode = "markers")
+		# 	scatter(x = Gv, y = Yhat)
+		# ])
 
 		if length(filename) > 0
-            regtable(r1, r2, r4, regression_statistics=[:nobs, :r2], renderSettings=latexOutput(filename), labels=Dict("Y2" => "\$Y_{T}\$", "Y1" => "\$Y_{t_0}\$", "G1" => "Gini\$_{t_0}\$", "G2" => "Gini\$_{T}\$"))
+            regtable(r1, r2, r3, r4, r5, r6, regression_statistics=[:nobs, :r2], renderSettings=latexOutput(filename), labels=Dict("Ys" => "\$\\frac{Y_{T}}{Y_{t_0}} - 1\$", "Y2" => "\$Y_{T}\$", "Y1" => "\$Y_{t_0}\$", "Cs" => "\$\\frac{C_{T}}{C_{t_0}} - 1\$", "C2" => "\$C_{T}\$", "C1" => "\$C_{t_0}\$", "G1" => "Gini\$_{t_0}\$", "G2" => "Gini\$_{T}\$"))
 		end
 	end
 
