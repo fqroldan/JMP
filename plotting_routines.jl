@@ -1412,9 +1412,48 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 
 	if give_stats
 
+        G1 = 100 * [series(p, :Gini)[1] for p in pv_bench]
+        Y1 = 100 * [series(p, :Y)[1] for p in pv_bench]
+        C1 = 100 * [series(p, :C)[1] for p in pv_bench]
+        
+        G2 = 100 * [series(p, :Gini)[t2] for p in pv_bench]
+		Y2 = 100 * [series(p, :Y)[t2] for p in pv_bench]
+		C2 = 100 * [series(p, :C)[t2] for p in pv_bench]
+
+        Yd = 100 * [series(p, :Y)[t2] / series(p, :Y)[1] - 1 for p in pv_bench]
+        Cd = 100 * [series(p, :C)[t2] / series(p, :C)[1] - 1 for p in pv_bench]
+
+        df = DataFrame(:G1 => G1, :Y2 => Y2, :C2 => C2, :G2 => G2, :Y1 => Y1, :C1 => C1, :Yd => Yd, :Cd => Cd)
+		regY = lm(@formula(Yd ~ G1), df)
+        regC = lm(@formula(Cd ~ G1), df)
+
+		Yhat = predict(regY)
+        Chat = predict(regC)
+
+		annotations = [
+            attr(text="Output", font_size=20, x=0.25, xref="paper", xanchor="center", y = 1, yref = "paper", yanchor = "bottom", showarrow=false)
+            attr(text="Consumption", font_size=20, x=0.75, xref="paper", xanchor="center", y = 1, yref = "paper", yanchor = "bottom", showarrow=false)
+        ]
+
 		p = plot([
-			scatter(x = [mean(series(p, :Gini)[t] for p in pv) for t in (1+t1, t2)], y = [mean(series(p, :Y)[t]./series(p,:Y)[1] for p in pv) for t in (1+t1, t2)]) for pv in (pv_bench, pv_nodef, pv_samep)
-		])
+			scatter(x = G1, y = Yd, showlegend = false, mode = "markers", marker_color = colbench, xaxis="x1", yaxis="y1")
+			scatter(x = G1, y = Yhat, showlegend = false, mode = "line", line = attr(dash="solid", color = colsamep), xaxis="x1", yaxis="y1")
+			scatter(x = G1, y = Cd, showlegend = false, mode = "markers", marker_color = colbench, xaxis="x2", yaxis="y2")
+			scatter(x = G1, y = Chat, showlegend = false, mode = "line", line = attr(dash="solid", color = colsamep), xaxis="x2", yaxis="y2")
+		], Layout(
+			annotations = annotations,
+			template = template,
+			xaxis1 = attr(domain = [0, 0.45], title = "Initial Gini", anchor = "y1"),
+			xaxis2 = attr(domain = [0.55, 1], title = "Initial Gini", anchor = "y2"),
+			yaxis1 = attr(title = "% deviation", anchor = "x1"),
+			yaxis2 = attr(title = "% deviation", anchor = "x2"),
+		)
+		)
+		
+		println("Regression for output")
+		println(coeftable(regY))
+        println("Regression for consumption")
+        println(coeftable(regC))
 
 		return p
 	end

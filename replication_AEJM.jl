@@ -157,6 +157,9 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     fig13 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y = 0.95, slides = false)
     savefig(fig13, folder * "defaultriskIRF_paper.pdf", width = 1100, height = 550)
 
+    fig13b = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y=0.95, slides=false, give_stats=true)
+    savefig(fig13b, folder * "IRFineq_paper.pdf", width=900, height=350)
+
     fig19_app = panels_IRF_wdata(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y = 0.95, slides=false)
     savefig(fig19_app, folder * "panelsIRF_wdata_paper.pdf", width=900, height=500)
 
