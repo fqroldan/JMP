@@ -134,8 +134,8 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     # Table 6: The Welfare Costs of Sovereign Risk
     write(folder * "welfare_table.txt", make_welfare_table(p_bench, p_nodef))
 
-    # Figure 9: Times of High Spreads
-    fig9 = panels_crises_small(p_bench, 400, :spread, k = 1, k_back = 11, thres_back = 350, slides = false)
+    # Figure 9: Times of High Spreads (also produces Table 7)
+    fig9 = panels_crises_small(p_bench, 400, :spread, k = 1, k_back = 11, thres_back = 350, slides = false, filename = folder * "/tab7.txt")
     savefig(fig9, folder * "panels_crises_paper.pdf", width = 1100, height = 550)
 
     # Figure 10: Crisis dynamics in model and data

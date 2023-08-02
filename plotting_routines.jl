@@ -586,7 +586,7 @@ function distribution_crises(pv::Vector{T}, thres::Number, sym::Symbol; slides =
 	plot(data, layout)
 end
 
-function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf) where T<:AbstractPath
+function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), yh = 0.65, type="highspreads", indiv=false, k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf, filename = "", get_stats=(length(filename)>0)) where T<:AbstractPath
 	Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type=type)
 
 	println("$Nc episodes")
@@ -613,6 +613,33 @@ function panels_crises_small(pv::Vector{T}, thres::Number, sym::Symbol; slides =
 	ytitle[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:Y, :C]]] .= "% dev from mean"
 	ytitle[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:BoY, :ToY, :meanY]]] .= "% of GDP"
 	ytitle[[jj for jj in eachindex(keyvec) if keyvec[jj] in [:spread]]] .= "bps"
+
+	if get_stats
+        Ymat, _ = series_crises(pv, tvv, :Y, k, k_back)
+        Cmat, _ = series_crises(pv, tvv, :C, k, k_back)
+        Gmat, _ = series_crises(pv, tvv, :Gini, k, k_back)
+
+		Y2 = Ymat[end-1, :]
+        C2 = Cmat[end-1, :]
+        G2 = Gmat[end-1, :]
+
+        Y1 = Ymat[1, :]
+        C1 = Cmat[1, :]
+        G1 = Gmat[1, :]
+
+		df = DataFrame(:Y1 => Y1, :C1 => C1, :G1 => G1, :Y2 => Y2, :C2 => C2, :G2 => G2)
+
+		r1 = reg(df, @formula(Y2 ~ Y1 + G1))
+        r2 = reg(df, @formula(Y2 ~ Y1 + G2))
+		r4 = reg(df, @formula(Y2 ~ (G2 ~ G1) + Y1))
+
+		regtable(r1, r2, r4, regression_statistics = [:nobs, :r2])
+
+		if length(filename) > 0
+            regtable(r1, r2, r4, regression_statistics=[:nobs, :r2], renderSettings=latexOutput(filename), labels=Dict("Y2" => "\$Y_{T}\$", "Y1" => "\$Y_{t_0}\$", "G1" => "Gini\$_{t_0}\$", "G2" => "Gini\$_{T}\$"))
+		end
+	end
+
 	
 	data = Vector{GenericTrace{Dict{Symbol,Any}}}(undef, 0)
 	for (jj, key) in enumerate(keyvec)
