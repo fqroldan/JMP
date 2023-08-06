@@ -405,7 +405,7 @@ function SPA_comp(; datadir = "../Data/", init = Date("2010-01-01"))
 	Yn = 100 * df.GDP ./ GDP08
 	Cn = 100 * cons ./ cons08
 	
-	dfn = DataFrame(:date => df.date, :Y => Yn, :C => Cn, :spread => df.spread, :debt => df.debt, :unemp => df.unemp)
+	dfn = DataFrame(:date => df.date, :Y => Yn, :C => Cn, :spread => df.spread, :BoY => df.debt, :unemp => df.unemp, :GoY => df.g_spend)
 
 	dfn = dfn[dfn.date .>= init,:]
 	dfn

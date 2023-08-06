@@ -756,13 +756,10 @@ function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = 
 
 	df = SPA_comp()
 
-	for sc in [
-        sc_data(df.Y; k_back, k, legendgroup=4, ax=1)
-        sc_data(df.C; k_back, k, legendgroup=4, ax=2)
-        sc_data(df.spread; k_back, k, legendgroup=4, ax=3)
-        sc_data(df.debt; k_back, k, legendgroup=4, ax=4)
-	]
-		push!(data,sc)
+	for jj in eachindex(keyvec)
+		push!(data,
+			sc_data(df[!, keyvec[jj]]; k_back, k, legendgroup = 4, ax = jj)
+			)
     end
 
     a = 1 / 2
