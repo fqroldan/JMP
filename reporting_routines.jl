@@ -229,7 +229,7 @@ end
 
 function make_welfare_table(p_bench, p_nodef)
 
-	table = "\\begin{tabular*}{.55\\textwidth}{@{\\extracolsep{\\fill}}l*{3}c@{}} \\toprule \n"
+	table = "\\begin{tabular*}{.65\\textwidth}{@{\\extracolsep{\\fill}}l*{3}c@{}} \\toprule \n"
 	colnames = ["\\textbf{Moment}", "\\textbf{Benchmark}", "\\textbf{No default}", "\\textbf{Gains}"]
 	rownames = ["\$\\,p10\$", "\$\\,p25\$", "\$\\,p50\$", "\$\\,p75\$", "\$\\,p90\$", "Average"]
 	varnames = [:Wr10, :Wr25, :Wr50, :Wr75, :Wr90, :Wr]
