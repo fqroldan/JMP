@@ -1,4 +1,4 @@
-using QuantEcon, BasisMatrices, Interpolations, Optim, LaTeXStrings, Distributions, HCubature, Distributed, Dates, ForwardDiff, Printf, Random, LinearAlgebra, DataFrames, GLM, PlotlyJS, ColorSchemes, CSV, JLD2, FileIO
+using QuantEcon, Interpolations, Optim, Distributions, HCubature, Distributed, Dates, ForwardDiff, Printf, Random, LinearAlgebra, DataFrames, GLM, PlotlyJS, ColorSchemes, CSV, JLD2, FileIO
 using JSON
 
 include("type_def.jl")

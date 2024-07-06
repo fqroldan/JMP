@@ -5,16 +5,16 @@ print("Make sure folder '../Replication' exists and is empty and '../Output/' co
 include("main_serial.jl")
 include("data_jmp.jl")
 include("data_rates.jl")
-# include("minimal_oneagent.jl")
+include("minimal_oneagent.jl")
 
 function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", datadir = "../Data/")
     sd_bench = load(loaddir*"SOEdef.jld2", "sd");
     mpe_iter!(sd_bench, run_number = 1)
     K = 500
     T = 400*K
-    g, p_bench, _, _, _ = make_simulated_path(sd_bench, loaddir*"run1/", T, K = K, datadir = datadir);
+    g, p_bench, _, _, _, disc = make_simulated_path(sd_bench, loaddir*"run1/", T, K = K; datadir);
     Wr_bench = mean([mean(series(p, :Wr)) for p in p_bench])
-    save(folder * "SOEdef.jld2", "sd", sd_bench, "pp", p_bench, "Wr", Wr_bench)
+    save(folder * "SOEdef.jld2", "sd", sd_bench, "pp", p_bench, "Wr", Wr_bench, "disc", disc)
 
     sd_nodef = load(loaddir*"SOEdef_nodef.jld2", "sd");
     mpe_iter!(sd_nodef, run_number = 2, nodef = true)
@@ -38,7 +38,7 @@ function resolve_resimulate(folder = "../Replication/"; loaddir = "../Output/", 
     # Wr_alt = mean([mean(series(p, :Wr)) for p in p_alt])
     # save("../Rep2/SOEdef_alt.jld2", "sd", sd_alt, "pp", p_alt, "Wr", Wr_alt)
 
-    sd_hi, sd_lo = load("../Rep2/SOEdef_alt.jld2", "sd_hi", "sd_lo");
+    sd_hi, sd_lo = load("Rep2/SOEdef_alt.jld2", "sd_hi", "sd_lo");
 
     pIRF_bench1, _, _, pIRF_hi, pIRF_lo = IRF_default_comp(sd_bench, sd_nodef, sd_hi, sd_lo, 1, 11, 9, B0=4, K = 5000) # Default B = 4
     save("../Rep2/IRF_cs.jld2", "pIRF_bench", pIRF_bench1, "pIRF_hi", pIRF_hi, "pIRF_lo", pIRF_lo)
@@ -68,6 +68,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     v_nodef = simul_stats(p_nodef)
     freq_nodef = get_def_freq(p_nodef)
 
+    sd_hi, sd_lo = load(folder * "../Rep2/SOEdef_alt.jld2", "sd_hi", "sd_lo")
 
     # Figure 1: Spanish Output and Consumption in the 2000s
     fig1 = SPA_CvY(loaddir = datadir, slides = false, sh = false)
@@ -77,7 +78,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     fig2 = make_nw(loaddir = datadir, with_annot = false, slides = false)
     savefig(fig2, folder * "networth_ALN_SPA.pdf", width = 900, height = 300)
 
-    fig24_app = make_nw_levels(;levels = true, slides = false)
+    fig24_app = make_nw_levels(datadir; levels = true, slides = false)
     savefig(fig24_app, folder * "networth_levels.pdf", width = 900, height = 350)
 
     # Table 1: Correlation of Spreads and Macroeconomic Outcomes
@@ -105,10 +106,12 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     savefig(fig19, folder * "fiscalrules_paper.pdf", width = 800, height = 400)
 
     # Table 3: Parameter Values
+    # println(make_params_table(sd_bench))
     write(folder * "params_table.txt", make_params_table(sd_bench))
 
     # Table 4: Model Fit
     v_bench = simul_stats(p_bench)
+    # println(make_calib_table(v_bench, loaddir=datadir))
     write(folder * "calib_table.txt", make_calib_table(v_bench, loaddir = datadir))
 
     # Figure 6: Welfare Functions
@@ -124,6 +127,12 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     savefig(fig8, folder * "unemp_paper.pdf", width = 900, height = 350)
 
     # Table 5: Models
+    # println(
+    #     make_calib_table_comp(
+    #         [v_bench; 100 * freq_bench; W_bench],
+    #         [v_nodef; 100 * freq_nodef; W_nodef],
+    #     )
+    # )
     write(folder * "calib_table_comp.txt",
         make_calib_table_comp(
             [v_bench; 100 * freq_bench; W_bench],
@@ -132,6 +141,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     )
 
     # Table 6: The Welfare Costs of Sovereign Risk
+    # println(make_welfare_table(p_bench, p_nodef))
     write(folder * "welfare_table.txt", make_welfare_table(p_bench, p_nodef))
 
     # Figure 9: Times of High Spreads (also produces Table 7)
@@ -139,7 +149,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     savefig(fig9, folder * "panels_crises_paper.pdf", width = 1100, height = 550)
 
     # Figure 10: Crisis dynamics in model and data
-    fig10 = panels_crises_data(p_bench, 400, :spread, k = 1, k_back = 11, thres_back = 350, slides = false)
+    fig10 = panels_crises_data(p_bench, 400, :spread; k = 1, k_back = 11, thres_back = 350, slides = false, datadir)
     savefig(fig10, folder * "panels_wdata_paper.pdf", width=900, height=500)
 
     # Figure 11: Crises
@@ -161,7 +171,7 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     fig14 = panels_IRF(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y=0.95, slides=false, give_stats=true)
     savefig(fig14, folder * "IRFineq_paper.pdf", width=900, height=350)
 
-    fig20_app = panels_IRF_wdata(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y = 0.95, slides=false)
+    fig20_app = panels_IRF_wdata(pIRF_bench, pIRF_nodef, pIRF_samep, cond_Y = 0.95, slides=false; datadir)
     savefig(fig20_app, folder * "panelsIRF_wdata_paper.pdf", width=900, height=500)
 
     # Figure 15: Default-risk IRFs and tax progressivity
@@ -182,22 +192,22 @@ function replicate(folder = "../Replication/"; loaddir = "../Output/", datadir =
     ## This one is done in TikZ on the paper itself
 
     # Table 7: Discrepancies in Simulation
-    # Get values from make_simulated_path(sd_bench,...)
+    # make_simulated_path(sd_bench,...)
 
     # Figure 22: Transfers
     fig22 = make_panels(sd_bench, "T", slides = false, leg = false)
     savefig(fig22, folder * "transfers_paper.pdf", width = 800, height = 250)
 
     # Figure 23: Factors limiting production
-    fig23 = make_FLP(; slides = false)
+    fig23 = make_FLP(datadir; slides = false)
     savefig(fig23, folder * "factorsLP_paper.pdf", width = 900, height = 350)
 
     # Figure 25: Estimated Fiscal rules
     ## Done along with table 2
 
     # Figure 26: Interest rates in Spain
-    fig26_bor = plot_borrowing(slides = false)
+    fig26_bor = plot_borrowing(slides = false; datadir)
     savefig(fig26_bor, folder * "borrowingrates_paper.pdf", width = 1000, height = 500)
-    fig26_dep = plot_deposit(slides = false)
+    fig26_dep = plot_deposit(slides = false; datadir)
     savefig(fig26_dep, folder * "depositrates_paper.pdf", width = 1000, height = 500)
 end

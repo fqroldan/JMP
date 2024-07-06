@@ -706,7 +706,7 @@ function parsimul(sd::SOEdef; ϕ=sd.ϕ, simul_length::Int64=1, burn_in::Int64=1,
 	end
 
 	N = sum(Ndefs)
-	return pv, N
+	return pv, N, discr_tot
 end
 
 function get_AR1(y::Vector)

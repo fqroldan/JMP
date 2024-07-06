@@ -112,11 +112,19 @@ function load_all(loaddir = "../Data/")
 	data.debt0_temp = ifelse.(data.TIME .== Date("2007-01-01"), data.debt, missing)
 	data.GERint_temp = ifelse.(data.GEO.=="Germany", data.rates, missing)
 	gdf = groupby(data, :GEO)
-	data.debt_lag = combine(gdf, :debt => Base.Fix2(lag, 1) => :x).x
-	data.debt_lead = combine(gdf, :debt => Base.Fix2(lead, 1) => :x).x
-	data.debt_level_lead = combine(gdf, :debt_level => Base.Fix2(lead, 1) => :x).x
 
-	data.cpi_lag = combine(gdf, :cpi => Base.Fix2(lag, 4) => :x).x
+	data = transform(gdf, 
+		:debt => Base.Fix2(lag,1) => :debt_lag,
+		:debt => Base.Fix2(lead, 1) => :debt_lead,
+		:debt_level => Base.Fix2(lead, 1) => :debt_level_lead,
+		:cpi => Base.Fix2(lag, 4) => :cpi_lag,
+	)
+
+	# data.debt_lag = combine(gdf, :debt => Base.Fix2(lag, 1) => :x).x
+	# data.debt_lead = combine(gdf, :debt => Base.Fix2(lead, 1) => :x).x
+	# data.debt_level_lead = combine(gdf, :debt_level => Base.Fix2(lead, 1) => :x).x
+	# data.cpi_lag = combine(gdf, :cpi => Base.Fix2(lag, 4) => :x).x
+
 	data.inflation = ((data.cpi ./ data.cpi_lag).^1 .- 1) * 100
 
 	temp = combine(gdf, :debt0_temp => (x->maximum(skipmissing(x))) => :debt0)
@@ -170,6 +178,10 @@ function regs_fiscalrules(df::DataFrame; slides = true, dark = slides, template:
     # df = df[df.TIME .<= Date("2010-01-01"),:]
 
     df.net_iss = (df.debt_level_lead - (1 - 0.05) * df.debt_level) ./ df.gdp
+
+	# @show (df[df.GEO.=="Spain",:].debt_level)
+    # @show (df[df.GEO.=="Spain", :].debt)
+    # @show (df[df.GEO.=="Spain", :].gdp)
 
     df.unemp2 = df.unemp .^ 2
     df.BoverY2 = df.debt .^ 2
@@ -505,10 +517,10 @@ function load_nw(country::String="Spain", loaddir ="../Data/")
 	return df
 end
 
-function make_nw_levels(; levels=false, slides = true, dark = false, template = qtemplate(;slides, dark))
+function make_nw_levels(loaddir="../Data/"; levels=false, slides = true, dark = false, template = qtemplate(;slides, dark))
 
-	df1 = load_nw("Spain")
-	dfr = load_all("../Data/")
+	df1 = load_nw("Spain", loaddir)
+	dfr = load_all(loaddir)
 	dfr = dfr[dfr.GEO.=="Spain",:]
 	rename!(dfr, "gdp" => "GDP", "TIME" => "date")
 

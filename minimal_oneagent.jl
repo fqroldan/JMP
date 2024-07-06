@@ -1,4 +1,4 @@
-using QuantEcon, Distributions, ForwardDiff, Optim, PlotlyJS, ColorSchemes, ProgressBars
+using QuantEcon, Distributions, ForwardDiff, Optim, PlotlyJS, ColorSchemes
 
 """ Define styles """
 
@@ -255,7 +255,7 @@ function makeplots_minimal(sm::SOEmin; move, optim_debt = false, slides = true, 
 	# Δvec = Δvec[2:end]
 
 	cT, h, cN, s, v, μ, q, d, π = [zeros(length(Δvec), 2) for jj in 1:9]
-	for ii in ProgressBar(eachindex(Δvec))
+	for ii in eachindex(Δvec)
 		for (jj, pl) in enumerate([true, false])
 			if move == "d"
 				cT[ii,jj], h[ii,jj], cN[ii,jj], s[ii,jj], v[ii,jj], μ[ii,jj], q[ii,jj], d[ii,jj], π[ii,jj] = solve_period1(sm, debt = Δvec[ii], planner = pl)
@@ -318,7 +318,7 @@ function minimal_twoagents(γ = 4; slides = true, dark = slides, template::Templ
 		yaxis = attr(title = "Size of transfer (% of agg. consumption)", tick_padding=200),
 		)
 
-	plot(contour(x=100πvec, y=100kvec, z=100 * [c(k,π,γ)/c(0,0,γ) - 1 for π in πvec, k in kvec], line_width=0.1, contours=Dict(:start=>0,:end=>-2.5, :size=>0.125, :coloring=>"fill"), colorbar=attr(tick0=0, dtick=0.5)), layout)
+	plot(contour(x=100πvec, y=100kvec, z=100 * [c(k,π,γ)/c(0,0,γ) - 1 for π in πvec, k in kvec], line_width=0.1, colorscale = ColorSchemes.davos, contours=Dict(:start=>0,:end=>-2.5, :size=>0.125, :coloring=>"fill"), colorbar=attr(tick0=0, dtick=0.5)), layout)
 end
 
 function equil_period1(sm::SOEmin, f::Function; Δv, dv, planner)

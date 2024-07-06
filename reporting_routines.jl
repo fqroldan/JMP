@@ -1,4 +1,4 @@
-function print_save(s::String, dir::String = pwd()*"/../Output/")
+function print_save(s::String, dir::String = pwd()*"/Output/")
 	print(s)
 	output = read(dir * "output.txt", String)
 	write(dir * "output.txt", output * s)

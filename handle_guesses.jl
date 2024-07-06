@@ -159,12 +159,12 @@ function prep_table(pp, folder="../Data/")
 end
 
 function make_simulated_path(sd::SOEdef, savedir, years=100; ϕ=sd.ϕ, K=Threads.nthreads(), datadir = "../Data/")
-	pp, Ndefs = parsimul(sd; ϕ=ϕ, simul_length=4*years, burn_in=1+4*100, K=K)
+	pp, Ndefs, disc = parsimul(sd; ϕ=ϕ, simul_length=4*years, burn_in=1+4*100, K=K)
 	Tyears = floor(Int64,periods(pp)*0.25)
 	def_freq = Ndefs/Tyears
 	print_save("\n$Ndefs defaults in $Tyears years: default freq = $(round(1000*def_freq)/10)%")
 	# print_save("\nAverage Gini coefficient: $(@sprintf("%0.3g",100*mean([mean(series(path,:Gini)) for path in pp])))")
-	save(savedir*"p_bench.jld2", "pp", pp, "Ndefs", Ndefs)
+	save(savedir*"p_bench.jld2", "pp", pp, "Ndefs", Ndefs, "disc", disc)
 	
 	# pl = plot_simul(path)
 
@@ -173,10 +173,10 @@ function make_simulated_path(sd::SOEdef, savedir, years=100; ϕ=sd.ϕ, K=Threads
 	# make_IRF_plots(path; slides = true, create_plots = true, response = resp, savedir=savedir) # for resp = Y, C
 	g, targets, v_m = prep_table(pp, datadir)
 
-	calib_table = make_calib_table(v_m)
+	calib_table = make_calib_table(v_m, loaddir = datadir)
 	write(savedir * "calib_table.txt", calib_table)
 
-	return g, pp, πthres, v_m, def_freq
+	return g, pp, πthres, v_m, def_freq, disc
 end
 function pass_CE!(sd::SOEdef, sdg::SOEdef)
 	sd.gr[:μ] = sdg.gr[:μ]

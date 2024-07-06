@@ -180,10 +180,10 @@ function make_unemp(sd::SOEdef; slides = true, dark = slides, template::Template
 	min_z = min(min_z1, min_z2)
 	max_z = max(max_z1, max_z2)
 
-	data1 = makecontour(sd, U_matbz, :b, :z, min_z, max_z, f2=x->100x, suffix="%")
+	data1 = makecontour(sd, U_matbz, :b, :z, min_z, max_z, f2=x->100x, suffix="%", reversescale = true)
 	data1[:colorbar_tick0] = 0
 	data1[:colorbar_dtick] = 5
-	data2 = makecontour_μσ(sd, U_matμσ, min_z, max_z, suffix="%")
+	data2 = makecontour_μσ(sd, U_matμσ, min_z, max_z, suffix="%", reversescale = true)
 	data2[:colorbar_tick0] = 0
 	data2[:colorbar_dtick] = 5
 
@@ -208,8 +208,8 @@ function make_debtprice(sd::SOEdef; slides = true, dark = slides, template::Temp
 	qg_matμσ = [reshape_long(sd, sd.eq[:qᵍ])[jb, jμ, jσ, jξ, jζ, jz] for (jμ, μv) in enumerate(sd.gr[:μ]), (jσ,σv) in enumerate(sd.gr[:σ])]
 	
 
-	data1 = makecontour(sd, qg_matbz, :b, :z, 0.4, 1, f2=x->100x, xpad = 15, reversescale=true)
-	data2 = makecontour_μσ(sd, qg_matμσ, 0.4, 1, xpad = 15, reversescale=true)
+	data1 = makecontour(sd, qg_matbz, :b, :z, 0.4, 1, f2=x->100x, xpad = 15, reversescale=false)
+	data2 = makecontour_μσ(sd, qg_matμσ, 0.4, 1, xpad = 15, reversescale=false)
 
 	data = [data1, data2]
 	# data = data1
@@ -723,7 +723,7 @@ function sc_data(y; k_back, k, legendgroup::Int, ax::Int)
 	scatter(x=(-k_back:k) / 4, y=y; yaxis, xaxis, mode="lines", line_color="black", line_dash = "dashdot", line_width = 2, name = "Data", legendgroup, showlegend = (ax==1))
 end
 
-function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf, kwargs...) where T<:AbstractPath
+function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = true, dark = slides, template::Template=qtemplate(slides=slides, dark=dark), k=8, symmetric=false, k_back=2k -k*symmetric, thres_back::Number=Inf, datadir = "../Data/", kwargs...) where T<:AbstractPath
     Nc, tvv = get_crises(pv, thres, sym, k, k_back, thres_back, type="highspreads")
 
     println("$Nc episodes")
@@ -754,7 +754,7 @@ function panels_crises_data(pv::Vector{T}, thres::Number, sym::Symbol; slides = 
         end
     end
 
-	df = SPA_comp()
+	df = SPA_comp(; datadir)
 
 	for jj in eachindex(keyvec)
 		push!(data,
@@ -1592,7 +1592,7 @@ function panels_IRF(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector
 	plot(scats, layout)
 end
 
-function panels_IRF_wdata(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); β=0.9865170273023061, t1=1, t2=12, cond_Y=-Inf, cond_spr=Inf, slides=true, dark=slides, give_stats=false, template::Template=qtemplate(slides=slides, dark=dark), name_samep="No default (same debt issuances)", kwargs...) where {Tp<:Path}
+function panels_IRF_wdata(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::Vector{Tp}=Vector{Path}(undef, 0); β=0.9865170273023061, t1=1, t2=12, cond_Y=-Inf, cond_spr=Inf, slides=true, dark=slides, give_stats=false, template::Template=qtemplate(slides=slides, dark=dark), name_samep="No default (same debt issuances)", datadir = "../Data/",kwargs...) where {Tp<:Path}
     T = periods(pv_bench[1])
     colbench = "rgb(0.36972225,0.47750525,0.62292125)"
     fillbench = "rgba(0.36972225,0.47750525,0.62292125, 0.25)"
@@ -1645,13 +1645,13 @@ function panels_IRF_wdata(pv_bench::Vector{Tp}, pv_nodef::Vector{Tp}, pv_samep::
         end
     end
 
-    df = SPA_comp()
+    df = SPA_comp(; datadir)
 
     for sc in [
         sc_data(df.Y; k_back = 1, k=t2-2, legendgroup=4, ax=1)
         sc_data(df.C; k_back = 1, k=t2-2, legendgroup=4, ax=2)
         sc_data(df.spread; k_back = 1, k=t2-2, legendgroup=4, ax=3)
-        sc_data(df.debt; k_back = 1, k=t2-2, legendgroup=4, ax=4)
+        sc_data(df.BoY; k_back = 1, k=t2-2, legendgroup=4, ax=4)
     ]
         push!(scats, sc)
     end

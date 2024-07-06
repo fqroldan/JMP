@@ -32,11 +32,11 @@ function qtemplate(; dark=false, slides=!dark)
 end
 
 
-plot_borrowing(; slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark)) = plot_data([3, 8, 9, 10, 11, 12], "Borrowing rates", template=template)
-plot_deposit(; slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark)) = plot_data([3, 4, 5, 6, 7], "Deposit rates", template=template)
+plot_borrowing(; slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark), datadir = "../Data/") = plot_data([3, 8, 9, 10, 11, 12], "Borrowing rates"; template, datadir)
+plot_deposit(; slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark), datadir = "../Data/") = plot_data([3, 4, 5, 6, 7], "Deposit rates"; template, datadir)
 
-function plot_data(varvec, title; slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark))
-    dataraw = readxlsheet("../Data/IMFIFS/Interest_Rates.xls", "Interest Rates")
+function plot_data(varvec, title; slides=true, dark=slides, template::Template=qtemplate(slides=slides, dark=dark), datadir = "../Data/")
+    dataraw = readxlsheet(datadir*"/IMFIFS/Interest_Rates.xls", "Interest Rates")
 
     varlabels = convert(Vector{String}, dataraw[8:end, 1])
     varnames = convert(Vector{String}, dataraw[8:end, 3])
